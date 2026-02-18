@@ -249,6 +249,7 @@
         let lastLong = null;
         let lastTime = null;
         let speed = null;
+        let stableCounter = 0;
 
         initMap(latOffice, longOffice, radius);
 
@@ -264,8 +265,6 @@
             let longUser = position.coords.longitude;
             let accuracy = position.coords.accuracy;
             let now = Date.now();
-
-            let stableCounter = 0;
 
             if (accuracy > 75) {
                 gpsReady = false;
@@ -328,13 +327,14 @@
                     currentDistance.toFixed(1) +
                     " meter (Dalam Radius)</span>";
 
-                if (accuracy < 40) {
+                if (accuracy < 75) {
                     stableCounter++;
+                    
                 } else {
                     stableCounter = 0;
                 }
 
-                if (stableCounter >= 5) { // 5 detik stabil
+                if (stableCounter >= 2) { // 5 detik stabil
                     gpsReady = true;
                     toggleAbsenButton(true);
                 }
@@ -354,6 +354,20 @@
             document.getElementById("long_user").value = longUser;
             document.getElementById("accuracy_user").value = accuracy;
             document.getElementById("speed_user").value = speed ?? 0;
+
+            let deviceInfo = {
+                platform: navigator.platform,
+                language: navigator.language,
+                userAgent: navigator.userAgent,
+                screen: window.screen.width + "x" + window.screen.height,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                memory: navigator.deviceMemory || "unknown",
+                cores: navigator.hardwareConcurrency || "unknown"
+            };
+
+                console.log('device', deviceInfo)
+
+                document.getElementById("device_info").value = JSON.stringify(deviceInfo);
 
             if (gpsReady) {
 
@@ -385,18 +399,6 @@
                         // console.log("Skip log, GPS tidak akurat");
                         return;
                     }
-
-                    let deviceInfo = {
-                        platform: navigator.platform,
-                        language: navigator.language,
-                        userAgent: navigator.userAgent,
-                        screen: window.screen.width + "x" + window.screen.height,
-                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        memory: navigator.deviceMemory || "unknown",
-                        cores: navigator.hardwareConcurrency || "unknown"
-                    };
-
-                    document.getElementById("device_info").value = JSON.stringify(deviceInfo);
 
                     fetch("/api/gps-log", {
                         method: "POST",

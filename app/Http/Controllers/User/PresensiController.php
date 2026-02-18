@@ -82,6 +82,8 @@ class PresensiController extends Controller
             return back();
         }
 
+        return $request->device_info;
+
         $security_score = 100;
 
         if ($request->accuracy > 75) {
@@ -114,7 +116,9 @@ class PresensiController extends Controller
         $absensi = Presensi::firstOrCreate(
             [
                 'nik_karyawan' => $user->nik_karyawan,
-                'tanggal' => $today,
+                'tanggal' => $today
+            ],
+            [
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'device_info' => $request->device_info,
