@@ -109,9 +109,9 @@ class PresensiController extends Controller
             $security_score -= 25;
         }
 
-        $is_suspicious = $security_score < 60 ? true : false;
+        $is_suspicious = $security_score < 60 ? "TRUE" : "FALSE";
 
-        $absensi = Presensi::firstOrCreate(
+        $absensi = Presensi::updateOrCreate(
             [
                 'nik_karyawan' => $user->nik_karyawan,
                 'tanggal' => $today
