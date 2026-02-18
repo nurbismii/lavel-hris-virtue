@@ -102,6 +102,9 @@
                     @csrf
                     <input type="hidden" name="lat_user" id="lat_user">
                     <input type="hidden" name="long_user" id="long_user">
+
+                    <input type="hidden" name="accuracy" id="accuracy_user">
+                    <input type="hidden" name="speed" id="speed_user">
                 </form>
             </div>
         </div>
@@ -214,6 +217,25 @@
         return R * c;
     }
 
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371000; // radius bumi dalam meter
+        const toRad = (value) => value * Math.PI / 180;
+
+        const dLat = toRad(lat2 - lat1);
+        const dLon = toRad(lon2 - lon1);
+
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) *
+            Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c; // meter
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
 
         let latOffice = {{$lokasi->lat}};
@@ -224,6 +246,7 @@
         let lastLat = null;
         let lastLong = null;
         let lastTime = null;
+        let speed = null;
 
         initMap(latOffice, longOffice, radius);
 
@@ -240,7 +263,9 @@
             let accuracy = position.coords.accuracy;
             let now = Date.now();
 
-            if (accuracy > 80) {
+            let stableCounter = 0;
+
+            if (accuracy > 75) {
                 gpsReady = false;
                 toggleAbsenButton(false);
 
@@ -251,15 +276,16 @@
                 return;
             }
 
-            if (lastLat !== null) {
+            if (lastLat !== null && lastTime !== null) {
 
                 let distanceMove = getDistance(lastLat, lastLong, latUser, longUser);
                 let timeDiff = (now - lastTime) / 1000; // detik
-                let speed = distanceMove / timeDiff; // m/s
 
-                // Jika > 50 m/s (~180 km/jam) dianggap tidak wajar
-                if (speed > 50) {
+                if (timeDiff > 0) {
+                    speed = distanceMove / timeDiff; // m/s
+                }
 
+                if (speed > 50  && accuracy < 40) {
                     gpsReady = false;
                     toggleAbsenButton(false);
 
@@ -300,8 +326,16 @@
                     currentDistance.toFixed(1) +
                     " meter (Dalam Radius)</span>";
 
-                gpsReady = true;
-                toggleAbsenButton(true);
+                if (accuracy < 40) {
+                    stableCounter++;
+                } else {
+                    stableCounter = 0;
+                }
+
+                if (stableCounter >= 5) { // 5 detik stabil
+                    gpsReady = true;
+                    toggleAbsenButton(true);
+                }
 
             } else {
 
@@ -316,6 +350,61 @@
 
             document.getElementById("lat_user").value = latUser;
             document.getElementById("long_user").value = longUser;
+            document.getElementById("accuracy_user").value = accuracy;
+            document.getElementById("speed_user").value = speed ?? 0;
+
+            if (gpsReady) {
+
+                // Inisialisasi pertama kali
+                if (!window.lastLat) {
+                    window.lastLat = latUser;
+                    window.lastLong = longUser;
+                    window.lastLogTime = Date.now();
+                    return; // jangan log dulu
+                }
+
+                if (Date.now() - window.lastLogTime >= 5000) {
+
+                    const distance = calculateDistance(
+                        window.lastLat,
+                        window.lastLong,
+                        latUser,
+                        longUser
+                    );
+
+                    // Skip kalau perubahan < 3 meter
+                    if (distance < 3 && Date.now() - window.lastLogTime < 60000) {
+                        // console.log("Skip log, perubahan < 3 meter");
+                        return;
+                    }
+
+                    // Optional: Skip kalau GPS tidak akurat
+                    if (accuracy > 75) {
+                        // console.log("Skip log, GPS tidak akurat");
+                        return;
+                    }
+
+                    fetch("/api/gps-log", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-TOKEN": document
+                                .querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({
+                            lat: latUser,
+                            long: longUser,
+                            accuracy: accuracy,
+                            speed: speed ?? 0,
+                        })
+                    }).catch(err => console.log("GPS Log Error:", err));
+
+                    // Update posisi terakhir
+                    window.lastLat = latUser;
+                    window.lastLong = longUser;
+                    window.lastLogTime = Date.now();
+                }
+            }
 
         }, function(error) {
 
@@ -347,9 +436,7 @@
                 form.submit();
 
             });
-
         });
-
     });
 
     function toggleAbsenButton(status) {

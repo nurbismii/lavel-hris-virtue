@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\Presensi;
 use Carbon\Carbon;
@@ -16,7 +17,7 @@ class PresensiController extends Controller
     public function index()
     {
         $title = 'Delete Data!';
-        $text = "Are you sure you want to delete?"; 
+        $text = "Are you sure you want to delete?";
         confirmDelete($title, $text);
 
         $user = Auth::user();
@@ -82,7 +83,7 @@ class PresensiController extends Controller
         }
 
         // Ambil / buat absensi hari ini
-            $absensi = Presensi::firstOrCreate(
+        $absensi = Presensi::firstOrCreate(
             [
                 'nik_karyawan' => $user->nik_karyawan,
                 'tanggal' => $today,
@@ -154,6 +155,33 @@ class PresensiController extends Controller
         toast()->success('Success', 'Presensi berhasil dicatat.');
         return back();
     }
+
+    public function logGps(Request $request)
+    {
+        $request->validate([
+            'lat' => 'required|numeric',
+            'long' => 'required|numeric',
+            'accuracy' => 'nullable|numeric',
+            'speed' => 'nullable|numeric',
+        ]);
+
+        $user = auth()->user();
+
+        LogPresensi::create([
+            'nik_karyawan' => $user->nik_karyawan,
+            'tanggal' => now()->format('Y-m-d'),
+            'lat' => $request->lat,
+            'long' => $request->long,
+            'accuracy' => $request->accuracy,
+            'speed' => $request->speed,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
+        return response()->json(['status' => 'ok']);
+    }
+
 
     // Haversine Formula
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)

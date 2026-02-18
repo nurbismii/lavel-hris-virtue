@@ -107,5 +107,6 @@ Route::group(['prefix' => 'wilayah'], function () {
 });
 
 Route::group(['prefix' => 'api/'], function () {
-    route::get('airports', [ApiController::class, 'getAirport']);
+    route::get('/airports', [ApiController::class, 'getAirport']);
+    Route::post('/gps-log', [PresensiController::class, 'logGps'])->middleware('auth');
 });
