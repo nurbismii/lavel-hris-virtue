@@ -334,7 +334,7 @@
                     stableCounter = 0;
                 }
 
-                if (stableCounter >= 2) { // 5 detik stabil
+                if (stableCounter >= 1) {
                     gpsReady = true;
                     toggleAbsenButton(true);
                 }
@@ -365,9 +365,7 @@
                 cores: navigator.hardwareConcurrency || "unknown"
             };
 
-                console.log('device', deviceInfo)
-
-                document.getElementById("device_info").value = JSON.stringify(deviceInfo);
+            document.getElementById("device_info").value = JSON.stringify(deviceInfo);
 
             if (gpsReady) {
 

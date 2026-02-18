@@ -82,8 +82,6 @@ class PresensiController extends Controller
             return back();
         }
 
-        return $request->device_info;
-
         $security_score = 100;
 
         if ($request->accuracy > 75) {
