@@ -219,114 +219,134 @@
         let latOffice = {{$lokasi->lat}};
         let longOffice = {{$lokasi->long}};
         let radius = {{$lokasi->radius}};
+
         let gpsReady = false;
-        let gpsTimer = null;
+        let lastLat = null;
+        let lastLong = null;
+        let lastTime = null;
 
         initMap(latOffice, longOffice, radius);
 
-        if (navigator.geolocation) {
-
-            let gpsReady = false;
-            let gpsTimer = null;
-
-            navigator.geolocation.watchPosition(function(position) {
-
-                let latUser = position.coords.latitude;
-                let longUser = position.coords.longitude;
-                let accuracy = position.coords.accuracy;
-
-                // Tampilkan info akurasi realtime
-                document.getElementById("distanceInfo").innerHTML =
-                    "Mencari GPS... Akurasi: " + Math.round(accuracy) + " meter";
-
-                // Jika accuracy masih besar
-                if (accuracy > 70) {
-                    gpsReady = false;
-                    toggleAbsenButton(false);
-
-                    document.getElementById("distanceInfo").innerHTML =
-                        "<span class='text-warning'>Menunggu GPS stabil... (" +
-                        Math.round(accuracy) + "m)</span>";
-
-                    return;
-                }
-
-                // Marker User
-                if (markerUser) {
-                    markerUser.setPosition({
-                        lat: latUser,
-                        lng: longUser
-                    });
-                } else {
-                    markerUser = new google.maps.Marker({
-                        position: {
-                            lat: latUser,
-                            lng: longUser
-                        },
-                        map: map,
-                        title: "Posisi kamu",
-                        icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-                    });
-                }
-
-                currentDistance = getDistance(latUser, longUser, latOffice, longOffice);
-
-                let radius = {{$lokasi->radius}};
-
-                if (currentDistance <= radius) {
-                    document.getElementById("distanceInfo").innerHTML =
-                        "<span class='text-success'>" +
-                        currentDistance.toFixed(1) +
-                        " meter (Dalam Radius)</span>";
-
-                    gpsReady = true;
-                    toggleAbsenButton(true);
-
-                } else {
-                    document.getElementById("distanceInfo").innerHTML =
-                        "<span class='text-danger'>" +
-                        currentDistance.toFixed(1) +
-                        " meter (Di luar radius)</span>";
-
-                    gpsReady = false;
-                    toggleAbsenButton(false);
-                }
-
-                document.getElementById("lat_user").value = latUser;
-                document.getElementById("long_user").value = longUser;
-
-            }, function(error) {
-
-                document.getElementById("distanceInfo").innerHTML =
-                    "<span class='text-danger'>Gagal mengambil lokasi</span>";
-
-            }, {
-                enableHighAccuracy: true,
-                timeout: 20000,
-                maximumAge: 0
-            });
-
+        if (!navigator.geolocation) {
+            document.getElementById("distanceInfo").innerHTML =
+                "<span class='text-danger'>Browser tidak mendukung GPS</span>";
+            return;
         }
-    });
 
-    // Tombol Absen
-    document.querySelectorAll(".btn-absen").forEach(button => {
+        navigator.geolocation.watchPosition(function(position) {
 
-        button.addEventListener("click", function() {
+            let latUser = position.coords.latitude;
+            let longUser = position.coords.longitude;
+            let accuracy = position.coords.accuracy;
+            let now = Date.now();
 
-            if (!gpsReady) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'GPS belum siap',
-                    text: 'Tunggu hingga lokasi stabil sebelum absen.'
-                });
+            if (accuracy > 80) {
+                gpsReady = false;
+                toggleAbsenButton(false);
+
+                document.getElementById("distanceInfo").innerHTML =
+                    "<span class='text-warning'>Menunggu GPS stabil... (" +
+                    Math.round(accuracy) + "m)</span>";
+
                 return;
             }
 
-            let type = this.dataset.type;
-            let form = document.getElementById("formAbsen");
-            form.action = `/absen/${type}`;
-            form.submit();
+            if (lastLat !== null) {
+
+                let distanceMove = getDistance(lastLat, lastLong, latUser, longUser);
+                let timeDiff = (now - lastTime) / 1000; // detik
+                let speed = distanceMove / timeDiff; // m/s
+
+                // Jika > 50 m/s (~180 km/jam) dianggap tidak wajar
+                if (speed > 50) {
+
+                    gpsReady = false;
+                    toggleAbsenButton(false);
+
+                    document.getElementById("distanceInfo").innerHTML =
+                        "<span class='text-danger'>Pergerakan lokasi tidak wajar terdeteksi</span>";
+
+                    return;
+                }
+            }
+
+            lastLat = latUser;
+            lastLong = longUser;
+            lastTime = now;
+
+            if (markerUser) {
+                markerUser.setPosition({
+                    lat: latUser,
+                    lng: longUser
+                });
+            } else {
+                markerUser = new google.maps.Marker({
+                    position: {
+                        lat: latUser,
+                        lng: longUser
+                    },
+                    map: map,
+                    title: "Posisi kamu",
+                    icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+                });
+            }
+
+            currentDistance = getDistance(latUser, longUser, latOffice, longOffice);
+
+            if (currentDistance <= radius) {
+
+                document.getElementById("distanceInfo").innerHTML =
+                    "<span class='text-success'>" +
+                    currentDistance.toFixed(1) +
+                    " meter (Dalam Radius)</span>";
+
+                gpsReady = true;
+                toggleAbsenButton(true);
+
+            } else {
+
+                document.getElementById("distanceInfo").innerHTML =
+                    "<span class='text-danger'>" +
+                    currentDistance.toFixed(1) +
+                    " meter (Di luar radius)</span>";
+
+                gpsReady = false;
+                toggleAbsenButton(false);
+            }
+
+            document.getElementById("lat_user").value = latUser;
+            document.getElementById("long_user").value = longUser;
+
+        }, function(error) {
+
+            document.getElementById("distanceInfo").innerHTML =
+                "<span class='text-danger'>Gagal mengambil lokasi</span>";
+
+        }, {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 0
+        });
+
+        document.querySelectorAll(".btn-absen").forEach(button => {
+
+            button.addEventListener("click", function() {
+
+                if (!gpsReady) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'GPS belum siap',
+                        text: 'Tunggu hingga lokasi stabil sebelum absen.'
+                    });
+                    return;
+                }
+
+                let type = this.dataset.type;
+                let form = document.getElementById("formAbsen");
+                form.action = `/absen/${type}`;
+                form.submit();
+
+            });
 
         });
 
