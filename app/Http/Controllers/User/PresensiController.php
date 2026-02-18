@@ -82,11 +82,44 @@ class PresensiController extends Controller
             return back();
         }
 
-        // Ambil / buat absensi hari ini
+        $security_score = 100;
+
+        if ($request->accuracy > 75) {
+            $security_score -= 20;
+        }
+
+        if ($request->speed && $request->speed > 40) {
+            $security_score -= 30;
+        }
+
+        $lastPresensi = Presensi::where('nik_karyawan', $user->nik_karyawan)
+            ->whereDate('tanggal', '<', $today)
+            ->latest()
+            ->first();
+
+        $currentIp = $request->ip();
+
+        if ($lastPresensi && $lastPresensi->ip_address !== $currentIp) {
+            $security_score -= 15;
+        }
+
+        $currentDevice = $request->device_info;
+
+        if ($lastPresensi && $lastPresensi->device_info !== $currentDevice) {
+            $security_score -= 25;
+        }
+
+        $is_suspicious = $security_score < 60 ? true : false;
+
         $absensi = Presensi::firstOrCreate(
             [
                 'nik_karyawan' => $user->nik_karyawan,
                 'tanggal' => $today,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'device_info' => $request->device_info,
+                'security_score' => $security_score,
+                'is_suspicious' => $is_suspicious
             ]
         );
 

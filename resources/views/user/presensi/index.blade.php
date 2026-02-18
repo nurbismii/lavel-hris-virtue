@@ -105,6 +105,8 @@
 
                     <input type="hidden" name="accuracy" id="accuracy_user">
                     <input type="hidden" name="speed" id="speed_user">
+
+                    <input type="hidden" name="device_info" id="device_info">
                 </form>
             </div>
         </div>
@@ -383,6 +385,18 @@
                         // console.log("Skip log, GPS tidak akurat");
                         return;
                     }
+
+                    let deviceInfo = {
+                        platform: navigator.platform,
+                        language: navigator.language,
+                        userAgent: navigator.userAgent,
+                        screen: window.screen.width + "x" + window.screen.height,
+                        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                        memory: navigator.deviceMemory || "unknown",
+                        cores: navigator.hardwareConcurrency || "unknown"
+                    };
+
+                    document.getElementById("device_info").value = JSON.stringify(deviceInfo);
 
                     fetch("/api/gps-log", {
                         method: "POST",
