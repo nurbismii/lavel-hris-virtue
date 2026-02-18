@@ -230,7 +230,7 @@
                 let longUser = position.coords.longitude;
                 let accuracy = position.coords.accuracy;
 
-                if (accuracy > 100) {
+                if (accuracy > 30) {
                     document.getElementById("distanceInfo").innerHTML =
                         "<span class='text-danger'>GPS tidak akurat</span>";
                     return;
