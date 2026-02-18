@@ -219,10 +219,15 @@
         let latOffice = {{$lokasi->lat}};
         let longOffice = {{$lokasi->long}};
         let radius = {{$lokasi->radius}};
+        let gpsReady = false;
+        let gpsTimer = null;
 
         initMap(latOffice, longOffice, radius);
 
         if (navigator.geolocation) {
+
+            let gpsReady = false;
+            let gpsTimer = null;
 
             navigator.geolocation.watchPosition(function(position) {
 
@@ -230,9 +235,19 @@
                 let longUser = position.coords.longitude;
                 let accuracy = position.coords.accuracy;
 
-                if (accuracy > 50) {
+                // Tampilkan info akurasi realtime
+                document.getElementById("distanceInfo").innerHTML =
+                    "Mencari GPS... Akurasi: " + Math.round(accuracy) + " meter";
+
+                // Jika accuracy masih besar
+                if (accuracy > 70) {
+                    gpsReady = false;
+                    toggleAbsenButton(false);
+
                     document.getElementById("distanceInfo").innerHTML =
-                        "<span class='text-danger'>GPS tidak akurat</span>";
+                        "<span class='text-warning'>Menunggu GPS stabil... (" +
+                        Math.round(accuracy) + "m)</span>";
+
                     return;
                 }
 
@@ -256,20 +271,41 @@
 
                 currentDistance = getDistance(latUser, longUser, latOffice, longOffice);
 
-                document.getElementById("distanceInfo").innerHTML =
-                    currentDistance <= radius ?
-                    "<span class='text-success'>" + currentDistance.toFixed(1) +
-                    " meter (Dalam Radius)</span>" :
-                    "<span class='text-danger'>" + currentDistance.toFixed(1) +
-                    " meter (Di luar radius)</span>";
+                let radius = {{$lokasi->radius}};
+
+                if (currentDistance <= radius) {
+                    document.getElementById("distanceInfo").innerHTML =
+                        "<span class='text-success'>" +
+                        currentDistance.toFixed(1) +
+                        " meter (Dalam Radius)</span>";
+
+                    gpsReady = true;
+                    toggleAbsenButton(true);
+
+                } else {
+                    document.getElementById("distanceInfo").innerHTML =
+                        "<span class='text-danger'>" +
+                        currentDistance.toFixed(1) +
+                        " meter (Di luar radius)</span>";
+
+                    gpsReady = false;
+                    toggleAbsenButton(false);
+                }
 
                 document.getElementById("lat_user").value = latUser;
                 document.getElementById("long_user").value = longUser;
 
-            }, function() {
+            }, function(error) {
+
                 document.getElementById("distanceInfo").innerHTML =
                     "<span class='text-danger'>Gagal mengambil lokasi</span>";
+
+            }, {
+                enableHighAccuracy: true,
+                timeout: 20000,
+                maximumAge: 0
             });
+
         }
     });
 
@@ -278,24 +314,29 @@
 
         button.addEventListener("click", function() {
 
-            let type = this.dataset.type;
-            let radius = {{$lokasi->radius}};
-
-            if (currentDistance > radius) {
+            if (!gpsReady) {
                 Swal.fire({
-                    icon: 'Error',
-                    title: 'Oops...',
-                    text: 'Anda berada di luar radius presensi!'
+                    icon: 'warning',
+                    title: 'GPS belum siap',
+                    text: 'Tunggu hingga lokasi stabil sebelum absen.'
                 });
                 return;
             }
 
+            let type = this.dataset.type;
             let form = document.getElementById("formAbsen");
             form.action = `/absen/${type}`;
             form.submit();
 
         });
+
     });
+
+    function toggleAbsenButton(status) {
+        document.querySelectorAll(".btn-absen").forEach(button => {
+            button.disabled = !status;
+        });
+    }
 </script>
 @endif
 
