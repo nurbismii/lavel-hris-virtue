@@ -171,7 +171,7 @@
 
     let stableStartTime = null;
     let validLogCount = 0;
-    let totalNaturalMovement = 0;
+    let positionHistory = [];
 
     function initMap(latOffice, longOffice, radius) {
 
@@ -318,6 +318,15 @@
                 return;
             }
 
+            positionHistory.push({
+                lat: latUser,
+                long: longUser
+            });
+
+            if (positionHistory.length > 5) {
+                positionHistory.shift();
+            }
+
             lastLat = latUser;
             lastLong = longUser;
             lastTime = now;
@@ -371,12 +380,12 @@
                 toggleAbsenButton(false);
             }
 
-             if (totalNaturalMovement < 2) {
+            if (!hasNaturalJitter()) {
                 gpsReady = false;
                 toggleAbsenButton(false);
 
                 document.getElementById("distanceInfo").innerHTML =
-                    "<span class='text-danger'>Silakan bergerak beberapa langkah agar lokasi GPS dapat diperbarui.</span>";
+                    "<span class='text-danger'>Lokasi terlalu stabil (indikasi GPS tidak natural)</span>";
                 return;
             }
 
@@ -499,6 +508,23 @@
         document.querySelectorAll(".btn-absen").forEach(button => {
             button.disabled = !status;
         });
+    }
+
+    function hasNaturalJitter() {
+        if (positionHistory.length < 5) return false;
+
+        let totalVariation = 0;
+
+        for (let i = 1; i < positionHistory.length; i++) {
+            totalVariation += getDistance(
+                positionHistory[i - 1].lat,
+                positionHistory[i - 1].long,
+                positionHistory[i].lat,
+                positionHistory[i].long
+            );
+        }
+
+        return totalVariation > 1; // 1 meter total jitter sudah cukup
     }
 </script>
 @endif
