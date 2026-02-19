@@ -46,7 +46,7 @@ Route::middleware('auth')->group(function () {
 
 Auth::routes();
 
-Route::group(['prefix' => '/', 'middleware' => ['auth', 'role:User,Administrator']], function () {
+Route::group(['prefix' => '/', 'middleware' => ['auth', 'role:User,Administrator', 'verify.email']], function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.karyawan');
     Route::resource('/cuti', 'App\Http\Controllers\User\CutiController');
