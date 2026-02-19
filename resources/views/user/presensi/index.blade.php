@@ -332,7 +332,7 @@
 
             console.log('Position History', positionHistory.length);
 
-            if (positionHistory.length > ) {
+            if (positionHistory.length > 3) {
                 positionHistory.shift();
             }
 
