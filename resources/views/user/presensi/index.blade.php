@@ -350,7 +350,7 @@
 
                 if (accuracy < 75) {
                     stableCounter++;
-
+                    validLogCount++;
                 } else {
                     stableCounter = 0;
                 }
@@ -469,7 +469,7 @@
                     return;
                 }
 
-                if (validLogCount < 3) {
+                if (validLogCount < 2) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Validasi belum cukup',
