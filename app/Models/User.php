@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Auth\Notifications\VerifyEmail as VerifyEmailNotification;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
@@ -17,13 +20,15 @@ class User extends Authenticatable
     protected $keyType = 'string';
 
     protected $fillable = [
+        'id',
         'name',
         'email',
         'password',
         'status',
         'terakhir_login',
         'nik_karyawan',
-        'role_id'
+        'role_id',
+        'email_verified_at',
     ];
 
     /**
@@ -53,5 +58,26 @@ class User extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function sendEmailVerificationNotification()
+    {
+        $this->notify(new class extends VerifyEmailNotification {
+
+            public function toMail($notifiable)
+            {
+                return (new MailMessage)
+                    ->subject('Verifikasi Email Akun V-People')
+                    ->greeting('Halo ' . $notifiable->name . ',')
+                    ->line('Terima kasih telah mendaftar di sistem HRIS V-People.')
+                    ->line('Silakan klik tombol berikut untuk mengaktifkan akun Anda.')
+                    ->action(
+                        'Verifikasi Email',
+                        $this->verificationUrl($notifiable)
+                    )
+                    ->line('Jika Anda tidak merasa membuat akun, abaikan email ini.')
+                    ->salutation('PT Virtue Dragon Nickel Industry');
+            }
+        });
     }
 }

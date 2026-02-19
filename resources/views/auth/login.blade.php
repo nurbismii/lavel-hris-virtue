@@ -99,6 +99,16 @@
                                     Sign In
                                 </button>
                             </div>
+
+                            {{-- Register Link --}}
+                            @if (Route::has('register'))
+                            <div class="text-center small">
+                                Belum punya akun?
+                                <a href="{{ route('register') }}">
+                                    Daftar disini
+                                </a>
+                            </div>
+                            @endif
                         </form>
 
                     </div>
