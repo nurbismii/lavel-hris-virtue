@@ -246,7 +246,7 @@
 
     document.addEventListener("DOMContentLoaded", function() {
 
-        let latOffice = {{$lokasi->lat }};
+        let latOffice = {{$lokasi->lat}};
         let longOffice = {{$lokasi->long}};
         let radius = {{$lokasi->radius}};
 
@@ -318,15 +318,6 @@
                 return;
             }
 
-            if (totalNaturalMovement < 5) {
-                gpsReady = false;
-                toggleAbsenButton(false);
-
-                document.getElementById("distanceInfo").innerHTML =
-                    "<span class='text-danger'>Gerakan GPS tidak natural</span>";
-                return;
-            }
-
             lastLat = latUser;
             lastLong = longUser;
             lastTime = now;
@@ -380,6 +371,15 @@
                 toggleAbsenButton(false);
             }
 
+             if (totalNaturalMovement < 2) {
+                gpsReady = false;
+                toggleAbsenButton(false);
+
+                document.getElementById("distanceInfo").innerHTML =
+                    "<span class='text-danger'>Silakan bergerak beberapa langkah agar lokasi GPS dapat diperbarui.</span>";
+                return;
+            }
+
             document.getElementById("lat_user").value = latUser;
             document.getElementById("long_user").value = longUser;
             document.getElementById("accuracy_user").value = accuracy;
@@ -409,12 +409,7 @@
 
                 if (Date.now() - window.lastLogTime >= 5000) {
 
-                    const distance = calculateDistance(
-                        window.lastLat,
-                        window.lastLong,
-                        latUser,
-                        longUser
-                    );
+                    const distance = calculateDistance(window.lastLat, window.lastLong, latUser, longUser);
 
                     // Skip kalau perubahan < 3 meter
                     if (distance < 3 && Date.now() - window.lastLogTime < 60000) {
