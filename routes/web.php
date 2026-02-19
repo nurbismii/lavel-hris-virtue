@@ -4,28 +4,15 @@ use App\Http\Controllers\Admin\ApiController;
 use App\Http\Controllers\Admin\SettingRoleController;
 use App\Http\Controllers\Admin\SlipGajiController;
 use App\Http\Controllers\Approval\CutiApprovalController;
-use App\Http\Controllers\Approval\CutiRosterApprovalController;
 use App\Http\Controllers\Approval\IzinApprovalController;
 use App\Http\Controllers\Approval\RosterApprovalController;
 use App\Http\Controllers\User\DashboardController;
-use App\Http\Controllers\User\IzinController;
 use App\Http\Controllers\User\PresensiController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
-*/
-
 Route::get('/', function () {
-    return view('welcome');
+    return view('auth.login');
 });
 
 Auth::routes();

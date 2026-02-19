@@ -159,13 +159,19 @@
 
 @push('scripts')
 <script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
+
 @if ($lokasi)
 <script>
+
     let map;
     let markerUser;
     let markerOffice;
     let circleOffice;
     let currentDistance = 0;
+
+    let stableStartTime = null;
+    let validLogCount = 0;
+    let totalNaturalMovement = 0;
 
     function initMap(latOffice, longOffice, radius) {
 
@@ -240,7 +246,7 @@
 
     document.addEventListener("DOMContentLoaded", function() {
 
-        let latOffice = {{$lokasi->lat}};
+        let latOffice = {{$lokasi->lat }};
         let longOffice = {{$lokasi->long}};
         let radius = {{$lokasi->radius}};
 
@@ -266,35 +272,59 @@
             let accuracy = position.coords.accuracy;
             let now = Date.now();
 
-            if (accuracy > 75) {
+            if (accuracy < 5 || accuracy > 75) {
                 gpsReady = false;
                 toggleAbsenButton(false);
 
                 document.getElementById("distanceInfo").innerHTML =
-                    "<span class='text-warning'>Menunggu GPS stabil... (" +
-                    Math.round(accuracy) + "m)</span>";
-
+                    "<span class='text-danger'>GPS tidak valid (" + Math.round(accuracy) + "m)</span>";
                 return;
             }
 
             if (lastLat !== null && lastTime !== null) {
 
                 let distanceMove = getDistance(lastLat, lastLong, latUser, longUser);
-                let timeDiff = (now - lastTime) / 1000; // detik
+                let timeDiff = (now - lastTime) / 1000;
 
                 if (timeDiff > 0) {
-                    speed = distanceMove / timeDiff; // m/s
+                    speed = distanceMove / timeDiff;
                 }
 
-                if (speed > 50  && accuracy < 40) {
+                if (speed > 50) {
                     gpsReady = false;
                     toggleAbsenButton(false);
 
                     document.getElementById("distanceInfo").innerHTML =
-                        "<span class='text-danger'>Pergerakan lokasi tidak wajar terdeteksi</span>";
-
+                        "<span class='text-danger'>Pergerakan tidak wajar terdeteksi</span>";
                     return;
                 }
+
+                // hitung total gerakan natural
+                totalNaturalMovement += distanceMove;
+            }
+
+            if (!stableStartTime) {
+                stableStartTime = now;
+            }
+
+            if (now - stableStartTime < 5000) {
+                gpsReady = false;
+                toggleAbsenButton(false);
+
+                document.getElementById("distanceInfo").innerHTML =
+                    "<span class='text-warning'>Validasi lokasi... (" +
+                    Math.floor((5000 - (now - stableStartTime)) / 1000) +
+                    " detik)</span>";
+                return;
+            }
+
+            if (totalNaturalMovement < 5) {
+                gpsReady = false;
+                toggleAbsenButton(false);
+
+                document.getElementById("distanceInfo").innerHTML =
+                    "<span class='text-danger'>Gerakan GPS tidak natural</span>";
+                return;
             }
 
             lastLat = latUser;
@@ -329,7 +359,7 @@
 
                 if (accuracy < 75) {
                     stableCounter++;
-                    
+
                 } else {
                     stableCounter = 0;
                 }
@@ -438,8 +468,26 @@
                 if (!gpsReady) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'GPS belum siap',
-                        text: 'Tunggu hingga lokasi stabil sebelum absen.'
+                        title: 'GPS belum tervalidasi',
+                        text: 'Pastikan lokasi stabil sebelum absen.'
+                    });
+                    return;
+                }
+
+                if (validLogCount < 3) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Validasi belum cukup',
+                        text: 'Tunggu beberapa detik lagi.'
+                    });
+                    return;
+                }
+
+                if (totalNaturalMovement < 5) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Indikasi lokasi tidak natural',
+                        text: 'Silakan matikan Fake GPS.'
                     });
                     return;
                 }
@@ -448,7 +496,6 @@
                 let form = document.getElementById("formAbsen");
                 form.action = `/absen/${type}`;
                 form.submit();
-
             });
         });
     });

@@ -69,6 +69,14 @@ class PresensiController extends Controller
             return back();
         }
 
+        if ($request->accuracy < 5 || $request->accuracy > 60) {
+            return back()->with('error', 'GPS tidak valid.');
+        }
+
+        if ($request->speed > 50) {
+            return back()->with('error', 'Pergerakan tidak wajar.');
+        }
+
         // Hitung jarak (server side validation)
         $distance = $this->calculateDistance(
             $request->lat_user,
