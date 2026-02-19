@@ -171,7 +171,14 @@
 
     let stableStartTime = null;
     let validLogCount = 0;
+
+    // 🔐 Global validation state
     let positionHistory = [];
+    let totalNaturalMovement = 0;
+    let validationState = {
+        stableStart: null,
+        validSamples: 0
+    };
 
     function initMap(latOffice, longOffice, radius) {
 
@@ -323,7 +330,9 @@
                 long: longUser
             });
 
-            if (positionHistory.length > 5) {
+            console.log('Position History', positionHistory.length);
+
+            if (positionHistory.length > ) {
                 positionHistory.shift();
             }
 
@@ -380,12 +389,25 @@
                 toggleAbsenButton(false);
             }
 
-            if (!hasNaturalJitter()) {
+            let naturalCheck = validateNaturalMovement();
+
+            if (!naturalCheck.status) {
                 gpsReady = false;
                 toggleAbsenButton(false);
 
                 document.getElementById("distanceInfo").innerHTML =
-                    "<span class='text-danger'>Lokasi terlalu stabil (indikasi GPS tidak natural)</span>";
+                    "<span class='text-danger'>" + naturalCheck.reason + "</span>";
+
+                return;
+            }
+
+            if (position.coords.mocked === true) {
+                gpsReady = false;
+                toggleAbsenButton(false);
+
+                document.getElementById("distanceInfo").innerHTML =
+                    "<span class='text-danger'>Mock location terdeteksi</span>";
+
                 return;
             }
 
@@ -510,21 +532,48 @@
         });
     }
 
-    function hasNaturalJitter() {
-        if (positionHistory.length < 5) return false;
+    function validateNaturalMovement() {
+
+        if (positionHistory.length < 3) {
+            return { status: false, reason: "Mengumpulkan data GPS..." };
+        }
 
         let totalVariation = 0;
+        let identicalCount = 0;
 
         for (let i = 1; i < positionHistory.length; i++) {
-            totalVariation += getDistance(
+
+            let distance = getDistance(
                 positionHistory[i - 1].lat,
                 positionHistory[i - 1].long,
                 positionHistory[i].lat,
                 positionHistory[i].long
             );
+
+            totalVariation += distance;
+
+            if (distance < 0.3) {
+                identicalCount++;
+            }
         }
 
-        return totalVariation > 1; // 1 meter total jitter sudah cukup
+        // Terlalu perfect static
+        if (identicalCount >= 4) {
+            return { status: false, reason: "Lokasi terlalu statis (indikasi GPS tidak natural)" };
+        }
+
+        // Tidak ada gerakan sama sekali
+        if (totalVariation < 2) {
+            return { status: false, reason: "Pergerakan GPS belum cukup natural" };
+        }
+
+        // Gerakan wajar
+        if (totalVariation <= 20) {
+            return { status: true };
+        }
+
+        // Gerakan terlalu besar (loncat)
+        return { status: false, reason: "Pergerakan tidak wajar terdeteksi" };
     }
 </script>
 @endif
