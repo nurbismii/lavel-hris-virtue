@@ -10,15 +10,11 @@
     <style>
         .logo-industrial {
             font-weight: 600;
-            font-size: 18px;
-            letter-spacing: 2px;
+            font-size: 16px;
+            letter-spacing: 1.5px;
             text-transform: uppercase;
             color: #1f2937;
-            /* abu gelap industrial */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            border-left: 5px solid rgb(104, 97, 206);
-            /* merah industrial accent */
-            padding-left: 10px;
+            padding-left: 3px;
         }
     </style>
 
