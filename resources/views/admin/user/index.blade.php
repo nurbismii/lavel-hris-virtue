@@ -6,7 +6,15 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
             <div>
-                <h3 class="fw-bold mb-3">Data User</h3>
+                <h4 class="fw-bold">
+                    <i class="fas fa-user-friends text-primary me-2"></i>
+                    Pengguna
+                </h4>
+
+
+                <small class="text-muted">
+                    Daftar pengguna
+                </small>
             </div>
         </div>
 

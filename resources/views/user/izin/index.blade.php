@@ -7,8 +7,8 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h4 class="fw-bold mb-1">
-                    <i class="fas fa-file-alt text-primary me-2"></i>
-                    Data Pengajuan Izin
+                    <i class="fas fa-file-signature text-primary me-2"></i>
+                    Data Izin (Paid & Unpaid)
                 </h4>
                 <small class="text-muted">
                     Daftar izin berbayar dan tidak berbayar

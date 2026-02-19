@@ -6,7 +6,13 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
             <div>
-                <h3 class="fw-bold mb-3">Data Slip-Gaji</h3>
+                <h4 class="fw-bold">
+                    <i class="fas fa-file-invoice-dollar text-primary me-2"></i>
+                    Data V-Payslip
+                </h4>
+                <small class="text-muted">
+                    Integrasi dengan data V-Payslip
+                </small>
             </div>
         </div>
 

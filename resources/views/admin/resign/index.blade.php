@@ -5,7 +5,15 @@
     <div class="page-inner">
 
         <div class="d-flex align-items-center justify-content-between pt-2 pb-4">
-            <h3 class="fw-bold mb-0">Data Resign</h3>
+            <div>
+                <h4 class="fw-bold mb-1">
+                    <i class="fas fa-user-minus text-primary me-2"></i>
+                    Data Resign
+                </h4>
+                <small class="text-muted">
+                    Daftar resign VDNI/VDNIP
+                </small>
+            </div>
 
             <div class="ms-md-auto py-2 py-md-0">
                 <a class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalImportResign">

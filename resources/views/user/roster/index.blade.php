@@ -7,7 +7,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h4 class="fw-bold mb-1">
-                    <i class="fas fa-file-alt text-primary me-2"></i>
+                    <i class="fas fa-plane-departure text-primary me-2"></i>
                     Data Pengajuan Roster
                 </h4>
                 <small class="text-muted">

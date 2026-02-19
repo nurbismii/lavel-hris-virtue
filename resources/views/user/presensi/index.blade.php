@@ -3,7 +3,17 @@
 @section('content')
 <div class="container">
     <div class="page-inner">
-        <h4 class="mb-3">Presensi Karyawan</h4>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1">
+                    <i class="fas fa-map-pin text-primary me-2"></i>
+                    Presensi
+                </h3>
+                <small class="text-muted">
+                    Silakan presensi untuk mencatat kehadiranmu
+                </small>
+            </div>
+        </div>
         @if (!$lokasi)
         <div class="alert alert-danger">
             Lokasi presensi untuk divisi Anda belum diatur.

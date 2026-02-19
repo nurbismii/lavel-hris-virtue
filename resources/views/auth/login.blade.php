@@ -6,10 +6,10 @@
 
         {{-- LEFT SIDE (Branding) --}}
         <div class="col-lg-7 d-none d-lg-flex align-items-center justify-content-center bg-primary text-white">
-            <div class="text-center px-5">
-                <h1 class="fw-bold mb-3">Selamata Datang 👋</h1>
+            <div class="text-left px-5">
+                <h1 class="fw-bold mb-3">PT VDNI | V-People</h1>
                 <p class="fs-5 opacity-75">
-                    Mengatur gaji karyawan, data pribadi karyawan dan pengajuan<br>
+                    Manage gaji karyawan, data pribadi dan pengajuan<br>
                     dalam satu platform modern.
                 </p>
             </div>
@@ -21,10 +21,10 @@
 
                 {{-- Logo --}}
                 <div class="text-center mb-4">
-                    {{-- <img src="{{ asset('logo.png') }}" height="48" class="mb-3"> --}}
-                    <h4 class="fw-bold mb-1">Sign in to your account</h4>
+                    <img src="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" height="100" width="120" class="mb-3" />
+                    <h4 class="fw-bold mb-1">Masuk ke akun kamu</h4>
                     <p class="text-muted mb-0">
-                        Let’s get you back to work
+                        Mari kita bantu kamu kembali bekerja
                     </p>
                 </div>
 
@@ -46,12 +46,11 @@
                                     class="form-control form-control rounded-3 @error('email') is-invalid @enderror"
                                     placeholder="you@company.com"
                                     required
-                                    autofocus
-                                >
+                                    autofocus>
                                 @error('email')
-                                    <div class="invalid-feedback">
-                                        {{ $message }}
-                                    </div>
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
                                 @enderror
                             </div>
 
@@ -65,12 +64,11 @@
                                     name="password"
                                     class="form-control form-control rounded-3 @error('password') is-invalid @enderror"
                                     placeholder="••••••••"
-                                    required
-                                >
+                                    required>
                                 @error('password')
-                                    <div class="invalid-feedback">
-                                        {{ $message }}
-                                    </div>
+                                <div class="invalid-feedback">
+                                    {{ $message }}
+                                </div>
                                 @enderror
                             </div>
 
@@ -82,17 +80,16 @@
                                         type="checkbox"
                                         name="remember"
                                         id="remember"
-                                        {{ old('remember') ? 'checked' : '' }}
-                                    >
+                                        {{ old('remember') ? 'checked' : '' }}>
                                     <label class="form-check-label small" for="remember">
                                         Remember me
                                     </label>
                                 </div>
 
                                 @if (Route::has('password.request'))
-                                    <a href="{{ route('password.request') }}" class="small text-decoration-none">
-                                        Forgot password?
-                                    </a>
+                                <a href="{{ route('password.request') }}" class="small text-decoration-none">
+                                    Forgot password?
+                                </a>
                                 @endif
                             </div>
 

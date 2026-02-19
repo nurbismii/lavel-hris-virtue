@@ -5,10 +5,15 @@
     <div class="page-inner">
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="fw-bold">
-                <i class="fas fa-user-shield text-primary me-2"></i>
-                Permission Role User
-            </h4>
+            <div>
+                <h4 class="fw-bold">
+                    <i class="fas fa-user-shield text-primary me-2"></i>
+                    Permission Role User
+                    <small class="text-muted">
+                        Mengatur role pengguna, untuk membatasi fitur
+                    </small>
+                </h4>
+            </div>
 
             <div class="ms-md-auto py-2 py-md-0">
                 <a href="{{ route('setting-role.create') }}" class="btn btn-sm btn-secondary">
