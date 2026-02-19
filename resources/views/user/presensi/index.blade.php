@@ -330,8 +330,6 @@
                 long: longUser
             });
 
-            console.log('Position History', positionHistory.length);
-
             if (positionHistory.length > 3) {
                 positionHistory.shift();
             }
@@ -539,7 +537,7 @@
         }
 
         let totalVariation = 0;
-        let identicalCount = 0;
+        let zeroMoveCount = 0;
 
         for (let i = 1; i < positionHistory.length; i++) {
 
@@ -552,28 +550,28 @@
 
             totalVariation += distance;
 
-            if (distance < 0.3) {
-                identicalCount++;
+            if (distance < 0.1) {
+                zeroMoveCount++;
             }
         }
 
-        // Terlalu perfect static
-        if (identicalCount >= 4) {
-            return { status: false, reason: "Lokasi terlalu statis (indikasi GPS tidak natural)" };
+        console.log("Total Variation:", totalVariation);
+
+        // Kalau 5 titik benar-benar sama semua
+        if (zeroMoveCount >= positionHistory.length - 1) {
+            return { status: false, reason: "Lokasi terlalu statis" };
         }
 
-        // Tidak ada gerakan sama sekali
-        if (totalVariation < 2) {
-            return { status: false, reason: "Pergerakan GPS belum cukup natural" };
+        // Jangan terlalu agresif
+        if (totalVariation < 0.5) {
+            return { status: true }; // izinkan jika sangat stabil
         }
 
-        // Gerakan wajar
-        if (totalVariation <= 20) {
+        if (totalVariation <= 25) {
             return { status: true };
         }
 
-        // Gerakan terlalu besar (loncat)
-        return { status: false, reason: "Pergerakan tidak wajar terdeteksi" };
+        return { status: false, reason: "Pergerakan tidak wajar" };
     }
 </script>
 @endif
