@@ -10,6 +10,11 @@ class Cuti extends Model
 
     protected $guarded = [];
 
+    public function user()
+    {
+        return $this->hasOne(User::class, 'nik_karyawan', 'nik_karyawan');
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'nik_karyawan');

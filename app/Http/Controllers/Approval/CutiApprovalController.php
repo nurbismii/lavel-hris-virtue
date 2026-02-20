@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Approval;
 use App\Models\Cuti;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Notifications\StatusPengajuanNotification;
 
 class CutiApprovalController extends Controller
 {
@@ -19,15 +20,26 @@ class CutiApprovalController extends Controller
 
     public function hodProcess(Request $request, $id)
     {
-        $cuti = Cuti::findOrFail($id);
+        $cuti = Cuti::with('user')->findOrFail($id);
 
-        if ($cuti->status_hod != 0) {
-            return back()->with('error', 'Sudah diproses');
+        if ($cuti->status_hod == 1) {
+            toast()->error('Error', 'Sudah diproses');
+            return back();
         }
 
         $cuti->update([
             'status_hod' => $request->action // 1 approve, 2 reject
         ]);
+
+        $user = $cuti->user;
+        $status = $request->action == 1 ? 'Disetujui' : 'Ditolak';
+
+        $user->notify(new StatusPengajuanNotification([
+            'judul' => 'Pengajuan Cuti ' . $status,
+            'pesan' => 'Cuti pada tanggal ' . $cuti->tanggal . '  telah ' . strtolower($status) . ' oleh HOD.',
+            'url'   => route('cuti.index'),
+            'tipe'  => 'Cuti Tahunan'
+        ]));
 
         toast()->success('Success', 'Cuti telah disetujui oleh HOD');
         return back()->with('success', 'Berhasil diproses');
@@ -46,7 +58,7 @@ class CutiApprovalController extends Controller
 
     public function hrdProcess(Request $request, $id)
     {
-        $cuti = Cuti::findOrFail($id);
+        $cuti = Cuti::with('user')->findOrFail($id);
 
         if ($cuti->status_hod != 1) {
             return back()->with('error', 'Belum disetujui HOD');
@@ -64,6 +76,16 @@ class CutiApprovalController extends Controller
         if ($request->action == 1) {
             $cuti->employee->decrement('sisa_cuti', $cuti->jumlah);
         }
+
+        $user = $cuti->user;
+        $status = $request->action == 1 ? 'Disetujui' : 'Ditolak';
+
+        $user->notify(new StatusPengajuanNotification([
+            'judul' => 'Pengajuan Cuti ' . $status,
+            'pesan' => 'Cuti pada tanggal ' . $cuti->tanggal . ' telah ' . strtolower($status) . ' oleh HRD.',
+            'url'   => route('cuti.index'),
+            'tipe'  => 'Cuti Tahunan'
+        ]));
 
         toast()->success('Success', 'Cuti telah disetujui oleh HR');
         return back();

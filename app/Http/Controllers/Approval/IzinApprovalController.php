@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Approval;
 use App\Models\Cuti;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Notifications\StatusPengajuanNotification;
 
 class IzinApprovalController extends Controller
 {
@@ -21,7 +22,7 @@ class IzinApprovalController extends Controller
 
     public function hodProcess(Request $request, $id)
     {
-        $cuti = Cuti::findOrFail($id);
+        $cuti = Cuti::with('user')->findOrFail($id);
 
         if ($cuti->status_hod != 0) {
             return back()->with('error', 'Sudah diproses');
@@ -31,7 +32,19 @@ class IzinApprovalController extends Controller
             'status_hod' => $request->action // 1 approve, 2 reject
         ]);
 
-        toast()->success('Success', 'Cuti telah disetujui oleh HOD');
+        $user = $cuti->user;
+
+        $tipe = $cuti->tipe == 'PAID' ? '(Paid)' : '(Unpaid)';
+        $status = $request->action == 1 ? 'Disetujui' : 'Ditolak';
+
+        $user->notify(new StatusPengajuanNotification([
+            'judul' => 'Pengajuan Izin ' . $tipe,
+            'pesan' => 'Izin pada tanggal ' . $cuti->tanggal . '  telah ' . strtolower($status) . ' oleh HOD.',
+            'url'   => route('izin.index'),
+            'tipe'  => $tipe
+        ]));
+
+        toast()->success('Success', 'Cuti telah ' . strtolower($status) . ' oleh HOD');
         return back()->with('success', 'Berhasil diproses');
     }
 
@@ -50,13 +63,13 @@ class IzinApprovalController extends Controller
 
     public function hrdProcess(Request $request, $id)
     {
-        $cuti = Cuti::findOrFail($id);
+        $cuti = Cuti::with('user')->findOrFail($id);
 
         if ($cuti->status_hod != 1) {
             return back()->with('error', 'Belum disetujui HOD');
         }
 
-        if ($cuti->status_hrd != 0) {
+        if ($cuti->status_hrd == 1) {
             return back()->with('error', 'Sudah diproses');
         }
 
@@ -69,7 +82,19 @@ class IzinApprovalController extends Controller
             $cuti->employee->decrement('sisa_cuti', $cuti->jumlah);
         }
 
-        toast()->success('Success', 'Cuti telah disetujui oleh HR');
+        $user = $cuti->user;
+
+        $tipe = $cuti->tipe == 'PAID' ? '(Paid)' : '(Unpaid)';
+        $status = $request->action == 1 ? 'Disetujui' : 'Ditolak';
+
+        $user->notify(new StatusPengajuanNotification([
+            'judul' => 'Pengajuan Izin ' . $tipe,
+            'pesan' => 'Izin pada tanggal ' . $cuti->tanggal . '  telah ' . strtolower($status) . ' oleh HOD.',
+            'url'   => route('izin.index'),
+            'tipe'  => $tipe
+        ]));
+
+        toast()->success('Success', 'Cuti telah ' . strtolower($status) . ' oleh HR');
         return back();
     }
 }

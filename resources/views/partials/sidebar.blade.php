@@ -28,7 +28,6 @@
                     <a href="{{ route('dashboard.karyawan') }}">
                         <i class="fas fa-home"></i>
                         <p>Dashboard Karyawan</p>
-                        <span class="badge badge-success">4</span>
                     </a>
                 </li>
 
@@ -38,7 +37,6 @@
                     <a href="{{ route('home') }}">
                         <i class="fas fa-home"></i>
                         <p>Dashboard</p>
-                        <span class="badge badge-success">4</span>
                     </a>
                 </li>
 

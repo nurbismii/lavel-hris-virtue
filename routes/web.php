@@ -38,7 +38,7 @@ Route::middleware('auth')->group(function () {
         $request->user()->update([
             'status' => 'aktif',
         ]);
-        
+
         toast()->success('Success', 'Email berhasil diverifikasi.');
         return redirect('/dashboard');
     })->middleware(['auth', 'signed'])->name('verification.verify');
@@ -54,6 +54,22 @@ Route::group(['prefix' => '/', 'middleware' => ['auth', 'role:User,Administrator
     Route::post('/absen/{type}', [PresensiController::class, 'store'])->middleware('auth');
     Route::resource('/izin', 'App\Http\Controllers\User\IzinController');
     Route::resource('/roster', 'App\Http\Controllers\User\RosterController');
+    Route::resource('/pengaturan-akun', 'App\Http\Controllers\User\PengaturanAkunController')->except(['show']);
+    Route::get('/pengaturan-akun/update', [App\Http\Controllers\User\PengaturanAkunController::class, 'SetIndex'])->name('update.akun');
+
+    Route::resource('/kotak-masuk', 'App\Http\Controllers\User\InboxController');
+    Route::get('/notif/{id}/baca', function ($id) {
+
+        $notif = auth()->user()->notifications()->findOrFail($id);
+        $notif->markAsRead();
+
+        return redirect($notif->data['url']);
+    })->name('notif.baca');
+
+    Route::post('/notif/read-all', function () {
+        auth()->user()->unreadNotifications->markAsRead();
+        return back();
+    })->name('notif.readAll');
 });
 
 Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'role:Administrator']], function () {

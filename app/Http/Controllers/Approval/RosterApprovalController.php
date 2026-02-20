@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Approval;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Roster;
+use App\Notifications\StatusPengajuanNotification;
 
 class RosterApprovalController extends Controller
 {
@@ -17,9 +18,9 @@ class RosterApprovalController extends Controller
 
     public function hodProcess(Request $request, $id)
     {
-        $cuti = Roster::findOrFail($id);
+        $cuti = Roster::with('user', 'periodeKerjaRoster')->findOrFail($id);
 
-        if ($cuti->status_pengajuan != 0) {
+        if ($cuti->status_pengajuan == 1) {
             toast()->error('error', 'Sudah diproses');
             return back();
         }
@@ -27,6 +28,18 @@ class RosterApprovalController extends Controller
         $cuti->update([
             'status_pengajuan' => $request->action // 1 approve, 2 reject
         ]);
+
+        $user = $cuti->user;
+
+        $status = $request->action == 1 ? 'Disetujui' : 'Ditolak';
+        $tipeRencana = $cuti->periodeKerjaRoster->tipe_rencana == 1 ? 'Cuti Roster' : 'Insentif Roster';
+
+        $user->notify(new StatusPengajuanNotification([
+            'judul' => $tipeRencana,
+            'pesan' => 'Roster pada tanggal ' . $cuti->tanggal_pengajuan . '  telah ' . strtolower($status) . ' oleh HOD.',
+            'url'   => route('roster.index'),
+            'tipe'  => $tipeRencana,
+        ]));
 
         toast()->success('Success', 'Cuti roster telah diproses oleh HOD');
         return back();
@@ -54,14 +67,14 @@ class RosterApprovalController extends Controller
 
     public function hrdProcess(Request $request, $id)
     {
-        $cuti = Roster::findOrFail($id);
+        $cuti = Roster::with('user', 'periodeKerjaRoster')->findOrFail($id);
 
         if ($cuti->status_pengajuan != 1) {
             toast()->error('Error', 'Belum disetujui HOD');
             return back();
         }
 
-        if ($cuti->status_pengajuan_hrd != 0) {
+        if ($cuti->status_pengajuan_hrd == 1) {
             toast()->error('Error', 'Sudah diproses');
             return back();
         }
@@ -69,6 +82,18 @@ class RosterApprovalController extends Controller
         $cuti->update([
             'status_pengajuan_hrd' => $request->action
         ]);
+
+        $user = $cuti->user;
+
+        $status = $request->action == 1 ? 'Disetujui' : 'Ditolak';
+        $tipeRencana = $cuti->periodeKerjaRoster->tipe_rencana == 1 ? 'Cuti Roster' : 'Insentif Roster';
+
+        $user->notify(new StatusPengajuanNotification([
+            'judul' => $tipeRencana,
+            'pesan' => 'Roster pada tanggal ' . $cuti->tanggal_pengajuan . '  telah ' . strtolower($status) . ' oleh HOD.',
+            'url'   => route('roster.index'),
+            'tipe'  => $tipeRencana,
+        ]));
 
         toast()->success('Success', 'Cuti roster telah diproses oleh HRD');
         return back();

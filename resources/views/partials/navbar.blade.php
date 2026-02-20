@@ -5,6 +5,12 @@
         <ul class="navbar-nav topbar-nav ms-md-auto align-items-center">
 
             <li class="nav-item topbar-icon dropdown hidden-caret">
+                @php
+                $user = auth()->user();
+                $unreadCount = $user->unreadNotifications->count();
+                $notifications = $user->notifications()->latest()->limit(5)->get();
+                @endphp
+
                 <a
                     class="nav-link dropdown-toggle"
                     href="#"
@@ -14,68 +20,82 @@
                     aria-haspopup="true"
                     aria-expanded="false">
                     <i class="fa fa-bell"></i>
-                    <span class="notification">4</span>
+                    @if($unreadCount > 0)
+                    <span class="notification"> {{ $unreadCount }} </span>
+                    @endif
                 </a>
-                <ul
-                    class="dropdown-menu notif-box animated fadeIn"
-                    aria-labelledby="notifDropdown">
-                    <li>
-                        <div class="dropdown-title">
-                            You have 4 new notification
+
+
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 notif-box animated fadeIn"
+                    aria-labelledby="notifDropdown"
+                    style="width: 380px; border-radius: 12px;">
+
+                    <!-- Header -->
+                    <li class="px-3 py-3 border-bottom bg-light rounded-top">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold">Notifikasi</h6>
+                            @if($unreadCount > 0)
+                            <span class="badge bg-danger rounded-pill">
+                                {{ $unreadCount }} New
+                            </span>
+                            @endif
                         </div>
                     </li>
-                    <li>
-                        <div class="notif-scroll scrollbar-outer">
-                            <div class="notif-center">
-                                <a href="#">
-                                    <div class="notif-icon notif-primary">
-                                        <i class="fa fa-user-plus"></i>
-                                    </div>
-                                    <div class="notif-content">
-                                        <span class="block"> New user registered </span>
-                                        <span class="time">5 minutes ago</span>
-                                    </div>
-                                </a>
-                                <a href="#">
-                                    <div class="notif-icon notif-success">
-                                        <i class="fa fa-comment"></i>
-                                    </div>
-                                    <div class="notif-content">
-                                        <span class="block">
-                                            Rahmad commented on Admin
-                                        </span>
-                                        <span class="time">12 minutes ago</span>
-                                    </div>
-                                </a>
-                                <a href="#">
-                                    <div class="notif-img">
-                                        <img
-                                            src="{{ asset('/assets/img/profile2.jpg') }}"
-                                            alt="Img Profile" />
-                                    </div>
-                                    <div class="notif-content">
-                                        <span class="block">
-                                            Reza send messages to you
-                                        </span>
-                                        <span class="time">12 minutes ago</span>
-                                    </div>
-                                </a>
-                                <a href="#">
-                                    <div class="notif-icon notif-danger">
-                                        <i class="fa fa-heart"></i>
-                                    </div>
-                                    <div class="notif-content">
-                                        <span class="block"> Farrah liked Admin </span>
-                                        <span class="time">17 minutes ago</span>
-                                    </div>
-                                </a>
+
+                    <!-- Notification List -->
+                    <li style="max-height: 350px; overflow-y: auto;">
+                        @forelse($notifications as $notif)
+                        <a href="{{ route('notif.baca', $notif->id) }}"
+                            class="dropdown-item d-flex align-items-start py-3 border-bottom {{ is_null($notif->read_at) ? 'bg-light' : '' }}">
+
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold small">
+                                    {{ $notif->data['judul'] ?? 'Notifikasi' }}
+                                </div>
+
+                                <div class="text-muted small">
+                                    {{ $notif->data['pesan'] ?? '-' }}
+                                </div>
+
+                                <div class="text-secondary small mt-1">
+                                    {{ $notif->created_at->diffForHumans() }}
+                                </div>
                             </div>
+
+                            @if(is_null($notif->read_at))
+                            <span class="badge bg-primary ms-2"
+                                style="width:8px;height:8px;border-radius:50%;padding:0;">
+                            </span>
+                            @endif
+
+                        </a>
+                        @empty
+                        <div class="text-center text-muted py-4">
+                            Tidak ada notifikasi
+                        </div>
+                        @endforelse
+                    </li>
+
+                    <!-- Footer -->
+                    <li class="border-top bg-white rounded-bottom">
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2">
+
+                            @if($unreadCount > 0)
+                            <form action="{{ route('notif.readAll') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="btn btn-sm btn-light">
+                                    Baca semua
+                                </button>
+                            </form>
+                            @endif
+
+                            <a href="{{ route('kotak-masuk.index') }}"
+                                class="text-primary fw-semibold small">
+                                Lihat semua →
+                            </a>
                         </div>
                     </li>
-                    <li>
-                        <a class="see-all" href="javascript:void(0);">See all notifications<i class="fa fa-angle-right"></i>
-                        </a>
-                    </li>
+
                 </ul>
             </li>
             <li class="nav-item topbar-user dropdown hidden-caret">
@@ -108,15 +128,15 @@
                                 <div class="u-text">
                                     <h4>{{ Auth::user()->employee->nama_karyawan }}</h4>
                                     <p class="text-muted">{{ Auth::user()->email }}</p>
-                                    <a href="profile.html" class="btn btn-xs btn-secondary btn-sm">My Profil</a>
+                                    <a href="{{ route('pengaturan-akun.index') }}" class="btn btn-xs btn-secondary btn-sm">Profil Saya</a>
                                 </div>
                             </div>
                         </li>
                         <li>
                             <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="#">Inbox</a>
+                            <a class="dropdown-item" href="{{ route('kotak-masuk.index') }}">Kotak Masuk</a>
                             <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="#">Account Setting</a>
+                            <a class="dropdown-item" href="{{ route('update.akun') }}">Pengaturan Akun</a>
                             <div class="dropdown-divider"></div>
 
                             <a class="dropdown-item" href="{{ route('logout') }}"
