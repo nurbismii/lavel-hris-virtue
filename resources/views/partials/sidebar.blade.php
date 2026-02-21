@@ -68,6 +68,7 @@
                     </a>
                 </li>
 
+
                 <li class="nav-item {{ request()->routeIs('resign.index') ? 'active' : '' }}">
                     <a href="{{ route('resign.index') }}">
                         <i class="fas fa-user-minus"></i>
@@ -83,6 +84,13 @@
                 </li>
 
                 @endif
+
+                <li class="nav-item {{ request()->routeIs('slipgaji.index') ? 'active' : '' }}">
+                    <a href="{{ route('slipgaji.index') }}">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <p>Slip Gaji</p>
+                    </a>
+                </li>
 
                 <li class="nav-item {{ request()->routeIs('cuti.index') ? 'active' : '' }}">
                     <a href="{{ route('cuti.index') }}">

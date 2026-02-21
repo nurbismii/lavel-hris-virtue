@@ -73,7 +73,9 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
-        $("#table-lokasi-presensi").DataTable({});
+        $("#table-lokasi-presensi").DataTable({
+            responsive: true,
+        });
     });
 </script>
 @endpush

@@ -172,7 +172,6 @@
 
 @if ($lokasi)
 <script>
-
     let map;
     let markerUser;
     let markerOffice;
@@ -263,9 +262,21 @@
 
     document.addEventListener("DOMContentLoaded", function() {
 
-        let latOffice = {{$lokasi->lat}};
-        let longOffice = {{$lokasi->long}};
-        let radius = {{$lokasi->radius}};
+        let latOffice = {
+            {
+                $lokasi - > lat
+            }
+        };
+        let longOffice = {
+            {
+                $lokasi - > long
+            }
+        };
+        let radius = {
+            {
+                $lokasi - > radius
+            }
+        };
 
         let gpsReady = false;
         let lastLat = null;
@@ -543,7 +554,10 @@
     function validateNaturalMovement() {
 
         if (positionHistory.length < 3) {
-            return { status: false, reason: "Mengumpulkan data GPS..." };
+            return {
+                status: false,
+                reason: "Mengumpulkan data GPS..."
+            };
         }
 
         let totalVariation = 0;
@@ -569,19 +583,29 @@
 
         // Kalau 5 titik benar-benar sama semua
         if (zeroMoveCount >= positionHistory.length - 1) {
-            return { status: false, reason: "Lokasi terlalu statis" };
+            return {
+                status: false,
+                reason: "Lokasi terlalu statis"
+            };
         }
 
         // Jangan terlalu agresif
         if (totalVariation < 0.5) {
-            return { status: true }; // izinkan jika sangat stabil
+            return {
+                status: true
+            }; // izinkan jika sangat stabil
         }
 
         if (totalVariation <= 25) {
-            return { status: true };
+            return {
+                status: true
+            };
         }
 
-        return { status: false, reason: "Pergerakan tidak wajar" };
+        return {
+            status: false,
+            reason: "Pergerakan tidak wajar"
+        };
     }
 </script>
 @endif
@@ -589,6 +613,9 @@
 <script>
     $(document).ready(function() {
         $("#table-presensi").DataTable({
+
+            responsive: true,
+
             order: [
                 [1, 'desc']
             ] // kolom index 1, urut terbaru dulu

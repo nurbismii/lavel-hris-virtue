@@ -50,15 +50,11 @@
                         </div>
                     </div>
 
-                    <a href="{{ $notif->data['url'] }}"
-                        class="stretched-link"
-                        onclick="event.preventDefault(); 
-                                document.getElementById('mark-{{ $notif->id }}').submit();">
+                    <a href="{{ $notif->data['url'] }}" class="stretched-link" onclick="event.preventDefault(); 
+                        document.getElementById('mark-{{ $notif->id }}').submit();">
                     </a>
 
-                    <form id="mark-{{ $notif->id }}"
-                        action="{{ route('notif.baca', $notif->id) }}"
-                        method="POST">
+                    <form id="mark-{{ $notif->id }}" action="{{ route('notif.baca', $notif->id) }}" method="POST">
                         @csrf
                     </form>
 

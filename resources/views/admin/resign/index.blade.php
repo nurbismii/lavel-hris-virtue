@@ -112,6 +112,7 @@
         processing: true,
         serverSide: true,
         responsive: true,
+        
         ajax: {
             url: "{{ route('resign.index') }}",
             data: function(d) {

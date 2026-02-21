@@ -32,9 +32,9 @@
                         <table id="table-cuti" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                             <thead class="table-light">
                                 <tr>
+                                    <th>Pengajuan cuti</th>
                                     <th>NIK</th>
                                     <th>Nama</th>
-                                    <th>Pengajuan cuti</th>
                                     <th>Mulai cuti</th>
                                     <th>Berakhir cuti</th>
                                     <th>Jumlah Cuti</th>
@@ -46,9 +46,9 @@
                             <tbody>
                                 @foreach ($cuti as $c)
                                 <tr>
+                                    <td>{{ formatDateIndonesia($c->tanggal) }}</td>
                                     <td>{{ $c->nik_karyawan }}</td>
                                     <td>{{ $c->employee->nama_karyawan }}</td>
-                                    <td>{{ formatDateIndonesia($c->tanggal) }}</td>
                                     <td>{{ formatDateIndonesia($c->tanggal_mulai) }}</td>
                                     <td>{{ formatDateIndonesia($c->tanggal_berakhir) }}</td>
                                     <td>{{ $c->jumlah }} Hari</td>
@@ -82,7 +82,9 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
-        $("#table-cuti").DataTable({});
+        $("#table-cuti").DataTable({
+            responsive: true,
+        });
     });
 </script>
 @endpush

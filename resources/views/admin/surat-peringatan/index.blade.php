@@ -108,6 +108,7 @@
         processing: true,
         serverSide: true,
         responsive: true,
+        
         ajax: {
             url: "{{ route('surat-peringatan.index') }}",
             data: function(d) {

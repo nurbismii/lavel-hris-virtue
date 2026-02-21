@@ -20,25 +20,7 @@
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
-                        <div class="row mb-3 align-items-end">
-                            <div class="col-md-8 mb-2">
-                                <label class="form-label fw-semibold">Filter Periode</label>
-                                <input type="month" id="filter_periode" class="form-control form-control-sm">
-                            </div>
-
-                            <div class="col-md-2 mb-2">
-                                <button class="btn btn-sm btn-primary w-100" id="btnFilter">
-                                    <i class="fas fa-filter"></i> Filter
-                                </button>
-                            </div>
-
-                            <div class="col-md-2 mb-2">
-                                <button class="btn btn-sm btn-secondary w-100" id="btnReset">
-                                    <i class="fas fa-sync"></i> Reset
-                                </button>
-                            </div>
-                        </div>
-                        <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
+                        <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm">
                             <thead>
                                 <tr>
                                     <th>NIK</th>
@@ -64,27 +46,28 @@
         responsive: true,
 
         ajax: {
-            url: "{{ route('slip-gaji.index') }}",
-            data: function(d) {
-                d.periode = $('#filter_periode').val();
-            }
+            url: "{{ route('slipgaji.index') }}"
         },
 
         columns: [{
                 data: 'nik',
-                name: 'data_karyawans.nik'
+                name: 'data_karyawans.nik',
+                responsivePriority: 2
             },
             {
                 data: 'nama',
-                name: 'data_karyawans.nama'
+                name: 'data_karyawans.nama',
+                responsivePriority: 1
             },
             {
                 data: 'periode',
-                name: 'komponen_gajis.periode'
+                name: 'komponen_gajis.periode',
+                responsivePriority: 3
             },
             {
                 data: 'total_gaji',
-                name: 'komponen_gajis.tot_diterima'
+                name: 'komponen_gajis.tot_diterima',
+                responsivePriority: 4
             },
             {
                 data: 'aksi',
@@ -92,15 +75,6 @@
                 searchable: false
             },
         ]
-    });
-
-    $('#btnFilter').click(function() {
-        table.ajax.reload();
-    });
-
-    $('#btnReset').click(function() {
-        $('#filter_periode').val('');
-        table.ajax.reload();
     });
 </script>
 @endpush

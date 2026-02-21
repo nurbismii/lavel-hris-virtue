@@ -151,6 +151,7 @@
     let table = $('#multi-filter-select').DataTable({
         processing: true,
         serverSide: true,
+        responsive: true,
 
         dom: "<'row mb-2'<'col-md-6'l><'col-md-6 text-end'f>>" +
             "<'table-scroll-wrapper'tr>" +

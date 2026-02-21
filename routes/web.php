@@ -54,11 +54,13 @@ Route::group(['prefix' => '/', 'middleware' => ['auth', 'role:User,Administrator
     Route::post('/absen/{type}', [PresensiController::class, 'store'])->middleware('auth');
     Route::resource('/izin', 'App\Http\Controllers\User\IzinController');
     Route::resource('/roster', 'App\Http\Controllers\User\RosterController');
+    Route::resource('/slipgaji', 'App\Http\Controllers\User\SlipgajiController');
+
     Route::resource('/pengaturan-akun', 'App\Http\Controllers\User\PengaturanAkunController')->except(['show']);
     Route::get('/pengaturan-akun/update', [App\Http\Controllers\User\PengaturanAkunController::class, 'SetIndex'])->name('update.akun');
 
     Route::resource('/kotak-masuk', 'App\Http\Controllers\User\InboxController');
-    Route::get('/notif/{id}/baca', function ($id) {
+    Route::post('/notif/{id}/baca', function ($id) {
 
         $notif = auth()->user()->notifications()->findOrFail($id);
         $notif->markAsRead();

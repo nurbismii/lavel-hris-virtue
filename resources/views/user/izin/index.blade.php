@@ -95,7 +95,9 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
-        $("#table-izin").DataTable({});
+        $("#table-izin").DataTable({
+            responsive: true,
+        });
     });
 </script>
 @endpush

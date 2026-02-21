@@ -7,6 +7,10 @@
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="icon" href="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" type="image/x-icon" />
+
+    <!-- DataTables Responsive CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+
     <style>
         .logo-industrial {
             font-weight: 600;
@@ -99,7 +103,7 @@
                     </nav>
                     <div>
                         Created by
-                        <a href="#">Human Resource Development</a>.
+                        <a href="#">PT VDNI</a>.
                     </div>
                 </div>
             </footer>
@@ -133,6 +137,9 @@
 
     <!-- Kaiadmin JS -->
     <script src="{{ asset('/assets/js/kaiadmin.min.js') }}"></script>
+
+    <!-- DataTables Responsive JS -->
+    <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 
     @stack('scripts')
 

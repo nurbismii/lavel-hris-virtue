@@ -25,9 +25,9 @@
                 <table id="table-approval-roster" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                     <thead class="table-light">
                         <tr>
+                            <th>Pengajuan</th>
                             <th>NIK</th>
                             <th>Nama</th>
-                            <th>Pengajuan</th>
                             <th>Mulai</th>
                             <th>Berakhir</th>
                             <th>Kategori</th>
@@ -39,9 +39,9 @@
                     <tbody>
                         @foreach($cutis as $cuti)
                         <tr>
+                            <td>{{ formatDateIndonesia($cuti->tanggal_pengajuan) }}</td>
                             <td>{{ $cuti->employee->nik }}</td>
                             <td>{{ $cuti->employee->nama_karyawan }}</td>
-                            <td>{{ formatDateIndonesia($cuti->tanggal_pengajuan) }}</td>
                             <td>{{ formatDateIndonesia($cuti->tgl_mulai_cuti) }}</td>
                             <td>{{ formatDateIndonesia($cuti->tgl_mulai_cuti_berakhir) }}</td>
                             <td>{!! $cuti->status_rencana_label !!}</td>
@@ -78,6 +78,8 @@
 <script>
     $(document).ready(function() {
         $("#table-approval-roster").DataTable({
+            responsive: true,
+
             order: [
                 [1, 'desc']
             ] // kolom index 1, urut terbaru dulu
