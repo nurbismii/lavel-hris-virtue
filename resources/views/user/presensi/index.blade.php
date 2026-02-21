@@ -262,21 +262,9 @@
 
     document.addEventListener("DOMContentLoaded", function() {
 
-        let latOffice = {
-            {
-                $lokasi - > lat
-            }
-        };
-        let longOffice = {
-            {
-                $lokasi - > long
-            }
-        };
-        let radius = {
-            {
-                $lokasi - > radius
-            }
-        };
+        let latOffice = {{$lokasi->lat}};
+        let longOffice = {{$lokasi->long}};
+        let radius = {{$lokasi->radius}};
 
         let gpsReady = false;
         let lastLat = null;
@@ -519,7 +507,7 @@
                     return;
                 }
 
-                if (validLogCount < 2) {
+                if (validLogCount < 3) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Validasi belum cukup',
@@ -528,7 +516,7 @@
                     return;
                 }
 
-                if (totalNaturalMovement < 5) {
+                if (totalNaturalMovement < 3) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Indikasi lokasi tidak natural',
