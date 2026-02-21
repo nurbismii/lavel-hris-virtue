@@ -567,13 +567,10 @@
             }
         }
 
-        console.log("Total Variation:", totalVariation);
-
         // Kalau 5 titik benar-benar sama semua
         if (zeroMoveCount >= positionHistory.length - 1) {
             return {
-                status: false,
-                reason: "Lokasi terlalu statis"
+                status: true
             };
         }
 
@@ -581,7 +578,7 @@
         if (totalVariation < 0.5) {
             return {
                 status: true
-            }; // izinkan jika sangat stabil
+            };
         }
 
         if (totalVariation <= 25) {
@@ -606,7 +603,7 @@
 
             order: [
                 [1, 'desc']
-            ] // kolom index 1, urut terbaru dulu
+            ] 
         });
     });
 </script>
