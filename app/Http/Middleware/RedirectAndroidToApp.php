@@ -9,6 +9,10 @@ class RedirectAndroidToApp
 {
     public function handle(Request $request, Closure $next)
     {
+        if ($request->is('download-app')) {
+            return $next($request);
+        }
+
         if ($request->header('X-APP') === 'V-PEOPLE') {
             return $next($request);
         }
