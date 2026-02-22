@@ -9,24 +9,40 @@
     <style>
         body {
             margin: 0;
+            padding: 20px;
+            /* Tambah jarak kiri kanan */
             font-family: 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #0F9D58, #0066CC);
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            color: #fff;
+            min-height: 100vh;
+            box-sizing: border-box;
         }
 
         .card {
             background: #ffffff;
             color: #333;
-            width: 90%;
+            width: 100%;
             max-width: 420px;
-            padding: 40px 30px;
-            border-radius: 20px;
+            padding: 35px 25px;
+            border-radius: 24px;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .logo {
@@ -72,7 +88,7 @@
 
     <div class="card">
         <!-- Ganti dengan logo kamu -->
-        <img src="{{ asset('images/vpeople-logo.png') }}" class="logo" alt="V-People">
+        <img src="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" class="logo" alt="V-People">
 
         <h2>Gunakan Aplikasi Resmi V-People</h2>
 
