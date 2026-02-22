@@ -90,6 +90,10 @@
                     </a>
                 </li>
 
+                @endif
+
+                @if(auth()->user()->hasRole(['Administrator', 'User', 'HR']))
+
                 {{-- SLIP GAJI USER --}}
                 <li class="nav-item {{ request()->routeIs('slipgaji.index') ? 'active' : '' }}">
                     <a href="{{ route('slipgaji.index') }}">

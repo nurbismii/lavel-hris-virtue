@@ -65,11 +65,13 @@ class CutiApprovalController extends Controller
         $cuti = Cuti::with('user')->findOrFail($id);
 
         if ($cuti->status_hod != 1) {
-            return back()->with('error', 'Belum disetujui HOD');
+            toast()->error('error', 'Belum disetujui HOD');
+            return back();
         }
 
-        if ($cuti->status_hrd != 0) {
-            return back()->with('error', 'Sudah diproses');
+        if ($cuti->status_hrd == 1) {
+            toast()->error('error', 'Sudah diproses');
+            return back();
         }
 
         $cuti->update([
