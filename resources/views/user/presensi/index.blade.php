@@ -288,7 +288,7 @@
             let accuracy = position.coords.accuracy;
             let now = Date.now();
 
-            if (accuracy < 5 || accuracy > 75) {
+            if (accuracy > 75) {
                 gpsReady = false;
                 toggleAbsenButton(false);
 
@@ -507,7 +507,7 @@
                     return;
                 }
 
-                if (validLogCount < 3) {
+                if (validLogCount < 2) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Validasi belum cukup',
@@ -516,7 +516,7 @@
                     return;
                 }
 
-                if (totalNaturalMovement < 3) {
+                if (totalNaturalMovement < 2) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Indikasi lokasi tidak natural',
@@ -541,7 +541,7 @@
 
     function validateNaturalMovement() {
 
-        if (positionHistory.length < 3) {
+        if (positionHistory.length < 2) {
             return {
                 status: false,
                 reason: "Mengumpulkan data GPS..."

@@ -13,124 +13,135 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('auth.login');
-});
+Route::view('/download-app', 'download-app');
 
-Route::middleware('guest')->group(function () {
-    Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-    Route::post('/register', [RegisterController::class, 'register']);
-});
+Route::middleware(['android.redirect'])->group(function () {
+    Route::get('/', function () {
+        return view('auth.login');
+    });
 
-Route::middleware('auth')->group(function () {
-    Route::get('/email/verify', function () {
-        return view('auth.verify-email');
-    })->name('verification.notice');
+    Route::middleware('guest')->group(function () {
+        Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+        Route::post('/register', [RegisterController::class, 'register']);
+    });
 
-    Route::post('/email/verification-notification', [\Illuminate\Foundation\Auth\EmailVerificationRequest::class, 'send'])
-        ->name('verification.send');
+    Route::middleware('auth')->group(function () {
+        Route::get('/email/verify', function () {
+            return view('auth.verify-email');
+        })->name('verification.notice');
 
-    Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+        Route::post('/email/verification-notification', [\Illuminate\Foundation\Auth\EmailVerificationRequest::class, 'send'])
+            ->name('verification.send');
 
-        $request->fulfill(); // ini akan isi email_verified_at
+        Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
 
-        // Update status menjadi aktif
-        $request->user()->update([
-            'status' => 'aktif',
-        ]);
+            $request->fulfill(); // ini akan isi email_verified_at
 
-        toast()->success('Success', 'Email berhasil diverifikasi.');
-        return redirect('/dashboard');
-    })->middleware(['auth', 'signed'])->name('verification.verify');
-});
+            // Update status menjadi aktif
+            $request->user()->update([
+                'status' => 'aktif',
+            ]);
 
-Auth::routes();
+            toast()->success('Success', 'Email berhasil diverifikasi.');
+            return redirect('/dashboard');
+        })->middleware(['auth', 'signed'])->name('verification.verify');
+    });
 
-Route::group(['prefix' => '/', 'middleware' => ['auth', 'role:User,Administrator', 'verify.email']], function () {
+    Route::post('/mobile-logout', function () {
+        Auth::logout();
+        request()->session()->invalidate();
+        request()->session()->regenerateToken();
+        return response()->json(['status' => 'ok']);
+    });
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.karyawan');
-    Route::resource('/cuti', 'App\Http\Controllers\User\CutiController');
-    Route::resource('/presensi', 'App\Http\Controllers\User\PresensiController')->except('store');
-    Route::post('/absen/{type}', [PresensiController::class, 'store'])->middleware('auth');
-    Route::resource('/izin', 'App\Http\Controllers\User\IzinController');
-    Route::resource('/roster', 'App\Http\Controllers\User\RosterController');
-    Route::resource('/slipgaji', 'App\Http\Controllers\User\SlipgajiController');
+    Auth::routes();
 
-    Route::resource('/pengaturan-akun', 'App\Http\Controllers\User\PengaturanAkunController')->except(['show']);
-    Route::get('/pengaturan-akun/update', [App\Http\Controllers\User\PengaturanAkunController::class, 'SetIndex'])->name('update.akun');
+    Route::group(['prefix' => '/', 'middleware' => ['auth', 'role:User,Administrator', 'verify.email']], function () {
 
-    Route::resource('/kotak-masuk', 'App\Http\Controllers\User\InboxController');
-    Route::post('/notif/{id}/baca', function ($id) {
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.karyawan');
+        Route::resource('/cuti', 'App\Http\Controllers\User\CutiController');
+        Route::resource('/presensi', 'App\Http\Controllers\User\PresensiController')->except('store');
+        Route::post('/absen/{type}', [PresensiController::class, 'store'])->middleware('auth');
+        Route::resource('/izin', 'App\Http\Controllers\User\IzinController');
+        Route::resource('/roster', 'App\Http\Controllers\User\RosterController');
+        Route::resource('/slipgaji', 'App\Http\Controllers\User\SlipgajiController');
 
-        $notif = auth()->user()->notifications()->findOrFail($id);
-        $notif->markAsRead();
+        Route::resource('/pengaturan-akun', 'App\Http\Controllers\User\PengaturanAkunController')->except(['show']);
+        Route::get('/pengaturan-akun/update', [App\Http\Controllers\User\PengaturanAkunController::class, 'SetIndex'])->name('update.akun');
 
-        return redirect($notif->data['url']);
-    })->name('notif.baca');
+        Route::resource('/kotak-masuk', 'App\Http\Controllers\User\InboxController');
+        Route::post('/notif/{id}/baca', function ($id) {
 
-    Route::post('/notif/read-all', function () {
-        auth()->user()->unreadNotifications->markAsRead();
-        return back();
-    })->name('notif.readAll');
-});
+            $notif = auth()->user()->notifications()->findOrFail($id);
+            $notif->markAsRead();
 
-Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'role:Administrator']], function () {
+            return redirect($notif->data['url']);
+        })->name('notif.baca');
 
-    Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+        Route::post('/notif/read-all', function () {
+            auth()->user()->unreadNotifications->markAsRead();
+            return back();
+        })->name('notif.readAll');
+    });
 
-    Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController');
+    Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'role:Administrator']], function () {
 
-    Route::resource('/user', 'App\Http\Controllers\Admin\UserController');
-    Route::resource('/slip-gaji', 'App\Http\Controllers\Admin\SlipGajiController');
-    Route::get('/slip-gaji/{id}/pdf', [SlipGajiController::class, 'exportPdf'])->name('slip-gaji.pdf');
-    Route::resource('/perusahaan', 'App\Http\Controllers\Admin\PerusahaanController');
+        Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
-    // === DEPARTEMEN ===
-    Route::get('/departemen/{perusahaan_id}', [App\Http\Controllers\Admin\DepartemenController::class, 'create'])->name('departemen.create');
-    Route::post('/departemen/store', [App\Http\Controllers\Admin\DepartemenController::class, 'store'])->name('departemen.store');
-    Route::delete('/departemen/destroy/{id}', [App\Http\Controllers\Admin\DepartemenController::class, 'destroy'])->name('departemen.destroy');
-    // === END DEPARTEMEN ===
+        Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController');
 
-    // === DIVISI ===
-    Route::get('/divisi/create/{perusahaan_id}', [App\Http\Controllers\Admin\DivisiController::class, 'create'])->name('divisi.create');
-    Route::post('/divisi/store', [App\Http\Controllers\Admin\DivisiController::class, 'store'])->name('divisi.store');
-    Route::delete('/divisi/destroy/{id}', [App\Http\Controllers\Admin\DivisiController::class, 'destroy'])->name('divisi.destroy');
-    //=== END DIVISI ===
+        Route::resource('/user', 'App\Http\Controllers\Admin\UserController');
+        Route::resource('/slip-gaji', 'App\Http\Controllers\Admin\SlipGajiController');
+        Route::get('/slip-gaji/{id}/pdf', [SlipGajiController::class, 'exportPdf'])->name('slip-gaji.pdf');
+        Route::resource('/perusahaan', 'App\Http\Controllers\Admin\PerusahaanController');
 
-    Route::resource('/resign', 'App\Http\Controllers\Admin\ResignController');
-    Route::resource('/surat-peringatan', 'App\Http\Controllers\Admin\SuratPeringatanController');
+        // === DEPARTEMEN ===
+        Route::get('/departemen/{perusahaan_id}', [App\Http\Controllers\Admin\DepartemenController::class, 'create'])->name('departemen.create');
+        Route::post('/departemen/store', [App\Http\Controllers\Admin\DepartemenController::class, 'store'])->name('departemen.store');
+        Route::delete('/departemen/destroy/{id}', [App\Http\Controllers\Admin\DepartemenController::class, 'destroy'])->name('departemen.destroy');
+        // === END DEPARTEMEN ===
 
-    Route::resource('/setting-lokasi-presensi', 'App\Http\Controllers\Admin\SettingLokasiPresensiController');
+        // === DIVISI ===
+        Route::get('/divisi/create/{perusahaan_id}', [App\Http\Controllers\Admin\DivisiController::class, 'create'])->name('divisi.create');
+        Route::post('/divisi/store', [App\Http\Controllers\Admin\DivisiController::class, 'store'])->name('divisi.store');
+        Route::delete('/divisi/destroy/{id}', [App\Http\Controllers\Admin\DivisiController::class, 'destroy'])->name('divisi.destroy');
+        //=== END DIVISI ===
 
-    // === ROLE ===
-    Route::resource('/setting-role', '\App\Http\Controllers\Admin\SettingRoleController');
-    Route::patch('/role/update/{id}', [SettingRoleController::class, 'updateRole'])->name('role.update');
-    // === END ROLE ===
+        Route::resource('/resign', 'App\Http\Controllers\Admin\ResignController');
+        Route::resource('/surat-peringatan', 'App\Http\Controllers\Admin\SuratPeringatanController');
 
-    Route::get('/ajax/departemen-by-area', [App\Http\Controllers\Admin\KaryawanController::class, 'departemenByArea'])->name('ajax.departemen.by.area');
-    Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->name('ajax.divisi.by.departemen');
-});
+        Route::resource('/setting-lokasi-presensi', 'App\Http\Controllers\Admin\SettingLokasiPresensiController');
 
-Route::group(['prefix' => 'approval', 'middleware' => ['auth', 'role:Administrator, HOD, HRD']], function () {
+        // === ROLE ===
+        Route::resource('/setting-role', '\App\Http\Controllers\Admin\SettingRoleController');
+        Route::patch('/role/update/{id}', [SettingRoleController::class, 'updateRole'])->name('role.update');
+        // === END ROLE ===
 
-    Route::get('/hod/cuti', [CutiApprovalController::class, 'hodIndex'])->name('approval.cuti.hod');
-    Route::post('/hod/cuti{id}', [CutiApprovalController::class, 'hodProcess'])->name('approval.cuti.hod.process');
+        Route::get('/ajax/departemen-by-area', [App\Http\Controllers\Admin\KaryawanController::class, 'departemenByArea'])->name('ajax.departemen.by.area');
+        Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->name('ajax.divisi.by.departemen');
+    });
 
-    Route::get('/hrd/cuti', [CutiApprovalController::class, 'hrdIndex'])->name('approval.cuti.hrd');
-    Route::post('/hrd/cuti{id}', [CutiApprovalController::class, 'hrdProcess'])->name('approval.cuti.hrd.process');
+    Route::group(['prefix' => 'approval', 'middleware' => ['auth', 'role:Administrator, HOD, HRD']], function () {
 
-    Route::get('/hod/cuti-roster', [RosterApprovalController::class, 'hodIndex'])->name('approval.roster.hod');
-    Route::post('/hod/cuti-roster/{id}', [RosterApprovalController::class, 'hodProcess'])->name('approval.roster.hod.process');
-    Route::get('/hod/show/cuti-roster/{id}', [RosterApprovalController::class, 'hodShow'])->name('approval.roster.hod.show');
+        Route::get('/hod/cuti', [CutiApprovalController::class, 'hodIndex'])->name('approval.cuti.hod');
+        Route::post('/hod/cuti{id}', [CutiApprovalController::class, 'hodProcess'])->name('approval.cuti.hod.process');
 
-    Route::get('/hrd/cuti-roster', [RosterApprovalController::class, 'hrdIndex'])->name('approval.roster.hrd');
-    Route::post('/hrd/cuti-roster/{id}', [RosterApprovalController::class, 'hrdProcess'])->name('approval.roster.hrd.process');
+        Route::get('/hrd/cuti', [CutiApprovalController::class, 'hrdIndex'])->name('approval.cuti.hrd');
+        Route::post('/hrd/cuti{id}', [CutiApprovalController::class, 'hrdProcess'])->name('approval.cuti.hrd.process');
 
-    Route::get('/hod/izin', [IzinApprovalController::class, 'hodIndex'])->name('approval.izin.hod');
-    Route::post('/hod/izin{id}', [IzinApprovalController::class, 'hodProcess'])->name('approval.izin.hod.process');
+        Route::get('/hod/cuti-roster', [RosterApprovalController::class, 'hodIndex'])->name('approval.roster.hod');
+        Route::post('/hod/cuti-roster/{id}', [RosterApprovalController::class, 'hodProcess'])->name('approval.roster.hod.process');
+        Route::get('/hod/show/cuti-roster/{id}', [RosterApprovalController::class, 'hodShow'])->name('approval.roster.hod.show');
 
-    Route::get('/hrd/izin', [IzinApprovalController::class, 'hrdIndex'])->name('approval.izin.hrd');
-    Route::post('/hrd/izin{id}', [IzinApprovalController::class, 'hrdProcess'])->name('approval.izin.hrd.process');
+        Route::get('/hrd/cuti-roster', [RosterApprovalController::class, 'hrdIndex'])->name('approval.roster.hrd');
+        Route::post('/hrd/cuti-roster/{id}', [RosterApprovalController::class, 'hrdProcess'])->name('approval.roster.hrd.process');
+
+        Route::get('/hod/izin', [IzinApprovalController::class, 'hodIndex'])->name('approval.izin.hod');
+        Route::post('/hod/izin{id}', [IzinApprovalController::class, 'hodProcess'])->name('approval.izin.hod.process');
+
+        Route::get('/hrd/izin', [IzinApprovalController::class, 'hrdIndex'])->name('approval.izin.hrd');
+        Route::post('/hrd/izin{id}', [IzinApprovalController::class, 'hrdProcess'])->name('approval.izin.hrd.process');
+    });
 });
 
 Route::group(['prefix' => 'wilayah'], function () {
