@@ -15,8 +15,15 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/download-app', 'download-app');
 
+Route::get('/mobile-logout', function () {
+    Auth::logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect('/login');
+});
+
 Route::middleware(['android.redirect'])->group(function () {
-    
+
     Route::get('/', function () {
         return view('auth.login');
     });
@@ -46,13 +53,6 @@ Route::middleware(['android.redirect'])->group(function () {
             toast()->success('Success', 'Email berhasil diverifikasi.');
             return redirect('/dashboard');
         })->middleware(['auth', 'signed'])->name('verification.verify');
-    });
-
-    Route::post('/mobile-logout', function () {
-        Auth::logout();
-        request()->session()->invalidate();
-        request()->session()->regenerateToken();
-        return response()->json(['status' => 'ok']);
     });
 
     Auth::routes();
