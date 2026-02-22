@@ -183,7 +183,6 @@
 
     // 🔐 Global validation state
     let positionHistory = [];
-    let totalNaturalMovement = 0;
     let validationState = {
         stableStart: null,
         validSamples: 0
@@ -314,9 +313,6 @@
                         "<span class='text-danger'>Pergerakan tidak wajar terdeteksi</span>";
                     return;
                 }
-
-                // hitung total gerakan natural
-                totalNaturalMovement += distanceMove;
             }
 
             if (!stableStartTime) {
@@ -512,15 +508,6 @@
                         icon: 'warning',
                         title: 'Validasi belum cukup',
                         text: 'Tunggu beberapa detik lagi.'
-                    });
-                    return;
-                }
-
-                if (totalNaturalMovement < 2) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Indikasi lokasi tidak natural',
-                        text: 'Silakan matikan Fake GPS.'
                     });
                     return;
                 }

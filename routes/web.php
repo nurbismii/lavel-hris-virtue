@@ -85,7 +85,7 @@ Route::middleware(['android.redirect'])->group(function () {
         })->name('notif.readAll');
     });
 
-    Route::group(['prefix' => 'admin', 'middleware' => ['auth', 'role:Administrator']], function () {
+    Route::group(['prefix' => 'admin', 'middleware' => ['redirect.role', 'auth', 'role:Administrator']], function () {
 
         Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
