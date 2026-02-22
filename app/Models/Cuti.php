@@ -17,7 +17,7 @@ class Cuti extends Model
 
     public function employee()
     {
-        return $this->belongsTo(Employee::class, 'nik_karyawan');
+        return $this->belongsTo(Employee::class, 'nik_karyawan')->select('nik', 'nama_karyawan', 'sisa_cuti', 'divisi_id', 'departemen_id');
     }
 
     public function getStatusTipeLabelAttribute()

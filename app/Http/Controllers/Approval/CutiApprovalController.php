@@ -11,8 +11,12 @@ class CutiApprovalController extends Controller
 {
     public function hodIndex()
     {
-        $cutis = Cuti::with('employee')->where('tipe', 'CUTI')
-            ->orderByRaw("FIELD(status_hod, '0', '1')")
+        $cutis = Cuti::select('cuti_izin.*')
+            ->join('employees', 'cuti_izin.nik_karyawan', '=', 'employees.nik')
+            ->where('cuti_izin.tipe', 'CUTI')
+            ->where('employees.divisi_id', auth()->user()->employee->divisi_id)
+            ->orderByRaw("FIELD(cuti_izin.status_hod, '0', '1')")
+            ->with('employee') // tetap bisa eager load
             ->get();
 
         return view('approval.hod.cuti.index', compact('cutis'));

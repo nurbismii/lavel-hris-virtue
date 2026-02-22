@@ -11,10 +11,12 @@ class IzinApprovalController extends Controller
 {
     public function hodIndex()
     {
-        $cutis = Cuti::with('employee')
-            ->whereIn('tipe', ['PAID', 'UNPAID'])
-            ->orderByRaw("FIELD(tipe, 'UNPAID', 'PAID')")
-            ->orderBy('tanggal', 'desc')
+        $cutis = Cuti::select('cuti_izin.*')
+            ->join('employees', 'cuti_izin.nik_karyawan', '=', 'employees.nik')
+            ->whereIn('cuti_izin.tipe', ['PAID', 'UNPAID'])
+            ->where('employees.divisi_id', auth()->user()->employee->divisi_id)
+            ->orderByRaw("FIELD(cuti_izin.tipe, 'UNPAID', 'PAID')")
+            ->with('employee') // tetap bisa eager load
             ->get();
 
         return view('approval.hod.izin.index', compact('cutis'));

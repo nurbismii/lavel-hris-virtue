@@ -31,7 +31,7 @@
                     </a>
                 </li>
 
-                @if(Auth::user()->role->permission_role == 'Administrator')
+                @if(auth()->user()->hasRole(['Administrator', 'HR']))
 
                 <li class="nav-item {{ request()->routeIs('home') ? 'active' : '' }}">
                     <a href="{{ route('home') }}">
@@ -61,6 +61,10 @@
                     </a>
                 </li>
 
+                @endif
+
+                @if(auth()->user()->hasRole(['Administrator']))
+
                 <li class="nav-item {{ request()->routeIs('slip-gaji.index') ? 'active' : '' }}">
                     <a href="{{ route('slip-gaji.index') }}">
                         <i class="fas fa-file-invoice-dollar"></i>
@@ -68,6 +72,9 @@
                     </a>
                 </li>
 
+                @endif
+
+                @if(auth()->user()->hasRole(['Administrator', 'HR']))
 
                 <li class="nav-item {{ request()->routeIs('resign.index') ? 'active' : '' }}">
                     <a href="{{ route('resign.index') }}">
@@ -83,8 +90,7 @@
                     </a>
                 </li>
 
-                @endif
-
+                {{-- SLIP GAJI USER --}}
                 <li class="nav-item {{ request()->routeIs('slipgaji.index') ? 'active' : '' }}">
                     <a href="{{ route('slipgaji.index') }}">
                         <i class="fas fa-file-invoice-dollar"></i>
@@ -120,7 +126,9 @@
                     </a>
                 </li>
 
-                @if(Auth::user()->role->permission_role == 'Administrator' || Auth::user()->role->permission_role == 'HOD')
+                @endif
+
+                @if(auth()->user()->hasRole(['Administrator', 'HOD']))
 
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
@@ -152,7 +160,7 @@
 
                 @endif
 
-                @if(Auth::user()->role->permission_role == 'Administrator' || Auth::user()->role->permission_role == 'HRD')
+                @if(auth()->user()->hasRole(['Administrator', 'HR']))
 
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
@@ -184,7 +192,7 @@
 
                 @endif
 
-                @if(Auth::user()->role->permission_role == 'Administrator')
+                @if(auth()->user()->hasRole(['Administrator', 'HR']))
 
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
@@ -199,6 +207,10 @@
                         <p>Perusahaan</p>
                     </a>
                 </li>
+
+                @endif
+
+                @if(auth()->user()->hasRole(['Administrator']))
 
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">

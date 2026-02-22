@@ -80,4 +80,13 @@ class User extends Authenticatable implements MustVerifyEmail
             }
         });
     }
+
+    public function hasRole($roles)
+    {
+        if (is_array($roles)) {
+            return in_array($this->role->permission_role, $roles);
+        }
+
+        return $this->role->permission_role === $roles;
+    }
 }

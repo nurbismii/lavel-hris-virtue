@@ -11,7 +11,11 @@ class RosterApprovalController extends Controller
 {
     public function hodIndex()
     {
-        $cutis = Roster::with('employee', 'periodeKerjaRoster')->get();
+        $cutis = $rosters = Roster::select('cuti_roster.*')
+            ->join('employees', 'cuti_roster.nik_karyawan', '=', 'employees.nik')
+            ->join('periode_kerja_roster', 'cuti_roster.id', '=', 'periode_kerja_roster.cuti_roster_id')
+            ->where('employees.divisi_id', auth()->user()->employee->divisi_id)
+            ->get();
 
         return view('approval.hod.roster.index', compact('cutis'));
     }

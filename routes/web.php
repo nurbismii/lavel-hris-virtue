@@ -57,7 +57,7 @@ Route::middleware(['android.redirect'])->group(function () {
 
     Auth::routes();
 
-    Route::group(['prefix' => '/', 'middleware' => ['auth', 'role:User,Administrator', 'verify.email']], function () {
+    Route::group(['prefix' => '/', 'middleware' => ['auth', 'role:User,Administrator,HR', 'verify.email']], function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.karyawan');
         Route::resource('/cuti', 'App\Http\Controllers\User\CutiController');
@@ -85,7 +85,7 @@ Route::middleware(['android.redirect'])->group(function () {
         })->name('notif.readAll');
     });
 
-    Route::group(['prefix' => 'admin', 'middleware' => ['redirect.role', 'auth', 'role:Administrator']], function () {
+    Route::group(['prefix' => 'admin', 'middleware' => ['redirect.role', 'auth', 'role:Administrator,HR']], function () {
 
         Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
@@ -122,7 +122,7 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->name('ajax.divisi.by.departemen');
     });
 
-    Route::group(['prefix' => 'approval', 'middleware' => ['auth', 'role:Administrator, HOD, HRD']], function () {
+    Route::group(['prefix' => 'approval', 'middleware' => ['auth', 'role:Administrator,HOD,HR']], function () {
 
         Route::get('/hod/cuti', [CutiApprovalController::class, 'hodIndex'])->name('approval.cuti.hod');
         Route::post('/hod/cuti{id}', [CutiApprovalController::class, 'hodProcess'])->name('approval.cuti.hod.process');
