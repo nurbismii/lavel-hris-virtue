@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Route;
 Route::view('/download-app', 'download-app');
 
 Route::middleware(['android.redirect'])->group(function () {
+    
     Route::get('/', function () {
         return view('auth.login');
     });

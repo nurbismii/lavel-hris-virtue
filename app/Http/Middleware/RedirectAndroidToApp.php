@@ -13,7 +13,12 @@ class RedirectAndroidToApp
             return $next($request);
         }
 
-        if ($request->header('X-APP') === 'V-PEOPLE') {
+        if ($request->query('app') === 'V-PEOPLE') {
+            session(['from_app' => true]);
+            return $next($request);
+        }
+
+        if (session('from_app')) {
             return $next($request);
         }
 
