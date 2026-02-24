@@ -28,4 +28,9 @@ class Employee extends Model
     {
         return $this->belongsTo(Divisi::class, 'divisi_id');
     }
+
+    public function presensi()
+    {
+        return $this->hasMany(Presensi::class, 'nik_karyawan');
+    }
 }

@@ -90,6 +90,13 @@
                     </a>
                 </li>
 
+                <li class="nav-item {{ request()->routeIs('data-presensi.index') ? 'active' : '' }}">
+                    <a href="{{ route('data-presensi.index') }}">
+                        <i class="fas fa-check"></i>
+                        <p>Data Presensi</p>
+                    </a>
+                </li>
+
                 @endif
 
                 @if(auth()->user()->hasRole(['Administrator', 'User', 'HR']))

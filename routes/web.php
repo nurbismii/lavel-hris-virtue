@@ -9,6 +9,7 @@ use App\Http\Controllers\Approval\RosterApprovalController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\User\PresensiController;
+use App\Http\Controllers\Admin\PresensiController as PresensiAdminController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -118,8 +119,13 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::patch('/role/update/{id}', [SettingRoleController::class, 'updateRole'])->name('role.update');
         // === END ROLE ===
 
+        Route::resource('/data-presensi', 'App\Http\Controllers\Admin\PresensiController');
+
         Route::get('/ajax/departemen-by-area', [App\Http\Controllers\Admin\KaryawanController::class, 'departemenByArea'])->name('ajax.departemen.by.area');
         Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->name('ajax.divisi.by.departemen');
+
+        Route::get('fetch/data-presensi', [PresensiAdminController::class, 'dataPresensi'])->name('fetch.data-presensi');
+        Route::get('/presensi/export', [PresensiAdminController::class, 'export'])->name('presensi.export');
     });
 
     Route::group(['prefix' => 'approval', 'middleware' => ['auth', 'role:Administrator,HOD,HR']], function () {

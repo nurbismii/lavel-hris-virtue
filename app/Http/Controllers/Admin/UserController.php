@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -15,8 +16,10 @@ class UserController extends Controller
         $text = "Are you sure you want to delete?";
         confirmDelete($title, $text);
 
+        $user = Role::where('permission_role', 'User')->first();
+
         return view('admin.user.index', [
-            'users' => User::where('role_id', null)->get()
+            'users' => User::where('role_id', $user->id)->get()
         ]);
     }
 
