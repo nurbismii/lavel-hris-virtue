@@ -74,6 +74,13 @@
             Masukkan NIK atau nama karyawan untuk melihat detail data
         </p>
 
+        @if(!empty($expired) && $expired)
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <strong>Session telah berakhir!</strong> Silakan masukkan kembali kode akses.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        @endif
+
         @if(isset($locked) && $locked)
         <div class="alert alert-danger alert-dismissible fade show text-center" role="alert">
             <strong>Akses Terkunci.</strong><br>

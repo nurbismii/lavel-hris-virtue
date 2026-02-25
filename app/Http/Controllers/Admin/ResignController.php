@@ -87,11 +87,14 @@ class ResignController extends Controller
 
         if (!session('security_unlocked') || now()->diffInMinutes(session('security_unlock_time')) > 10) {
 
+            $expired = session('security_unlocked');
+
             session()->forget(['security_unlocked', 'security_unlock_time']);
 
             return view('search.index', [
-                'resign' => Employee::whereRaw('1=0')->paginate(12),
-                'locked' => true
+                'resign'   => Employee::whereRaw('1=0')->paginate(12),
+                'locked'   => true,
+                'expired'  => $expired ? true : false
             ]);
         }
 
