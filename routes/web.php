@@ -18,7 +18,8 @@ Route::get('/mobile-logout', function () {
     Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
-    return redirect('/login');
+
+    return redirect('/login?app=V-PEOPLE');
 });
 
 Route::view('/download-app', 'download-app');

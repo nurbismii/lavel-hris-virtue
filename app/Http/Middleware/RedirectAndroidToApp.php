@@ -9,7 +9,7 @@ class RedirectAndroidToApp
 {
     public function handle(Request $request, Closure $next)
     {
-        if ($request->is('download-app')) {
+        if ($request->is('download-app') || $request->is('login') || $request->is('mobile-logout')) {
             return $next($request);
         }
 
