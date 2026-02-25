@@ -4,28 +4,28 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class RedirectAndroidToApp
 {
     public function handle(Request $request, Closure $next)
     {
-        if ($request->is('download-app') || $request->is('login') || $request->is('mobile-logout')) {
+        $userAgent = $request->header('User-Agent') ?? '';
+
+        $isAndroid = stripos($userAgent, 'Android') !== false;
+        $isApp = stripos($userAgent, 'VPEOPLE_APP') !== false;
+
+        if ($request->is('download-app')) {
             return $next($request);
         }
 
-        if ($request->query('app') === 'V-PEOPLE') {
-            session(['from_app' => true]);
-            return $next($request);
-        }
-
-        if (session('from_app')) {
-            return $next($request);
-        }
-
-        $userAgent = $request->header('User-Agent');
-
-        if ($userAgent && stripos($userAgent, 'Android') !== false) {
+        if ($isAndroid && !$isApp) {
+            Auth::logout();
             return redirect('/download-app');
+        }
+
+        if ($isApp) {
+            return $next($request);
         }
 
         return $next($request);
