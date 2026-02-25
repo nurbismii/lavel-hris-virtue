@@ -85,8 +85,7 @@
 
                             <div class="col-md-3">
                                 <select id="filter_resign" class="form-select">
-                                    <option value="">Semua Status</option>
-                                    <option value="AKTIF">Aktif</option>
+                                    <option value="AKTIF" selected>Aktif</option>
                                     <option value="RESIGN SESUAI PROSEDUR">Resign Sesuai Prosedur</option>
                                     <option value="RESIGN TIDAK SESUAI PROSEDUR">Resign Tidak Sesuai Prosedur</option>
                                     <option value="PUTUS KONTRAK">Putus Kontrak</option>

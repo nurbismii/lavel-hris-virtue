@@ -14,14 +14,14 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::view('/download-app', 'download-app');
-
 Route::get('/mobile-logout', function () {
     Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
     return redirect('/login');
 });
+
+Route::view('/download-app', 'download-app');
 
 Route::middleware(['android.redirect'])->group(function () {
 
