@@ -77,7 +77,7 @@ class ResignController extends Controller
     {
         $q = trim($request->get('q'));
 
-        if ($q === 'VDNI678910') {
+        if ($q === 'virtue@2026!') {
             session([
                 'security_unlocked' => true,
                 'security_unlock_time' => now()
