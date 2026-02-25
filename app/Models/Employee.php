@@ -29,6 +29,26 @@ class Employee extends Model
         return $this->belongsTo(Divisi::class, 'divisi_id');
     }
 
+    public function provinsi()
+    {
+        return $this->belongsTo(Provinsi::class, 'provinsi_id');
+    }
+
+    public function kabupaten()
+    {
+        return $this->belongsTo(Kabupaten::class, 'kabupaten_id');
+    }
+
+    public function kecamatan()
+    {
+        return $this->belongsTo(Kecamatan::class, 'kecamatan_id');
+    }
+
+    public function kelurahan()
+    {
+        return $this->belongsTo(Kelurahan::class, 'kelurahan_id');
+    }
+
     public function presensi()
     {
         return $this->hasMany(Presensi::class, 'nik_karyawan');

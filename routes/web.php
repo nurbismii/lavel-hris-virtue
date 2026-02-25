@@ -153,6 +153,7 @@ Route::middleware(['android.redirect'])->group(function () {
 });
 
 Route::group(['prefix' => 'wilayah'], function () {
+    Route::resource('/distribusi', 'App\Http\Controllers\Admin\WilayahController');
     Route::get('/provinces', [App\Http\Controllers\Admin\WilayahController::class, 'provinsi'])->name('wilayah.provinces');
     Route::get('/kabupatens/{provinceId}', [App\Http\Controllers\Admin\WilayahController::class, 'kabupaten'])->name('wilayah.kabupatens');
     Route::get('/kecamatans/{kabupatenId}', [App\Http\Controllers\Admin\WilayahController::class, 'kecamatan'])->name('wilayah.kecamatans');
@@ -163,3 +164,6 @@ Route::group(['prefix' => 'api/'], function () {
     route::get('/airports', [ApiController::class, 'getAirport']);
     Route::post('/gps-log', [PresensiController::class, 'logGps'])->middleware('auth');
 });
+
+// SEARCH RIWAYAT KARYAWAN RESIGN
+Route::get('search-by-security', [App\Http\Controllers\Admin\ResignController::class, 'search'])->name('search.by.security');

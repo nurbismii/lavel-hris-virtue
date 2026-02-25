@@ -97,6 +97,13 @@
                     </a>
                 </li>
 
+                <li class="nav-item {{ request()->routeIs('distribusi.index') ? 'active' : '' }}">
+                    <a href="{{ route('distribusi.index') }}">
+                        <i class="fas fa-map"></i>
+                        <p>Distribusi Wilayah</p>
+                    </a>
+                </li>
+
                 @endif
 
                 @if(auth()->user()->hasRole(['Administrator', 'User', 'HR']))
