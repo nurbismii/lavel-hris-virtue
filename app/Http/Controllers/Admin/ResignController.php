@@ -90,7 +90,7 @@ class ResignController extends Controller
             session()->forget(['security_unlocked', 'security_unlock_time']);
 
             return view('search.index', [
-                'resign' => null,
+                'resign' => Employee::whereRaw('1=0')->paginate(12),
                 'locked' => true
             ]);
         }
