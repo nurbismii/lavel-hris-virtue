@@ -54,7 +54,7 @@
                         document.getElementById('mark-{{ $notif->id }}').submit();">
                     </a>
 
-                    <form id="mark-{{ $notif->id }}" action="{{ route('notif.baca', $notif->id) }}" method="POST">
+                    <form id="mark-{{ $notif->id }}" action="{{ route('notif.baca', $notif->id) }}" method="GET">
                         @csrf
                     </form>
 

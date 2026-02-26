@@ -10,7 +10,10 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\User\PresensiController;
 use App\Http\Controllers\Admin\PresensiController as PresensiAdminController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +24,11 @@ Route::get('/mobile-logout', function () {
 
     return redirect('/login?app=V-PEOPLE');
 });
+
+Route::get('forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::get('reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
+Route::post('reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 
 Route::view('/download-app', 'download-app');
 
@@ -40,13 +48,16 @@ Route::middleware(['android.redirect'])->group(function () {
             return view('auth.verify-email');
         })->name('verification.notice');
 
-        Route::post('/email/verification-notification', [\Illuminate\Foundation\Auth\EmailVerificationRequest::class, 'send'])
+        Route::post('/email/verification-notification', function (Request $request) {
+            $request->user()->sendEmailVerificationNotification();
+
+            return back()->with('message', 'Verification link sent!');
+        })->middleware(['auth', 'throttle:6,1'])
             ->name('verification.send');
 
         Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
 
-            $request->fulfill(); // ini akan isi email_verified_at
-
+            $request->fulfill();
             // Update status menjadi aktif
             $request->user()->update([
                 'status' => 'aktif',
@@ -59,7 +70,7 @@ Route::middleware(['android.redirect'])->group(function () {
 
     Auth::routes();
 
-    Route::group(['prefix' => '/', 'middleware' => ['auth', 'role:User,Administrator,HR', 'verify.email']], function () {
+    Route::group(['prefix' => '/', 'middleware' => ['role:User,Administrator,HR', 'verify.email']], function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.karyawan');
         Route::resource('/cuti', 'App\Http\Controllers\User\CutiController');
@@ -73,18 +84,17 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/pengaturan-akun/update', [App\Http\Controllers\User\PengaturanAkunController::class, 'SetIndex'])->name('update.akun');
 
         Route::resource('/kotak-masuk', 'App\Http\Controllers\User\InboxController');
-        Route::post('/notif/{id}/baca', function ($id) {
+        Route::post('/notif/read-all', function () {
+            auth()->user()->unreadNotifications->markAsRead();
+            return back();
+        })->name('notif.readAll');
 
+        Route::get('/notif/{id}/baca', function ($id) {
             $notif = auth()->user()->notifications()->findOrFail($id);
             $notif->markAsRead();
 
             return redirect($notif->data['url']);
         })->name('notif.baca');
-
-        Route::post('/notif/read-all', function () {
-            auth()->user()->unreadNotifications->markAsRead();
-            return back();
-        })->name('notif.readAll');
     });
 
     Route::group(['prefix' => 'admin', 'middleware' => ['redirect.role', 'auth', 'role:Administrator,HR']], function () {
