@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\employee;
+use App\Models\Kelurahan;
 use App\Models\Perusahaan;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -15,6 +16,7 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\DB;
 
 class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, WithBatchInserts, WithValidation, ShouldQueue
 {
@@ -23,15 +25,41 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
     protected $allPerusahaan;
     protected $importId;
     protected $totalRows;
+    protected $allKelurahan;
 
     public function __construct() {}
 
     public function collection(Collection $rows)
     {
-        $this->initMapping(); // <-- tambahkan ini
+        $this->initMapping();
 
         $newRows = [];
         $newNiks = [];
+
+        // AMBIL SELURUH KELURAHAN PADA FILE EXCEL
+        $namaKelurahanUnik = collect($rows)
+            ->pluck('kelurahan')
+            ->filter()
+            ->map(fn($n) => strtolower(trim($n)))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $this->allKelurahan = DB::table('master_kelurahan')
+            ->join('master_kecamatan', 'master_kelurahan.id_kecamatan', '=', 'master_kecamatan.id')
+            ->join('master_kabupaten', 'master_kecamatan.id_kabupaten', '=', 'master_kabupaten.id')
+            ->join('master_provinsi', 'master_kabupaten.id_provinsi', '=', 'master_provinsi.id')
+            ->select(
+                'master_kelurahan.id as kelurahan_id',
+                'master_kelurahan.kelurahan',
+                'master_kecamatan.id as kecamatan_id',
+                'master_kecamatan.kecamatan',
+                'master_kabupaten.id as kabupaten_id',
+                'master_provinsi.id as provinsi_id'
+            )
+            ->whereIn(DB::raw('LOWER(master_kelurahan.kelurahan)'), $namaKelurahanUnik)
+            ->get()
+            ->groupBy(fn($k) => strtolower(trim($k->kelurahan)));
 
         foreach ($rows as $row) {
             $nik = $row['nik'] ?? null;
@@ -43,10 +71,23 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
 
             $newNiks[] = $nik;
 
-            $kelurahanId = strval($row['kelurahan_id'] ?? '');
-            $provinsiId = substr($kelurahanId, 0, 2);
-            $kabupatenId = substr($kelurahanId, 0, 4);
-            $kecamatanId = substr($kelurahanId, 0, 7);
+            $namaKelurahan = strtolower(trim($row['kelurahan'] ?? ''));
+            $namaKecamatan = strtolower(trim($row['kecamatan'] ?? ''));
+
+            $kelurahans = $this->allKelurahan[$namaKelurahan] ?? collect();
+
+            $kelurahan = $kelurahans->first(function ($item) use ($namaKecamatan) {
+                return strtolower($item->kecamatan) === $namaKecamatan;
+            });
+
+            if ($kelurahan) {
+                $provinsiId  = $kelurahan->provinsi_id;
+                $kabupatenId = $kelurahan->kabupaten_id;
+                $kecamatanId = $kelurahan->kecamatan_id;
+                $kelurahanId = $kelurahan->kelurahan_id;
+            } else {
+                $provinsiId = $kabupatenId = $kecamatanId = $kelurahanId = null;
+            }
 
             $kodePerusahaan = strtolower(trim($row['area_kerja'] ?? ''));
             $perusahaanId = $this->allPerusahaan[$kodePerusahaan] ?? null;
@@ -122,12 +163,12 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
 
     public function chunkSize(): int
     {
-        return 200;
+        return 500;
     }
 
     public function batchSize(): int
     {
-        return 100;
+        return 250;
     }
 
     public function rules(): array
