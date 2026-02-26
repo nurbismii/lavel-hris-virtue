@@ -74,32 +74,6 @@
             Masukkan NIK atau nama karyawan untuk melihat detail data
         </p>
 
-        @if(!empty($expired) && $expired)
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <strong>Session telah berakhir!</strong> Silakan masukkan kembali kode akses.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-        @endif
-
-        @if(isset($locked) && $locked)
-        <div class="alert alert-danger alert-dismissible fade show text-center" role="alert">
-            <strong>Akses Terkunci.</strong><br>
-            Masukkan kode akses untuk membuka pencarian.
-        </div>
-        @endif
-
-        @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show text-center" role="alert">
-            {{ session('success') }}
-
-            <button type="button"
-                class="btn-close"
-                data-bs-dismiss="alert"
-                aria-label="Close">
-            </button>
-        </div>
-        @endif
-
         <div class="search-box">
             <form method="GET" action="{{ route('search.by.security') }}">
                 <div class="input-group input-group-lg shadow">
@@ -225,7 +199,7 @@
 
                         <div class="mt-3 text-end">
                             <span class="badge bg-danger-subtle text-danger px-3 py-2">
-                                Resign
+                                Tidak Aktif
                             </span>
                         </div>
 
