@@ -43,6 +43,24 @@
             padding: 0 4px;
             border-radius: 4px;
         }
+
+        .foto-wrapper {
+            width: 450px;
+            height: 450px;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .foto-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            /* isi penuh, crop otomatis */
+        }
     </style>
 </head>
 
@@ -65,13 +83,13 @@
     {{-- ================= HERO ================= --}}
     <section class="hero text-center">
         <h6 class="text-uppercase fw-bold opacity-75 mb-2">
-            Direktori Karyawan
+            Direktori Karyawan <br> 员工名录
         </h6>
         <h2 class="fw-bold mb-3">
-            Pencarian Data Karyawan Tidak Aktif
+            Pencarian Data Karyawan Tidak Aktif <br> 辞职员工数据搜索
         </h2>
         <p class="opacity-75 mb-4">
-            Masukkan NIK atau nama karyawan untuk melihat detail data
+            Masukkan NIK atau nama karyawan untuk melihat detail data <br> 输入员工共号或员工姓名以查看数据详情
         </p>
 
         <div class="search-box">
@@ -84,16 +102,16 @@
                         type="text"
                         name="q"
                         class="form-control"
-                        placeholder="Contoh: 230337694 atau Andi Pratama..."
+                        placeholder="Contoh 例如 : 230337694 atau 或 Andi Pratama..."
                         value="{{ request('q') }}"
                         autocomplete="off"
                         autofocus>
                     <button class="btn btn-success fw-bold px-4" type="submit">
-                        Cari
+                        Cari 寻找
                     </button>
                 </div>
                 <small class="text-white-50 d-block mt-2">
-                    Pencarian tidak membedakan huruf besar/kecil
+                    Pencarian tidak membedakan huruf besar/kecil <br> 寻找不区分大小写
                 </small>
             </form>
         </div>
@@ -114,16 +132,16 @@
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <div>
                 <h5 class="fw-bold mb-1">
-                    Hasil untuk <span class="text-primary">"{{ $q }}"</span>
+                    Hasil untuk 结果 <span class="text-primary">"{{ $q }}"</span>
                 </h5>
                 <span class="badge bg-success-subtle text-success border">
-                    {{ $resign->total() }} data
+                    {{ $resign->total() }} data 数据
                 </span>
             </div>
 
             <a href="{{ route('search.by.security') }}"
                 class="btn btn-outline-secondary btn-sm">
-                <i class="fa fa-times me-1"></i> Hapus
+                <i class="fa fa-times me-1"></i> Hapus 删除
             </a>
         </div>
 
@@ -139,17 +157,54 @@
                     <div class="card-body">
 
                         {{-- HEADER --}}
+                        @php
+                        $fotoPath = null;
+
+                        $extensions = ['png', 'jpg', 'jpeg'];
+
+                        // Normalisasi nama (antisipasi spasi ganda)
+                        $nama = trim(preg_replace('/\s+/', ' ', $emp->nama_karyawan));
+                        $nik = trim($emp->nik);
+
+                        foreach ($extensions as $ext) {
+
+                        $file1 = public_path("foto-karyawan/{$nik}.{$ext}");
+
+                        if (file_exists($file1)) {
+                        $fotoPath = asset("foto-karyawan/{$nik}.{$ext}");
+                        break;
+                        }
+
+                        $file2 = public_path("foto-karyawan/{$nik} {$nama}.{$ext}");
+
+                        if (file_exists($file2)) {
+                        $fotoPath = asset("foto-karyawan/{$nik} {$nama}.{$ext}");
+                        break;
+                        }
+                        }
+                        @endphp
                         <div class="d-flex align-items-center mb-3">
-                            <div class="bg-primary text-white fw-bold me-3"
-                                style="width:45px;height:45px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-                                {{ strtoupper(mb_substr($emp->nama_karyawan, 0, 2)) }}
+                            <div class="me-3" style="width:45px;height:45px;">
+                                @if($fotoPath)
+                                <img src="{{ $fotoPath }}"
+                                    alt="Foto {{ $emp->nama_karyawan }}"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#previewFotoModal"
+                                    data-foto="{{ $fotoPath }}"
+                                    style="width:45px;height:45px;border-radius:8px;object-fit:cover;cursor:pointer;">
+                                @else
+                                <div class="bg-primary text-white fw-bold"
+                                    style="width:45px;height:45px;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+                                    {{ strtoupper(mb_substr($emp->nama_karyawan, 0, 2)) }}
+                                </div>
+                                @endif
                             </div>
                             <div>
                                 <h6 class="fw-bold mb-1">
                                     {!! preg_replace('/('.$escapedQ.')/iu', '<mark>$1</mark>', e($emp->nama_karyawan)) !!}
                                 </h6>
                                 <small class="text-muted">
-                                    NIK · {!! preg_replace('/('.$escapedQ.')/iu', '<mark>$1</mark>', e($emp->nik)) !!}
+                                    NIK 工号 · {!! preg_replace('/('.$escapedQ.')/iu', '<mark>$1</mark>', e($emp->nik)) !!}
                                 </small>
                             </div>
                         </div>
@@ -159,28 +214,28 @@
                         {{-- INFO --}}
                         <div class="row small g-2">
                             <div class="col-6">
-                                <div class="text-muted text-uppercase fw-bold">Departemen</div>
+                                <div class="text-muted text-uppercase fw-bold">Departement 部门 </div>
                                 <div class="fw-semibold">
                                     {{ $emp->departemen->departemen ?? '—' }}
                                 </div>
                             </div>
 
                             <div class="col-6">
-                                <div class="text-muted text-uppercase fw-bold">Divisi</div>
+                                <div class="text-muted text-uppercase fw-bold">Divisi 科室</div>
                                 <div class="fw-semibold">
                                     {{ $emp->divisi->nama_divisi ?? '—' }}
                                 </div>
                             </div>
 
                             <div class="col-12">
-                                <div class="text-muted text-uppercase fw-bold">Posisi</div>
+                                <div class="text-muted text-uppercase fw-bold">Position 岗位</div>
                                 <div class="fw-semibold">
                                     {{ $emp->posisi ?? '—' }}
                                 </div>
                             </div>
 
                             <div class="col-12">
-                                <div class="text-muted text-uppercase fw-bold">Lokasi</div>
+                                <div class="text-muted text-uppercase fw-bold">Alamat 地址</div>
                                 <div class="fw-semibold">
                                     {{ collect([
                                         optional($emp->kelurahan)->kelurahan,
@@ -199,7 +254,7 @@
 
                         <div class="mt-3 text-end">
                             <span class="badge bg-danger-subtle text-danger px-3 py-2">
-                                Tidak Aktif
+                                Tidak Aktif 辞职
                             </span>
                         </div>
 
@@ -221,9 +276,9 @@
         <div class="card shadow-sm border-0 text-center py-5">
             <div class="card-body">
                 <i class="fa fa-search fa-3x text-muted mb-3"></i>
-                <h5 class="fw-bold">Tidak Ada Data Ditemukan</h5>
+                <h5 class="fw-bold">Tidak Ada Data Ditemukan 未找到数据</h5>
                 <p class="text-muted">
-                    Tidak ada karyawan yang cocok dengan
+                    Tidak ada karyawan yang cocok dengan 没有合适的员工
                     "<strong>{{ $q }}</strong>"
                 </p>
             </div>
@@ -238,10 +293,26 @@
                 <p class="text-muted mb-0">
                     Masukkan NIK atau nama karyawan di atas,<br>
                     lalu klik <strong>Cari</strong> untuk menampilkan data.
+                    <br>
+                    请输入员工工号或姓名，<br> 然后点击 <b>寻找</b> 以显示相关数据。
                 </p>
             </div>
         </div>
         @endif
+
+        <div class="modal fade" id="previewFotoModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body d-flex justify-content-center align-items-center p-4">
+
+                        <div class="foto-wrapper">
+                            <img id="previewImage" src="">
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -255,6 +326,15 @@
                 bsAlert.close();
             });
         }, 20000);
+    </script>
+
+    <script>
+        document.addEventListener('show.bs.modal', function(event) {
+            const trigger = event.relatedTarget;
+            if (trigger && trigger.dataset.foto) {
+                document.getElementById('previewImage').src = trigger.dataset.foto;
+            }
+        });
     </script>
 </body>
 
