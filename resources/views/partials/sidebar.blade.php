@@ -258,20 +258,25 @@
                     <h4 class="text-section">Third Party</h4>
                 </li>
 
-                <li class="nav-item">
-                    <a data-bs-toggle="collapse" href="#security">
+                <li class="nav-item {{ request()->routeIs('search-by-security.*') || request()->routeIs('search-logs.*') ? 'active' : '' }}">
+                    <a data-bs-toggle="collapse" href="#security"
+                        class="{{ request()->routeIs('search-by-security.*') || request()->routeIs('search-logs.*') ? '' : 'collapsed' }}"
+                        aria-expanded="{{ request()->routeIs('search-by-security.*') || request()->routeIs('search-logs.*') ? 'true' : 'false' }}">
+
                         <i class="fas fa-laptop"></i>
-                        <p>Search by Security</p>
+                        <p>Exit Portal</p>
                         <span class="caret"></span>
                     </a>
-                    <div class="collapse" id="security">
+
+                    <div class="collapse {{ request()->routeIs('search-by-security.*') || request()->routeIs('search-logs.*') ? 'show' : '' }}" id="security">
                         <ul class="nav nav-collapse">
-                            <li>
+                            <li class="{{ request()->routeIs('search-by-security.index') ? 'active' : '' }}">
                                 <a href="{{ route('search-by-security.index') }}">
                                     <span class="sub-item">User</span>
                                 </a>
                             </li>
-                            <li>
+
+                            <li class="{{ request()->routeIs('search-logs.index') ? 'active' : '' }}">
                                 <a href="{{ route('search-logs.index') }}">
                                     <span class="sub-item">Logs</span>
                                 </a>
