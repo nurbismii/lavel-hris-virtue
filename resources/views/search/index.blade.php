@@ -119,22 +119,20 @@
 
 
     {{-- ================= CONTENT ================= --}}
-    {{-- ================= CONTENT ================= --}}
     <div class="container py-5">
+
+        @if(request()->has('q') && request('q') !== '')
 
         @php
         $q = request('q');
-        $hasSearch = filled($q);
-        $escapedQ = $hasSearch ? preg_quote($q, '/') : null;
+        $escapedQ = preg_quote($q, '/');
         @endphp
 
-        {{-- META (hanya muncul saat search) --}}
-        @if($hasSearch)
+        {{-- META --}}
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
             <div>
                 <h5 class="fw-bold mb-1">
-                    Hasil untuk 结果
-                    <span class="text-primary">"{{ $q }}"</span>
+                    Hasil untuk 结果 <span class="text-primary">"{{ $q }}"</span>
                 </h5>
                 <span class="badge bg-success-subtle text-success border">
                     {{ $resign->total() }} data 数据
@@ -146,8 +144,6 @@
                 <i class="fa fa-times me-1"></i> Hapus 删除
             </a>
         </div>
-        @endif
-
 
         @if($resign->isNotEmpty())
 
@@ -155,34 +151,38 @@
             @foreach($resign as $emp)
             <div class="col-md-4 mb-4">
                 <div class="card border-0 shadow-sm h-100 card-hover">
+
                     <div class="card-accent"></div>
 
                     <div class="card-body">
 
-                        {{-- FOTO --}}
+                        {{-- HEADER --}}
                         @php
                         $fotoPath = null;
+
                         $extensions = ['png', 'jpg', 'jpeg'];
 
+                        // Normalisasi nama (antisipasi spasi ganda)
                         $nama = trim(preg_replace('/\s+/', ' ', $emp->nama_karyawan));
                         $nik = trim($emp->nik);
 
                         foreach ($extensions as $ext) {
 
                         $file1 = public_path("foto-karyawan/{$nik}.{$ext}");
+
                         if (file_exists($file1)) {
                         $fotoPath = asset("foto-karyawan/{$nik}.{$ext}");
                         break;
                         }
 
                         $file2 = public_path("foto-karyawan/{$nik} {$nama}.{$ext}");
+
                         if (file_exists($file2)) {
                         $fotoPath = asset("foto-karyawan/{$nik} {$nama}.{$ext}");
                         break;
                         }
                         }
                         @endphp
-
                         <div class="d-flex align-items-center mb-3">
                             <div class="me-3" style="width:45px;height:45px;">
                                 @if($fotoPath)
@@ -199,23 +199,12 @@
                                 </div>
                                 @endif
                             </div>
-
                             <div>
                                 <h6 class="fw-bold mb-1">
-                                    @if($hasSearch)
                                     {!! preg_replace('/('.$escapedQ.')/iu', '<mark>$1</mark>', e($emp->nama_karyawan)) !!}
-                                    @else
-                                    {{ $emp->nama_karyawan }}
-                                    @endif
                                 </h6>
-
                                 <small class="text-muted">
-                                    NIK 工号 ·
-                                    @if($hasSearch)
-                                    {!! preg_replace('/('.$escapedQ.')/iu', '<mark>$1</mark>', e($emp->nik)) !!}
-                                    @else
-                                    {{ $emp->nik }}
-                                    @endif
+                                    NIK 工号 · {!! preg_replace('/('.$escapedQ.')/iu', '<mark>$1</mark>', e($emp->nik)) !!}
                                 </small>
                             </div>
                         </div>
@@ -225,7 +214,7 @@
                         {{-- INFO --}}
                         <div class="row small g-2">
                             <div class="col-6">
-                                <div class="text-muted text-uppercase fw-bold">Departement 部门</div>
+                                <div class="text-muted text-uppercase fw-bold">Departement 部门 </div>
                                 <div class="fw-semibold">
                                     {{ $emp->departemen->departemen ?? '—' }}
                                 </div>
@@ -255,7 +244,9 @@
                                         optional($emp->provinsi)->provinsi,
                                     ])
                                     ->filter()
-                                    ->map(fn($v) => ucwords(strtolower($v)))
+                                    ->map(function ($v) {
+                                        return ucwords(strtolower($v));
+                                    })
                                     ->implode(', ') ?: '—' }}
                                 </div>
                             </div>
@@ -274,20 +265,54 @@
         </div>
 
         {{-- PAGINATION --}}
-        @if($resign->hasPages())
+        @if(isset($resign) && method_exists($resign, 'links') && $resign->hasPages())
         <div class="d-flex justify-content-center mt-4">
             {{ $resign->appends(request()->except('page'))->links('pagination::bootstrap-4') }}
         </div>
         @endif
 
         @else
+        {{-- EMPTY --}}
         <div class="card shadow-sm border-0 text-center py-5">
             <div class="card-body">
                 <i class="fa fa-search fa-3x text-muted mb-3"></i>
                 <h5 class="fw-bold">Tidak Ada Data Ditemukan 未找到数据</h5>
+                <p class="text-muted">
+                    Tidak ada karyawan yang cocok dengan 没有合适的员工
+                    "<strong>{{ $q }}</strong>"
+                </p>
             </div>
         </div>
         @endif
+
+        @else
+        {{-- INITIAL --}}
+        <div class="card shadow-sm border-0 text-center py-5">
+            <div class="card-body">
+                <i class="fa fa-search fa-3x text-muted mb-3"></i>
+                <p class="text-muted mb-0">
+                    Masukkan NIK atau nama karyawan di atas,<br>
+                    lalu klik <strong>Cari</strong> untuk menampilkan data.
+                    <br>
+                    请输入员工工号或姓名，<br> 然后点击 <b>寻找</b> 以显示相关数据。
+                </p>
+            </div>
+        </div>
+        @endif
+
+        <div class="modal fade" id="previewFotoModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-body d-flex justify-content-center align-items-center p-4">
+
+                        <div class="foto-wrapper">
+                            <img id="previewImage" src="">
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </div>
 

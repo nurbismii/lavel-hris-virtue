@@ -77,6 +77,12 @@ class ResignController extends Controller
     {
         $q = trim($request->get('q'));
 
+        if (!$q) {
+            return view('search.index', [
+                'resign' => Employee::whereRaw('1=0')->paginate(12),
+            ]);
+        }
+
         $resign = Employee::with(
             'departemen',
             'divisi',
@@ -86,16 +92,11 @@ class ResignController extends Controller
             'kelurahan'
         )
             ->where('status_resign', '!=', 'AKTIF')
-            ->whereIn('area_kerja', ['VDNI', 'VDNIP'])
-
-            // FILTER hanya jika ada keyword
-            ->when($q, function ($query) use ($q) {
-                $query->where(function ($sub) use ($q) {
-                    $sub->where('nik', 'LIKE', "%{$q}%")
-                        ->orWhere('nama_karyawan', 'LIKE', "%{$q}%");
-                });
+            ->where(function ($query) use ($q) {
+                $query->where('nik', 'LIKE', "%{$q}%")
+                    ->orWhere('nama_karyawan', 'LIKE', "%{$q}%");
             })
-
+            ->whereIn('area_kerja', ['VDNI', 'VDNIP'])
             ->select(
                 'nik',
                 'nama_karyawan',
@@ -112,6 +113,8 @@ class ResignController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        return view('search.index', compact('resign'));
+        return view('search.index', [
+            'resign' => $resign,
+        ]);
     }
 }
