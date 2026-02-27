@@ -251,6 +251,35 @@
                     </a>
                 </li>
 
+                <li class="nav-section">
+                    <span class="sidebar-mini-icon">
+                        <i class="fa fa-ellipsis-h"></i>
+                    </span>
+                    <h4 class="text-section">Third Party</h4>
+                </li>
+
+                <li class="nav-item">
+                    <a data-bs-toggle="collapse" href="#security">
+                        <i class="fas fa-laptop"></i>
+                        <p>Search by Security</p>
+                        <span class="caret"></span>
+                    </a>
+                    <div class="collapse" id="security">
+                        <ul class="nav nav-collapse">
+                            <li>
+                                <a href="{{ route('search-by-security.index') }}">
+                                    <span class="sub-item">User</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('search-logs.index') }}">
+                                    <span class="sub-item">Logs</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
                 @endif
 
             </ul>

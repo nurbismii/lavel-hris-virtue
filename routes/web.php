@@ -137,6 +137,11 @@ Route::middleware(['android.redirect'])->group(function () {
 
         Route::get('fetch/data-presensi', [PresensiAdminController::class, 'dataPresensi'])->name('fetch.data-presensi');
         Route::get('/presensi/export', [PresensiAdminController::class, 'export'])->name('presensi.export');
+
+        Route::prefix('third-party')->group(function () {
+            Route::resource('/search-by-security', 'App\Http\Controllers\SearchBySecurity\UserController');
+            Route::resource('/search-logs', 'App\Http\Controllers\SearchBySecurity\SearchLogController');
+        });
     });
 
     Route::group(['prefix' => 'approval', 'middleware' => ['auth', 'role:Administrator,HOD,HR']], function () {
