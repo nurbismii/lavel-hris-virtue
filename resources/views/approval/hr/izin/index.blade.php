@@ -8,9 +8,9 @@
         {{-- HEADER --}}
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="text-primary">Approval HOD</h3>
+                <h3 class="text-primary">Approval Izin (Paid/Unpaid)</h3>
                 <small class="text-muted">
-                    Persetujuan HOD untuk karyawan pengajuan cuti tahunan
+                    Persetujuan HOD untuk karyawan pengajuan izin (paid/unpaid)
                 </small>
             </div>
         </div>

@@ -47,14 +47,14 @@
                     <h4 class="text-section">Karyawan</h4>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('karyawan.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('karyawan.*') ? 'active' : '' }}">
                     <a href="{{ route('karyawan.index') }}">
                         <i class="fas fa-users"></i>
                         <p>Data Karyawan</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('user.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('user.*') ? 'active' : '' }}">
                     <a href="{{ route('user.index') }}">
                         <i class="fas fa-user-friends"></i>
                         <p>Data User</p>
@@ -65,7 +65,7 @@
 
                 @if(auth()->user()->hasRole(['Administrator']))
 
-                <li class="nav-item {{ request()->routeIs('slip-gaji.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('slip-gaji.*') ? 'active' : '' }}">
                     <a href="{{ route('slip-gaji.index') }}">
                         <i class="fas fa-file-invoice-dollar"></i>
                         <p>Slip Gaji</p>
@@ -76,28 +76,28 @@
 
                 @if(auth()->user()->hasRole(['Administrator', 'HR']))
 
-                <li class="nav-item {{ request()->routeIs('resign.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('resign.*') ? 'active' : '' }}">
                     <a href="{{ route('resign.index') }}">
                         <i class="fas fa-user-minus"></i>
                         <p>Resign</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('surat-peringatan.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('surat-peringatan.*') ? 'active' : '' }}">
                     <a href="{{ route('surat-peringatan.index') }}">
                         <i class="fas fa-file-alt"></i>
                         <p>Surat Peringatan</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('data-presensi.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('data-presensi.*') ? 'active' : '' }}">
                     <a href="{{ route('data-presensi.index') }}">
                         <i class="fas fa-check"></i>
                         <p>Data Presensi</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('distribusi.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('distribusi.*') ? 'active' : '' }}">
                     <a href="{{ route('distribusi.index') }}">
                         <i class="fas fa-map"></i>
                         <p>Distribusi Wilayah</p>
@@ -109,35 +109,35 @@
                 @if(auth()->user()->hasRole(['Administrator', 'User', 'HR']))
 
                 {{-- SLIP GAJI USER --}}
-                <li class="nav-item {{ request()->routeIs('slipgaji.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('slipgaji.*') ? 'active' : '' }}">
                     <a href="{{ route('slipgaji.index') }}">
                         <i class="fas fa-file-invoice-dollar"></i>
                         <p>Slip Gaji</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('cuti.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('cuti.*') ? 'active' : '' }}">
                     <a href="{{ route('cuti.index') }}">
                         <i class="fas fa-sign-out-alt"></i>
                         <p>Cuti Tahunan</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('roster.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('roster.*') ? 'active' : '' }}">
                     <a href="{{ route('roster.index') }}">
                         <i class="fas fa-plane-departure"></i>
                         <p>Cuti Roster</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('izin.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('izin.*') ? 'active' : '' }}">
                     <a href="{{ route('izin.index') }}">
                         <i class="fas fa-file-signature"></i>
                         <p>Izin (Paid & Unpaid)</p>
                     </a>
                 </li>
 
-                <li class="nav-item">
+                <li class="nav-item {{ request()->routeIs('presensi.*') ? 'active' : '' }}">
                     <a href="{{ route('presensi.index') }}">
                         <i class="fas fa-map-pin"></i>
                         <p>Presensi Karyawan</p>
@@ -219,7 +219,7 @@
                     <h4 class="text-section">Manage Organisasi</h4>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('perusahaan.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('perusahaan.*') ? 'active' : '' }}">
                     <a href="{{ route('perusahaan.index') }}">
                         <i class="fas fa-hotel"></i>
                         <p>Perusahaan</p>
@@ -237,14 +237,14 @@
                     <h4 class="text-section">Admin Panel</h4>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('setting-lokasi-presensi.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('setting-lokasi-presensi.*') ? 'active' : '' }}">
                     <a href="{{ route('setting-lokasi-presensi.index') }}">
                         <i class="fas fa-map-marked-alt"></i>
                         <p>Lokasi Presensi</p>
                     </a>
                 </li>
 
-                <li class="nav-item {{ request()->routeIs('setting-role.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('setting-role.*') ? 'active' : '' }}">
                     <a href="{{ route('setting-role.index') }}">
                         <i class="fas fa-user-shield"></i>
                         <p>Peran dan Akses</p>

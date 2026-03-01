@@ -7,7 +7,7 @@
         {{-- HEADER --}}
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="text-primary">Approval HR</h3>
+                <h3 class="text-primary">Approval Cuti Tahunan</h3>
                 <small class="text-muted">
                     Persetujuan HR untuk karyawan pengajuan cuti tahunan
                 </small>

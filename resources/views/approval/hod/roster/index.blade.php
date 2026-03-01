@@ -7,7 +7,7 @@
         {{-- HEADER --}}
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="text-primary">Approval HOD</h3>
+                <h3 class="text-primary">Approval Roster</h3>
                 <small class="text-muted">
                     Persetujuan HOD untuk karyawan pengajuan cuti/insentif
                 </small>
