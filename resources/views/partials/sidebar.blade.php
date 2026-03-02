@@ -176,6 +176,21 @@
                     </a>
                 </li>
 
+                {{-- ADMIN DIVISI --}}
+                <li class="nav-section">
+                    <span class="sidebar-mini-icon">
+                        <i class="fa fa-ellipsis-h"></i>
+                    </span>
+                    <h4 class="text-section">Admin Divisi</h4>
+                </li>
+
+                <li class="nav-item {{ request()->routeIs('set-kehadiran.*') ? 'active' : '' }}">
+                    <a href="{{ route('set-kehadiran.index') }}">
+                        <i class="fas fa-pen"></i>
+                        <p>Setting Kehadiran</p>
+                    </a>
+                </li>
+
                 @endif
 
                 @if(auth()->user()->hasRole(['Administrator', 'HR']))

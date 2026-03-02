@@ -10,6 +10,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\User\PresensiController;
 use App\Http\Controllers\Admin\PresensiController as PresensiAdminController;
+use App\Http\Controllers\AdminDivisi\AttendanceSettingController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -164,6 +165,12 @@ Route::middleware(['android.redirect'])->group(function () {
 
         Route::get('/hrd/izin', [IzinApprovalController::class, 'hrdIndex'])->name('approval.izin.hrd');
         Route::post('/hrd/izin{id}', [IzinApprovalController::class, 'hrdProcess'])->name('approval.izin.hrd.process');
+    });
+
+    Route::group(['prefix' => 'admin-divisi', 'middleware' => ['auth', 'role:Administrator,HOD,HR']], function () {
+
+        Route::get('/set-kehadiran', [AttendanceSettingController::class, 'index'])->name('set-kehadiran.index');
+        Route::post('/set-kehadiran/update', [AttendanceSettingController::class, 'update'])->name('set-kehadiran.update');
     });
 });
 
