@@ -72,49 +72,4 @@ class ResignController extends Controller
             'success' => true
         ]);
     }
-
-    public function search(Request $request)
-    {
-        $q = trim($request->get('q'));
-
-        if (!$q) {
-            return view('search.index', [
-                'resign' => Employee::whereRaw('1=0')->paginate(12),
-            ]);
-        }
-
-        $resign = Employee::with(
-            'departemen',
-            'divisi',
-            'provinsi',
-            'kabupaten',
-            'kecamatan',
-            'kelurahan'
-        )
-            ->where('status_resign', '!=', 'AKTIF')
-            ->where(function ($query) use ($q) {
-                $query->where('nik', 'LIKE', "%{$q}%")
-                    ->orWhere('nama_karyawan', 'LIKE', "%{$q}%");
-            })
-            ->whereIn('area_kerja', ['VDNI', 'VDNIP'])
-            ->select(
-                'nik',
-                'nama_karyawan',
-                'departemen_id',
-                'divisi_id',
-                'posisi',
-                'provinsi_id',
-                'kabupaten_id',
-                'kecamatan_id',
-                'kelurahan_id',
-                'area_kerja'
-            )
-            ->orderBy('nik', 'desc')
-            ->paginate(12)
-            ->withQueryString();
-
-        return view('search.index', [
-            'resign' => $resign,
-        ]);
-    }
 }
