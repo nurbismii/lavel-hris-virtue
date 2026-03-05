@@ -186,8 +186,8 @@
 
                 <li class="nav-item {{ request()->routeIs('set-kehadiran.*') ? 'active' : '' }}">
                     <a href="{{ route('set-kehadiran.index') }}">
-                        <i class="fas fa-pen"></i>
-                        <p>Setting Kehadiran</p>
+                        <i class="fas fa-cog"></i>
+                        <p>Setting Hari Off</p>
                     </a>
                 </li>
 

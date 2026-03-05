@@ -41,12 +41,13 @@
             <div>
                 <h4 class="fw-bold">
                     <i class="fas fa-cog text-primary me-2"></i>
-                    Setting Kehadiran
+                    Setting Hari Off
                 </h4>
 
                 <small class="text-muted">
-                    Setting Kehadiran (Cut Off 16 - 15)
+                    Setting Kehadiran jika tercentang maka off jika tanpa centang maka kehadira (Cut Off {{ formatDateIndonesia($start) }} - {{ formatDateIndonesia($end) }} )
                 </small>
+                <small class="text-muted">✓ = OFF
             </div>
         </div>
 
@@ -86,9 +87,10 @@
             <div class="card-body">
 
                 <div class="table-responsive">
-                    <table id="table-set-kehadiran" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap" style="width:100%">
+                    <table id="table-set-kehadiran" class="table table-hover table-striped mb-0 table-xs small text-sm nowrap" style="width:100%">
                         <thead>
                             <tr>
+                                <th>No</th>
                                 <th>Nama</th>
                                 <th>NIK</th>
                                 <th>Divisi</th>
@@ -96,13 +98,19 @@
                                 <th>Posisi</th>
 
                                 @foreach($dates as $date)
-                                <th>{{ $date->format('d') }}</th>
+                                <th class="text-center">
+                                    <div>{{ $date->format('d') }}</div>
+                                    <div style="font-size:11px; color:#666;">
+                                        {{ $date->translatedFormat('D') }}
+                                    </div>
+                                </th>
                                 @endforeach
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($employees as $employee)
+                            @foreach($employees as $index => $employee)
                             <tr>
+                                <td>{{ ++$index }}</td>
                                 <td>{{ $employee->nama_karyawan }}</td>
                                 <td>{{ $employee->nik }}</td>
                                 <td>{{ optional($employee->divisi)->nama_divisi ?? '-' }}</td>
@@ -114,27 +122,14 @@
                                 $empAttendance = $offData->get($employee->nik);
 
                                 $isOff = $empAttendance
-                                ? $empAttendance->firstWhere('tanggal', $date->toDateString())
-                                : null;
+                                ? $empAttendance->firstWhere('tanggal', $date->toDateString()): null;
 
-                                $status = $isOff ? 'OFF' : 'HADIR';
+                                // Jika OFF → checked
+                                $checked = $isOff ? 'checked' : '';
                                 @endphp
 
-                                <td>
-                                    <select
-                                        class="form-select form-select-sm attendance-select"
-                                        data-employee="{{ $employee->nik }}"
-                                        data-date="{{ $date->toDateString() }}">
-
-                                        <option value="HADIR" {{ $status === 'HADIR' ? 'selected' : '' }}>
-                                            H
-                                        </option>
-
-                                        <option value="OFF" {{ $status === 'OFF' ? 'selected' : '' }}>
-                                            O
-                                        </option>
-
-                                    </select>
+                                <td class="text-center">
+                                    <input type="checkbox" class="attendance-checkbox" data-employee="{{ $employee->nik }}" data-date="{{ $date->toDateString() }}" {{ $checked }}>
                                 </td>
                                 @endforeach
                             </tr>
@@ -159,7 +154,7 @@
             paging: true,
             fixedHeader: true,
             fixedColumns: {
-                leftColumns: 2 
+                leftColumns: 3
             },
             pageLength: 10,
             ordering: false
@@ -169,22 +164,94 @@
 </script>
 
 <script>
-    $(document).on('change', '.attendance-select', function() {
+    let dirtyCells = new Map();
+    let debounceTimer = null;
 
-        fetch("{{ route('set-kehadiran.update') }}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-            },
-            body: JSON.stringify({
-                employee_id: $(this).data('employee'),
-                tanggal: $(this).data('date'),
-                status: $(this).val()
-            })
+    $(document).on('change', '.attendance-checkbox', function() {
+
+        let checkbox = $(this);
+
+        let employee = checkbox.data('employee');
+        let date = checkbox.data('date');
+
+        let newStatus = checkbox.is(':checked') ? 'OFF' : 'HADIR';
+        let oldStatus = checkbox.data('status');
+
+        // jika status sama → tidak dimasukkan queue
+        if (newStatus === oldStatus) return;
+
+        let key = employee + '_' + date;
+
+        dirtyCells.set(key, {
+            employee_id: employee,
+            tanggal: date,
+            status: newStatus,
+            element: checkbox
         });
 
+        // optimistic UI
+        checkbox.closest('td').addClass('table-warning');
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(sendBatch, 700);
+
     });
+
+    async function sendBatch() {
+
+        let payload = Array.from(dirtyCells.values());
+
+        if (payload.length === 0) return;
+
+        try {
+
+            let response = await fetch("{{ route('set-kehadiran.update') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                },
+                body: JSON.stringify({
+                    data: payload.map(p => ({
+                        employee_id: p.employee_id,
+                        tanggal: p.tanggal,
+                        status: p.status
+                    }))
+                })
+            });
+
+            if (!response.ok) throw new Error();
+
+            payload.forEach(item => {
+
+                item.element.data('status', item.status);
+                item.element.closest('td').removeClass('table-warning')
+                    .addClass('table-success');
+
+                setTimeout(() => {
+                    item.element.closest('td').removeClass('table-success');
+                }, 800);
+
+            });
+
+            dirtyCells.clear();
+
+        } catch (e) {
+
+            payload.forEach(item => {
+
+                let oldStatus = item.element.data('status');
+
+                item.element.prop('checked', oldStatus === 'OFF');
+                item.element.closest('td').removeClass('table-warning');
+
+            });
+
+            alert('Update gagal');
+
+        }
+
+    }
 </script>
 
 <script src="https://cdn.datatables.net/fixedheader/3.4.0/js/dataTables.fixedHeader.min.js"></script>

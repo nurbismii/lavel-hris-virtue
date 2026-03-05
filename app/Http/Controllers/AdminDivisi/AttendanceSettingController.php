@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Departemen;
 use App\Models\Divisi;
+use Illuminate\Support\Facades\DB;
 
 class AttendanceSettingController extends Controller
 {
@@ -43,7 +44,8 @@ class AttendanceSettingController extends Controller
         }
 
         $employees = Employee::with(['divisi', 'departemen'])
-            ->where('departemen_id', $departemenId);
+            ->where('departemen_id', $departemenId)
+            ->where('status_resign', 'AKTIF');
 
         if ($request->divisi) {
             $employees->where('divisi_id', $request->divisi);
@@ -73,40 +75,53 @@ class AttendanceSettingController extends Controller
             'offData',
             'periode',
             'departemen',
-            'divisis'
+            'divisis',
+            'start',
+            'end'
         ));
     }
 
     public function update(Request $request)
     {
-        $request->validate([
-            'employee_id' => 'required|exists:employees,nik',
-            'tanggal' => 'required|date',
-            'status' => 'required|in:HADIR,OFF'
-        ]);
+        $rows = $request->input('data');
 
-        $periode = Carbon::parse($request->tanggal)->format('Y-m');
-
-        if ($request->status === 'OFF') {
-
-            EmployeeAttendanceSetting::updateOrCreate(
-                [
-                    'employee_id' => $request->employee_id,
-                    'tanggal' => $request->tanggal,
-                ],
-                [
-                    'status' => 'OFF',
-                    'periode' => $periode
-                ]
-            );
-        } else {
-
-            EmployeeAttendanceSetting::where([
-                'employee_id' => $request->employee_id,
-                'tanggal' => $request->tanggal,
-            ])->delete();
+        if (!$rows || !is_array($rows)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid payload'
+            ], 400);
         }
 
-        return response()->json(['success' => true]);
+        DB::transaction(function () use ($rows) {
+
+            foreach ($rows as $row) {
+
+                $periode = Carbon::parse($row['tanggal'])->format('Y-m');
+
+                if ($row['status'] === 'OFF') {
+
+                    EmployeeAttendanceSetting::updateOrCreate(
+                        [
+                            'employee_id' => $row['employee_id'],
+                            'tanggal' => $row['tanggal'],
+                        ],
+                        [
+                            'status' => 'OFF',
+                            'periode' => $periode
+                        ]
+                    );
+                } else {
+
+                    EmployeeAttendanceSetting::where([
+                        'employee_id' => $row['employee_id'],
+                        'tanggal' => $row['tanggal'],
+                    ])->delete();
+                }
+            }
+        });
+
+        return response()->json([
+            'success' => true
+        ]);
     }
 }
