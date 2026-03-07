@@ -15,7 +15,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Departemen</label>
-                            <select name="departemen_id" class="form-select form-control">
+                            <select name="departemen_id" class="form-select form-control" required>
                                 <option value="">Semua Departemen</option>
 
                                 @php

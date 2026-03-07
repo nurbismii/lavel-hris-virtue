@@ -64,12 +64,6 @@ class KaryawanController extends Controller
                 new DeleteImportedFile($filePath)
             ]);
 
-            $filePath = $request->file('file')->store('imports');
-
-            Excel::queueImport(new ImportEmployee, storage_path('app/' . $filePath))->chain([
-                new DeleteImportedFile($filePath)
-            ]);
-
             toast()->success('Success', 'Your file is being processed in the background.');
             return back();
         } catch (\Throwable $e) {

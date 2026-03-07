@@ -43,6 +43,7 @@
                             <option value="">Semua Status</option>
                             <option value="RESIGN SESUAI PROSEDUR">Resign Sesuai Prosedur</option>
                             <option value="RESIGN TIDAK SESUAI PROSEDUR">Resign Tidak Sesuai Prosedur</option>
+                            <option value="PB RESIGN">PB Resign</option>
                             <option value="PUTUS KONTRAK">Putus Kontrak</option>
                             <option value="PHK">PHK</option>
                             <option value="PHK PENSIUN">PHK Pensiun</option>
@@ -112,7 +113,7 @@
         processing: true,
         serverSide: true,
         responsive: true,
-        
+
         ajax: {
             url: "{{ route('resign.index') }}",
             data: function(d) {

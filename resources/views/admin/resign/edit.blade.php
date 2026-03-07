@@ -36,6 +36,7 @@
                             <select name="tipe" class="form-control form-select" required>
                                 <option value="RESIGN SESUAI PROSEDUR" {{ old('tipe', $resign->tipe) == 'RESIGN SESUAI PROSEDUR' ? 'selected' : '' }}>Resign Sesuai Prosedur</option>
                                 <option value="RESIGN TIDAK SESUAI PROSEDUR" {{ old('tipe', $resign->tipe) == 'RESIGN TIDAK SESUAI PROSEDUR' ? 'selected' : '' }}>Resign Tidak Sesuai Prosedur</option>
+                                <option value="PB RESIGN" {{ old('tipe', $resign->tipe) == 'PB RESIGN' ? 'selected' : '' }}>PB Resign</option>
                                 <option value="PUTUS KONTRAK" {{ old('tipe', $resign->tipe) == 'PUTUS KONTRAK' ? 'selected' : '' }}>Putus Kontrak</option>
                                 <option value="PHK" {{ old('tipe', $resign->tipe) == 'PHK' ? 'selected' : '' }}>PHK</option>
                                 <option value="PHK PENSIUN" {{ old('tipe', $resign->tipe) == 'PHK PENSIUN' ? 'selected' : '' }}>PHK Pensiun</option>
