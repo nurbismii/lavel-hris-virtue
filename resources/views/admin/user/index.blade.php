@@ -1,9 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
-
+<div class="container-fluid">
     <div class="page-inner">
+
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
             <div>
                 <h4 class="fw-bold">
@@ -22,7 +22,7 @@
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
+                        <table id="table-user" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                             <thead>
                                 <tr>
                                     <th>NIK</th>
@@ -63,5 +63,15 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        $("#table-user").DataTable({
+            responsive: true,
+        });
+    });
+</script>
+@endpush
 
 @endsection

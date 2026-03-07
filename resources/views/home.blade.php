@@ -2,44 +2,50 @@
 
 @section('content')
 
-<div class="container">
+<div class="container-fluid">
     <div class="page-inner">
-        <h4 class="mb-2 mt-4">
-            Dashboard
-            <small class="text-muted">
-                ({{ formatDateIndonesia($start) }} - {{ formatDateIndonesia($end) }})
-            </small>
 
-            <form method="GET" action="{{ route('home') }}" class="mb-3">
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-5">
-                        <label class="form-label">Tanggal Mulai</label>
-                        <input
-                            type="date"
-                            name="start"
-                            class="form-control"
-                            value="{{ request('start', $start) }}"
-                            required>
-                    </div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1">
+                    <i class="fas fa-home text-primary me-2"></i>
+                    Dashboard
+                </h3>
+                <small class="text-muted">
+                    Dashboard pertanggal :{{ formatDateIndonesia($start) }} - {{ formatDateIndonesia($end) }}
+                </small>
+            </div>
+        </div>
 
-                    <div class="col-md-5">
-                        <label class="form-label">Tanggal Akhir</label>
-                        <input
-                            type="date"
-                            name="end"
-                            class="form-control"
-                            value="{{ request('end', $end) }}"
-                            required>
-                    </div>
-
-                    <div class="col-md-2">
-                        <button class="btn btn-primary w-100">
-                            <i class="fas fa-filter"></i> Terapkan
-                        </button>
-                    </div>
+        <form method="GET" action="{{ route('home') }}" class="mb-3">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label">Tanggal Mulai</label>
+                    <input
+                        type="date"
+                        name="start"
+                        class="form-control"
+                        value="{{ request('start', $start) }}"
+                        required>
                 </div>
-            </form>
-        </h4>
+
+                <div class="col-md-5">
+                    <label class="form-label">Tanggal Akhir</label>
+                    <input
+                        type="date"
+                        name="end"
+                        class="form-control"
+                        value="{{ request('end', $end) }}"
+                        required>
+                </div>
+
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100">
+                        <i class="fas fa-filter"></i> Terapkan
+                    </button>
+                </div>
+            </div>
+        </form>
 
         {{-- SUMMARY --}}
         <div class="row">

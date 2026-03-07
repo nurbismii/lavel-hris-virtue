@@ -1,9 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container">
+<div class="container-fluid">
     <div class="page-inner">
-
         <div class="page-header">
             <h3 class="fw-bold mb-3">Edit Karyawan</h3>
         </div>
