@@ -119,6 +119,8 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/divisi/create/{perusahaan_id}', [App\Http\Controllers\Admin\DivisiController::class, 'create'])->name('divisi.create');
         Route::post('/divisi/store', [App\Http\Controllers\Admin\DivisiController::class, 'store'])->name('divisi.store');
         Route::delete('/divisi/destroy/{id}', [App\Http\Controllers\Admin\DivisiController::class, 'destroy'])->name('divisi.destroy');
+        Route::put('/divisi/{id}', [App\Http\Controllers\Admin\DivisiController::class, 'update'])->name('divisi.update');
+        Route::post('/divisi/merge', [App\Http\Controllers\Admin\DivisiController::class, 'mergeDivisi'])->name('divisi.merge');
         //=== END DIVISI ===
 
         Route::resource('/resign', 'App\Http\Controllers\Admin\ResignController');
