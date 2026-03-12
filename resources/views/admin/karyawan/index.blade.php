@@ -88,10 +88,14 @@
                                     <option value="AKTIF" selected>Aktif</option>
                                     <option value="RESIGN SESUAI PROSEDUR">Resign Sesuai Prosedur</option>
                                     <option value="RESIGN TIDAK SESUAI PROSEDUR">Resign Tidak Sesuai Prosedur</option>
+                                    <option value="RESIGN TIDAK SESUAI PROSEDUR-PENGAJUAN">Resign Tidak Sesuai Prosedur-Pengajuan</option>
+                                    <option value="RESIGN TIDAK SESUAI PROSEDUR-KABUR">Resign Tidak Sesuai Prosedur-Kabur</option>
+                                    <option value="RESIGN TIDAK SESUAI PROSEDUR-PAYROLL">Resign Tidak Sesuai Prosedur-Payroll</option>
                                     <option value="PB RESIGN">PB Resign</option>
                                     <option value="PUTUS KONTRAK">Putus Kontrak</option>
                                     <option value="PHK">PHK</option>
                                     <option value="PHK PENSIUN">PHK Pensiun</option>
+                                    <option value="PHK PENSIUN DINI">PHK Pensiun Dini</option>
                                     <option value="PHK PIDANA">PHK Pidana</option>
                                     <option value="PHK MENINGGAL DUNIA">PHK Meninggal Dunia</option>
                                 </select>
