@@ -72,20 +72,6 @@
         }
     </style>
 
-    <script>
-        function openApp() {
-
-            // coba buka aplikasi
-            window.location = "vpeople://home";
-
-            // jika gagal buka app → tetap di halaman
-            setTimeout(function() {
-                document.getElementById('downloadArea').style.display = "block";
-            }, 1500);
-
-        }
-    </script>
-
 </head>
 
 <body>
@@ -120,6 +106,28 @@
         </div>
 
     </div>
+
+    <script>
+        function openApp() {
+
+            // mencoba membuka aplikasi
+            window.location = "vpeople://dashboard";
+
+            // jika gagal buka aplikasi tampilkan tombol download
+            setTimeout(function() {
+                document.getElementById('downloadArea').style.display = "block";
+            }, 1500);
+        }
+
+        // auto open app setelah 3 detik
+        window.onload = function() {
+
+            setTimeout(function() {
+                openApp();
+            }, 3000);
+
+        }
+    </script>
 
 </body>
 
