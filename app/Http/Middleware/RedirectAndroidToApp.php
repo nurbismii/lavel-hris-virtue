@@ -15,17 +15,18 @@ class RedirectAndroidToApp
         $isAndroid = stripos($userAgent, 'Android') !== false;
         $isApp = stripos($userAgent, 'VPEOPLE_APP') !== false;
 
-        if ($request->is('download-app')) {
+        // Route yang dikecualikan
+        if ($request->routeIs([
+            'login',
+            'register',
+            'password.*'
+        ]) || $request->is('download-app')) {
             return $next($request);
         }
 
         if ($isAndroid && !$isApp) {
             Auth::logout();
             return redirect('/download-app');
-        }
-
-        if ($isApp) {
-            return $next($request);
         }
 
         return $next($request);
