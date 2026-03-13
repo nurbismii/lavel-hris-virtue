@@ -10,7 +10,6 @@
         body {
             margin: 0;
             padding: 20px;
-            /* Tambah jarak kiri kanan */
             font-family: 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #0F9D58, #0066CC);
             display: flex;
@@ -21,7 +20,7 @@
         }
 
         .card {
-            background: #ffffff;
+            background: #fff;
             color: #333;
             width: 100%;
             max-width: 420px;
@@ -29,20 +28,6 @@
             border-radius: 24px;
             text-align: center;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-            animation: fadeIn 0.6s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
 
         .logo {
@@ -61,19 +46,23 @@
             margin-bottom: 30px;
         }
 
-        .btn-download {
-            display: inline-block;
+        .btn {
+            display: block;
             padding: 14px 28px;
-            background: #0F9D58;
-            color: #fff;
-            text-decoration: none;
             border-radius: 50px;
             font-weight: 600;
-            transition: 0.3s;
+            text-decoration: none;
+            margin-bottom: 12px;
         }
 
-        .btn-download:hover {
-            background: #0c7c45;
+        .btn-open {
+            background: #0066CC;
+            color: white;
+        }
+
+        .btn-download {
+            background: #0F9D58;
+            color: white;
         }
 
         .note {
@@ -82,30 +71,54 @@
             color: #888;
         }
     </style>
+
+    <script>
+        function openApp() {
+
+            // coba buka aplikasi
+            window.location = "vpeople://home";
+
+            // jika gagal buka app → tetap di halaman
+            setTimeout(function() {
+                document.getElementById('downloadArea').style.display = "block";
+            }, 1500);
+
+        }
+    </script>
+
 </head>
 
 <body>
 
     <div class="card">
-        <!-- Ganti dengan logo kamu -->
-        <img src="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" class="logo" alt="V-People">
+
+        <img src="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" class="logo">
 
         <h2>Gunakan Aplikasi Resmi V-People</h2>
 
         <p>
             Untuk pengalaman terbaik dan keamanan data,
-            silakan unduh aplikasi resmi V-People.
+            silakan gunakan aplikasi resmi V-People.
         </p>
 
-        <a href="https://drive.google.com/file/d/1CMNecbDYhbx0HMZqBrR4YYxzeioiVXIL/view?usp=sharing"
-            target="_blank"
-            class="btn-download">
-            Download Aplikasi
+        <a href="javascript:void(0)" onclick="openApp()" class="btn btn-open">
+            Buka Aplikasi
         </a>
 
-        <div class="note">
-            Pastikan mengaktifkan "Izinkan Instalasi dari Sumber Tidak Dikenal"
+        <div id="downloadArea">
+
+            <a href="https://drive.google.com/file/d/1CMNecbDYhbx0HMZqBrR4YYxzeioiVXIL/view?usp=sharing"
+                target="_blank"
+                class="btn btn-download">
+                Download APK
+            </a>
+
         </div>
+
+        <div class="note">
+            Jika aplikasi belum terpasang, silakan download terlebih dahulu.
+        </div>
+
     </div>
 
 </body>
