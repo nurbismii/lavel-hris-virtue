@@ -4,8 +4,7 @@ namespace App\Imports;
 
 use App\Models\Departemen;
 use App\Models\Divisi;
-use App\Models\employee;
-use App\Models\Kelurahan;
+use App\Models\Employee;
 use App\Models\Perusahaan;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -157,7 +156,7 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
         }
 
         if (!empty($newRows)) {
-            employee::upsert($newRows, ['nik'], array_keys($newRows[0]));
+            Employee::upsert($newRows, ['nik'], array_keys($newRows[0]));
         }
     }
 
