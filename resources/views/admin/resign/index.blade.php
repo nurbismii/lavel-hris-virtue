@@ -117,6 +117,8 @@
         processing: true,
         serverSide: true,
         responsive: true,
+        deferRender: true,
+        searchDelay: 500,
 
         ajax: {
             url: "{{ route('resign.index') }}",
@@ -126,29 +128,61 @@
                 d.tipe = $('#tipe').val();
             }
         },
+        initComplete: function() {
+            let api = this.api();
+            let timeout = null;
+            let searchInput = $('#table-resign_filter input');
+
+            searchInput
+                .attr('placeholder', 'Cari NIK/nama min. 3 karakter')
+                .off('.DT')
+                .on('input', function() {
+                    let keyword = this.value.trim();
+
+                    clearTimeout(timeout);
+
+                    timeout = setTimeout(function() {
+                        if (keyword.length === 0) {
+                            api.search('').draw();
+
+                            return;
+                        }
+
+                        if (keyword.length >= 3) {
+                            api.search(keyword).draw();
+
+                            return;
+                        }
+
+                        if (api.search() !== '') {
+                            api.search('').draw();
+                        }
+                    }, 500);
+                });
+        },
         columns: [{
                 data: 'nik_karyawan',
-                name: 'nik_karyawan'
+                name: 'resign.nik_karyawan'
             },
             {
                 data: 'nama_karyawan',
-                name: 'employee.nama_karyawan'
+                name: 'employees.nama_karyawan'
             },
             {
                 data: 'tanggal_keluar',
-                name: 'tanggal_keluar'
+                name: 'resign.tanggal_keluar'
             },
             {
                 data: 'tipe',
-                name: 'tipe'
+                name: 'resign.tipe'
             },
             {
                 data: 'periode_awal',
-                name: 'periode_awal'
+                name: 'resign.periode_awal'
             },
             {
                 data: 'periode_akhir',
-                name: 'periode_akhir'
+                name: 'resign.periode_akhir'
             },
             {
                 data: 'aksi',
@@ -158,7 +192,7 @@
         ],
         order: [
             [2, 'desc']
-        ] // kolom index 1, urut terbaru dulu
+        ] // kolom tanggal resign, urut terbaru dulu
     });
 
     /* reload saat filter berubah */
