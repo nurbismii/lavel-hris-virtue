@@ -353,7 +353,6 @@
     }
 
     @media (max-width: 991.98px) {
-
         .attendance-steps,
         .history-header {
             justify-content: flex-start;
@@ -369,7 +368,6 @@
     }
 
     @media (max-width: 767.98px) {
-
         .attendance-hero,
         .attendance-card__body,
         .face-section {
@@ -389,7 +387,7 @@
 
 @section('content')
 @php
-$faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
+    $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
 @endphp
 
 <div class="container-fluid">
@@ -418,42 +416,42 @@ $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
         @endif
 
         @php
-        $nextType = null;
-        $label = '';
-        $btnClass = 'btn-primary';
-        $btnIcon = 'fas fa-arrow-right';
-        $actionTitle = 'Siap untuk langkah berikutnya';
-        $actionText = 'Ambil selfie terlebih dahulu, tunggu matching berhasil, lalu lanjutkan presensi saat GPS valid.';
+            $nextType = null;
+            $label = '';
+            $btnClass = 'btn-primary';
+            $btnIcon = 'fas fa-arrow-right';
+            $actionTitle = 'Siap untuk langkah berikutnya';
+            $actionText = 'Ambil selfie terlebih dahulu, tunggu matching berhasil, lalu lanjutkan presensi saat GPS valid.';
 
-        if (!$absensiHariIni || !$absensiHariIni->jam_masuk) {
-        $nextType = 'masuk';
-        $label = 'Absen Masuk';
-        $btnClass = 'btn-primary';
-        $btnIcon = 'fas fa-sign-in-alt';
-        $actionTitle = 'Absen masuk tersedia';
-        $actionText = 'Ambil selfie dulu, pastikan matching berhasil, lalu sistem akan mengizinkan presensi masuk.';
-        } elseif (!$absensiHariIni->jam_istirahat) {
-        $nextType = 'istirahat';
-        $label = 'Mulai Istirahat';
-        $btnClass = 'btn-warning';
-        $btnIcon = 'fas fa-mug-hot';
-        $actionTitle = 'Mulai waktu istirahat';
-        $actionText = 'Lanjutkan ke presensi istirahat setelah selfie cocok dan lokasi kamu tetap valid.';
-        } elseif (!$absensiHariIni->jam_kembali_istirahat) {
-        $nextType = 'kembali';
-        $label = 'Kembali Istirahat';
-        $btnClass = 'btn-info';
-        $btnIcon = 'fas fa-undo-alt';
-        $actionTitle = 'Kembali dari istirahat';
-        $actionText = 'Sistem akan membuka tombol kembali setelah selfie terverifikasi dan GPS tetap sesuai.';
-        } elseif (!$absensiHariIni->jam_pulang) {
-        $nextType = 'pulang';
-        $label = 'Absen Pulang';
-        $btnClass = 'btn-danger';
-        $btnIcon = 'fas fa-sign-out-alt';
-        $actionTitle = 'Tutup presensi hari ini';
-        $actionText = 'Ambil selfie terakhir hari ini, tunggu matching, lalu lakukan presensi pulang.';
-        }
+            if (!$absensiHariIni || !$absensiHariIni->jam_masuk) {
+                $nextType = 'masuk';
+                $label = 'Absen Masuk';
+                $btnClass = 'btn-primary';
+                $btnIcon = 'fas fa-sign-in-alt';
+                $actionTitle = 'Absen masuk tersedia';
+                $actionText = 'Ambil selfie dulu, pastikan matching berhasil, lalu sistem akan mengizinkan presensi masuk.';
+            } elseif (!$absensiHariIni->jam_istirahat) {
+                $nextType = 'istirahat';
+                $label = 'Mulai Istirahat';
+                $btnClass = 'btn-warning';
+                $btnIcon = 'fas fa-mug-hot';
+                $actionTitle = 'Mulai waktu istirahat';
+                $actionText = 'Lanjutkan ke presensi istirahat setelah selfie cocok dan lokasi kamu tetap valid.';
+            } elseif (!$absensiHariIni->jam_kembali_istirahat) {
+                $nextType = 'kembali';
+                $label = 'Kembali Istirahat';
+                $btnClass = 'btn-info';
+                $btnIcon = 'fas fa-undo-alt';
+                $actionTitle = 'Kembali dari istirahat';
+                $actionText = 'Sistem akan membuka tombol kembali setelah selfie terverifikasi dan GPS tetap sesuai.';
+            } elseif (!$absensiHariIni->jam_pulang) {
+                $nextType = 'pulang';
+                $label = 'Absen Pulang';
+                $btnClass = 'btn-danger';
+                $btnIcon = 'fas fa-sign-out-alt';
+                $actionTitle = 'Tutup presensi hari ini';
+                $actionText = 'Ambil selfie terakhir hari ini, tunggu matching, lalu lakukan presensi pulang.';
+            }
         @endphp
 
         <div class="attendance-shell">
@@ -486,7 +484,7 @@ $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
                 <div class="face-section__header">
                     <div>
                         <span class="section-caption">Langkah Awal</span>
-
+                       
                     </div>
                     <div id="faceStatusBadge" class="face-status-chip bg-light text-muted">
                         Menyiapkan model verifikasi...
@@ -593,44 +591,44 @@ $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
                         </div>
                     </div>
 
-                    <div class="attendance-action-card">
-                        <div>
-                            <span class="attendance-action-card__caption">Langkah Berikutnya</span>
-                            <h6 class="attendance-action-card__title">{{ $actionTitle }}</h6>
-                            <p class="attendance-action-card__text">{{ $actionText }}</p>
-                        </div>
-
-                        <div class="d-grid">
-                            @if ($nextType)
-                            <button class="btn {{ $btnClass }} btn-absen shadow" data-type="{{ $nextType }}" disabled>
-                                <i class="{{ $btnIcon }} me-2"></i>
-                                {{ $label }}
-                            </button>
-                            @else
-                            <button class="btn btn-success shadow" disabled>
-                                <i class="fas fa-check-circle me-2"></i>
-                                Presensi Hari Ini Selesai
-                            </button>
-                            @endif
-                        </div>
+                <div class="attendance-action-card">
+                    <div>
+                        <span class="attendance-action-card__caption">Langkah Berikutnya</span>
+                        <h6 class="attendance-action-card__title">{{ $actionTitle }}</h6>
+                        <p class="attendance-action-card__text">{{ $actionText }}</p>
                     </div>
 
-                    <form id="formAbsen" method="POST" enctype="multipart/form-data">
-                        @csrf
-                        <input type="hidden" name="lat_user" id="lat_user">
-                        <input type="hidden" name="long_user" id="long_user">
-                        <input type="hidden" name="accuracy" id="accuracy_user">
-                        <input type="hidden" name="speed" id="speed_user">
-                        <input type="hidden" name="device_info" id="device_info">
-                        <input type="hidden" name="face_verified" id="face_verified" value="0">
-                        <input type="hidden" name="face_distance" id="face_distance" value="">
-                        <input type="hidden" name="face_detection_count" id="face_detection_count" value="0">
-                        <input type="hidden" name="face_verification_meta" id="face_verification_meta" value="">
-                    </form>
+                    <div class="d-grid">
+                        @if ($nextType)
+                        <button class="btn {{ $btnClass }} btn-absen shadow" data-type="{{ $nextType }}" disabled>
+                            <i class="{{ $btnIcon }} me-2"></i>
+                            {{ $label }}
+                        </button>
+                        @else
+                        <button class="btn btn-success shadow" disabled>
+                            <i class="fas fa-check-circle me-2"></i>
+                            Presensi Hari Ini Selesai
+                        </button>
+                        @endif
+                    </div>
                 </div>
-            </div>
 
-            <hr class="my-5">
+                <form id="formAbsen" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <input type="hidden" name="lat_user" id="lat_user">
+                    <input type="hidden" name="long_user" id="long_user">
+                    <input type="hidden" name="accuracy" id="accuracy_user">
+                    <input type="hidden" name="speed" id="speed_user">
+                    <input type="hidden" name="device_info" id="device_info">
+                    <input type="hidden" name="face_verified" id="face_verified" value="0">
+                    <input type="hidden" name="face_distance" id="face_distance" value="">
+                    <input type="hidden" name="face_detection_count" id="face_detection_count" value="0">
+                    <input type="hidden" name="face_verification_meta" id="face_verification_meta" value="">
+                </form>
+            </div>
+        </div>
+
+        <hr class="my-5">
 
         </div>
 
@@ -686,7 +684,7 @@ $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
 
 @push('scripts')
 <script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
-<script src="{{ asset('vendor/face-api/face-api.min.js') }}"></script>
+<script src="{{ asset('/vendor/face-api/face-api.min.js') }}"></script>
 
 @if ($lokasi)
 <script>
@@ -810,29 +808,20 @@ $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
             return;
         }
 
-        async function loadFaceModels() {
-            if (!faceReferencePath) {
-                updateFaceStatus('Foto referensi wajah belum tersedia.', 'warning');
-                resetFaceVerificationState();
-                return;
-            }
+        try {
+            updateFaceStatus('Memuat model verifikasi wajah...', 'secondary');
 
-            try {
-                updateFaceStatus('Memuat model verifikasi wajah...', 'secondary');
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(faceModelPath),
+                faceapi.nets.faceLandmark68TinyNet.loadFromUri(faceModelPath),
+                faceapi.nets.faceRecognitionNet.loadFromUri(faceModelPath)
+            ]);
 
-                await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(faceModelPath),
-                    faceapi.nets.faceLandmark68TinyNet.loadFromUri(faceModelPath),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(faceModelPath)
-                ]);
-
-                faceApiReady = true;
-                updateFaceStatus('Model siap. Ambil selfie untuk memulai matching.', 'info');
-            } catch (error) {
-                console.error('Face model load error:', error);
-                faceApiReady = false;
-                updateFaceStatus(`Gagal memuat model verifikasi wajah: ${error.message || error}`, 'danger');
-            }
+            faceApiReady = true;
+            updateFaceStatus('Model siap. Ambil selfie untuk memulai matching.', 'info');
+        } catch (error) {
+            faceApiReady = false;
+            updateFaceStatus('Gagal memuat model verifikasi wajah.', 'danger');
         }
 
         updateAttendanceButtonState();
@@ -947,21 +936,9 @@ $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        let latOffice = {
-            {
-                $lokasi - > lat
-            }
-        };
-        let longOffice = {
-            {
-                $lokasi - > long
-            }
-        };
-        let radius = {
-            {
-                $lokasi - > radius
-            }
-        };
+        let latOffice = {{$lokasi->lat}};
+        let longOffice = {{$lokasi->long}};
+        let radius = {{$lokasi->radius}};
         let lastLat = null;
         let lastLong = null;
         let lastTime = null;
