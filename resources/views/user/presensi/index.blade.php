@@ -107,9 +107,169 @@
         box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
     }
 
+    .attendance-card__header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
     .attendance-card__body,
     .face-section {
         padding: 1.25rem;
+    }
+
+    .attendance-card__title {
+        margin: 0.75rem 0 0.3rem;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .attendance-card__text {
+        margin: 0;
+        max-width: 620px;
+        color: #64748b;
+        line-height: 1.6;
+    }
+
+    .attendance-wizard {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .attendance-stage {
+        display: grid;
+        grid-template-columns: 56px minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .attendance-stage__rail {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        height: 100%;
+    }
+
+    .attendance-stage__rail::after {
+        content: '';
+        position: absolute;
+        top: 52px;
+        bottom: -1rem;
+        width: 2px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgba(148, 163, 184, 0.35) 0%, rgba(148, 163, 184, 0.08) 100%);
+    }
+
+    .attendance-stage:last-child .attendance-stage__rail::after {
+        display: none;
+    }
+
+    .attendance-stage__number {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        background: #e2e8f0;
+        color: #64748b;
+        font-size: 15px;
+        font-weight: 800;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+        transition: all 0.25s ease;
+    }
+
+    .attendance-stage__number.is-active {
+        background: linear-gradient(135deg, #0d6efd 0%, #3b82f6 100%);
+        border-color: rgba(13, 110, 253, 0.28);
+        color: #ffffff;
+    }
+
+    .attendance-stage__number.is-done {
+        background: linear-gradient(135deg, #198754 0%, #22c55e 100%);
+        border-color: rgba(25, 135, 84, 0.28);
+        color: #ffffff;
+    }
+
+    .attendance-stage__number.is-locked {
+        background: #e2e8f0;
+        color: #94a3b8;
+    }
+
+    .attendance-stage__main {
+        padding: 1rem;
+        border-radius: 20px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        background: #ffffff;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+        transition: all 0.25s ease;
+    }
+
+    .attendance-stage.is-active .attendance-stage__main {
+        border-color: rgba(13, 110, 253, 0.18);
+        box-shadow: 0 16px 34px rgba(13, 110, 253, 0.08);
+    }
+
+    .attendance-stage.is-done .attendance-stage__main {
+        border-color: rgba(25, 135, 84, 0.16);
+        box-shadow: 0 16px 34px rgba(25, 135, 84, 0.08);
+    }
+
+    .attendance-stage.is-locked .attendance-stage__main {
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .attendance-stage__hint {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        margin-bottom: 1rem;
+        padding: 0.95rem 1rem;
+        border-radius: 16px;
+        border: 1px dashed rgba(148, 163, 184, 0.35);
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .attendance-stage__hint i {
+        color: #0d6efd;
+        font-size: 16px;
+    }
+
+    .attendance-stage__hint.is-success {
+        border-style: solid;
+        border-color: rgba(25, 135, 84, 0.18);
+        background: rgba(25, 135, 84, 0.08);
+        color: #166534;
+    }
+
+    .attendance-stage__hint.is-success i {
+        color: #198754;
+    }
+
+    .attendance-card__grid {
+        display: grid;
+        grid-template-columns: minmax(320px, 0.95fr) minmax(360px, 1.05fr);
+        gap: 1rem;
+        align-items: stretch;
+    }
+
+    .attendance-panel {
+        height: 100%;
+        padding: 1rem;
+        border-radius: 20px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        background: #ffffff;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
     }
 
     .map-card__header,
@@ -240,9 +400,26 @@
         position: relative;
         overflow: hidden;
         min-height: 80px;
+        height: 200px;
         border-radius: 18px;
         background: linear-gradient(180deg, #eff4f9 0%, #e5edf5 100%);
         border: 1px solid rgba(148, 163, 184, 0.16);
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .face-preview-frame:hover {
+        transform: translateY(-1px);
+        border-color: rgba(13, 110, 253, 0.22);
+        box-shadow: 0 14px 30px rgba(13, 110, 253, 0.08);
+    }
+
+    .face-preview-frame:focus-visible {
+        outline: 0;
+        border-color: rgba(13, 110, 253, 0.28);
+        box-shadow:
+            0 0 0 4px rgba(13, 110, 253, 0.12),
+            0 14px 30px rgba(13, 110, 253, 0.08);
     }
 
     .sr-reference-image {
@@ -299,17 +476,20 @@
         line-height: 1.2;
     }
 
-    .face-upload-box {
-        margin-top: 1rem;
-        padding: 0.9rem;
-        border-radius: 16px;
-        background: #f8fafc;
-        border: 1px solid rgba(148, 163, 184, 0.14);
+    .selfie-input-hidden {
+        position: absolute;
+        left: -9999px;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
     }
 
-    .face-upload-box .form-control {
-        min-height: 48px;
-        border-radius: 14px;
+    .face-preview-frame__hint {
+        display: block;
+        margin-top: 0.75rem;
+        font-size: 13px;
+        color: #64748b;
     }
 
     .face-guidance {
@@ -353,6 +533,14 @@
     }
 
     @media (max-width: 991.98px) {
+        .attendance-stage {
+            grid-template-columns: 48px minmax(0, 1fr);
+        }
+
+        .attendance-card__grid {
+            grid-template-columns: 1fr;
+        }
+
         .attendance-steps,
         .history-header {
             justify-content: flex-start;
@@ -374,12 +562,34 @@
             padding: 1rem;
         }
 
+        .attendance-stage {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .attendance-stage__rail {
+            justify-content: flex-start;
+        }
+
+        .attendance-stage__rail::after {
+            display: none;
+        }
+
+        .attendance-card__header {
+            margin-bottom: 1rem;
+            padding-bottom: 0.85rem;
+        }
+
         .map-surface {
             height: 300px;
         }
 
         .attendance-hero__title {
             font-size: 1.25rem;
+        }
+
+        .attendance-card__title {
+            font-size: 1.15rem;
         }
     }
 </style>
@@ -452,165 +662,196 @@
                 $actionTitle = 'Tutup presensi hari ini';
                 $actionText = 'Ambil selfie terakhir hari ini, tunggu matching, lalu lakukan presensi pulang.';
             }
+
+            $requiresFaceStep = (bool) ($nextType && $faceReferencePath);
         @endphp
 
-        <div class="attendance-shell">
-            <div class="attendance-hero">
-                <div>
-                    <span class="attendance-kicker">
-                        <i class="fas fa-shield-alt"></i>
-                        Presensi Aman
-                    </span>
-                </div>
-
-                <div class="attendance-steps">
-                    <div class="attendance-step">
-                        <span class="attendance-step__label">Langkah 1</span>
-                        <span class="attendance-step__value">Ambil Selfie</span>
-                    </div>
-                    <div class="attendance-step">
-                        <span class="attendance-step__label">Langkah 2</span>
-                        <span class="attendance-step__value">Matching Wajah</span>
-                    </div>
-                    <div class="attendance-step">
-                        <span class="attendance-step__label">Langkah 3</span>
-                        <span class="attendance-step__value">Presensi</span>
-                    </div>
-                </div>
-            </div>
-
-            @if ($nextType)
-            <div class="face-section">
-                <div class="face-section__header">
+        <div class="attendance-card">
+            <div class="attendance-card__body">
+                <div class="attendance-card__header">
                     <div>
-                        <span class="section-caption">Langkah Awal</span>
-                       
+                        <span class="attendance-kicker">
+                            <i class="fas fa-shield-alt"></i>
+                            Presensi Aman
+                        </span>
                     </div>
-                    <div id="faceStatusBadge" class="face-status-chip bg-light text-muted">
-                        Menyiapkan model verifikasi...
+
+                    <div class="attendance-steps">
+                        <div class="attendance-step">
+                            <span class="attendance-step__label">Langkah 1</span>
+                            <span class="attendance-step__value">Foto & Matching</span>
+                        </div>
+                        <div class="attendance-step">
+                            <span class="attendance-step__label">Langkah 2</span>
+                            <span class="attendance-step__value">Presensi</span>
+                        </div>
                     </div>
                 </div>
 
-                @if ($faceReferencePath)
-                <img
-                    id="referenceFaceImage"
-                    src="{{ asset($faceReferencePath) }}"
-                    alt="Foto referensi wajah"
-                    class="sr-reference-image">
+                <div class="attendance-wizard">
+                    @if ($requiresFaceStep)
+                    <section id="wizardStepFace" class="attendance-stage is-active">
+                        <div class="attendance-stage__rail">
+                            <span id="wizardIndicatorFace" class="attendance-stage__number is-active">1</span>
+                        </div>
 
-                <div class="row g-4 align-items-stretch">
-                    <div class="col-12">
-                        <div class="face-photo-card">
-                            <span class="face-photo-card__label">Selfie Presensi</span>
-                            <div class="face-preview-frame">
-                                <div id="selfiePlaceholder" class="selfie-placeholder">
+                        <div class="attendance-stage__main">
+                            <div class="face-section__header">
+                                <div>
+                                    <span class="section-caption">Verifikasi Wajah</span>
+                                </div>
+                                <div id="faceStatusBadge" class="face-status-chip bg-light text-muted">
+                                    Menyiapkan model verifikasi...
+                                </div>
+                            </div>
+
+                            <img
+                                id="referenceFaceImage"
+                                src="{{ asset($faceReferencePath) }}"
+                                alt="Foto referensi wajah"
+                                class="sr-reference-image">
+
+                            <div
+                                id="selfieTrigger"
+                                class="face-preview-frame"
+                                role="button"
+                                tabindex="0"
+                                aria-controls="selfie_capture"
+                                aria-label="Ambil atau ganti selfie untuk presensi">
+                                <div
+                                    id="selfiePlaceholder"
+                                    class="selfie-placeholder">
                                     <div class="selfie-placeholder__icon">
                                         <i class="fas fa-camera-retro"></i>
                                     </div>
                                     <p class="selfie-placeholder__title">Ambil selfie untuk memulai matching</p>
                                 </div>
+
+                                <img
+                                    id="selfiePreview"
+                                    alt="Preview selfie presensi"
+                                    class="face-preview-image d-none">
                             </div>
 
-                            <div class="face-upload-box">
-                                <input
-                                    type="file"
-                                    id="selfie_capture"
-                                    name="selfie_capture"
-                                    accept="image/png,image/jpeg,image/webp"
-                                    capture="user"
-                                    form="formAbsen"
-                                    class="form-control">
+                            <input
+                                type="file"
+                                id="selfie_capture"
+                                name="selfie_capture"
+                                accept="image/png,image/jpeg,image/webp"
+                                capture="user"
+                                form="formAbsen"
+                                class="selfie-input-hidden">
 
-                                <small class="text-muted d-block mt-2">
-                                    Ambil selfie terbaru. Tombol presensi akan tetap terkunci sampai matching wajah dinyatakan cocok.
-                                </small>
-                            </div>
+                            <small class="face-preview-frame__hint">
+                                Ketuk area foto untuk ambil selfie atau ganti foto
+                            </small>
 
                             <div id="faceVerificationAlert" class="alert alert-secondary mt-3 mb-0">
                                 Ambil selfie untuk memulai verifikasi wajah.
                             </div>
                         </div>
-                    </div>
-                </div>
-                @endif
-            </div>
-            @endif
+                    </section>
+                    @endif
 
-            <div class="attendance-card">
-                <div class="attendance-card__body">
-                    <div class="map-card__header">
-                        <div>
-                            <span class="section-caption">Area Presensi</span>
+                    <section id="wizardStepAttendance" class="attendance-stage {{ $requiresFaceStep ? 'is-locked' : 'is-active' }}">
+                        <div class="attendance-stage__rail">
+                            <span
+                                id="wizardIndicatorAttendance"
+                                class="attendance-stage__number {{ $requiresFaceStep ? 'is-locked' : 'is-active' }}">
+                                {{ $requiresFaceStep ? '2' : '1' }}
+                            </span>
                         </div>
-                        <div class="map-chip">
-                            <i class="fas fa-map-marked-alt"></i>
-                            Validasi GPS aktif
-                        </div>
-                    </div>
 
-                    <div class="map-frame">
-                        <div id="map" class="map-surface"></div>
-                    </div>
+                        <div class="attendance-stage__main">
+                            <div class="map-card__header">
+                                <div>
+                                    <span class="section-caption">Validasi Lokasi</span>
+                                    <h5 class="section-title">Tahap presensi dibuka setelah selfie valid</h5>
+                                    <p class="section-subtitle">
+                                        Setelah masuk ke tahap ini, sistem akan mengecek GPS, menampilkan status radius, lalu mengaktifkan tombol presensi saat semua validasi terpenuhi.
+                                    </p>
+                                </div>
+                                <div class="map-chip">
+                                    <i class="fas fa-map-marked-alt"></i>
+                                    GPS aktif
+                                </div>
+                            </div>
 
-                    <div class="location-status-card">
-                        <div class="location-status-card__icon">
-                            <i class="fas fa-crosshairs"></i>
-                        </div>
-                        <div>
-                            <span class="location-status-card__label">Status Lokasi</span>
-                            <div id="distanceInfo" class="location-status-card__value">
-                                Mendeteksi lokasi...
+                            @if ($requiresFaceStep)
+                            <div id="attendanceStepHint" class="attendance-stage__hint">
+                                <i class="fas fa-lock"></i>
+                                Selesaikan selfie dan tunggu matching berhasil untuk membuka tahap presensi.
+                            </div>
+                            @endif
+
+                            <div id="wizardAttendanceContent" class="{{ $requiresFaceStep ? 'd-none' : '' }}">
+                                <div class="map-frame">
+                                    <div id="map" class="map-surface"></div>
+                                </div>
+
+                                <div class="location-status-card">
+                                    <div class="location-status-card__icon">
+                                        <i class="fas fa-crosshairs"></i>
+                                    </div>
+                                    <div>
+                                        <span class="location-status-card__label">Status Lokasi</span>
+                                        <div id="distanceInfo" class="location-status-card__value">
+                                            Mendeteksi lokasi...
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="attendance-summary row g-3">
+                                    <div class="col-6 col-lg-3">
+                                        <div class="attendance-metric">
+                                            <span class="attendance-metric__label">Masuk</span>
+                                            <div class="attendance-metric__time">{{ $absensiHariIni->jam_masuk ?? '--:--' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-lg-3">
+                                        <div class="attendance-metric">
+                                            <span class="attendance-metric__label">Istirahat</span>
+                                            <div class="attendance-metric__time">{{ $absensiHariIni->jam_istirahat ?? '--:--' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-lg-3">
+                                        <div class="attendance-metric">
+                                            <span class="attendance-metric__label">Kembali</span>
+                                            <div class="attendance-metric__time">{{ $absensiHariIni->jam_kembali_istirahat ?? '--:--' }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-lg-3">
+                                        <div class="attendance-metric">
+                                            <span class="attendance-metric__label">Pulang</span>
+                                            <div class="attendance-metric__time">{{ $absensiHariIni->jam_pulang ?? '--:--' }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="attendance-action-card">
+                                    <div>
+                                        <span class="attendance-action-card__caption">Langkah Berikutnya</span>
+                                        <h6 class="attendance-action-card__title">{{ $actionTitle }}</h6>
+                                        <p class="attendance-action-card__text">{{ $actionText }}</p>
+                                    </div>
+
+                                    <div class="d-grid">
+                                        @if ($nextType)
+                                        <button class="btn {{ $btnClass }} btn-absen shadow" data-type="{{ $nextType }}" disabled>
+                                            <i class="{{ $btnIcon }} me-2"></i>
+                                            {{ $label }}
+                                        </button>
+                                        @else
+                                        <button class="btn btn-success shadow" disabled>
+                                            <i class="fas fa-check-circle me-2"></i>
+                                            Presensi Hari Ini Selesai
+                                        </button>
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="attendance-summary row g-3">
-                        <div class="col-6 col-lg-3">
-                            <div class="attendance-metric">
-                                <span class="attendance-metric__label">Masuk</span>
-                                <div class="attendance-metric__time">{{ $absensiHariIni->jam_masuk ?? '--:--' }}</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-lg-3">
-                            <div class="attendance-metric">
-                                <span class="attendance-metric__label">Istirahat</span>
-                                <div class="attendance-metric__time">{{ $absensiHariIni->jam_istirahat ?? '--:--' }}</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-lg-3">
-                            <div class="attendance-metric">
-                                <span class="attendance-metric__label">Kembali</span>
-                                <div class="attendance-metric__time">{{ $absensiHariIni->jam_kembali_istirahat ?? '--:--' }}</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-lg-3">
-                            <div class="attendance-metric">
-                                <span class="attendance-metric__label">Pulang</span>
-                                <div class="attendance-metric__time">{{ $absensiHariIni->jam_pulang ?? '--:--' }}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                <div class="attendance-action-card">
-                    <div>
-                        <span class="attendance-action-card__caption">Langkah Berikutnya</span>
-                        <h6 class="attendance-action-card__title">{{ $actionTitle }}</h6>
-                        <p class="attendance-action-card__text">{{ $actionText }}</p>
-                    </div>
-
-                    <div class="d-grid">
-                        @if ($nextType)
-                        <button class="btn {{ $btnClass }} btn-absen shadow" data-type="{{ $nextType }}" disabled>
-                            <i class="{{ $btnIcon }} me-2"></i>
-                            {{ $label }}
-                        </button>
-                        @else
-                        <button class="btn btn-success shadow" disabled>
-                            <i class="fas fa-check-circle me-2"></i>
-                            Presensi Hari Ini Selesai
-                        </button>
-                        @endif
-                    </div>
+                    </section>
                 </div>
 
                 <form id="formAbsen" method="POST" enctype="multipart/form-data">
@@ -629,8 +870,6 @@
         </div>
 
         <hr class="my-5">
-
-        </div>
 
         <div class="history-header">
             <div>
@@ -945,8 +1184,15 @@
         let speed = null;
         let stableCounter = 0;
         const selfieInput = document.getElementById('selfie_capture');
+        const selfieTrigger = document.getElementById('selfieTrigger');
         const selfiePreview = document.getElementById('selfiePreview');
         const selfiePlaceholder = document.getElementById('selfiePlaceholder');
+        const wizardStepFace = document.getElementById('wizardStepFace');
+        const wizardStepAttendance = document.getElementById('wizardStepAttendance');
+        const wizardIndicatorFace = document.getElementById('wizardIndicatorFace');
+        const wizardIndicatorAttendance = document.getElementById('wizardIndicatorAttendance');
+        const attendanceStepHint = document.getElementById('attendanceStepHint');
+        const wizardAttendanceContent = document.getElementById('wizardAttendanceContent');
 
         const syncSelfiePreviewState = function(hasImage) {
             if (selfiePlaceholder) {
@@ -958,10 +1204,96 @@
             }
         };
 
+        const refreshMapViewport = function() {
+            if (!map || !window.google || !window.google.maps) {
+                return;
+            }
+
+            google.maps.event.trigger(map, 'resize');
+
+            if (markerUser) {
+                map.panTo(markerUser.getPosition());
+                return;
+            }
+
+            map.setCenter({
+                lat: latOffice,
+                lng: longOffice
+            });
+        };
+
+        const setWizardStep = function(step, options = {}) {
+            const scroll = options.scroll === true;
+            const hasFaceStep = Boolean(wizardStepFace);
+            const attendanceUnlocked = !hasFaceStep || step >= 2;
+
+            if (wizardStepFace) {
+                wizardStepFace.classList.toggle('is-active', step === 1);
+                wizardStepFace.classList.toggle('is-done', step >= 2);
+            }
+
+            if (wizardIndicatorFace) {
+                wizardIndicatorFace.classList.remove('is-active', 'is-done', 'is-locked');
+                wizardIndicatorFace.classList.add(step >= 2 ? 'is-done' : 'is-active');
+                wizardIndicatorFace.textContent = '1';
+            }
+
+            if (wizardStepAttendance) {
+                wizardStepAttendance.classList.toggle('is-active', attendanceUnlocked);
+                wizardStepAttendance.classList.toggle('is-locked', !attendanceUnlocked);
+                wizardStepAttendance.classList.toggle('is-done', false);
+            }
+
+            if (wizardIndicatorAttendance) {
+                wizardIndicatorAttendance.classList.remove('is-active', 'is-done', 'is-locked');
+                wizardIndicatorAttendance.classList.add(attendanceUnlocked ? 'is-active' : 'is-locked');
+            }
+
+            if (attendanceStepHint) {
+                attendanceStepHint.classList.toggle('is-success', attendanceUnlocked);
+                attendanceStepHint.innerHTML = attendanceUnlocked
+                    ? "<i class='fas fa-check-circle'></i> Tahap presensi sudah terbuka. Pastikan GPS stabil lalu lanjutkan presensi."
+                    : "<i class='fas fa-lock'></i> Selesaikan selfie dan tunggu matching berhasil untuk membuka tahap presensi.";
+            }
+
+            if (wizardAttendanceContent) {
+                wizardAttendanceContent.classList.toggle('d-none', hasFaceStep && !attendanceUnlocked);
+            }
+
+            if (attendanceUnlocked && scroll && wizardStepAttendance) {
+                window.setTimeout(function() {
+                    wizardStepAttendance.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    window.setTimeout(refreshMapViewport, 260);
+                }, 120);
+            }
+        };
+
+        const openSelfiePicker = function() {
+            if (!selfieInput) {
+                return;
+            }
+
+            selfieInput.click();
+        };
+
         initMap(latOffice, longOffice, radius);
         updateAttendanceButtonState();
         loadFaceModels();
         syncSelfiePreviewState(false);
+        setWizardStep(selfieInput ? 1 : 2);
+
+        if (selfieTrigger) {
+            selfieTrigger.addEventListener('click', openSelfiePicker);
+            selfieTrigger.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openSelfiePicker();
+                }
+            });
+        }
 
         if (!navigator.geolocation) {
             document.getElementById("distanceInfo").innerHTML =
@@ -1212,6 +1544,7 @@
                 const file = event.target.files && event.target.files[0];
 
                 resetFaceVerificationState();
+                setWizardStep(1);
 
                 if (selfiePreview) {
                     selfiePreview.removeAttribute('src');
@@ -1266,12 +1599,17 @@
 
                     if (matched) {
                         updateFaceStatus('Verifikasi wajah berhasil. Selfie valid untuk presensi.', 'success');
+                        setWizardStep(2, {
+                            scroll: true
+                        });
                     } else {
                         updateFaceStatus('Wajah tidak cocok dengan foto referensi. Ambil selfie lagi.', 'danger');
+                        setWizardStep(1);
                     }
                 } catch (error) {
                     resetFaceVerificationState();
                     updateFaceStatus(error.message || 'Verifikasi wajah gagal dijalankan.', 'danger');
+                    setWizardStep(1);
                 }
             });
         }
