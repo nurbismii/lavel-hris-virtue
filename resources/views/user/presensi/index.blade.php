@@ -767,9 +767,6 @@
                                 <div>
                                     <span class="section-caption">Validasi Lokasi</span>
                                     <h5 class="section-title">Tahap presensi dibuka setelah selfie valid</h5>
-                                    <p class="section-subtitle">
-                                        Setelah masuk ke tahap ini, sistem akan mengecek GPS, menampilkan status radius, lalu mengaktifkan tombol presensi saat semua validasi terpenuhi.
-                                    </p>
                                 </div>
                                 <div class="map-chip">
                                     <i class="fas fa-map-marked-alt"></i>
