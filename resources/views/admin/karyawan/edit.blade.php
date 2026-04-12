@@ -10,7 +10,7 @@
 
         <div class="card">
             <div class="card-body">
-                <form action="{{ route('karyawan.update', $employee->nik) }}" method="POST">
+                <form action="{{ route('karyawan.update', $employee->nik) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
@@ -34,6 +34,28 @@
                                 <option value="L" {{ $employee->jenis_kelamin == 'L' ? 'selected' : '' }}>Laki-laki</option>
                                 <option value="P" {{ $employee->jenis_kelamin == 'P' ? 'selected' : '' }}>Perempuan</option>
                             </select>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Foto Referensi Wajah</label>
+                            <input type="file" class="form-control @error('face_reference') is-invalid @enderror" name="face_reference" accept="image/png,image/jpeg,image/webp">
+                            @error('face_reference')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                            <small class="text-muted d-block mt-2">
+                                Upload foto wajah lurus ke kamera. Foto ini dipakai untuk verifikasi presensi.
+                            </small>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label d-block">Preview Referensi</label>
+                            @if($employee->face_reference_path)
+                            <img src="{{ asset($employee->face_reference_path) }}" alt="Foto referensi wajah" class="img-fluid rounded border" style="max-height: 140px; object-fit: cover;">
+                            @else
+                            <div class="border rounded p-3 text-muted bg-light small">
+                                Belum ada foto referensi wajah.
+                            </div>
+                            @endif
                         </div>
                     </div>
 

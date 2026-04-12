@@ -53,7 +53,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function employee()
     {
-        return $this->belongsTo(Employee::class, 'nik_karyawan', 'nik')->select(['nik', 'nama_karyawan', 'departemen_id', 'divisi_id', 'sisa_cuti', 'posisi']);
+        return $this->belongsTo(Employee::class, 'nik_karyawan', 'nik')->select(['nik', 'nama_karyawan', 'departemen_id', 'divisi_id', 'sisa_cuti', 'posisi', 'face_reference_path']);
     }
 
     public function role()

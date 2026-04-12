@@ -7,13 +7,14 @@ use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\Presensi;
 use Carbon\Carbon;
-use Facade\FlareClient\Middleware\AddGlows;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
 
 class PresensiController extends Controller
 {
-    //
+    private const FACE_DISTANCE_THRESHOLD = 0.5;
+
     public function index()
     {
         $title = 'Delete Data!';
@@ -23,7 +24,6 @@ class PresensiController extends Controller
         $user = Auth::user();
         $karyawan = $user->employee;
 
-        // Query lokasi berdasarkan divisi karyawan
         $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
 
         $absensiHariIni = Presensi::where('nik_karyawan', Auth::user()->nik_karyawan)
@@ -32,17 +32,19 @@ class PresensiController extends Controller
 
         $today = Carbon::today();
 
-        // Tentukan cut off (16 - 15)
         if ($today->day >= 16) {
             $start = Carbon::create($today->year, $today->month, 16);
-            $end   = (clone $start)->addMonth()->day(15);
+            $end = (clone $start)->addMonth()->day(15);
         } else {
             $start = Carbon::create($today->year, $today->month, 16)->subMonth();
-            $end   = Carbon::create($today->year, $today->month, 15);
+            $end = Carbon::create($today->year, $today->month, 15);
         }
 
         return view('user.presensi.index', [
-            'presensi' =>  Presensi::where('nik_karyawan', $user->nik_karyawan)->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])->orderBy('tanggal', 'desc')->get(),
+            'presensi' => Presensi::where('nik_karyawan', $user->nik_karyawan)
+                ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
+                ->orderBy('tanggal', 'desc')
+                ->get(),
             'absensiHariIni' => $absensiHariIni,
             'lokasi' => $lokasi,
             'cutoffStart' => $start,
@@ -53,19 +55,31 @@ class PresensiController extends Controller
     public function store(Request $request, $type)
     {
         $request->validate([
-            'lat_user'  => 'required|numeric',
+            'lat_user' => 'required|numeric',
             'long_user' => 'required|numeric',
+            'accuracy' => 'required|numeric',
+            'speed' => 'nullable|numeric',
+            'device_info' => 'nullable|string',
+            'selfie_capture' => 'required|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'face_verified' => 'required|boolean',
+            'face_distance' => 'required|numeric|min:0|max:2',
+            'face_detection_count' => 'required|integer|min:1|max:5',
+            'face_verification_meta' => 'nullable|string|max:5000',
         ]);
 
         $user = Auth::user();
         $karyawan = $user->employee;
         $today = Carbon::today()->format('Y-m-d');
 
-        // Ambil lokasi berdasarkan divisi user
         $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
 
         if (!$lokasi) {
             toast()->error('Error', 'Lokasi presensi belum diatur');
+            return back();
+        }
+
+        if (empty($karyawan->face_reference_path)) {
+            toast()->error('Error', 'Foto referensi wajah belum didaftarkan oleh admin.');
             return back();
         }
 
@@ -77,7 +91,6 @@ class PresensiController extends Controller
             return back()->with('error', 'Pergerakan tidak wajar.');
         }
 
-        // Hitung jarak (server side validation)
         $distance = $this->calculateDistance(
             $request->lat_user,
             $request->long_user,
@@ -90,14 +103,31 @@ class PresensiController extends Controller
             return back();
         }
 
-        $security_score = 100;
+        $faceVerified = filter_var($request->face_verified, FILTER_VALIDATE_BOOLEAN);
+
+        if (!$faceVerified) {
+            toast()->error('Error', 'Verifikasi wajah gagal. Silakan ambil selfie lagi.');
+            return back();
+        }
+
+        if ((int) $request->face_detection_count !== 1) {
+            toast()->error('Error', 'Selfie harus memuat tepat satu wajah.');
+            return back();
+        }
+
+        if ((float) $request->face_distance > self::FACE_DISTANCE_THRESHOLD) {
+            toast()->error('Error', 'Wajah tidak cocok dengan foto referensi.');
+            return back();
+        }
+
+        $securityScore = 100;
 
         if ($request->accuracy > 75) {
-            $security_score -= 20;
+            $securityScore -= 20;
         }
 
         if ($request->speed && $request->speed > 40) {
-            $security_score -= 30;
+            $securityScore -= 30;
         }
 
         $lastPresensi = Presensi::where('nik_karyawan', $user->nik_karyawan)
@@ -108,35 +138,41 @@ class PresensiController extends Controller
         $currentIp = $request->ip();
 
         if ($lastPresensi && $lastPresensi->ip_address !== $currentIp) {
-            $security_score -= 15;
+            $securityScore -= 15;
         }
 
         $currentDevice = $request->device_info;
 
         if ($lastPresensi && $lastPresensi->device_info !== $currentDevice) {
-            $security_score -= 25;
+            $securityScore -= 25;
         }
 
-        $is_suspicious = $security_score < 60 ? "TRUE" : "FALSE";
+        $isSuspicious = $securityScore < 60 ? 'TRUE' : 'FALSE';
+        $selfiePath = $this->storeFaceSelfie($request->file('selfie_capture'), $user->nik_karyawan, $type);
 
         $absensi = Presensi::updateOrCreate(
             [
                 'nik_karyawan' => $user->nik_karyawan,
-                'tanggal' => $today
+                'tanggal' => $today,
             ],
             [
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'device_info' => $request->device_info,
-                'security_score' => $security_score,
-                'is_suspicious' => $is_suspicious
+                'security_score' => $securityScore,
+                'is_suspicious' => $isSuspicious,
+                'face_selfie_path' => $selfiePath,
+                'face_verified' => true,
+                'face_verification_distance' => $request->face_distance,
+                'face_verified_at' => now(),
+                'face_verification_method' => 'face-api.js',
+                'face_verification_meta' => $request->face_verification_meta,
             ]
         );
 
         $now = Carbon::now();
 
         switch ($type) {
-
             case 'masuk':
                 if ($absensi->jam_masuk) {
                     toast()->error('Error', 'Anda sudah absen masuk.');
@@ -225,8 +261,6 @@ class PresensiController extends Controller
         return response()->json(['status' => 'ok']);
     }
 
-
-    // Haversine Formula
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
     {
         $earthRadius = 6371000;
@@ -242,5 +276,20 @@ class PresensiController extends Controller
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;
+    }
+
+    private function storeFaceSelfie($file, $nik, $type)
+    {
+        $datePath = now()->format('Y/m/d');
+        $directory = public_path('presensi-selfie/' . $nik . '/' . $datePath);
+
+        if (!File::exists($directory)) {
+            File::makeDirectory($directory, 0755, true);
+        }
+
+        $filename = $type . '_' . now()->format('His') . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $file->move($directory, $filename);
+
+        return 'presensi-selfie/' . $nik . '/' . $datePath . '/' . $filename;
     }
 }

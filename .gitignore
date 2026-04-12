@@ -2,6 +2,7 @@
 /public/hot
 /public/foto-karyawan
 /public/storage
+/public/face-reference
 /storage/*.key
 /vendor
 .env

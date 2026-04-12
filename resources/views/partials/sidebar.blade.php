@@ -146,7 +146,7 @@
 
                 @endif
 
-                @if(auth()->user()->hasRole(['Administrator', 'HOD']))
+                @if(auth()->user()->hasRole(['Administrator', 'HOD', 'HR']))
 
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">

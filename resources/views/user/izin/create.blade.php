@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $selectedTipe = old('tipe', request('type'));
+    $selectedTipe = in_array($selectedTipe, ['PAID', 'UNPAID']) ? $selectedTipe : null;
+@endphp
+
 <div class="container-fluid">
     <div class="page-inner">
 
@@ -32,14 +37,14 @@
                         <label class="form-label fw-bold">Jenis Izin</label>
 
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="tipe" value="PAID" id="paidRadio">
+                            <input class="form-check-input" type="radio" name="tipe" value="PAID" id="paidRadio" {{ $selectedTipe === 'PAID' ? 'checked' : '' }}>
                             <label class="form-check-label" for="paidRadio">
                                 Izin Berbayar
                             </label>
                         </div>
 
                         <div class="form-check">
-                            <input class="form-check-input" type="radio" name="tipe" value="UNPAID" id="unpaidRadio">
+                            <input class="form-check-input" type="radio" name="tipe" value="UNPAID" id="unpaidRadio" {{ $selectedTipe === 'UNPAID' ? 'checked' : '' }}>
                             <label class="form-check-label" for="unpaidRadio">
                                 Izin Tidak Berbayar
                             </label>
@@ -47,12 +52,12 @@
                     </div>
 
                     {{-- KHUSUS PAID --}}
-                    <div id="paidOptions" style="display:none;">
+                    <div id="paidOptions" style="display: {{ $selectedTipe === 'PAID' ? 'block' : 'none' }};">
                         <label class="form-label fw-bold">Kategori Izin Berbayar</label>
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Izin Menikah ( 3 Hari )">
+                                value="Izin Menikah ( 3 Hari )" {{ old('tipe_izin') === 'Izin Menikah ( 3 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin Menikah ( 3 Hari )
                             </label>
@@ -60,7 +65,7 @@
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Izin menikahkan anak ( 2 Hari )">
+                                value="Izin menikahkan anak ( 2 Hari )" {{ old('tipe_izin') === 'Izin menikahkan anak ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin menikahkan anak ( 2 Hari )
                             </label>
@@ -68,7 +73,7 @@
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Izin Khitan / Baptis anak ( 2 Hari )">
+                                value="Izin Khitan / Baptis anak ( 2 Hari )" {{ old('tipe_izin') === 'Izin Khitan / Baptis anak ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin Khitan / Baptis anak ( 2 Hari )
                             </label>
@@ -76,7 +81,7 @@
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Izin istri melahirkan / Keguguran ( 2 Hari )">
+                                value="Izin istri melahirkan / Keguguran ( 2 Hari )" {{ old('tipe_izin') === 'Izin istri melahirkan / Keguguran ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin istri melahirkan / Keguguran ( 2 Hari )
                             </label>
@@ -84,7 +89,7 @@
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Izin Duka keluarga ( 2 Hari )">
+                                value="Izin Duka keluarga ( 2 Hari )" {{ old('tipe_izin') === 'Izin Duka keluarga ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin Duka keluarga ( 2 Hari )
                             </label>
@@ -92,7 +97,7 @@
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Cuti melahirkan ( 3 Bulan )">
+                                value="Cuti melahirkan ( 3 Bulan )" {{ old('tipe_izin') === 'Cuti melahirkan ( 3 Bulan )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Cuti melahirkan ( 3 Bulan )
                             </label>
@@ -137,13 +142,22 @@
     const paidRadio = document.getElementById('paidRadio');
     const unpaidRadio = document.getElementById('unpaidRadio');
     const paidOptions = document.getElementById('paidOptions');
+    const paidCategoryInputs = document.querySelectorAll('input[name="tipe_izin"]');
 
-    paidRadio.addEventListener('change', function() {
-        paidOptions.style.display = 'block';
-    });
+    const syncPaidOptions = function() {
+        const showPaidOptions = paidRadio.checked;
 
-    unpaidRadio.addEventListener('change', function() {
-        paidOptions.style.display = 'none';
-    });
+        paidOptions.style.display = showPaidOptions ? 'block' : 'none';
+
+        if (!showPaidOptions) {
+            paidCategoryInputs.forEach(function(input) {
+                input.checked = false;
+            });
+        }
+    };
+
+    paidRadio.addEventListener('change', syncPaidOptions);
+    unpaidRadio.addEventListener('change', syncPaidOptions);
+    syncPaidOptions();
 </script>
 @endsection

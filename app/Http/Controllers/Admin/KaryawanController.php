@@ -11,6 +11,7 @@ use App\Models\Divisi;
 use App\Models\Employee;
 use App\Models\Perusahaan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Facades\Excel;
 
 class KaryawanController extends Controller
@@ -77,7 +78,29 @@ class KaryawanController extends Controller
     {
         $employee = Employee::where('nik', $nik)->firstOrFail();
 
-        $validatedData = $request->validated();
+        $validatedData = $request->safe()->except('face_reference');
+
+        if ($request->hasFile('face_reference')) {
+            $faceDirectory = public_path('face-reference/' . $employee->nik);
+
+            if (!File::exists($faceDirectory)) {
+                File::makeDirectory($faceDirectory, 0755, true);
+            }
+
+            if (!empty($employee->face_reference_path)) {
+                $oldFacePath = public_path($employee->face_reference_path);
+
+                if (File::exists($oldFacePath)) {
+                    File::delete($oldFacePath);
+                }
+            }
+
+            $file = $request->file('face_reference');
+            $filename = 'reference_' . now()->format('YmdHis') . '.' . $file->getClientOriginalExtension();
+            $file->move($faceDirectory, $filename);
+
+            $validatedData['face_reference_path'] = 'face-reference/' . $employee->nik . '/' . $filename;
+        }
 
         $employee->update($validatedData);
 
