@@ -1,3 +1,36 @@
+@once
+    @push('styles')
+        <style>
+            .sidebar-section-title {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .sidebar-notification-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 2px 8px;
+                border-radius: 999px;
+                background: #dc3545;
+                color: #ffffff;
+                font-size: 11px;
+                font-weight: 700;
+                line-height: 1;
+            }
+
+            .sidebar-notification-badge i {
+                font-size: 10px;
+            }
+
+            .sidebar .nav-item a .sidebar-link-badge {
+                margin-left: auto;
+            }
+        </style>
+    @endpush
+@endonce
+
 <div class="sidebar" data-background-color="white">
     <div class="sidebar-logo">
         <!-- Logo Header -->
@@ -152,13 +185,27 @@
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
                     </span>
-                    <h4 class="text-section">Approval HOD</h4>
+                    <div class="sidebar-section-title">
+                        <h4 class="text-section mb-0">Approval HOD</h4>
+                        @if(($approvalHodCounts['total'] ?? 0) > 0)
+                            <span class="sidebar-notification-badge">
+                                <i class="fas fa-bell"></i>
+                                {{ $approvalHodCounts['total'] }}
+                            </span>
+                        @endif
+                    </div>
                 </li>
 
                 <li class="nav-item {{ request()->routeIs('approval.cuti.hod') ? 'active' : '' }}">
                     <a href="{{ route('approval.cuti.hod') }}">
                         <i class="fas fa-pen"></i>
                         <p>Cuti Tahunan</p>
+                        @if(($approvalHodCounts['cuti'] ?? 0) > 0)
+                            <span class="sidebar-notification-badge sidebar-link-badge">
+                                <i class="fas fa-bell"></i>
+                                {{ $approvalHodCounts['cuti'] }}
+                            </span>
+                        @endif
                     </a>
                 </li>
 
@@ -166,6 +213,12 @@
                     <a href="{{ route('approval.izin.hod') }}">
                         <i class="fas fa-pencil-alt"></i>
                         <p>Izin (Paid & Unpaid)</p>
+                        @if(($approvalHodCounts['izin'] ?? 0) > 0)
+                            <span class="sidebar-notification-badge sidebar-link-badge">
+                                <i class="fas fa-bell"></i>
+                                {{ $approvalHodCounts['izin'] }}
+                            </span>
+                        @endif
                     </a>
                 </li>
 
@@ -173,6 +226,12 @@
                     <a href="{{ route('approval.roster.hod') }}">
                         <i class="fas fa-pen-fancy"></i>
                         <p>Roster</p>
+                        @if(($approvalHodCounts['roster'] ?? 0) > 0)
+                            <span class="sidebar-notification-badge sidebar-link-badge">
+                                <i class="fas fa-bell"></i>
+                                {{ $approvalHodCounts['roster'] }}
+                            </span>
+                        @endif
                     </a>
                 </li>
 
@@ -199,13 +258,27 @@
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
                     </span>
-                    <h4 class="text-section">Approval HR</h4>
+                    <div class="sidebar-section-title">
+                        <h4 class="text-section mb-0">Approval HR</h4>
+                        @if(($approvalHrCounts['total'] ?? 0) > 0)
+                            <span class="sidebar-notification-badge">
+                                <i class="fas fa-bell"></i>
+                                {{ $approvalHrCounts['total'] }}
+                            </span>
+                        @endif
+                    </div>
                 </li>
 
                 <li class="nav-item {{ request()->routeIs('approval.cuti.hrd') ? 'active' : '' }}">
                     <a href="{{ route('approval.cuti.hrd') }}">
                         <i class="fas fa-pen"></i>
                         <p>Cuti Tahunan</p>
+                        @if(($approvalHrCounts['cuti'] ?? 0) > 0)
+                            <span class="sidebar-notification-badge sidebar-link-badge">
+                                <i class="fas fa-bell"></i>
+                                {{ $approvalHrCounts['cuti'] }}
+                            </span>
+                        @endif
                     </a>
                 </li>
 
@@ -213,6 +286,12 @@
                     <a href="{{ route('approval.izin.hrd') }}">
                         <i class="fas fa-pencil-alt"></i>
                         <p>Izin (Paid & Unpaid)</p>
+                        @if(($approvalHrCounts['izin'] ?? 0) > 0)
+                            <span class="sidebar-notification-badge sidebar-link-badge">
+                                <i class="fas fa-bell"></i>
+                                {{ $approvalHrCounts['izin'] }}
+                            </span>
+                        @endif
                     </a>
                 </li>
 
@@ -220,6 +299,12 @@
                     <a href="{{ route('approval.roster.hrd') }}">
                         <i class="fas fa-pen-fancy"></i>
                         <p>Roster</p>
+                        @if(($approvalHrCounts['roster'] ?? 0) > 0)
+                            <span class="sidebar-notification-badge sidebar-link-badge">
+                                <i class="fas fa-bell"></i>
+                                {{ $approvalHrCounts['roster'] }}
+                            </span>
+                        @endif
                     </a>
                 </li>
 
