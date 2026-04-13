@@ -69,6 +69,16 @@ class RosterApprovalController extends Controller
         return view('approval.hr.roster.index', compact('cutis'));
     }
 
+    public function hrdShow($id)
+    {
+        $roster = Roster::with([
+            'employee.divisi.departemen',
+            'periodeKerjaRoster'
+        ])->where('status_pengajuan', 1)->findOrFail($id);
+
+        return view('approval.hr.roster.show', compact('roster'));
+    }
+
     public function hrdProcess(Request $request, $id)
     {
         $cuti = Roster::with('user', 'periodeKerjaRoster')->findOrFail($id);
@@ -94,7 +104,7 @@ class RosterApprovalController extends Controller
 
         $user->notify(new StatusPengajuanNotification([
             'judul' => $tipeRencana,
-            'pesan' => 'Roster pada tanggal ' . $cuti->tanggal_pengajuan . '  telah ' . strtolower($status) . ' oleh HOD.',
+            'pesan' => 'Roster pada tanggal ' . $cuti->tanggal_pengajuan . '  telah ' . strtolower($status) . ' oleh HRD.',
             'url'   => route('roster.index'),
             'tipe'  => $tipeRencana,
         ]));

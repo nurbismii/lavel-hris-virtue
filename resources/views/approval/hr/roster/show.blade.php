@@ -17,23 +17,23 @@ $weeks = [
 
 $dateText = fn ($date) => $date ? formatDateIndonesia($date) : '-';
 $rangeText = function ($start, $end) use ($dateText) {
-if (!$start && !$end) {
-return '-';
-}
+    if (!$start && !$end) {
+        return '-';
+    }
 
-if ($start && $end) {
-return $dateText($start) . ' s/d ' . $dateText($end);
-}
+    if ($start && $end) {
+        return $dateText($start) . ' s/d ' . $dateText($end);
+    }
 
-return $dateText($start ?: $end);
+    return $dateText($start ?: $end);
 };
 
 $daysBetween = function ($start, $end) {
-if (!$start || !$end) {
-return 0;
-}
+    if (!$start || !$end) {
+        return 0;
+    }
 
-return \Carbon\Carbon::parse($start)->diffInDays(\Carbon\Carbon::parse($end)) + 1;
+    return \Carbon\Carbon::parse($start)->diffInDays(\Carbon\Carbon::parse($end)) + 1;
 };
 
 $cutiRosterHari = $daysBetween($roster->tgl_mulai_cuti, $roster->tgl_mulai_cuti_berakhir);
@@ -43,14 +43,14 @@ $insentifRentang = $daysBetween($roster->tgl_awal_kerja, $roster->tgl_akhir_kerj
 
 $jumlahBekerja = 0;
 foreach ($weeks as $week) {
-if (strtoupper((string) ($periode->{$week['status']} ?? '')) === 'BEKERJA') {
-$jumlahBekerja++;
-}
+    if (strtoupper((string) ($periode->{$week['status']} ?? '')) === 'BEKERJA') {
+        $jumlahBekerja++;
+    }
 }
 
 $insentifHari = (int) $periode->tipe_rencana === 2 ? $insentifRentang + $jumlahBekerja : 0;
 $totalKeseluruhan = $cutiRosterHari + $cutiTahunanHari + $insentifHari;
-$isPendingHod = (int) $roster->status_pengajuan === 0;
+$isPendingHrd = (int) $roster->status_pengajuan === 1 && (int) $roster->status_pengajuan_hrd === 0;
 $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster->kota_awal_keberangkatan || $roster->kota_tujuan_keberangkatan || $roster->tgl_kepulangan || $roster->jam_kepulangan || $roster->kota_awal_kepulangan || $roster->kota_tujuan_kepulangan;
 @endphp
 
@@ -196,10 +196,10 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
         <div class="roster-show-wrap">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                 <div>
-                    <h3 class="fw-bold text-primary mb-1">Review Approval Roster</h3>
-                    <small class="text-muted">Tampilan detail pengajuan dibuat lebih ringkas agar proses review HOD lebih cepat dan nyaman.</small>
+                    <h3 class="fw-bold text-primary mb-1">Review Approval Roster HRD</h3>
+                    <small class="text-muted">Tampilan detail approval HR dibuat konsisten dengan versi HOD agar proses review terasa lebih familiar.</small>
                 </div>
-                <a href="{{ route('approval.roster.hod') }}" class="btn btn-outline-secondary">
+                <a href="{{ route('approval.roster.hrd') }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Kembali
                 </a>
             </div>
@@ -208,9 +208,9 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                 <div class="card-body p-4">
                     <div class="row g-3 align-items-start">
                         <div class="col-lg-7">
-                            <span class="badge bg-light text-primary px-3 py-2 mb-3">Approval HOD</span>
+                            <span class="badge bg-light text-primary px-3 py-2 mb-3">Approval HRD</span>
                             <h2 class="fw-bold mb-2">{{ optional($employee)->nama_karyawan ?? 'Karyawan tidak ditemukan' }}</h2>
-                            <p class="mb-3 text-white-50">Periksa identitas, susunan roster mingguan, rencana cuti atau insentif, perjalanan, dan lampiran sebelum mengambil keputusan.</p>
+                            <p class="mb-3 text-white-50">Halaman ini membantu review akhir di level HRD setelah pengajuan roster lolos persetujuan HOD.</p>
                             <div class="d-flex flex-wrap gap-2">
                                 {!! $roster->status_rencana_label !!}
                                 {!! $roster->status_hod_label !!}
@@ -239,7 +239,7 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                 </div>
                                 <div class="col-sm-6">
                                     <div class="hero-meta p-3 h-100">
-                                        <small class="label-soft d-block mb-1 text-white-50">Total Cuti Roster</small>
+                                        <small class="label-soft d-block mb-1 text-white-50">Total Sistem</small>
                                         <div class="fw-semibold">{{ $totalKeseluruhan }} Hari</div>
                                     </div>
                                 </div>
@@ -260,10 +260,10 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                 </div>
                 <div class="col-md-6 col-xl-3">
                     <div class="mini-stat p-3">
-                        <span class="icon mb-3"><i class="fas fa-calendar-check"></i></span>
-                        <small class="d-block mb-1">Tipe Rencana</small>
-                        <div class="fw-bold">{{ (int) $periode->tipe_rencana === 2 ? 'Insentif Roster' : 'Cuti Roster' }}</div>
-                        <div class="text-muted small mt-1">Gunakan ringkasan di bawah untuk menilai pengajuan.</div>
+                        <span class="icon mb-3"><i class="fas fa-user-check"></i></span>
+                        <small class="d-block mb-1">Status HOD</small>
+                        <div class="fw-bold">{!! $roster->status_hod_label !!}</div>
+                        <div class="text-muted small mt-1">Approval HRD dilanjutkan setelah status HOD diterima.</div>
                     </div>
                 </div>
                 <div class="col-md-6 col-xl-3">
@@ -292,41 +292,17 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                                     <div>
                                         <h5 class="section-title mb-1">Informasi Karyawan</h5>
-                                        <p class="text-muted mb-0">Identitas dasar pemohon untuk memastikan approval dilakukan pada data yang tepat.</p>
+                                        <p class="text-muted mb-0">Identitas dasar pemohon untuk memastikan keputusan HRD diberikan pada pengajuan yang tepat.</p>
                                     </div>
                                     <span class="badge bg-primary-subtle text-primary px-3 py-2">Profil Pemohon</span>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-md-6">
-                                        <div class="detail-box p-3"><small class="d-block mb-1">Nama</small>
-                                            <div class="fw-semibold">{{ optional($employee)->nama_karyawan ?? '-' }}</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="detail-box p-3"><small class="d-block mb-1">NIK</small>
-                                            <div class="fw-semibold">{{ $roster->nik_karyawan }}</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="detail-box p-3"><small class="d-block mb-1">Departemen</small>
-                                            <div class="fw-semibold">{{ $department->departemen ?? '-' }}</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="detail-box p-3"><small class="d-block mb-1">Divisi</small>
-                                            <div class="fw-semibold">{{ $division->nama_divisi ?? '-' }}</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="detail-box p-3"><small class="d-block mb-1">Email</small>
-                                            <div class="fw-semibold">{{ $roster->email ?: '-' }}</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="detail-box p-3"><small class="d-block mb-1">No. HP</small>
-                                            <div class="fw-semibold">{{ $roster->no_telp ?: '-' }}</div>
-                                        </div>
-                                    </div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">Nama</small><div class="fw-semibold">{{ optional($employee)->nama_karyawan ?? '-' }}</div></div></div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">NIK</small><div class="fw-semibold">{{ $roster->nik_karyawan }}</div></div></div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">Departemen</small><div class="fw-semibold">{{ $department->departemen ?? '-' }}</div></div></div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">Divisi</small><div class="fw-semibold">{{ $division->nama_divisi ?? '-' }}</div></div></div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">Email</small><div class="fw-semibold">{{ $roster->email ?: '-' }}</div></div></div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">No. HP</small><div class="fw-semibold">{{ $roster->no_telp ?: '-' }}</div></div></div>
                                 </div>
                             </div>
                         </div>
@@ -336,7 +312,7 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                                     <div>
                                         <h5 class="section-title mb-1">Periode Roster dan Minggu Kerja</h5>
-                                        <p class="text-muted mb-0">Susunan minggu kerja ditampilkan lebih ringkas agar status OFF atau BEKERJA mudah ditinjau.</p>
+                                        <p class="text-muted mb-0">Susunan minggu kerja tetap ditampilkan agar HRD bisa memverifikasi pola kerja dan ketepatan pengajuan.</p>
                                     </div>
                                     <span class="badge bg-info-subtle text-info px-3 py-2">{{ $rangeText($periode->periode_awal, $periode->periode_akhir) }}</span>
                                 </div>
@@ -347,11 +323,11 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                     $weekClass = 'week-card';
                                     $badgeClass = 'bg-secondary';
                                     if ($status === 'BEKERJA') {
-                                    $weekClass .= ' work';
-                                    $badgeClass = 'bg-success';
+                                        $weekClass .= ' work';
+                                        $badgeClass = 'bg-success';
                                     } elseif ($status === 'OFF') {
-                                    $weekClass .= ' off';
-                                    $badgeClass = 'bg-primary';
+                                        $weekClass .= ' off';
+                                        $badgeClass = 'bg-primary';
                                     }
                                     @endphp
                                     <div class="col-md-6">
@@ -376,7 +352,7 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                                     <div>
                                         <h5 class="section-title mb-1">Ringkasan Rencana</h5>
-                                        <p class="text-muted mb-0">Perbandingan semua rentang tanggal penting agar pengambilan keputusan terasa lebih cepat dan jelas.</p>
+                                        <p class="text-muted mb-0">Total hari dan rentang tanggal ditampilkan jelas untuk membantu validasi akhir di level HRD.</p>
                                     </div>
                                     <span class="badge bg-success-subtle text-success px-3 py-2">Total {{ $totalKeseluruhan }} Hari</span>
                                 </div>
@@ -428,7 +404,7 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                                     <div>
                                         <h5 class="section-title mb-1">Detail Perjalanan</h5>
-                                        <p class="text-muted mb-0">Informasi ini membantu review ketika roster berkaitan dengan keberangkatan dan kepulangan karyawan.</p>
+                                        <p class="text-muted mb-0">Informasi perjalanan tetap ditampilkan untuk membantu review administratif dan kebutuhan mobilitas karyawan.</p>
                                     </div>
                                     <span class="badge bg-warning-subtle text-warning px-3 py-2">Perjalanan</span>
                                 </div>
@@ -437,7 +413,7 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                     <div class="col-md-6">
                                         <div class="travel-box p-3 h-100">
                                             <small class="d-block mb-2">Keberangkatan</small>
-                                            <div class="fw-semibold">{{ $dateText($roster->tgl_keberangkatan) }}{{ $roster->jam_keberangkatan ? ' • ' . $roster->jam_keberangkatan : '' }}</div>
+                                            <div class="fw-semibold">{{ $dateText($roster->tgl_keberangkatan) }}{{ $roster->jam_keberangkatan ? ' | ' . $roster->jam_keberangkatan : '' }}</div>
                                             <div class="route-box p-3 mt-3">{{ $roster->kota_awal_keberangkatan ?: '-' }} <i class="fas fa-arrow-right mx-2"></i> {{ $roster->kota_tujuan_keberangkatan ?: '-' }}</div>
                                             <div class="text-muted small mt-3">{{ $roster->catatan_penting_keberangkatan ?: 'Tidak ada catatan tambahan.' }}</div>
                                         </div>
@@ -445,14 +421,14 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                     <div class="col-md-6">
                                         <div class="travel-box p-3 h-100">
                                             <small class="d-block mb-2">Kepulangan</small>
-                                            <div class="fw-semibold">{{ $dateText($roster->tgl_kepulangan) }}{{ $roster->jam_kepulangan ? ' • ' . $roster->jam_kepulangan : '' }}</div>
+                                            <div class="fw-semibold">{{ $dateText($roster->tgl_kepulangan) }}{{ $roster->jam_kepulangan ? ' | ' . $roster->jam_kepulangan : '' }}</div>
                                             <div class="route-box p-3 mt-3">{{ $roster->kota_awal_kepulangan ?: '-' }} <i class="fas fa-arrow-right mx-2"></i> {{ $roster->kota_tujuan_kepulangan ?: '-' }}</div>
                                             <div class="text-muted small mt-3">{{ $roster->catatan_penting_kepulangan ?: 'Tidak ada catatan tambahan.' }}</div>
                                         </div>
                                     </div>
                                 </div>
                                 @else
-                                <div class="empty-box p-3">Detail perjalanan belum diisi. Review tetap dapat dilanjutkan berdasarkan data roster yang sudah tersedia.</div>
+                                <div class="empty-box p-3">Detail perjalanan belum diisi. Review tetap dapat dilanjutkan berdasarkan data roster yang tersedia.</div>
                                 @endif
                             </div>
                         </div>
@@ -462,12 +438,12 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                 <div class="col-xl-4">
                     <div class="side-card card">
                         <div class="card-body p-4">
-                            <h5 class="section-title mb-1">Panel Keputusan HOD</h5>
-                            <p class="text-muted mb-3">Gunakan panel ini untuk memutuskan approval setelah semua data pengajuan diperiksa.</p>
+                            <h5 class="section-title mb-1">Panel Keputusan HRD</h5>
+                            <p class="text-muted mb-3">Gunakan panel ini untuk melakukan review akhir setelah approval HOD selesai diproses.</p>
 
                             <div class="decision-box p-3 mb-3">
                                 <small class="d-block mb-2 label-soft">Status Saat Ini</small>
-                                <div>{!! $roster->status_hod_label !!}</div>
+                                <div>{!! $roster->status_hrd_label !!}</div>
                             </div>
 
                             @if ($attachmentUrl)
@@ -476,16 +452,16 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                             </a>
                             @endif
 
-                            @if ($isPendingHod)
+                            @if ($isPendingHrd)
                             <div class="d-grid gap-2">
-                                <form action="{{ route('approval.roster.hod.process', $roster->id) }}" method="POST" onsubmit="return confirm('Setujui pengajuan roster ini?')">
+                                <form action="{{ route('approval.roster.hrd.process', $roster->id) }}" method="POST" onsubmit="return confirm('Setujui pengajuan roster ini di level HRD?')">
                                     @csrf
                                     <input type="hidden" name="action" value="1">
                                     <button type="submit" class="btn btn-success w-100 action-btn">
                                         <i class="fas fa-check-circle me-2"></i>Setujui Pengajuan
                                     </button>
                                 </form>
-                                <form action="{{ route('approval.roster.hod.process', $roster->id) }}" method="POST" onsubmit="return confirm('Tolak pengajuan roster ini?')">
+                                <form action="{{ route('approval.roster.hrd.process', $roster->id) }}" method="POST" onsubmit="return confirm('Tolak pengajuan roster ini di level HRD?')">
                                     @csrf
                                     <input type="hidden" name="action" value="2">
                                     <button type="submit" class="btn btn-outline-danger w-100 action-btn">
@@ -494,12 +470,12 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                 </form>
                             </div>
                             @else
-                            <div class="empty-box p-3">Pengajuan ini sudah diproses di level HOD, sehingga tombol tindakan tidak ditampilkan lagi.</div>
+                            <div class="empty-box p-3">Pengajuan ini sudah diproses di level HRD, sehingga tombol tindakan tidak ditampilkan lagi.</div>
                             @endif
 
                             <div class="decision-box p-3 mt-3">
                                 <small class="d-block mb-2 label-soft">Catatan Review Cepat</small>
-                                <div class="text-muted small">Pastikan tipe rencana, periode kerja, dan total hari sudah selaras dengan kebutuhan operasional tim sebelum approval disimpan.</div>
+                                <div class="text-muted small">Pastikan status HOD sudah diterima, total hari sesuai, dan dokumen pendukung sudah cukup sebelum keputusan HRD disimpan.</div>
                             </div>
                         </div>
                     </div>

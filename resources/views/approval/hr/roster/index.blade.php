@@ -39,6 +39,10 @@
                             <td>{!! $cuti->status_rencana_label !!}</td>
                             <td>{!! $cuti->status_hrd_label !!}</td>
                             <td>
+                                <a href="{{ route('approval.roster.hrd.show', $cuti->id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i> Detail
+                                </a>
+
                                 <form action="{{ route('approval.roster.hrd.process', $cuti->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     <input type="hidden" name="action" value="1">

@@ -160,6 +160,7 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/hod/show/cuti-roster/{id}', [RosterApprovalController::class, 'hodShow'])->name('approval.roster.hod.show');
 
         Route::get('/hrd/cuti-roster', [RosterApprovalController::class, 'hrdIndex'])->name('approval.roster.hrd');
+        Route::get('/hrd/show/cuti-roster/{id}', [RosterApprovalController::class, 'hrdShow'])->name('approval.roster.hrd.show');
         Route::post('/hrd/cuti-roster/{id}', [RosterApprovalController::class, 'hrdProcess'])->name('approval.roster.hrd.process');
 
         Route::get('/hod/izin', [IzinApprovalController::class, 'hodIndex'])->name('approval.izin.hod');
