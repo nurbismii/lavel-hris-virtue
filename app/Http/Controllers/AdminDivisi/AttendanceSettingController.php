@@ -18,8 +18,10 @@ class AttendanceSettingController extends Controller
     {
         $periode = $request->periode ?? now()->format('Y-m');
         $user = Auth::user();
-
-        $departemenId = optional($user->employee)->departemen_id;
+        $scopedDepartemenId = optional($user->employee)->departemen_id;
+        $selectedDepartemenId = $scopedDepartemenId ?: $request->departemen;
+        $selectedDivisiId = $request->divisi;
+        $isDepartmentScoped = (bool) $scopedDepartemenId;
 
         $start = Carbon::createFromFormat('Y-m', $periode)->day(16)->subMonth();
         $end   = Carbon::createFromFormat('Y-m', $periode)->day(15);
@@ -31,43 +33,48 @@ class AttendanceSettingController extends Controller
             $temp->addDay();
         }
 
-        if (!$departemenId) {
-            return view('admin-divisi.set-kehadiran.index', [
-                'employees' => collect(),
-                'dates' => $dates,
-                'offData' => collect(),
-                'periode' => $periode,
-                'departemen' => null,
-                'divisis' => collect(),
-                'departemens' => collect(),
-            ]);
-        }
+        $departemens = $isDepartmentScoped
+            ? collect()
+            : Departemen::with('perusahaan')
+                ->orderBy('departemen')
+                ->get();
 
-        $employees = Employee::with(['divisi', 'departemen'])
-            ->where('departemen_id', $departemenId)
-            ->where('status_resign', 'AKTIF');
+        $departemen = $selectedDepartemenId
+            ? Departemen::find($selectedDepartemenId)
+            : null;
 
-        if ($request->divisi) {
-            $employees->where('divisi_id', $request->divisi);
-        }
-
-        $employees = $employees
-            ->orderBy('nama_karyawan')
-            ->get();
-
-        $offData = EmployeeAttendanceSetting::whereBetween('tanggal', [
-            $start->toDateString(),
-            $end->toDateString()
-        ])
-            ->whereIn('employee_id', $employees->pluck('nik'))
-            ->get()
-            ->groupBy('employee_id');
-
-        $departemen = Departemen::find($departemenId);
-
-        $divisis = Divisi::where('departemen_id', $departemenId)
+        $divisis = $selectedDepartemenId
+            ? Divisi::where('departemen_id', $selectedDepartemenId)
             ->orderBy('nama_divisi')
-            ->get();
+            ->get()
+            : collect();
+
+        $employees = collect();
+        $offData = collect();
+
+        if ($selectedDepartemenId) {
+            $employees = Employee::with(['divisi', 'departemen'])
+                ->where('departemen_id', $selectedDepartemenId)
+                ->where('status_resign', 'AKTIF');
+
+            if ($selectedDivisiId) {
+                $employees->where('divisi_id', $selectedDivisiId);
+            }
+
+            $employees = $employees
+                ->orderBy('nama_karyawan')
+                ->get();
+
+            if ($employees->isNotEmpty()) {
+                $offData = EmployeeAttendanceSetting::whereBetween('tanggal', [
+                    $start->toDateString(),
+                    $end->toDateString()
+                ])
+                    ->whereIn('employee_id', $employees->pluck('nik'))
+                    ->get()
+                    ->groupBy('employee_id');
+            }
+        }
 
         return view('admin-divisi.set-kehadiran.index', compact(
             'employees',
@@ -75,9 +82,13 @@ class AttendanceSettingController extends Controller
             'offData',
             'periode',
             'departemen',
+            'departemens',
             'divisis',
             'start',
-            'end'
+            'end',
+            'selectedDepartemenId',
+            'selectedDivisiId',
+            'isDepartmentScoped'
         ));
     }
 
