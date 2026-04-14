@@ -57,7 +57,7 @@
                 <input type="month" name="periode" value="{{ $periode }}" class="form-control">
             </div>
 
-            @if($isDepartmentScoped)
+            @if($isDepartmentReadonly)
                 <div class="col-md-3">
                     <label class="form-label">Departemen</label>
                     <input type="text" class="form-control" value="{{ optional($departemen)->departemen ?? '-' }}" readonly>
@@ -87,17 +87,25 @@
                 </div>
             @endif
 
-            <div class="col-md-4">
-                <label class="form-label">Divisi</label>
-                <select id="filter_divisi" name="divisi" class="form-select form-control" {{ !$selectedDepartemenId ? 'disabled' : '' }}>
-                    <option value="">Semua Divisi</option>
-                    @foreach ($divisis as $v)
-                        <option value="{{ $v->id }}" {{ (string) $selectedDivisiId === (string) $v->id ? 'selected' : '' }}>
-                            {{ $v->nama_divisi }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
+            @if($isDivisionReadonly)
+                <div class="col-md-4">
+                    <label class="form-label">Divisi</label>
+                    <input type="text" class="form-control" value="{{ optional($divisis->first())->nama_divisi ?? '-' }}" readonly>
+                    <input type="hidden" id="filter_divisi" name="divisi" value="{{ $selectedDivisiId }}">
+                </div>
+            @else
+                <div class="col-md-4">
+                    <label class="form-label">Divisi</label>
+                    <select id="filter_divisi" name="divisi" class="form-select form-control" {{ !$selectedDepartemenId ? 'disabled' : '' }}>
+                        <option value="">Semua Divisi</option>
+                        @foreach ($divisis as $v)
+                            <option value="{{ $v->id }}" {{ (string) $selectedDivisiId === (string) $v->id ? 'selected' : '' }}>
+                                {{ $v->nama_divisi }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
 
             <div class="col-md-2 d-grid">
                 <button class="btn btn-primary">
@@ -105,6 +113,12 @@
                 </button>
             </div>
         </form>
+
+        @if($isDivisionScoped && !$isDivisionReadonly)
+            <div class="alert alert-light border small">
+                Akun Admin Divisi ini memiliki akses ke beberapa divisi. Pilih divisi yang ingin ditampilkan pada periode ini.
+            </div>
+        @endif
 
         @if(!$selectedDepartemenId)
             <div class="alert alert-info">

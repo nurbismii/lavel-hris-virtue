@@ -63,6 +63,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'role' => \App\Http\Middleware\CheckRole::class,
+        'menu' => \App\Http\Middleware\CheckMenuAccess::class,
         'redirect.role' => \App\Http\Middleware\RedirectIfNotAuthorized::class,
         'verify.email' => \App\Http\Middleware\EmailVerification::class,
         'android.redirect' => \App\Http\Middleware\RedirectAndroidToApp::class,

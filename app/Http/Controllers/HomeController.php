@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -25,25 +26,32 @@ class HomeController extends Controller
      */
     public function index()
     {
-        // periode default (bulan sekarang)
-        $start = request('start', now()->startOfMonth()->toDateString());
-        $end   = request('end', now()->toDateString());
+        [$defaultStart, $defaultEnd] = $this->getDefaultCutoffPeriod();
+
+        $start = request('start', $defaultStart->toDateString());
+        $end   = request('end', $defaultEnd->toDateString());
+        $dashboardService = app()->make(\App\Services\Dashboard\DashboardService::class);
+        $summaryYear = Carbon::parse($end)->year;
         // ================ SUMMARY =================
         $totalAktif = Employee::where('status_resign', 'AKTIF')->whereIn('area_kerja', ['VDNI', 'VDNIP'])->count();
         // Area Kerja
-        $areaKerja = app()->make(\App\Services\Dashboard\DashboardService::class)->getAreaKerja();
+        $areaKerja = $dashboardService->getAreaKerja();
         // Gender
-        $gender = app()->make(\App\Services\Dashboard\DashboardService::class)->getGender();
+        $gender = $dashboardService->getGender();
         // ================ MUTASI =================
         // Karyawan Masuk
-        $masuk = app()->make(\App\Services\Dashboard\DashboardService::class)->getKaryawanMasuk($start, $end);
+        $masuk = $dashboardService->getKaryawanMasuk($start, $end);
         // Karyawan Keluar
-        $keluar = app()->make(\App\Services\Dashboard\DashboardService::class)->getKaryawanKeluar($start, $end);
+        $keluar = $dashboardService->getKaryawanKeluar($start, $end);
         // ================ TAMBAHAN PENTING ================
         // Status karyawan
-        $statusKaryawan = app()->make(\App\Services\Dashboard\DashboardService::class)->getStatusKaryawan();
+        $statusKaryawan = $dashboardService->getStatusKaryawan();
         // Divisi
-        $divisi = app()->make(\App\Services\Dashboard\DashboardService::class)->getDivisi();
+        $divisi = $dashboardService->getDivisi();
+        // Rentang umur
+        $rentangUmur = $dashboardService->getRentangUmur();
+        // Summary masuk keluar per bulan
+        $summaryBulanan = $dashboardService->getSummaryMasukKeluarBulanan($summaryYear);
         // Turnover
         $turnover = $totalAktif > 0 ? round(($keluar / $totalAktif) * 100, 2) : 0;
 
@@ -57,7 +65,25 @@ class HomeController extends Controller
             'divisi',
             'turnover',
             'start',
-            'end'
+            'end',
+            'rentangUmur',
+            'summaryBulanan',
+            'summaryYear'
         ));
+    }
+
+    private function getDefaultCutoffPeriod(): array
+    {
+        $today = Carbon::today();
+
+        if ($today->day >= 16) {
+            $start = Carbon::create($today->year, $today->month, 16);
+            $end = (clone $start)->addMonth()->day(15);
+        } else {
+            $start = Carbon::create($today->year, $today->month, 16)->subMonth();
+            $end = Carbon::create($today->year, $today->month, 15);
+        }
+
+        return [$start, $end];
     }
 }

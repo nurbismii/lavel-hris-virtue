@@ -17,12 +17,16 @@ class LoginController extends Controller
 
     protected function redirectTo()
     {
-        $role = auth()->user()->role->permission_role ?? null;
+        $user = auth()->user();
 
-        if ($role === 'Administrator') {
+        if ($user && $user->hasMenuAccess('dashboard_admin')) {
             return '/admin/home';
         }
 
-        return '/dashboard';
+        if ($user && $user->hasMenuAccess('dashboard_karyawan')) {
+            return '/dashboard';
+        }
+
+        return '/pengaturan-akun/update';
     }
 }

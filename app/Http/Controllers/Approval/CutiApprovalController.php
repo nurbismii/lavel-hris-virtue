@@ -11,20 +11,23 @@ class CutiApprovalController extends Controller
 {
     public function hodIndex()
     {
-        $cutis = Cuti::select('cuti_izin.*')
+        $cutis = auth()->user()->applyEmployeeScope(
+            Cuti::select('cuti_izin.*')
             ->join('employees', 'cuti_izin.nik_karyawan', '=', 'employees.nik')
             ->where('cuti_izin.tipe', 'CUTI')
-            ->where('employees.divisi_id', auth()->user()->employee->divisi_id)
             ->orderByRaw("FIELD(cuti_izin.status_hod, '0', '1')")
-            ->with('employee') // tetap bisa eager load
-            ->get();
+            ->with('employee'),
+            'employees'
+        )->get();
 
         return view('approval.hod.cuti.index', compact('cutis'));
     }
 
     public function hodProcess(Request $request, $id)
     {
-        $cuti = Cuti::with('user')->findOrFail($id);
+        $cuti = $request->user()
+            ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
+            ->findOrFail($id);
 
         if ($cuti->status_hod == 1) {
             toast()->error('Error', 'Sudah diproses');
@@ -52,17 +55,20 @@ class CutiApprovalController extends Controller
 
     public function hrdIndex()
     {
-        $cutis = Cuti::with('employee')
+        $cutis = auth()->user()->applyEmployeeRelationScope(
+            Cuti::query()->with('employee')
             ->where('status_hod', 1) // hanya yg sudah disetujui HOD
             ->where('tipe', 'CUTI')
-            ->get();
+        )->get();
 
         return view('approval.hr.cuti.index', compact('cutis'));
     }
 
     public function hrdProcess(Request $request, $id)
     {
-        $cuti = Cuti::with('user')->findOrFail($id);
+        $cuti = $request->user()
+            ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
+            ->findOrFail($id);
 
         if ($cuti->status_hod != 1) {
             toast()->error('error', 'Belum disetujui HOD');

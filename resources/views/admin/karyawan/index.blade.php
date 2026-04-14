@@ -31,12 +31,20 @@
                 </small>
             </div>
 
-            <div class="ms-md-auto py-2 py-md-0">
-                <a class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalImportEmployee">
-                    Bulk Karyawan
-                </a>
-            </div>
+            @if($canManageMasterData)
+                <div class="ms-md-auto py-2 py-md-0">
+                    <a class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalImportEmployee">
+                        Bulk Karyawan
+                    </a>
+                </div>
+            @endif
         </div>
+
+        @if(!auth()->user()->canAccessAllEmployees())
+            <div class="alert alert-light border mb-3">
+                Data karyawan dibatasi sesuai scope role Anda: {{ auth()->user()->role->scope_label ?? 'Akun sendiri' }}.
+            </div>
+        @endif
 
         <div class="col-md-12">
 
@@ -123,31 +131,33 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalImportEmployee" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalImportEmployeeLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="modalImportEmployeeLabel">Import Karyawan</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ route('karyawan.store') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="modal-body">
-                    <div class="col-md-6 col-lg-6">
-                        <div class="form-group">
-                            <label for="exampleFormControlFile1">Pilih file excel</label>
-                            <input type="file" name="file" class="form-control-file" id="exampleFormControlFile1">
+@if($canManageMasterData)
+    <div class="modal fade" id="modalImportEmployee" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalImportEmployeeLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="modalImportEmployeeLabel">Import Karyawan</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('karyawan.store') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="col-md-6 col-lg-6">
+                            <div class="form-group">
+                                <label for="exampleFormControlFile1">Pilih file excel</label>
+                                <input type="file" name="file" class="form-control-file" id="exampleFormControlFile1">
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary">Import</button>
-                </div>
-            </form>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary">Import</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
+@endif
 
 @push('scripts')
 <!-- Datatables -->

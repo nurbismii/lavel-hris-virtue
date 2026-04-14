@@ -49,54 +49,49 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
-            $divisiId = optional($user->employee)->divisi_id;
+            if ($user->hasMenuAccess('approval_hod')) {
+                $approvalHodCounts['cuti'] = $user->applyEmployeeRelationScope(
+                    Cuti::query()
+                        ->where('tipe', 'CUTI')
+                        ->where('status_hod', 0)
+                )->count();
 
-            if ($user->hasRole(['Administrator', 'HOD', 'HR']) && $divisiId) {
-                $approvalHodCounts['cuti'] = Cuti::query()
-                    ->where('tipe', 'CUTI')
-                    ->where('status_hod', 0)
-                    ->whereHas('employee', function ($query) use ($divisiId) {
-                        $query->where('divisi_id', $divisiId);
-                    })
-                    ->count();
+                $approvalHodCounts['izin'] = $user->applyEmployeeRelationScope(
+                    Cuti::query()
+                        ->whereIn('tipe', ['PAID', 'UNPAID'])
+                        ->where('status_hod', 0)
+                )->count();
 
-                $approvalHodCounts['izin'] = Cuti::query()
-                    ->whereIn('tipe', ['PAID', 'UNPAID'])
-                    ->where('status_hod', 0)
-                    ->whereHas('employee', function ($query) use ($divisiId) {
-                        $query->where('divisi_id', $divisiId);
-                    })
-                    ->count();
-
-                $approvalHodCounts['roster'] = Roster::query()
-                    ->where('status_pengajuan', 0)
-                    ->whereHas('employee', function ($query) use ($divisiId) {
-                        $query->where('divisi_id', $divisiId);
-                    })
-                    ->count();
+                $approvalHodCounts['roster'] = $user->applyEmployeeRelationScope(
+                    Roster::query()
+                        ->where('status_pengajuan', 0)
+                )->count();
 
                 $approvalHodCounts['total'] = $approvalHodCounts['cuti']
                     + $approvalHodCounts['izin']
                     + $approvalHodCounts['roster'];
             }
 
-            if ($user->hasRole(['Administrator', 'HR'])) {
-                $approvalHrCounts['cuti'] = Cuti::query()
-                    ->where('tipe', 'CUTI')
-                    ->where('status_hod', 1)
-                    ->where('status_hrd', 0)
-                    ->count();
+            if ($user->hasMenuAccess('approval_hr')) {
+                $approvalHrCounts['cuti'] = $user->applyEmployeeRelationScope(
+                    Cuti::query()
+                        ->where('tipe', 'CUTI')
+                        ->where('status_hod', 1)
+                        ->where('status_hrd', 0)
+                )->count();
 
-                $approvalHrCounts['izin'] = Cuti::query()
-                    ->whereIn('tipe', ['PAID', 'UNPAID'])
-                    ->where('status_hod', 1)
-                    ->where('status_hrd', 0)
-                    ->count();
+                $approvalHrCounts['izin'] = $user->applyEmployeeRelationScope(
+                    Cuti::query()
+                        ->whereIn('tipe', ['PAID', 'UNPAID'])
+                        ->where('status_hod', 1)
+                        ->where('status_hrd', 0)
+                )->count();
 
-                $approvalHrCounts['roster'] = Roster::query()
-                    ->where('status_pengajuan', 1)
-                    ->where('status_pengajuan_hrd', 0)
-                    ->count();
+                $approvalHrCounts['roster'] = $user->applyEmployeeRelationScope(
+                    Roster::query()
+                        ->where('status_pengajuan', 1)
+                        ->where('status_pengajuan_hrd', 0)
+                )->count();
 
                 $approvalHrCounts['total'] = $approvalHrCounts['cuti']
                     + $approvalHrCounts['izin']

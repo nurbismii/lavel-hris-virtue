@@ -1,28 +1,39 @@
-@if(auth()->check() && auth()->user()->hasRole(['Administrator', 'User', 'HR']))
+@if(auth()->check())
     @php
-        $mobileNavItems = [
-            [
+        $mobileNavItems = [];
+
+        if (auth()->user()->hasMenuAccess('dashboard_karyawan')) {
+            $mobileNavItems[] = [
                 'type' => 'link',
                 'label' => 'Dashboard',
                 'route' => route('dashboard.karyawan'),
                 'icon' => 'fas fa-home',
                 'active' => request()->routeIs('dashboard.karyawan'),
-            ],
-            [
+            ];
+        }
+
+        if (auth()->user()->hasMenuAccess('slip_gaji_user')) {
+            $mobileNavItems[] = [
                 'type' => 'link',
                 'label' => 'Slip Gaji',
                 'route' => route('slipgaji.index'),
                 'icon' => 'fas fa-file-invoice-dollar',
                 'active' => request()->routeIs('slipgaji.*'),
-            ],
-            [
+            ];
+        }
+
+        if (auth()->user()->hasMenuAccess('presensi')) {
+            $mobileNavItems[] = [
                 'type' => 'link',
                 'label' => 'Presensi',
                 'route' => route('presensi.index'),
                 'icon' => 'fas fa-map-pin',
                 'active' => request()->routeIs('presensi.*'),
-            ],
-            [
+            ];
+        }
+
+        if (auth()->user()->hasMenuAccess('izin')) {
+            $mobileNavItems[] = [
                 'type' => 'menu',
                 'label' => 'Izin',
                 'icon' => 'fas fa-file-signature',
@@ -41,31 +52,32 @@
                         'icon' => 'fas fa-file-medical',
                     ],
                 ],
-            ],
-            [
-                'type' => 'menu',
-                'label' => 'Profile',
-                'icon' => 'fas fa-user-circle',
-                'active' => request()->routeIs('pengaturan-akun.*') || request()->routeIs('update.akun'),
-                'menu_id' => 'mobile-menu-profile',
-                'popup_class' => 'mobile-bottom-nav__popup--end',
-                'children' => [
-                    [
-                        'label' => 'Pengaturan Akun',
-                        'route' => route('update.akun'),
-                        'icon' => 'fas fa-cog',
-                    ],
-                    [
-                        'label' => 'Keluar',
-                        'action' => 'logout',
-                        'icon' => 'fas fa-sign-out-alt',
-                        'danger' => true,
-                    ],
+            ];
+        }
+
+        $mobileNavItems[] = [
+            'type' => 'menu',
+            'label' => 'Profile',
+            'icon' => 'fas fa-user-circle',
+            'active' => request()->routeIs('pengaturan-akun.*') || request()->routeIs('update.akun'),
+            'menu_id' => 'mobile-menu-profile',
+            'popup_class' => 'mobile-bottom-nav__popup--end',
+            'children' => [
+                [
+                    'label' => 'Pengaturan Akun',
+                    'route' => route('update.akun'),
+                    'icon' => 'fas fa-cog',
+                ],
+                [
+                    'label' => 'Keluar',
+                    'action' => 'logout',
+                    'icon' => 'fas fa-sign-out-alt',
+                    'danger' => true,
                 ],
             ],
         ];
     @endphp
-
+    @if(count($mobileNavItems) > 0)
     <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
         @foreach($mobileNavItems as $item)
             @if($item['type'] === 'menu')
@@ -118,6 +130,7 @@
     <form id="mobile-bottom-nav-logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
         @csrf
     </form>
+    @endif
 @endif
 
 @push('scripts')

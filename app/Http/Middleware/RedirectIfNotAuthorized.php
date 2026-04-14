@@ -13,27 +13,16 @@ class RedirectIfNotAuthorized
             return redirect('/login');
         }
 
-        $user = Auth::user()->load('role');
+        $user = Auth::user()->loadMissing('role');
 
-        // Pastikan role ada
         if (!$user->role) {
             abort(403, 'Role tidak ditemukan.');
         }
 
-        $roleName = $user->role->permission_role;
-
-        // Jika role adalah User → paksa ke dashboard
-        if ($roleName === 'User') {
-
-            // Kalau dia sudah di dashboard, biarkan lanjut
-            if ($request->is('dashboard')) {
-                return $next($request);
-            }
-
+        if ($request->is('admin/home') && !$user->hasMenuAccess('dashboard_admin') && $user->hasMenuAccess('dashboard_karyawan')) {
             return redirect('/dashboard');
         }
 
-        // Role lain (Administrator, HRD, Manager, dll)
         return $next($request);
     }
 }

@@ -41,9 +41,11 @@
                             <tr>
                                 <th>ID</th>
                                 <th>NIK</th>
+                                <th>Nama</th>
                                 <th>Email</th>
                                 <th>Status</th>
                                 <th>Role</th>
+                                <th>Scope</th>
                                 <th width="120">Action</th>
                             </tr>
                         </thead>
@@ -52,6 +54,7 @@
                             <tr>
                                 <td>{{ ++$index }}</td>
                                 <td>{{ $user->nik_karyawan }}</td>
+                                <td>{{ optional($user->employee)->nama_karyawan ?? $user->name }}</td>
                                 <td>{{ $user->email }}</td>
                                 <td>
                                     <span class="badge bg-{{ $user->status == 'aktif' ? 'success' : 'secondary' }}">
@@ -60,8 +63,16 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-info text-dark">
-                                        {{ $user->role->permission_role ?? 'User' }}
+                                        {{ $user->display_role_name }}
                                     </span>
+                                </td>
+                                <td>
+                                    {{ optional($user->role)->scope_label ?? 'Akun sendiri' }}
+                                    @if($user->isAdminDivisiRole())
+                                        <div class="small text-muted mt-1">
+                                            {{ count($user->scopedDivisionIds()) }} divisi aktif
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>
                                     <a href="{{ route('setting-role.edit', $user->id) }}"

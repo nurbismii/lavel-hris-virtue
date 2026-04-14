@@ -26,8 +26,10 @@
                             <thead>
                                 <tr>
                                     <th>NIK</th>
+                                    <th>Nama</th>
                                     <th>Email</th>
                                     <th>Status</th>
+                                    <th>Role</th>
                                     <th>Terakhir Login</th>
                                     <th>Aksi</th>
                                 </tr>
@@ -36,8 +38,10 @@
                                 @foreach ($users as $user)
                                 <tr>
                                     <td>{{ $user->nik_karyawan }}</td>
+                                    <td>{{ optional($user->employee)->nama_karyawan ?? $user->name }}</td>
                                     <td>{{ $user->email }}</td>
                                     <td>{{ ucfirst($user->status) }}</td>
+                                    <td>{{ $user->display_role_name }}</td>
                                     <td>{{ $user->terakhir_login ?? '-' }}</td>
                                     <td>
                                         <a href="{{ route('user.edit', $user->nik_karyawan) }}" class="btn btn-sm btn-primary btn-sm btn-icon-split">

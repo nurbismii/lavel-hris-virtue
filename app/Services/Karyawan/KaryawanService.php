@@ -8,12 +8,14 @@ use Yajra\DataTables\Facades\DataTables;
 class KaryawanService
 {
     // Service methods for Karyawan can be implemented here
-    public function getDataKaryawan($request)
+    public function getDataKaryawan($request, $user)
     {
         // Logic to retrieve and filter Karyawan data
         $query = Employee::select('nik', 'nama_karyawan', 'area_kerja', 'departemen_id', 'divisi_id', 'status_resign', 'posisi')
             ->whereNotNull('status_resign')
             ->with(['departemen', 'divisi']);
+
+        $user->applyEmployeeScope($query);
 
         if ($request->area) {
             $query->where('area_kerja', $request->area);
@@ -37,18 +39,22 @@ class KaryawanService
             ->addColumn('divisi', fn($r) => $r->divisi->nama_divisi ?? '-')
             ->addColumn('status', fn($r) => $r->status_resign ?? '-')
             ->addColumn('aksi', function ($r) {
-                return '
+                $editButton = '
                     <a href="' . route('karyawan.edit', $r->nik) . '" 
                        class="btn btn-sm btn-warning me-1">
                         <i class="fa fa-edit"></i>
                     </a>
+                ';
 
+                $deleteButton = auth()->user()->canAccessAllEmployees() ? '
                     <button class="btn btn-sm btn-danger btn-delete"
                         data-id="' . $r->nik . '"
                         data-nama="' . $r->nama_karyawan . '">
                         <i class="fa fa-trash"></i>
                     </button>
-                ';
+                ' : '';
+
+                return $editButton . $deleteButton;
             })
             ->rawColumns(['aksi'])
             ->make(true);

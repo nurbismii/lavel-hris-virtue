@@ -204,6 +204,11 @@
 </head>
 
 <body>
+    @php
+        $appHomeUrl = auth()->check()
+            ? route(auth()->user()->preferredHomeRouteName())
+            : url('/');
+    @endphp
     <div class="wrapper">
         <!-- Sidebar -->
         @include('partials.sidebar')
@@ -214,7 +219,7 @@
                 <div class="main-header-logo">
                     <!-- Logo Header -->
                     <div class="logo-header" data-background-color="white">
-                        <a href="{{ route('home') }}" class="logo text-decoration-none">
+                        <a href="{{ $appHomeUrl }}" class="logo text-decoration-none">
                             <span class="logo-industrial">PT VDNI - HRIS</span>
                         </a>
                         <div class="nav-toggle">

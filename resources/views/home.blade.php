@@ -107,6 +107,32 @@
                 </div>
             </div>
         </div>
+
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Rentang Umur Karyawan</div>
+                    <div class="card-body">
+                        <canvas id="chartAgeRange"></canvas>
+                        <small class="text-muted d-block mt-3">
+                            Rentang umur ditampilkan per kelipatan 5 tahun mulai dari 17 tahun sampai 57 tahun ke atas.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Summary Masuk dan Keluar Bulanan {{ $summaryYear }}</div>
+                    <div class="card-body">
+                        <canvas id="chartMonthlyMutasi"></canvas>
+                        <small class="text-muted d-block mt-3">
+                            Cut off bulanan menggunakan periode tanggal 16 bulan sebelumnya sampai 15 bulan berjalan untuk setiap label bulan.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 @endsection
@@ -114,6 +140,16 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const ageLabels = @json(collect($rentangUmur)->pluck('label')->values());
+        const ageTotals = @json(collect($rentangUmur)->pluck('total')->values());
+        const monthlyLabels = @json(collect($summaryBulanan)->pluck('label')->values());
+        const monthlyMasuk = @json(collect($summaryBulanan)->pluck('masuk')->values());
+        const monthlyKeluar = @json(collect($summaryBulanan)->pluck('keluar')->values());
+        const softGridOptions = {
+            color: 'rgba(148, 163, 184, 0.18)',
+            zeroLineColor: 'rgba(148, 163, 184, 0.24)',
+            drawBorder: false
+        };
 
         // ===== CHART GENDER =====
         new Chart(document.getElementById('chartGender'), {
@@ -125,7 +161,9 @@
                         {{ $gender['L'] ?? 0 }},
                         {{ $gender['P'] ?? 0 }}
                     ],
-                    backgroundColor: ['#1d7af3', '#ee22dd']
+                    backgroundColor: ['#1d7af3', '#ee22dd'],
+                    borderWidth: 0,
+                    hoverBorderWidth: 0
                 }]
             }
         });
@@ -141,15 +179,94 @@
                         {{ $masuk }},
                         {{ $keluar }}
                     ],
-                    backgroundColor: ['#1d7af3', '#f3545d']
+                    backgroundColor: ['#1d7af3', '#f3545d'],
+                    borderColor: 'transparent',
+                    borderWidth: 0,
+                    hoverBorderWidth: 0
                 }]
             },
             options: {
                 scales: {
+                    xAxes: [{
+                        gridLines: softGridOptions
+                    }],
                     yAxes: [{
+                        gridLines: softGridOptions,
                         ticks: {
                             beginAtZero: true, // 🔥 INI KUNCI UTAMA
-                            stepSize: 10
+                            precision: 0,
+                            maxTicksLimit: 6
+                        }
+                    }]
+                }
+            }
+        });
+
+        // ===== CHART AGE RANGE =====
+        new Chart(document.getElementById('chartAgeRange'), {
+            type: 'bar',
+            data: {
+                labels: ageLabels,
+                datasets: [{
+                    label: 'Jumlah Karyawan',
+                    data: ageTotals,
+                    backgroundColor: '#1572e8',
+                    borderColor: 'transparent',
+                    borderWidth: 0,
+                    hoverBorderWidth: 0
+                }]
+            },
+            options: {
+                scales: {
+                    xAxes: [{
+                        gridLines: softGridOptions
+                    }],
+                    yAxes: [{
+                        gridLines: softGridOptions,
+                        ticks: {
+                            beginAtZero: true,
+                            precision: 0,
+                            maxTicksLimit: 7
+                        }
+                    }]
+                }
+            }
+        });
+
+        // ===== CHART MONTHLY MUTATION =====
+        new Chart(document.getElementById('chartMonthlyMutasi'), {
+            type: 'bar',
+            data: {
+                labels: monthlyLabels,
+                datasets: [{
+                        label: 'Masuk',
+                        data: monthlyMasuk,
+                        backgroundColor: '#31ce36',
+                        borderColor: 'transparent',
+                        borderWidth: 0,
+                        hoverBorderWidth: 0
+                    },
+                    {
+                        label: 'Keluar',
+                        data: monthlyKeluar,
+                        backgroundColor: '#f3545d',
+                        borderColor: 'transparent',
+                        borderWidth: 0,
+                        hoverBorderWidth: 0
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    xAxes: [{
+                        gridLines: softGridOptions
+                    }],
+                    yAxes: [{
+                        gridLines: softGridOptions,
+                        ticks: {
+                            beginAtZero: true,
+                            precision: 0,
+                            maxTicksLimit: 6
                         }
                     }]
                 }

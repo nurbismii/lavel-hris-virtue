@@ -18,10 +18,11 @@ class AttendanceSettingController extends Controller
     {
         $periode = $request->periode ?? now()->format('Y-m');
         $user = Auth::user();
-        $scopedDepartemenId = optional($user->employee)->departemen_id;
-        $selectedDepartemenId = $scopedDepartemenId ?: $request->departemen;
-        $selectedDivisiId = $request->divisi;
-        $isDepartmentScoped = (bool) $scopedDepartemenId;
+        $scopedDepartemenIds = $user->scopedDepartmentIds();
+        $scopedDivisiIds = $user->scopedDivisionIds();
+        $isDepartmentScoped = !$user->canAccessAllEmployees() && !empty($scopedDepartemenIds);
+        $isDivisionScoped = $user->isDivisionScopedRole() && !empty($scopedDivisiIds);
+        $isDepartmentReadonly = $isDepartmentScoped && count($scopedDepartemenIds) === 1;
 
         $start = Carbon::createFromFormat('Y-m', $periode)->day(16)->subMonth();
         $end   = Carbon::createFromFormat('Y-m', $periode)->day(15);
@@ -34,20 +35,51 @@ class AttendanceSettingController extends Controller
         }
 
         $departemens = $isDepartmentScoped
-            ? collect()
+            ? Departemen::with('perusahaan')
+                ->whereIn('id', $scopedDepartemenIds)
+                ->orderBy('departemen')
+                ->get()
             : Departemen::with('perusahaan')
                 ->orderBy('departemen')
                 ->get();
 
+        $selectedDepartemenId = (string) $request->departemen;
+
+        if ($isDepartmentScoped) {
+            $selectedDepartemenId = in_array($selectedDepartemenId, $scopedDepartemenIds, true)
+                ? $selectedDepartemenId
+                : (string) ($scopedDepartemenIds[0] ?? '');
+        }
+
+        if ($selectedDepartemenId === '') {
+            $selectedDepartemenId = null;
+        }
+
         $departemen = $selectedDepartemenId
-            ? Departemen::find($selectedDepartemenId)
+            ? $departemens->firstWhere('id', $selectedDepartemenId) ?? Departemen::find($selectedDepartemenId)
             : null;
 
         $divisis = $selectedDepartemenId
-            ? Divisi::where('departemen_id', $selectedDepartemenId)
-            ->orderBy('nama_divisi')
-            ->get()
+            ? Divisi::query()
+                ->where('departemen_id', $selectedDepartemenId)
+                ->when($isDivisionScoped, fn($query) => $query->whereIn('id', $scopedDivisiIds))
+                ->orderBy('nama_divisi')
+                ->get()
             : collect();
+
+        $isDivisionReadonly = $isDivisionScoped && $divisis->count() === 1 && $isDepartmentReadonly;
+        $selectedDivisiId = (string) $request->divisi;
+
+        if ($isDivisionScoped) {
+            $allowedDivisiIds = $divisis->pluck('id')->map(fn($id) => (string) $id)->all();
+            $selectedDivisiId = in_array($selectedDivisiId, $allowedDivisiIds, true)
+                ? $selectedDivisiId
+                : ($isDivisionReadonly ? (string) optional($divisis->first())->id : '');
+        }
+
+        if ($selectedDivisiId === '') {
+            $selectedDivisiId = null;
+        }
 
         $employees = collect();
         $offData = collect();
@@ -55,7 +87,8 @@ class AttendanceSettingController extends Controller
         if ($selectedDepartemenId) {
             $employees = Employee::with(['divisi', 'departemen'])
                 ->where('departemen_id', $selectedDepartemenId)
-                ->where('status_resign', 'AKTIF');
+                ->where('status_resign', 'AKTIF')
+                ->when($isDivisionScoped, fn($query) => $query->whereIn('divisi_id', $scopedDivisiIds));
 
             if ($selectedDivisiId) {
                 $employees->where('divisi_id', $selectedDivisiId);
@@ -88,7 +121,10 @@ class AttendanceSettingController extends Controller
             'end',
             'selectedDepartemenId',
             'selectedDivisiId',
-            'isDepartmentScoped'
+            'isDepartmentScoped',
+            'isDivisionScoped',
+            'isDepartmentReadonly',
+            'isDivisionReadonly'
         ));
     }
 
@@ -103,9 +139,17 @@ class AttendanceSettingController extends Controller
             ], 400);
         }
 
-        DB::transaction(function () use ($rows) {
+        $allowedEmployeeIds = Auth::user()
+            ->applyEmployeeScope(Employee::query())
+            ->pluck('nik')
+            ->all();
+
+        DB::transaction(function () use ($rows, $allowedEmployeeIds) {
 
             foreach ($rows as $row) {
+                if (!in_array($row['employee_id'], $allowedEmployeeIds, true)) {
+                    continue;
+                }
 
                 $periode = Carbon::parse($row['tanggal'])->format('Y-m');
 

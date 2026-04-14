@@ -5,9 +5,9 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 
-class CheckRole
+class CheckMenuAccess
 {
-    public function handle($request, Closure $next, ...$roles)
+    public function handle($request, Closure $next, ...$menus)
     {
         if (!Auth::check()) {
             return redirect()->route('login');
@@ -19,10 +19,10 @@ class CheckRole
             abort(403, 'Role tidak ditemukan.');
         }
 
-        if ($user->hasRole($roles)) {
+        if ($user->hasMenuAccess($menus)) {
             return $next($request);
         }
 
-        abort(403, 'Akses tidak diizinkan.');
+        abort(403, 'Akses menu tidak diizinkan.');
     }
 }

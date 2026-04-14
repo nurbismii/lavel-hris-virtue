@@ -11,20 +11,23 @@ class IzinApprovalController extends Controller
 {
     public function hodIndex()
     {
-        $cutis = Cuti::select('cuti_izin.*')
+        $cutis = auth()->user()->applyEmployeeScope(
+            Cuti::select('cuti_izin.*')
             ->join('employees', 'cuti_izin.nik_karyawan', '=', 'employees.nik')
             ->whereIn('cuti_izin.tipe', ['PAID', 'UNPAID'])
-            ->where('employees.divisi_id', auth()->user()->employee->divisi_id)
             ->orderByRaw("FIELD(cuti_izin.tipe, 'UNPAID', 'PAID')")
-            ->with('employee') // tetap bisa eager load
-            ->get();
+            ->with('employee'),
+            'employees'
+        )->get();
 
         return view('approval.hod.izin.index', compact('cutis'));
     }
 
     public function hodProcess(Request $request, $id)
     {
-        $cuti = Cuti::with('user')->findOrFail($id);
+        $cuti = $request->user()
+            ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
+            ->findOrFail($id);
 
         if ($cuti->status_hod == 1) {
             toast()->error('error', 'Sudah diproses');
@@ -54,19 +57,22 @@ class IzinApprovalController extends Controller
 
     public function hrdIndex()
     {
-        $cutis = Cuti::with('employee')
+        $cutis = auth()->user()->applyEmployeeRelationScope(
+            Cuti::query()->with('employee')
             ->where('status_hod', 1) // hanya yg sudah disetujui HOD
             ->whereIn('tipe', ['PAID', 'UNPAID'])
             ->orderByRaw("FIELD(tipe, 'UNPAID', 'PAID')")
             ->orderBy('tanggal', 'desc')
-            ->get();
+        )->get();
 
         return view('approval.hr.izin.index', compact('cutis'));
     }
 
     public function hrdProcess(Request $request, $id)
     {
-        $cuti = Cuti::with('user')->findOrFail($id);
+        $cuti = $request->user()
+            ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
+            ->findOrFail($id);
 
         if ($cuti->status_hod != 1) {
             toast()->error('error', 'Belum disetujui HOD');

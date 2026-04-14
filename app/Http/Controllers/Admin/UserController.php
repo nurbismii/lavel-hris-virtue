@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 
@@ -16,16 +15,22 @@ class UserController extends Controller
         $text = "Are you sure you want to delete?";
         confirmDelete($title, $text);
 
-        $user = Role::where('permission_role', 'User')->first();
+        $users = auth()->user()
+            ->applyEmployeeRelationScope(User::query()->with(['employee', 'role']))
+            ->orderBy('name')
+            ->get();
 
         return view('admin.user.index', [
-            'users' => User::where('role_id', $user->id)->get()
+            'users' => $users
         ]);
     }
 
     public function edit($nik_karyawan)
     {
-        $user = User::with('employee')->where('nik_karyawan', $nik_karyawan)->firstOrFail();
+        $user = auth()->user()
+            ->applyEmployeeRelationScope(User::query()->with(['employee', 'role']))
+            ->where('nik_karyawan', $nik_karyawan)
+            ->firstOrFail();
 
         return view('admin.user.edit', [
             'user' => $user
@@ -34,7 +39,10 @@ class UserController extends Controller
 
     public function update(Request $request, $nik_karyawan)
     {
-        $user = User::where('nik_karyawan', $nik_karyawan)->firstOrFail();
+        $user = auth()->user()
+            ->applyEmployeeRelationScope(User::query())
+            ->where('nik_karyawan', $nik_karyawan)
+            ->firstOrFail();
 
         $validatedData = $request->validate([
             'email' => 'required|email|unique:users,email,' . $user->nik_karyawan . ',nik_karyawan',
@@ -49,7 +57,9 @@ class UserController extends Controller
 
     public function destroy($id)
     {
-        $user = User::findOrFail($id);
+        $user = auth()->user()
+            ->applyEmployeeRelationScope(User::query())
+            ->findOrFail($id);
         $user->delete();
 
         toast()->success('Success', 'User deleted successfully.');

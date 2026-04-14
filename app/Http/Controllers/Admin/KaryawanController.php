@@ -26,34 +26,47 @@ class KaryawanController extends Controller
 
             $karyawanService = app()->make(\App\Services\Karyawan\KaryawanService::class);
 
-            return $karyawanService->getDataKaryawan($request);
+            return $karyawanService->getDataKaryawan($request, $request->user());
         }
 
-        return view('admin.karyawan.index', [
-            'departemens' => Departemen::with('perusahaan')->orderBy('departemen')->get(),
-            'divisis' => Divisi::orderBy('nama_divisi')->get(),
-            'areas' => Perusahaan::select('*')->get()
-        ]);
+        $scopeQuery = $request->user()->applyEmployeeScope(Employee::query());
+        $departemenIds = (clone $scopeQuery)->select('departemen_id')->distinct()->pluck('departemen_id')->filter();
+        $divisiIds = (clone $scopeQuery)->select('divisi_id')->distinct()->pluck('divisi_id')->filter();
+        $areaCodes = (clone $scopeQuery)->select('area_kerja')->distinct()->pluck('area_kerja')->filter();
 
-        return view('admin.karyawan.index');
+        return view('admin.karyawan.index', [
+            'departemens' => Departemen::with('perusahaan')->whereIn('id', $departemenIds)->orderBy('departemen')->get(),
+            'divisis' => Divisi::whereIn('id', $divisiIds)->orderBy('nama_divisi')->get(),
+            'areas' => Perusahaan::whereIn('kode_perusahaan', $areaCodes)->get(),
+            'canManageMasterData' => $request->user()->canAccessAllEmployees(),
+        ]);
     }
 
     public function edit($nik)
     {
-        $employee = Employee::where('nik', $nik)
+        $employee = auth()->user()
+            ->applyEmployeeScope(Employee::query())
+            ->where('nik', $nik)
             ->with(['departemen', 'divisi'])
             ->firstOrFail();
 
+        $scopeQuery = auth()->user()->applyEmployeeScope(Employee::query());
+        $departemenIds = (clone $scopeQuery)->select('departemen_id')->distinct()->pluck('departemen_id')->filter();
+        $divisiIds = (clone $scopeQuery)->select('divisi_id')->distinct()->pluck('divisi_id')->filter();
+        $areaCodes = (clone $scopeQuery)->select('area_kerja')->distinct()->pluck('area_kerja')->filter();
+
         return view('admin.karyawan.edit', [
             'employee' => $employee,
-            'departemens' => Departemen::with('perusahaan')->orderBy('departemen')->get(),
-            'divisis' => Divisi::orderBy('nama_divisi')->get(),
-            'areas' => Perusahaan::select('*')->get()
+            'departemens' => Departemen::with('perusahaan')->whereIn('id', $departemenIds)->orderBy('departemen')->get(),
+            'divisis' => Divisi::whereIn('id', $divisiIds)->orderBy('nama_divisi')->get(),
+            'areas' => Perusahaan::whereIn('kode_perusahaan', $areaCodes)->get()
         ]);
     }
 
     public function store(Request $request)
     {
+        abort_unless($request->user()->canAccessAllEmployees(), 403, 'Akses tidak diizinkan.');
+
         $request->validate([
             'file' => 'required|mimes:xlsx'
         ]);
@@ -76,7 +89,10 @@ class KaryawanController extends Controller
 
     public function update(UpdateKaryawanRequest $request, $nik)
     {
-        $employee = Employee::where('nik', $nik)->firstOrFail();
+        $employee = $request->user()
+            ->applyEmployeeScope(Employee::query())
+            ->where('nik', $nik)
+            ->firstOrFail();
 
         $validatedData = $request->safe()->except('face_reference');
 
@@ -110,7 +126,12 @@ class KaryawanController extends Controller
 
     public function destroy($nik)
     {
-        $employee = Employee::where('nik', $nik)->firstOrFail();
+        abort_unless(auth()->user()->canAccessAllEmployees(), 403, 'Akses tidak diizinkan.');
+
+        $employee = auth()->user()
+            ->applyEmployeeScope(Employee::query())
+            ->where('nik', $nik)
+            ->firstOrFail();
         $employee->delete();
 
         toast('Data karyawan berhasil dihapus!', 'success');
@@ -119,9 +140,12 @@ class KaryawanController extends Controller
 
     public function departemenByArea(Request $request)
     {
-        return Departemen::whereHas('employee', function ($q) use ($request) {
+        $query = Departemen::whereHas('employee', function ($q) use ($request) {
             $q->where('area_kerja', $request->area);
-        })
+            $request->user()->applyEmployeeScope($q);
+        });
+
+        return $query
             ->orderBy('departemen')
             ->get(['id', 'departemen']);
     }
@@ -131,7 +155,13 @@ class KaryawanController extends Controller
      */
     public function divisiByDepartemen(Request $request)
     {
-        return Divisi::where('departemen_id', $request->departemen)
+        $query = Divisi::where('departemen_id', $request->departemen);
+
+        if ($request->user()->isDivisionScopedRole()) {
+            $query->whereIn('id', $request->user()->scopedDivisionIds());
+        }
+
+        return $query
             ->orderBy('nama_divisi')
             ->get(['id', 'nama_divisi']);
     }

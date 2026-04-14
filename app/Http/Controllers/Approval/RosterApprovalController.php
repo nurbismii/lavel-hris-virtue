@@ -11,18 +11,22 @@ class RosterApprovalController extends Controller
 {
     public function hodIndex()
     {
-        $cutis = $rosters = Roster::select('cuti_roster.*')
+        $cutis = auth()->user()->applyEmployeeScope(
+            Roster::select('cuti_roster.*')
             ->join('employees', 'cuti_roster.nik_karyawan', '=', 'employees.nik')
             ->join('periode_kerja_roster', 'cuti_roster.id', '=', 'periode_kerja_roster.cuti_roster_id')
-            ->where('employees.divisi_id', auth()->user()->employee->divisi_id)
-            ->get();
+            ->with(['employee', 'periodeKerjaRoster']),
+            'employees'
+        )->get();
 
         return view('approval.hod.roster.index', compact('cutis'));
     }
 
     public function hodProcess(Request $request, $id)
     {
-        $cuti = Roster::with('user', 'periodeKerjaRoster')->findOrFail($id);
+        $cuti = $request->user()
+            ->applyEmployeeRelationScope(Roster::query()->with(['user', 'employee', 'periodeKerjaRoster']))
+            ->findOrFail($id);
 
         if ($cuti->status_pengajuan == 1) {
             toast()->error('error', 'Sudah diproses');
@@ -51,37 +55,48 @@ class RosterApprovalController extends Controller
 
     public function hodShow($id)
     {
-        $roster = Roster::with([
-            'employee.divisi.departemen',
-            'periodeKerjaRoster'
-        ])->findOrFail($id);
+        $roster = auth()->user()
+            ->applyEmployeeRelationScope(
+                Roster::query()->with([
+                    'employee.divisi.departemen',
+                    'periodeKerjaRoster'
+                ])
+            )
+            ->findOrFail($id);
 
         return view('approval.hod.roster.show', compact('roster'));
     }
 
     public function hrdIndex()
     {
-        $cutis = Roster::with('employee', 'periodeKerjaRoster')
+        $cutis = auth()->user()->applyEmployeeRelationScope(
+            Roster::query()->with('employee', 'periodeKerjaRoster')
             ->where('status_pengajuan', 1) // sudah approve HOD
             ->orderBy('status_pengajuan', 'asc')
-            ->get();
+        )->get();
 
         return view('approval.hr.roster.index', compact('cutis'));
     }
 
     public function hrdShow($id)
     {
-        $roster = Roster::with([
-            'employee.divisi.departemen',
-            'periodeKerjaRoster'
-        ])->where('status_pengajuan', 1)->findOrFail($id);
+        $roster = auth()->user()
+            ->applyEmployeeRelationScope(
+                Roster::query()->with([
+                    'employee.divisi.departemen',
+                    'periodeKerjaRoster'
+                ])->where('status_pengajuan', 1)
+            )
+            ->findOrFail($id);
 
         return view('approval.hr.roster.show', compact('roster'));
     }
 
     public function hrdProcess(Request $request, $id)
     {
-        $cuti = Roster::with('user', 'periodeKerjaRoster')->findOrFail($id);
+        $cuti = $request->user()
+            ->applyEmployeeRelationScope(Roster::query()->with(['user', 'employee', 'periodeKerjaRoster']))
+            ->findOrFail($id);
 
         if ($cuti->status_pengajuan != 1) {
             toast()->error('Error', 'Belum disetujui HOD');
