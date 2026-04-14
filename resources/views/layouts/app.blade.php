@@ -30,6 +30,27 @@
                 padding-bottom: calc(92px + env(safe-area-inset-bottom));
             }
 
+            .sidebar,
+            .main-header-logo .nav-toggle,
+            .sidebar .nav-toggle {
+                display: none !important;
+            }
+
+            .nav_open .sidebar,
+            html.nav_open .sidebar {
+                display: none !important;
+                transform: translate3d(-270px, 0, 0) !important;
+            }
+
+            .nav_open .main-panel,
+            html.nav_open .main-panel {
+                transform: none !important;
+            }
+
+            .topbar-toggler.more {
+                display: none !important;
+            }
+
             .mobile-bottom-nav {
                 position: fixed;
                 right: 12px;
@@ -230,9 +251,6 @@
                                 <i class="gg-menu-left"></i>
                             </button>
                         </div>
-                        <button class="topbar-toggler more">
-                            <i class="gg-more-vertical-alt"></i>
-                        </button>
                     </div>
                     <!-- End Logo Header -->
                 </div>
