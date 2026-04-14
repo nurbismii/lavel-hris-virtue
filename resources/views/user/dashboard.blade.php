@@ -468,6 +468,50 @@
         margin: 0;
     }
 
+    .employee-dashboard .quick-summary {
+        padding: 0 1.25rem 1.25rem;
+    }
+
+    .employee-dashboard .quick-summary__card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.95rem 1rem;
+        border-radius: 18px;
+        background: #f8fafc;
+        border: 1px solid #dbe4f0;
+        color: var(--dash-ink);
+    }
+
+    .employee-dashboard .quick-summary__card strong {
+        display: block;
+        margin-bottom: 0.2rem;
+        font-size: 0.92rem;
+    }
+
+    .employee-dashboard .quick-summary__card span {
+        display: block;
+        color: var(--dash-muted);
+        font-size: 0.82rem;
+        line-height: 1.55;
+    }
+
+    .employee-dashboard .quick-summary__badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 42px;
+        min-height: 42px;
+        padding: 0.4rem 0.75rem;
+        border-radius: 999px;
+        background: #e2e8f0;
+        color: #0f172a;
+        font-size: 0.86rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+
     @media (min-width: 768px) {
         .employee-dashboard .hero-body {
             padding: 1.75rem;
@@ -528,6 +572,11 @@
         .employee-dashboard .activity-row strong {
             text-align: left;
         }
+
+        .employee-dashboard .quick-summary__card {
+            flex-direction: column;
+            align-items: flex-start;
+        }
     }
 </style>
 @endpush
@@ -558,6 +607,10 @@ $verifiedAtText = $currentUser->email_verified_at
 ? $currentUser->email_verified_at->translatedFormat('d M Y, H:i') . ' WITA'
 : 'Menunggu verifikasi email';
 $sisaCuti = filled(optional($employee)->sisa_cuti) ? optional($employee)->sisa_cuti . ' hari' : '0 hari';
+$accessibleMenus = $currentUser->hasRole('Super Admin')
+? array_keys(config('access.menus', []))
+: $currentUser->resolveMenuPermissions();
+$totalAccessibleMenuCount = count(array_unique(array_filter($accessibleMenus)));
 $hour = now()->hour;
 if ($hour < 11) {
     $greeting='Selamat pagi' ;
@@ -644,6 +697,9 @@ if ($hour < 11) {
     ])->filter(function ($action) use ($currentUser) {
     return blank($action['menu']) || $currentUser->hasMenuAccess($action['menu']);
     })->values();
+$quickActionLimit = 6;
+$visibleQuickActions = $quickActions->take($quickActionLimit);
+$remainingMenuCount = max($totalAccessibleMenuCount - $visibleQuickActions->count(), 0);
     @endphp
 
     <div class="container-fluid employee-dashboard px-3">
@@ -713,9 +769,9 @@ if ($hour < 11) {
                             <span>{{ $currentUser->email_verified_at ? 'Akses akun terlindungi dengan email aktif' : 'Segera verifikasi agar akun tetap aman' }}</span>
                         </div>
                         <div class="hero-stat">
-                            <small>Menu Aktif</small>
-                            <strong>{{ $quickActions->count() }}</strong>
-                            <span>Shortcut yang tersedia sesuai permission akun Anda</span>
+                            <small>Total Akses</small>
+                            <strong>{{ $totalAccessibleMenuCount }}</strong>
+                            <span>Hak menu aktif sesuai permission akun Anda</span>
                         </div>
                     </div>
                 </div>
@@ -724,20 +780,20 @@ if ($hour < 11) {
             <div class="dashboard-card mb-3">
                 <div class="section-header">
                     <div>
-                        <h2 class="section-title">Aksi Cepat</h2>
+                        <h2 class="section-title">Menu Prioritas</h2>
                         <p class="section-subtitle">
-                            Jalankan kebutuhan harian Anda lebih cepat dari satu layar yang nyaman diakses lewat ponsel maupun desktop.
+                            Dashboard hanya menampilkan shortcut yang paling sering dipakai. Menu lainnya tetap bisa Anda buka dari sidebar atau navigasi bawah.
                         </p>
                     </div>
                     <span class="section-badge">
                         <i class="fas fa-bolt"></i>
-                        {{ $quickActions->count() }} menu aktif
+                        {{ $visibleQuickActions->count() }} shortcut utama
                     </span>
                 </div>
 
-                @if($quickActions->isNotEmpty())
+                @if($visibleQuickActions->isNotEmpty())
                 <div class="quick-grid">
-                    @foreach($quickActions as $action)
+                    @foreach($visibleQuickActions as $action)
                     <a href="{{ $action['route'] }}" class="quick-link">
                         <span class="quick-link__icon quick-tone--{{ $action['tone'] }}">
                             <i class="{{ $action['icon'] }}"></i>
