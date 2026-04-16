@@ -69,7 +69,10 @@ Route::middleware(['android.redirect'])->group(function () {
         })->middleware(['auth', 'signed'])->name('verification.verify');
     });
 
-    Auth::routes();
+    Auth::routes([
+        'register' => false,
+        'reset' => false,
+    ]);
 
     Route::group(['prefix' => '/', 'middleware' => ['auth', 'verify.email']], function () {
 

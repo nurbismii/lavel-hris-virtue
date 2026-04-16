@@ -7,7 +7,7 @@ use App\Models\Resign;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
-class UpdateDataResignKaryawan extends Command
+class UpdateResignCommand extends Command
 {
     protected $signature = 'update.resign:cron';
 
