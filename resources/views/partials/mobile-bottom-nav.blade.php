@@ -29,6 +29,7 @@
                 'route' => route('presensi.index'),
                 'icon' => 'fas fa-map-pin',
                 'active' => request()->routeIs('presensi.*'),
+                'featured' => true,
             ];
         }
 
@@ -117,8 +118,8 @@
                     </div>
                 </div>
             @else
-                <div class="mobile-bottom-nav__group">
-                    <a href="{{ $item['route'] }}" class="mobile-bottom-nav__item {{ $item['active'] ? 'is-active' : '' }}">
+                <div class="mobile-bottom-nav__group {{ !empty($item['featured']) ? 'mobile-bottom-nav__group--featured' : '' }}">
+                    <a href="{{ $item['route'] }}" class="mobile-bottom-nav__item {{ $item['active'] ? 'is-active' : '' }} {{ !empty($item['featured']) ? 'mobile-bottom-nav__item--featured' : '' }}">
                         <i class="{{ $item['icon'] }}"></i>
                         <span class="mobile-bottom-nav__label">{{ $item['label'] }}</span>
                     </a>
