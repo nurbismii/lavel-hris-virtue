@@ -72,3 +72,18 @@ if (!function_exists('no_urut_surat')) {
         return str_pad((int) $nomor, 4, '0', STR_PAD_LEFT);
     }
 }
+
+if (!function_exists('versioned_asset')) {
+    function versioned_asset($path)
+    {
+        $normalizedPath = ltrim($path, '/');
+        $fullPath = public_path($normalizedPath);
+        $assetUrl = asset($normalizedPath);
+
+        if (!file_exists($fullPath)) {
+            return $assetUrl;
+        }
+
+        return $assetUrl . '?v=' . filemtime($fullPath);
+    }
+}

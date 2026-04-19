@@ -6,7 +6,7 @@
     <title>PT VDNI | V-People</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" href="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" type="image/x-icon" />
+    <link rel="icon" href="{{ versioned_asset('assets/img/kaiadmin/favicon-1.png') }}" type="image/x-icon" />
 
     <!-- DataTables Responsive CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
@@ -195,7 +195,7 @@
     </style>
 
     <!-- Fonts and icons -->
-    <script src="{{ asset('/assets/js/plugin/webfont/webfont.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/plugin/webfont/webfont.min.js') }}"></script>
     <script>
         WebFont.load({
             google: {
@@ -208,7 +208,7 @@
                     "Font Awesome 5 Brands",
                     "simple-line-icons",
                 ],
-                urls: ["{{ asset('/assets/css/fonts.min.css') }}"],
+                urls: ["{{ versioned_asset('assets/css/fonts.min.css') }}"],
             },
             active: function() {
                 sessionStorage.fonts = true;
@@ -217,9 +217,9 @@
     </script>
 
     <!-- CSS Files -->
-    <link rel="stylesheet" href="{{ asset('/assets/css/bootstrap.min.css') }}" />
-    <link rel="stylesheet" href="{{ asset('/assets/css/plugins.min.css') }}" />
-    <link rel="stylesheet" href="{{ asset('/assets/css/kaiadmin.min.css') }}" />
+    <link rel="stylesheet" href="{{ versioned_asset('assets/css/bootstrap.min.css') }}" />
+    <link rel="stylesheet" href="{{ versioned_asset('assets/css/plugins.min.css') }}" />
+    <link rel="stylesheet" href="{{ versioned_asset('assets/css/kaiadmin.min.css') }}" />
 
     @stack('styles')
 </head>
@@ -286,33 +286,33 @@
         </div>
     </div>
     <!--   Core JS Files   -->
-    <script src="{{ asset('/assets/js/core/jquery-3.7.1.min.js') }}"></script>
-    <script src="{{ asset('/assets/js/core/popper.min.js') }}"></script>
-    <script src="{{ asset('/assets/js/core/bootstrap.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/core/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/core/popper.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/core/bootstrap.min.js') }}"></script>
 
     <!-- jQuery Scrollbar -->
-    <script src="{{ asset('/assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/plugin/jquery-scrollbar/jquery.scrollbar.min.js') }}"></script>
 
     <!-- Chart JS -->
-    <script src="{{ asset('/assets/js/plugin/chart.js/chart.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/plugin/chart.js/chart.min.js') }}"></script>
 
     <!-- jQuery Sparkline -->
-    <script src="{{ asset('/assets/js/plugin/jquery.sparkline/jquery.sparkline.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/plugin/jquery.sparkline/jquery.sparkline.min.js') }}"></script>
 
     <!-- Chart Circle -->
-    <script src="{{ asset('/assets/js/plugin/chart-circle/circles.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/plugin/chart-circle/circles.min.js') }}"></script>
 
     <!-- Datatables -->
-    <script src="{{ asset('/assets/js/plugin/datatables/datatables.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/plugin/datatables/datatables.min.js') }}"></script>
 
     <!-- Bootstrap Notify -->
-    <script src="{{ asset('/assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js') }}"></script>
 
     <!-- Sweet Alert -->
-    <script src="{{ asset('/assets/js/plugin/sweetalert/sweetalert.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/plugin/sweetalert/sweetalert.min.js') }}"></script>
 
     <!-- Kaiadmin JS -->
-    <script src="{{ asset('/assets/js/kaiadmin.min.js') }}"></script>
+    <script src="{{ versioned_asset('assets/js/kaiadmin.min.js') }}"></script>
 
     <!-- DataTables Responsive JS -->
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>

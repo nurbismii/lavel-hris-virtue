@@ -1,781 +1,11 @@
 @extends('layouts.app')
 
 @push('styles')
-<style>
-    .attendance-shell {
-        display: grid;
-        gap: 1.5rem;
-    }
-
-    .attendance-hero {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 1.2rem 1.35rem;
-        border-radius: 24px;
-        background:
-            radial-gradient(circle at top right, rgba(13, 110, 253, 0.14), transparent 30%),
-            linear-gradient(135deg, #ffffff 0%, #f4f9ff 100%);
-        border: 1px solid rgba(13, 110, 253, 0.08);
-    }
-
-    .attendance-kicker,
-    .map-chip,
-    .history-chip,
-    .face-status-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        border-radius: 999px;
-        font-size: 13px;
-        font-weight: 700;
-    }
-
-    .attendance-kicker,
-    .map-chip {
-        color: #0d6efd;
-        background: rgba(13, 110, 253, 0.1);
-        border: 1px solid rgba(13, 110, 253, 0.1);
-    }
-
-    .attendance-hero__title,
-    .section-title,
-    .history-header__title {
-        color: #0f172a;
-        font-weight: 700;
-    }
-
-    .attendance-hero__title {
-        margin: 0.8rem 0 0.35rem;
-        font-size: 1.45rem;
-    }
-
-    .attendance-hero__text,
-    .section-subtitle,
-    .history-header__text {
-        margin: 0;
-        color: #64748b;
-        line-height: 1.6;
-    }
-
-    .attendance-steps {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.7rem;
-    }
-
-    .attendance-step,
-    .attendance-metric,
-    .face-photo-card {
-        border-radius: 18px;
-        border: 1px solid rgba(148, 163, 184, 0.14);
-        background: #ffffff;
-        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
-    }
-
-    .attendance-step {
-        min-width: 116px;
-        padding: 0.8rem 0.9rem;
-    }
-
-    .attendance-step__label,
-    .section-caption,
-    .location-status-card__label,
-    .attendance-metric__label {
-        display: block;
-        margin-bottom: 0.25rem;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: #94a3b8;
-    }
-
-    .attendance-step__value,
-    .attendance-metric__time {
-        color: #0f172a;
-        font-weight: 700;
-    }
-
-    .attendance-card {
-        border: 0;
-        border-radius: 24px;
-        background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
-        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
-    }
-
-    .attendance-card__header {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 1.25rem;
-        padding-bottom: 1rem;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
-    }
-
-    .attendance-card__body,
-    .face-section {
-        padding: 1.25rem;
-    }
-
-    .attendance-card__title {
-        margin: 0.75rem 0 0.3rem;
-        font-size: 1.35rem;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .attendance-card__text {
-        margin: 0;
-        max-width: 620px;
-        color: #64748b;
-        line-height: 1.6;
-    }
-
-    .attendance-wizard {
-        display: grid;
-        gap: 1rem;
-    }
-
-    .attendance-stage {
-        display: grid;
-        grid-template-columns: 56px minmax(0, 1fr);
-        gap: 1rem;
-        align-items: start;
-    }
-
-    .attendance-stage__rail {
-        position: relative;
-        display: flex;
-        justify-content: center;
-        height: 100%;
-    }
-
-    .attendance-stage__rail::after {
-        content: '';
-        position: absolute;
-        top: 52px;
-        bottom: -1rem;
-        width: 2px;
-        border-radius: 999px;
-        background: linear-gradient(180deg, rgba(148, 163, 184, 0.35) 0%, rgba(148, 163, 184, 0.08) 100%);
-    }
-
-    .attendance-stage:last-child .attendance-stage__rail::after {
-        display: none;
-    }
-
-    .attendance-stage__number {
-        width: 42px;
-        height: 42px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 16px;
-        border: 1px solid rgba(148, 163, 184, 0.18);
-        background: #e2e8f0;
-        color: #64748b;
-        font-size: 15px;
-        font-weight: 800;
-        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
-        transition: all 0.25s ease;
-    }
-
-    .attendance-stage__number.is-active {
-        background: linear-gradient(135deg, #0d6efd 0%, #3b82f6 100%);
-        border-color: rgba(13, 110, 253, 0.28);
-        color: #ffffff;
-    }
-
-    .attendance-stage__number.is-done {
-        background: linear-gradient(135deg, #198754 0%, #22c55e 100%);
-        border-color: rgba(25, 135, 84, 0.28);
-        color: #ffffff;
-    }
-
-    .attendance-stage__number.is-locked {
-        background: #e2e8f0;
-        color: #94a3b8;
-    }
-
-    .attendance-stage__main {
-        padding: 1rem;
-        border-radius: 20px;
-        border: 1px solid rgba(148, 163, 184, 0.14);
-        background: #ffffff;
-        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
-        transition: all 0.25s ease;
-    }
-
-    .attendance-stage.is-active .attendance-stage__main {
-        border-color: rgba(13, 110, 253, 0.18);
-        box-shadow: 0 16px 34px rgba(13, 110, 253, 0.08);
-    }
-
-    .attendance-stage.is-done .attendance-stage__main {
-        border-color: rgba(25, 135, 84, 0.16);
-        box-shadow: 0 16px 34px rgba(25, 135, 84, 0.08);
-    }
-
-    .attendance-stage.is-locked .attendance-stage__main {
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
-    }
-
-    .attendance-stage__hint {
-        display: flex;
-        align-items: center;
-        gap: 0.7rem;
-        margin-bottom: 1rem;
-        padding: 0.95rem 1rem;
-        border-radius: 16px;
-        border: 1px dashed rgba(148, 163, 184, 0.35);
-        background: #f8fafc;
-        color: #64748b;
-        font-size: 14px;
-        font-weight: 600;
-    }
-
-    .attendance-stage__hint i {
-        color: #0d6efd;
-        font-size: 16px;
-    }
-
-    .attendance-stage__hint.is-success {
-        border-style: solid;
-        border-color: rgba(25, 135, 84, 0.18);
-        background: rgba(25, 135, 84, 0.08);
-        color: #166534;
-    }
-
-    .attendance-stage__hint.is-success i {
-        color: #198754;
-    }
-
-    .attendance-card__grid {
-        display: grid;
-        grid-template-columns: minmax(320px, 0.95fr) minmax(360px, 1.05fr);
-        gap: 1rem;
-        align-items: stretch;
-    }
-
-    .attendance-panel {
-        height: 100%;
-        padding: 1rem;
-        border-radius: 20px;
-        border: 1px solid rgba(148, 163, 184, 0.14);
-        background: #ffffff;
-        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
-    }
-
-    .map-card__header,
-    .face-section__header,
-    .history-header {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .map-frame {
-        overflow: hidden;
-        border-radius: 22px;
-        border: 1px solid rgba(15, 23, 42, 0.08);
-    }
-
-    .map-surface {
-        height: 360px;
-        border-radius: 22px;
-    }
-
-    .location-status-card {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        margin-top: 1rem;
-        padding: 1rem 1.1rem;
-        border-radius: 18px;
-        background: #f8fafc;
-        border: 1px solid rgba(15, 23, 42, 0.06);
-    }
-
-    .location-status-card__icon {
-        width: 46px;
-        height: 46px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 14px;
-        background: rgba(13, 110, 253, 0.1);
-        color: #0d6efd;
-        font-size: 18px;
-    }
-
-    .location-status-card__value {
-        font-size: 15px;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .attendance-summary {
-        margin-top: 1.2rem;
-    }
-
-    .attendance-metric {
-        height: 100%;
-        padding: 1rem;
-    }
-
-    .attendance-action-card {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-top: 1.25rem;
-        padding: 1.1rem 1.2rem;
-        border-radius: 22px;
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.2);
-    }
-
-    .attendance-action-card__caption {
-        display: block;
-        margin-bottom: 0.35rem;
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        color: rgba(255, 255, 255, 0.64);
-    }
-
-    .attendance-action-card__title,
-    .attendance-action-card__text {
-        color: #ffffff;
-        margin: 0;
-    }
-
-    .attendance-action-card__text {
-        margin-top: 0.35rem;
-        color: rgba(255, 255, 255, 0.74);
-        font-size: 14px;
-    }
-
-    .attendance-action-card .btn {
-        min-width: 210px;
-        min-height: 52px;
-        border-radius: 16px;
-        font-weight: 700;
-    }
-
-    .face-section {
-        margin-top: 1.35rem;
-        border-radius: 24px;
-        background:
-            radial-gradient(circle at top right, rgba(13, 110, 253, 0.1), transparent 28%),
-            linear-gradient(180deg, #f9fbff 0%, #f5f9ff 100%);
-        border: 1px solid rgba(13, 110, 253, 0.08);
-    }
-
-    .face-photo-card {
-        height: 100%;
-        padding: 1rem;
-    }
-
-    .face-photo-card__label {
-        display: block;
-        margin-bottom: 0.75rem;
-        font-size: 13px;
-        font-weight: 700;
-        color: #334155;
-    }
-
-    .face-preview-frame {
-        position: relative;
-        overflow: hidden;
-        min-height: 80px;
-        border-radius: 18px;
-        background: linear-gradient(180deg, #eff4f9 0%, #e5edf5 100%);
-        border: 1px solid rgba(148, 163, 184, 0.16);
-        transition: box-shadow 0.2s ease, border-color 0.2s ease;
-    }
-
-    .face-preview-frame[data-frame-state="red"] {
-        border-color: rgba(220, 53, 69, 0.42);
-        box-shadow: 0 16px 34px rgba(220, 53, 69, 0.12);
-    }
-
-    .face-preview-frame[data-frame-state="yellow"] {
-        border-color: rgba(255, 193, 7, 0.48);
-        box-shadow: 0 16px 34px rgba(255, 193, 7, 0.12);
-    }
-
-    .face-preview-frame[data-frame-state="green"] {
-        border-color: rgba(25, 135, 84, 0.42);
-        box-shadow: 0 16px 34px rgba(25, 135, 84, 0.14);
-    }
-
-    .camera-stage {
-        display: grid;
-        gap: 0.9rem;
-        padding: 0.9rem;
-    }
-
-    .camera-stage__media {
-        position: relative;
-        overflow: hidden;
-        min-height: 320px;
-        border-radius: 16px;
-        background:
-            radial-gradient(circle at top, rgba(59, 130, 246, 0.16), transparent 36%),
-            linear-gradient(180deg, #dbe7f3 0%, #cdd9e5 100%);
-    }
-
-    .camera-stage__mirror {
-        position: absolute;
-        inset: 0;
-        transform: scaleX(-1);
-        transform-origin: center;
-    }
-
-    .sr-reference-image {
-        position: absolute;
-        left: -9999px;
-        width: 1px;
-        height: 1px;
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    .camera-live-video,
-    .camera-overlay,
-    .face-preview-image {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        border-radius: 18px;
-    }
-
-    .camera-live-video,
-    .face-preview-image {
-        object-fit: contain;
-        background: linear-gradient(180deg, rgba(15, 23, 42, 0.12), rgba(15, 23, 42, 0.22));
-    }
-
-    .camera-overlay {
-        pointer-events: none;
-    }
-
-    .selfie-placeholder {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 0.7rem;
-        padding: 1.5rem;
-        text-align: center;
-        color: #64748b;
-    }
-
-    .selfie-placeholder__icon {
-        width: 58px;
-        height: 58px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 18px;
-        background: rgba(13, 110, 253, 0.12);
-        color: #0d6efd;
-        font-size: 22px;
-    }
-
-    .selfie-placeholder__title {
-        margin: 0;
-        font-size: 15px;
-        font-weight: 700;
-        color: #334155;
-    }
-
-    .selfie-placeholder__text {
-        margin: 0;
-        max-width: 280px;
-        font-size: 13px;
-        line-height: 1.2;
-    }
-
-    .camera-guide {
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-    }
-
-    .camera-guide__shape {
-        position: absolute;
-        left: 18%;
-        top: 10%;
-        width: 64%;
-        height: 80%;
-        border: 3px solid rgba(148, 163, 184, 0.7);
-        border-radius: 28px;
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.32);
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .face-preview-frame[data-frame-state="red"] .camera-guide__shape {
-        border-color: rgba(220, 53, 69, 0.92);
-        box-shadow:
-            inset 0 0 0 1px rgba(255, 255, 255, 0.22),
-            0 0 0 999px rgba(220, 53, 69, 0.06);
-    }
-
-    .face-preview-frame[data-frame-state="yellow"] .camera-guide__shape {
-        border-color: rgba(255, 193, 7, 0.96);
-        box-shadow:
-            inset 0 0 0 1px rgba(255, 255, 255, 0.22),
-            0 0 0 999px rgba(255, 193, 7, 0.06);
-    }
-
-    .face-preview-frame[data-frame-state="green"] .camera-guide__shape {
-        border-color: rgba(25, 135, 84, 0.96);
-        box-shadow:
-            inset 0 0 0 1px rgba(255, 255, 255, 0.22),
-            0 0 0 999px rgba(25, 135, 84, 0.07);
-    }
-
-    .camera-guide__label {
-        position: absolute;
-        left: 50%;
-        bottom: 18px;
-        transform: translateX(-50%);
-        padding: 8px 14px;
-        border-radius: 999px;
-        background: rgba(15, 23, 42, 0.7);
-        color: #fff;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.01em;
-        text-align: center;
-        backdrop-filter: blur(8px);
-    }
-
-    .camera-stage__footer {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.9rem;
-    }
-
-    .camera-stage__status {
-        flex: 1 1 280px;
-    }
-
-    .camera-frame-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        padding: 6px 10px;
-        border-radius: 999px;
-        font-size: 12px;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-        color: #64748b;
-        background: rgba(148, 163, 184, 0.18);
-    }
-
-    .camera-frame-chip.is-red {
-        color: #b42318;
-        background: rgba(220, 53, 69, 0.12);
-    }
-
-    .camera-frame-chip.is-yellow {
-        color: #9a6700;
-        background: rgba(255, 193, 7, 0.16);
-    }
-
-    .camera-frame-chip.is-green {
-        color: #087443;
-        background: rgba(25, 135, 84, 0.14);
-    }
-
-    .camera-frame-chip.is-neutral {
-        color: #475569;
-        background: rgba(148, 163, 184, 0.16);
-    }
-
-    .camera-stage__message {
-        display: block;
-        margin-top: 0.55rem;
-        color: #334155;
-        font-size: 14px;
-        font-weight: 600;
-    }
-
-    .camera-hold-meter {
-        height: 8px;
-        margin-top: 0.7rem;
-        overflow: hidden;
-        border-radius: 999px;
-        background: rgba(148, 163, 184, 0.18);
-    }
-
-    .camera-hold-meter__bar {
-        width: 0;
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, #f59e0b 0%, #22c55e 100%);
-        transition: width 0.18s linear;
-    }
-
-    .camera-action-group {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.65rem;
-    }
-
-    .selfie-input-hidden {
-        position: absolute;
-        left: -9999px;
-        width: 1px;
-        height: 1px;
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    .face-preview-frame__hint {
-        display: block;
-        margin-top: 0.75rem;
-        font-size: 13px;
-        color: #64748b;
-    }
-
-    .camera-legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.65rem;
-        margin-top: 0.95rem;
-    }
-
-    .camera-legend__item {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        padding: 0.55rem 0.85rem;
-        border-radius: 999px;
-        border: 1px solid rgba(148, 163, 184, 0.14);
-        background: rgba(255, 255, 255, 0.88);
-        color: #475569;
-        font-size: 12px;
-        font-weight: 700;
-    }
-
-    .camera-legend__dot {
-        width: 10px;
-        height: 10px;
-        border-radius: 999px;
-    }
-
-    .camera-legend__dot.is-red {
-        background: #dc3545;
-    }
-
-    .camera-legend__dot.is-yellow {
-        background: #ffc107;
-    }
-
-    .camera-legend__dot.is-green {
-        background: #198754;
-    }
-
-    .history-chip {
-        color: #334155;
-        background: #f8fafc;
-        border: 1px solid rgba(148, 163, 184, 0.14);
-    }
-
-    @media (max-width: 991.98px) {
-        .attendance-stage {
-            grid-template-columns: 48px minmax(0, 1fr);
-        }
-
-        .attendance-card__grid {
-            grid-template-columns: 1fr;
-        }
-
-        .attendance-steps,
-        .history-header {
-            justify-content: flex-start;
-        }
-
-        .attendance-action-card .btn {
-            width: 100%;
-        }
-    }
-
-    @media (max-width: 767.98px) {
-        .attendance-hero,
-        .attendance-card__body,
-        .face-section {
-            padding: 1rem;
-        }
-
-        .attendance-stage {
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-        }
-
-        .attendance-stage__rail {
-            justify-content: flex-start;
-        }
-
-        .attendance-stage__rail::after {
-            display: none;
-        }
-
-        .attendance-card__header {
-            margin-bottom: 1rem;
-            padding-bottom: 0.85rem;
-        }
-
-        .map-surface {
-            height: 300px;
-        }
-
-        .attendance-hero__title {
-            font-size: 1.25rem;
-        }
-
-        .attendance-card__title {
-            font-size: 1.15rem;
-        }
-
-        .camera-stage {
-            padding: 0.8rem;
-        }
-
-        .camera-stage__media {
-            min-height: 280px;
-        }
-
-        .camera-guide__shape {
-            left: 14%;
-            width: 72%;
-        }
-    }
-</style>
+    <link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css') }}">
 @endpush
 
 @section('content')
+
 @php
     $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
 @endphp
@@ -897,7 +127,17 @@
                                 data-frame-state="neutral"
                                 aria-live="polite">
                                 <div class="camera-stage">
+                                    <div class="camera-stage__header">
+                                        <div>
+                                            <span class="camera-stage__eyebrow">
+                                                <i class="fas fa-camera"></i>
+                                                Kamera Presensi
+                                            </span>
+                                        </div>
+                                    </div>
+
                                     <div class="camera-stage__media">
+
                                         <div class="camera-stage__mirror">
                                             <video
                                                 id="selfieCamera"
@@ -937,21 +177,29 @@
 
                                     <div class="camera-stage__footer">
                                         <div class="camera-stage__status">
-                                            <span id="cameraFrameBadge" class="camera-frame-chip is-neutral">Menyiapkan kamera</span>
-                                            <strong id="cameraFrameMessage" class="camera-stage__message">
-                                                Menunggu izin kamera dan model verifikasi wajah.
-                                            </strong>
-                                            <div class="camera-hold-meter">
-                                                <div id="cameraHoldBar" class="camera-hold-meter__bar"></div>
+                                            <div class="camera-stage__status-card">
+                                                <div class="camera-stage__status-head">
+                                                    <span id="cameraFrameBadge" class="camera-frame-chip is-neutral">Menyiapkan</span>
+                                                    <span id="cameraProgressText" class="camera-progress-text">Menunggu kamera aktif</span>
+                                                </div>
+                                                <strong id="cameraFrameMessage" class="camera-stage__message">
+                                                    Menunggu izin kamera dan model verifikasi wajah.
+                                                </strong>
+                                                <div class="camera-hold-meter">
+                                                    <div id="cameraHoldBar" class="camera-hold-meter__bar"></div>
+                                                </div>
+                                                <small id="cameraAssistText" class="camera-stage__microcopy">
+                                                    Saat bingkai hijau stabil, selfie akan tersimpan otomatis tanpa perlu menekan tombol.
+                                                </small>
                                             </div>
                                         </div>
 
                                         <div class="camera-action-group">
                                             <button type="button" id="retryCameraButton" class="btn btn-outline-primary btn-sm">
-                                                Aktifkan Kamera
+                                                <i class="fas fa-redo-alt me-2"></i>
+                                                Aktifkan Ulang Kamera
                                             </button>
                                             <button type="button" id="manualSelfieButton" class="btn btn-outline-secondary btn-sm">
-                                                Upload Manual
                                             </button>
                                         </div>
                                     </div>
@@ -972,23 +220,28 @@
                                 id="selfie_capture_data"
                                 name="selfie_capture_data"
                                 form="formAbsen">
-
-                            <small class="face-preview-frame__hint">
-                                Kamera aktif otomatis. Status frame: merah belum sesuai, kuning belum jelas, hijau cocok lalu tahan 3 detik.
-                            </small>
-
-                            <div class="camera-legend">
-                                <div class="camera-legend__item">
-                                    <span class="camera-legend__dot is-red"></span>
-                                    Merah: belum sesuai
+                                
+                            <div class="camera-tips">
+                                <div class="camera-tip">
+                                    <div class="camera-tip__icon">
+                                        <i class="fas fa-sun"></i>
+                                    </div>
+                                    <strong>Pencahayaan cukup</strong>
+                                    <span>Pastikan wajah terang merata dan tidak membelakangi sumber cahaya.</span>
                                 </div>
-                                <div class="camera-legend__item">
-                                    <span class="camera-legend__dot is-yellow"></span>
-                                    Kuning: belum jelas
+                                <div class="camera-tip">
+                                    <div class="camera-tip__icon">
+                                        <i class="fas fa-user-check"></i>
+                                    </div>
+                                    <strong>Wajah lurus ke depan</strong>
+                                    <span>Jaga wajah tetap di tengah, tidak menunduk, dan hanya satu orang di kamera.</span>
                                 </div>
-                                <div class="camera-legend__item">
-                                    <span class="camera-legend__dot is-green"></span>
-                                    Hijau: cocok, tahan 3 detik
+                                <div class="camera-tip">
+                                    <div class="camera-tip__icon">
+                                        <i class="fas fa-hand-paper"></i>
+                                    </div>
+                                    <strong>Tahan sebentar</strong>
+                                    <span>Saat status hijau muncul, tahan posisi selama 3 detik sampai selfie tersimpan.</span>
                                 </div>
                             </div>
 
@@ -1166,7 +419,7 @@
 
 @push('scripts')
 <script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
-<script src="{{ asset('/vendor/face-api/face-api.min.js') }}"></script>
+<script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
 @if ($lokasi)
 <script>
@@ -1205,6 +458,7 @@
 
     function emphasizeManualCameraFallback(enabled = true) {
         const manualButton = document.getElementById('manualSelfieButton');
+        const manualButtonIcon = manualButton ? manualButton.querySelector('i') : null;
 
         if (!manualButton) {
             return;
@@ -1213,7 +467,20 @@
         manualButton.classList.toggle('btn-outline-secondary', !enabled);
         manualButton.classList.toggle('btn-primary', enabled);
         manualButton.classList.toggle('btn-outline-primary', false);
-        manualButton.textContent = enabled ? 'Buka Kamera Fallback' : 'Upload Manual';
+
+        if (manualButtonIcon) {
+            manualButtonIcon.className = enabled ? 'fas fa-camera me-2' : 'fas fa-camera-retro me-2';
+        }
+
+        const labelNode = Array.from(manualButton.childNodes).find(function(node) {
+            return node.nodeType === Node.TEXT_NODE;
+        });
+
+        if (labelNode) {
+            labelNode.textContent = enabled ? ' Gunakan Kamera Manual' : ' Kamera Manual';
+        } else {
+            manualButton.appendChild(document.createTextNode(enabled ? ' Gunakan Kamera Manual' : ' Kamera Manual'));
+        }
     }
 
     function describeCameraAccessError(error) {
@@ -1569,17 +836,32 @@
         const guideRect = getLiveGuideRect(displaySize.width, displaySize.height);
         const boxes = Array.isArray(options.boxes) ? options.boxes : [];
 
+        const strokeRoundedRect = function(x, y, width, height, radius) {
+            context.beginPath();
+            context.moveTo(x + radius, y);
+            context.lineTo(x + width - radius, y);
+            context.quadraticCurveTo(x + width, y, x + width, y + radius);
+            context.lineTo(x + width, y + height - radius);
+            context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            context.lineTo(x + radius, y + height);
+            context.quadraticCurveTo(x, y + height, x, y + height - radius);
+            context.lineTo(x, y + radius);
+            context.quadraticCurveTo(x, y, x + radius, y);
+            context.closePath();
+            context.stroke();
+        };
+
         context.clearRect(0, 0, overlay.width, overlay.height);
         context.setLineDash([10, 8]);
         context.lineWidth = 3;
         context.strokeStyle = palette[state] || palette.neutral;
-        context.strokeRect(guideRect.x, guideRect.y, guideRect.width, guideRect.height);
+        strokeRoundedRect(guideRect.x, guideRect.y, guideRect.width, guideRect.height, 42);
         context.setLineDash([]);
 
         boxes.forEach(function(box) {
             context.lineWidth = 3;
             context.strokeStyle = palette[state] || palette.neutral;
-            context.strokeRect(box.x, box.y, box.width, box.height);
+            strokeRoundedRect(box.x, box.y, box.width, box.height, 14);
         });
     }
 
@@ -1589,25 +871,36 @@
         const label = document.getElementById('cameraGuideLabel');
         const messageElement = document.getElementById('cameraFrameMessage');
         const holdBar = document.getElementById('cameraHoldBar');
+        const progressText = document.getElementById('cameraProgressText');
+        const assistText = document.getElementById('cameraAssistText');
         const states = {
             neutral: {
-                badge: 'Menunggu',
-                alert: 'secondary'
+                badge: 'Siaga',
+                alert: 'secondary',
+                guide: 'Posisikan wajah di area tengah',
+                assist: 'Sistem sedang menyiapkan pembacaan wajah dan akan menangkap selfie otomatis saat kondisi sudah ideal.'
             },
             red: {
-                badge: 'Merah',
-                alert: 'danger'
+                badge: 'Atur Ulang',
+                alert: 'danger',
+                guide: 'Sesuaikan posisi wajah',
+                assist: 'Periksa posisi wajah, jarak kamera, dan pastikan hanya satu orang yang terlihat.'
             },
             yellow: {
-                badge: 'Kuning',
-                alert: 'warning'
+                badge: 'Perjelas',
+                alert: 'warning',
+                guide: 'Perjelas tampilan wajah',
+                assist: 'Coba hadap lurus ke kamera, kurangi blur, dan pastikan pencahayaan cukup merata.'
             },
             green: {
-                badge: 'Hijau',
-                alert: 'success'
+                badge: 'Siap',
+                alert: 'success',
+                guide: 'Pertahankan posisi ini',
+                assist: 'Bagus. Tahan stabil sampai progress penuh agar selfie tersimpan otomatis.'
             }
         };
         const config = states[state] || states.neutral;
+        const safeProgress = Math.max(0, Math.min(progress, 1));
 
         if (stage) {
             stage.dataset.frameState = state;
@@ -1619,7 +912,7 @@
         }
 
         if (label) {
-            label.textContent = config.badge + ' - ' + message;
+            label.textContent = config.guide;
         }
 
         if (messageElement) {
@@ -1627,7 +920,25 @@
         }
 
         if (holdBar) {
-            holdBar.style.width = (Math.max(0, Math.min(progress, 1)) * 100) + '%';
+            holdBar.style.width = (safeProgress * 100) + '%';
+        }
+
+        if (progressText) {
+            if (state === 'green' && safeProgress < 1) {
+                progressText.textContent = 'Tahan ' + Math.max(1, Math.ceil((1 - safeProgress) * 3)) + ' detik lagi';
+            } else if (state === 'green') {
+                progressText.textContent = 'Selfie siap digunakan';
+            } else if (state === 'yellow') {
+                progressText.textContent = 'Verifikasi hampir siap';
+            } else if (state === 'red') {
+                progressText.textContent = 'Belum memenuhi syarat';
+            } else {
+                progressText.textContent = 'Menunggu pembacaan wajah';
+            }
+        }
+
+        if (assistText) {
+            assistText.textContent = config.assist;
         }
 
         updateFaceStatus(config.badge + ': ' + message, config.alert);
