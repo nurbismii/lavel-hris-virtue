@@ -1194,6 +1194,55 @@
     const faceModelPath = @json(asset('vendor/face-api/weights'));
     const faceReferencePath = @json($faceReferencePath ? asset($faceReferencePath) : null);
 
+    function isLikelyAndroidWebView() {
+        const userAgent = navigator.userAgent || '';
+
+        return /; wv\)/i.test(userAgent) ||
+            /\bwv\b/i.test(userAgent) ||
+            /Version\/[\d.]+ Chrome\/[\d.]+ Mobile Safari\/[\d.]+/i.test(userAgent) ||
+            Boolean(window.ReactNativeWebView);
+    }
+
+    function emphasizeManualCameraFallback(enabled = true) {
+        const manualButton = document.getElementById('manualSelfieButton');
+
+        if (!manualButton) {
+            return;
+        }
+
+        manualButton.classList.toggle('btn-outline-secondary', !enabled);
+        manualButton.classList.toggle('btn-primary', enabled);
+        manualButton.classList.toggle('btn-outline-primary', false);
+        manualButton.textContent = enabled ? 'Buka Kamera Fallback' : 'Upload Manual';
+    }
+
+    function describeCameraAccessError(error) {
+        const isWebView = isLikelyAndroidWebView();
+        const errorName = error && error.name ? error.name : '';
+
+        if (errorName === 'NotAllowedError' || errorName === 'PermissionDeniedError') {
+            return isWebView ?
+                'Izin kamera belum diberikan oleh aplikasi WebView. Aktifkan permission CAMERA di aplikasi lalu coba lagi.' :
+                'Izin kamera ditolak oleh browser. Izinkan akses kamera lalu coba lagi.';
+        }
+
+        if (errorName === 'NotFoundError' || errorName === 'DevicesNotFoundError') {
+            return 'Kamera depan tidak ditemukan pada perangkat ini.';
+        }
+
+        if (errorName === 'NotReadableError' || errorName === 'TrackStartError') {
+            return 'Kamera sedang dipakai aplikasi lain. Tutup aplikasi kamera lain lalu coba lagi.';
+        }
+
+        if (errorName === 'OverconstrainedError' || errorName === 'ConstraintNotSatisfiedError') {
+            return 'Konfigurasi kamera tidak cocok di perangkat ini. Coba ulangi dengan fallback kamera manual.';
+        }
+
+        return isWebView ?
+            'WebView belum mengizinkan kamera live. Biasanya perlu izin native CAMERA dan grant `RESOURCE_VIDEO_CAPTURE` di aplikasi Android.' :
+            'Akses kamera ditolak atau tidak tersedia. Gunakan upload manual bila perlu.';
+    }
+
     function initMap(latOffice, longOffice, radius) {
         map = new google.maps.Map(document.getElementById("map"), {
             zoom: 17,
@@ -1936,24 +1985,32 @@
 
     async function startLiveCamera() {
         const video = document.getElementById('selfieCamera');
+        const isWebView = isLikelyAndroidWebView();
 
         if (!video || !faceReferencePath) {
             return;
         }
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            updateLiveFrameFeedback('red', 'Browser ini belum mendukung kamera live. Gunakan upload manual.', 0);
+            emphasizeManualCameraFallback(true);
+            updateLiveFrameFeedback('red', isWebView ?
+                'WebView ini belum membuka dukungan kamera live. Gunakan tombol kamera fallback.' :
+                'Browser ini belum mendukung kamera live. Gunakan upload manual.', 0);
             return;
         }
 
         if (!window.isSecureContext && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
-            updateLiveFrameFeedback('red', 'Kamera live membutuhkan HTTPS agar bisa aktif otomatis.', 0);
+            emphasizeManualCameraFallback(true);
+            updateLiveFrameFeedback('red', isWebView ?
+                'Halaman WebView belum berjalan di HTTPS, jadi kamera live diblokir. Gunakan kamera fallback atau pindah ke HTTPS.' :
+                'Kamera live membutuhkan HTTPS agar bisa aktif otomatis.', 0);
             return;
         }
 
         stopLiveCamera();
         cameraVerificationLocked = false;
         cameraHoldStartedAt = null;
+        emphasizeManualCameraFallback(false);
         updateLiveFrameFeedback('neutral', 'Meminta akses kamera depan...', 0);
 
         try {
@@ -1983,7 +2040,8 @@
             beginLiveCameraVerification();
         } catch (error) {
             setSelfieSurfaceMode('placeholder');
-            updateLiveFrameFeedback('red', 'Akses kamera ditolak atau tidak tersedia. Gunakan upload manual bila perlu.', 0);
+            emphasizeManualCameraFallback(true);
+            updateLiveFrameFeedback('red', describeCameraAccessError(error), 0);
         }
     }
 
@@ -2129,6 +2187,10 @@
         updateAttendanceButtonState();
         setSelfieSurfaceMode(wizardStepFace ? 'placeholder' : 'preview');
         setWizardStep(wizardStepFace ? 1 : 2);
+        if (isLikelyAndroidWebView()) {
+            emphasizeManualCameraFallback(true);
+            updateLiveFrameFeedback('neutral', 'Mode WebView terdeteksi. Kamera live akan dicoba dulu, tapi fallback kamera manual sudah disiapkan.', 0);
+        }
         loadFaceModels();
         startLiveCamera();
 
