@@ -165,7 +165,7 @@
                                             </div>
                                             <p class="selfie-placeholder__title">Kamera depan akan aktif otomatis</p>
                                             <p class="selfie-placeholder__text">
-                                                Izinkan akses kamera, arahkan wajah ke tengah frame, lalu tahan 3 detik saat indikator hijau.
+                                                Izinkan akses kamera, arahkan wajah ke tengah frame, lalu tunggu sebentar sampai indikator hijau muncul.
                                             </p>
                                         </div>
 
@@ -189,7 +189,7 @@
                                                     <div id="cameraHoldBar" class="camera-hold-meter__bar"></div>
                                                 </div>
                                                 <small id="cameraAssistText" class="camera-stage__microcopy">
-                                                    Saat bingkai hijau stabil, selfie akan tersimpan otomatis tanpa perlu menekan tombol.
+                                                    Saat validasi singkat selesai dan bingkai hijau muncul, selfie akan tersimpan otomatis tanpa perlu menekan tombol.
                                                 </small>
                                             </div>
                                         </div>
@@ -394,7 +394,8 @@
 @endsection
 
 @push('scripts')
-<script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
+@php($googleMapsApiKey = config('services.google_maps.api_key'))
+<script src="https://maps.googleapis.com/maps/api/js?v=3{{ $googleMapsApiKey ? '&key=' . urlencode($googleMapsApiKey) : '' }}"></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
 @if ($lokasi)
@@ -405,7 +406,6 @@
     let circleOffice;
     let currentDistance = 0;
     let stableStartTime = null;
-    let validLogCount = 0;
     let gpsReady = false;
     let faceApiReady = false;
     let faceVerificationPassed = false;
@@ -413,11 +413,12 @@
     let positionHistory = [];
     let cameraStream = null;
     let cameraDetectionIntervalId = null;
-    let cameraHoldStartedAt = null;
+    let cameraValidationStartedAt = null;
     let cameraPreviewUrl = null;
     let cameraIsProcessing = false;
     let cameraVerificationLocked = false;
-    const liveHoldDurationMs = 3000;
+    const gpsValidationDelayMs = 2500;
+    const cameraValidationDelayMs = 900;
     const liveDetectionIntervalMs = 320;
     const faceDistanceThreshold = 0.5;
     const faceModelPath = @json(asset('vendor/face-api/weights'));
@@ -577,7 +578,7 @@
 
     function resetFaceVerificationState() {
         faceVerificationPassed = false;
-        cameraHoldStartedAt = null;
+        cameraValidationStartedAt = null;
         cameraVerificationLocked = false;
         document.getElementById('face_verified').value = '0';
         document.getElementById('face_distance').value = '';
@@ -804,6 +805,7 @@
 
         const palette = {
             neutral: '#94a3b8',
+            validating: '#0d6efd',
             red: '#dc3545',
             yellow: '#ffc107',
             green: '#198754'
@@ -854,7 +856,13 @@
                 badge: 'Siaga',
                 alert: 'secondary',
                 guide: 'Posisikan wajah di area tengah',
-                assist: 'Sistem sedang menyiapkan pembacaan wajah dan akan menangkap selfie otomatis saat kondisi sudah ideal.'
+                assist: 'Sistem sedang menyiapkan pembacaan wajah dan akan menangkap selfie otomatis setelah validasi singkat.'
+            },
+            validating: {
+                badge: 'Memastikan',
+                alert: 'info',
+                guide: 'Pastikan wajah tetap stabil',
+                assist: 'Wajah sudah cocok. Sistem sedang memastikan posisi dan kejernihan tetap konsisten sebelum selfie disimpan.'
             },
             red: {
                 badge: 'Atur Ulang',
@@ -869,10 +877,10 @@
                 assist: 'Coba hadap lurus ke kamera, kurangi blur, dan pastikan pencahayaan cukup merata.'
             },
             green: {
-                badge: 'Siap',
+                badge: 'Cocok',
                 alert: 'success',
-                guide: 'Pertahankan posisi ini',
-                assist: 'Bagus. Tahan stabil sampai progress penuh agar selfie tersimpan otomatis.'
+                guide: 'Verifikasi berhasil',
+                assist: 'Bagus. Wajah sudah cocok dan selfie akan langsung digunakan untuk presensi.'
             }
         };
         const config = states[state] || states.neutral;
@@ -900,8 +908,8 @@
         }
 
         if (progressText) {
-            if (state === 'green' && safeProgress < 1) {
-                progressText.textContent = 'Tahan ' + Math.max(1, Math.ceil((1 - safeProgress) * 3)) + ' detik lagi';
+            if (state === 'validating') {
+                progressText.textContent = 'Memastikan kestabilan wajah...';
             } else if (state === 'green') {
                 progressText.textContent = 'Selfie siap digunakan';
             } else if (state === 'yellow') {
@@ -950,7 +958,7 @@
             cameraDetectionIntervalId = null;
         }
 
-        cameraHoldStartedAt = null;
+        cameraValidationStartedAt = null;
         cameraIsProcessing = false;
 
         if (cameraStream) {
@@ -1147,7 +1155,7 @@
         updateAttendanceButtonState();
 
         if (detections.length === 0) {
-            cameraHoldStartedAt = null;
+            cameraValidationStartedAt = null;
             document.getElementById('face_distance').value = '';
             drawLiveCameraOverlay({
                 state: 'red'
@@ -1157,7 +1165,7 @@
         }
 
         if (detections.length > 1) {
-            cameraHoldStartedAt = null;
+            cameraValidationStartedAt = null;
             document.getElementById('face_distance').value = '';
             drawLiveCameraOverlay({
                 state: 'red',
@@ -1196,7 +1204,7 @@
         });
 
         if (!insideGuide) {
-            cameraHoldStartedAt = null;
+            cameraValidationStartedAt = null;
             drawLiveCameraOverlay({
                 state: 'red',
                 boxes: [faceBox]
@@ -1206,7 +1214,7 @@
         }
 
         if (detectionScore < 0.78 || faceHeightRatio < 0.32 || faceHeightRatio > 0.76 || rollAngle > 12) {
-            cameraHoldStartedAt = null;
+            cameraValidationStartedAt = null;
             drawLiveCameraOverlay({
                 state: 'yellow',
                 boxes: [faceBox]
@@ -1216,7 +1224,7 @@
         }
 
         if (distance > faceDistanceThreshold) {
-            cameraHoldStartedAt = null;
+            cameraValidationStartedAt = null;
             drawLiveCameraOverlay({
                 state: 'red',
                 boxes: [faceBox]
@@ -1225,25 +1233,38 @@
             return;
         }
 
-        if (!cameraHoldStartedAt) {
-            cameraHoldStartedAt = Date.now();
+        if (!cameraValidationStartedAt) {
+            cameraValidationStartedAt = Date.now();
         }
 
-        const progress = Math.min((Date.now() - cameraHoldStartedAt) / liveHoldDurationMs, 1);
-        const remainingSeconds = Math.max(0, Math.ceil((liveHoldDurationMs - (Date.now() - cameraHoldStartedAt)) / 1000));
+        const cameraValidationProgress = Math.min((Date.now() - cameraValidationStartedAt) / cameraValidationDelayMs, 1);
+
+        if (cameraValidationProgress < 1) {
+            drawLiveCameraOverlay({
+                state: 'validating',
+                boxes: [faceBox]
+            });
+            updateLiveFrameFeedback('validating', 'Wajah cocok. Memastikan frame tetap stabil...', cameraValidationProgress);
+            return;
+        }
 
         drawLiveCameraOverlay({
             state: 'green',
             boxes: [faceBox]
         });
-        updateLiveFrameFeedback('green', 'Wajah cocok. Tahan posisi ' + remainingSeconds + ' detik lagi.', progress);
+        cameraVerificationLocked = true;
+        cameraValidationStartedAt = null;
+        updateLiveFrameFeedback('green', 'Wajah cocok. Selfie sedang disimpan.', 1);
 
-        if (progress >= 1) {
+        try {
             await captureLiveSelfie({
                 distance,
                 detectionScore,
                 rollAngle
             });
+        } catch (error) {
+            cameraVerificationLocked = false;
+            throw error;
         }
     }
 
@@ -1262,7 +1283,6 @@
             try {
                 await evaluateLiveCameraFrame();
             } catch (error) {
-                cameraHoldStartedAt = null;
                 updateLiveFrameFeedback('red', error.message || 'Analisis kamera gagal dijalankan.', 0);
             } finally {
                 cameraIsProcessing = false;
@@ -1296,7 +1316,7 @@
 
         stopLiveCamera();
         cameraVerificationLocked = false;
-        cameraHoldStartedAt = null;
+        cameraValidationStartedAt = null;
         emphasizeManualCameraFallback(false);
         updateLiveFrameFeedback('neutral', 'Meminta akses kamera depan...', 0);
 
@@ -1390,7 +1410,6 @@
         let lastLong = null;
         let lastTime = null;
         let speed = null;
-        let stableCounter = 0;
         const selfieInput = document.getElementById('selfie_capture');
         const retryCameraButton = document.getElementById('retryCameraButton');
         const manualSelfieButton = document.getElementById('manualSelfieButton');
@@ -1543,6 +1562,7 @@
 
             if (accuracy > 75) {
                 gpsReady = false;
+                stableStartTime = null;
                 updateAttendanceButtonState();
 
                 document.getElementById("distanceInfo").innerHTML =
@@ -1560,27 +1580,13 @@
 
                 if (speed > 50) {
                     gpsReady = false;
+                    stableStartTime = null;
                     updateAttendanceButtonState();
 
                     document.getElementById("distanceInfo").innerHTML =
                         "<span class='text-danger'>Pergerakan tidak wajar terdeteksi</span>";
                     return;
                 }
-            }
-
-            if (!stableStartTime) {
-                stableStartTime = now;
-            }
-
-            if (now - stableStartTime < 5000) {
-                gpsReady = false;
-                updateAttendanceButtonState();
-
-                document.getElementById("distanceInfo").innerHTML =
-                    "<span class='text-warning'>Validasi lokasi... (" +
-                    Math.floor((5000 - (now - stableStartTime)) / 1000) +
-                    " detik)</span>";
-                return;
             }
 
             positionHistory.push({
@@ -1615,37 +1621,23 @@
 
             currentDistance = getDistance(latUser, longUser, latOffice, longOffice);
 
-            if (currentDistance <= radius) {
-                document.getElementById("distanceInfo").innerHTML =
-                    "<span class='text-success'>" +
-                    currentDistance.toFixed(1) +
-                    " meter (Dalam Radius)</span>";
-
-                if (accuracy < 75) {
-                    stableCounter++;
-                    validLogCount++;
-                } else {
-                    stableCounter = 0;
-                }
-
-                if (stableCounter >= 1) {
-                    gpsReady = true;
-                    updateAttendanceButtonState();
-                }
-            } else {
+            if (currentDistance > radius) {
                 document.getElementById("distanceInfo").innerHTML =
                     "<span class='text-danger'>" +
                     currentDistance.toFixed(1) +
                     " meter (Di luar radius)</span>";
 
                 gpsReady = false;
+                stableStartTime = null;
                 updateAttendanceButtonState();
+                return;
             }
 
             let naturalCheck = validateNaturalMovement();
 
             if (!naturalCheck.status) {
                 gpsReady = false;
+                stableStartTime = null;
                 updateAttendanceButtonState();
 
                 document.getElementById("distanceInfo").innerHTML =
@@ -1656,6 +1648,7 @@
 
             if (position.coords.mocked === true) {
                 gpsReady = false;
+                stableStartTime = null;
                 updateAttendanceButtonState();
 
                 document.getElementById("distanceInfo").innerHTML =
@@ -1663,6 +1656,29 @@
 
                 return;
             }
+
+            if (!stableStartTime) {
+                stableStartTime = now;
+            }
+
+            if (now - stableStartTime < gpsValidationDelayMs) {
+                gpsReady = false;
+                updateAttendanceButtonState();
+
+                document.getElementById("distanceInfo").innerHTML =
+                    "<span class='text-warning'>" +
+                    currentDistance.toFixed(1) +
+                    " meter (Memvalidasi lokasi...)</span>";
+                return;
+            }
+
+            gpsReady = true;
+            updateAttendanceButtonState();
+
+            document.getElementById("distanceInfo").innerHTML =
+                "<span class='text-success'>" +
+                currentDistance.toFixed(1) +
+                " meter (Dalam Radius)</span>";
 
             document.getElementById("lat_user").value = latUser;
             document.getElementById("long_user").value = longUser;
@@ -1739,15 +1755,6 @@
                     return;
                 }
 
-                if (validLogCount < 2) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Validasi belum cukup',
-                        text: 'Tunggu beberapa detik lagi.'
-                    });
-                    return;
-                }
-
                 if (!faceReferencePath) {
                     Swal.fire({
                         icon: 'warning',
@@ -1761,7 +1768,7 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'Matching wajah belum selesai',
-                        text: 'Arahkan wajah ke frame hijau sampai selfie tersimpan, atau gunakan upload manual.'
+                        text: 'Arahkan wajah ke frame sampai indikator hijau muncul, atau gunakan upload manual.'
                     });
                     return;
                 }
