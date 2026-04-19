@@ -7,6 +7,7 @@ use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\Presensi;
 use Carbon\Carbon;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -60,7 +61,8 @@ class PresensiController extends Controller
             'accuracy' => 'required|numeric',
             'speed' => 'nullable|numeric',
             'device_info' => 'nullable|string',
-            'selfie_capture' => 'required|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'selfie_capture' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'selfie_capture_data' => 'nullable|string|max:7000000|required_without:selfie_capture',
             'face_verified' => 'required|boolean',
             'face_distance' => 'required|numeric|min:0|max:2',
             'face_detection_count' => 'required|integer|min:1|max:5',
@@ -148,7 +150,16 @@ class PresensiController extends Controller
         }
 
         $isSuspicious = $securityScore < 60 ? 'TRUE' : 'FALSE';
-        $selfiePath = $this->storeFaceSelfie($request->file('selfie_capture'), $user->nik_karyawan, $type);
+        $selfieFile = $request->hasFile('selfie_capture')
+            ? $request->file('selfie_capture')
+            : $this->makeFaceSelfieFromBase64($request->input('selfie_capture_data'));
+
+        if (!$selfieFile) {
+            toast()->error('Error', 'Selfie kamera tidak valid. Silakan ulangi verifikasi wajah.');
+            return back();
+        }
+
+        $selfiePath = $this->storeFaceSelfie($selfieFile, $user->nik_karyawan, $type);
 
         $absensi = Presensi::updateOrCreate(
             [
@@ -291,5 +302,45 @@ class PresensiController extends Controller
         $file->move($directory, $filename);
 
         return 'presensi-selfie/' . $nik . '/' . $datePath . '/' . $filename;
+    }
+
+    private function makeFaceSelfieFromBase64(?string $base64Image): ?UploadedFile
+    {
+        if (!$base64Image) {
+            return null;
+        }
+
+        if (!preg_match('/^data:image\/(jpeg|jpg|png|webp);base64,/', $base64Image, $matches)) {
+            return null;
+        }
+
+        $binaryImage = base64_decode(substr($base64Image, strpos($base64Image, ',') + 1), true);
+
+        if ($binaryImage === false || strlen($binaryImage) > (4 * 1024 * 1024)) {
+            return null;
+        }
+
+        $extension = $matches[1] === 'jpeg' ? 'jpg' : $matches[1];
+        $tempPath = tempnam(sys_get_temp_dir(), 'presensi_selfie_');
+
+        if ($tempPath === false) {
+            return null;
+        }
+
+        $imagePath = $tempPath . '.' . $extension;
+
+        if (!@rename($tempPath, $imagePath)) {
+            $imagePath = $tempPath;
+        }
+
+        File::put($imagePath, $binaryImage);
+
+        return new UploadedFile(
+            $imagePath,
+            'selfie-live.' . $extension,
+            'image/' . $extension,
+            null,
+            true
+        );
     }
 }
