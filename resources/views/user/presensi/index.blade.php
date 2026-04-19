@@ -220,30 +220,6 @@
                                 id="selfie_capture_data"
                                 name="selfie_capture_data"
                                 form="formAbsen">
-                                
-                            <div class="camera-tips">
-                                <div class="camera-tip">
-                                    <div class="camera-tip__icon">
-                                        <i class="fas fa-sun"></i>
-                                    </div>
-                                    <strong>Pencahayaan cukup</strong>
-                                    <span>Pastikan wajah terang merata dan tidak membelakangi sumber cahaya.</span>
-                                </div>
-                                <div class="camera-tip">
-                                    <div class="camera-tip__icon">
-                                        <i class="fas fa-user-check"></i>
-                                    </div>
-                                    <strong>Wajah lurus ke depan</strong>
-                                    <span>Jaga wajah tetap di tengah, tidak menunduk, dan hanya satu orang di kamera.</span>
-                                </div>
-                                <div class="camera-tip">
-                                    <div class="camera-tip__icon">
-                                        <i class="fas fa-hand-paper"></i>
-                                    </div>
-                                    <strong>Tahan sebentar</strong>
-                                    <span>Saat status hijau muncul, tahan posisi selama 3 detik sampai selfie tersimpan.</span>
-                                </div>
-                            </div>
 
                             <div id="faceVerificationAlert" class="alert alert-secondary mt-3 mb-0">
                                 Kamera sedang disiapkan untuk verifikasi wajah.
