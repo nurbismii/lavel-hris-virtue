@@ -59,7 +59,7 @@
                     <!-- Logo Header -->
                     <div class="logo-header" data-background-color="white">
                         <a href="{{ $appHomeUrl }}" class="logo text-decoration-none">
-                            <span class="logo-industrial">PT VDNI - HRIS</span>
+                            <span class="logo-industrial logo-industrial--header">PT VDNI - HRIS</span>
                         </a>
                         <div class="nav-toggle">
                             <button class="btn btn-toggle toggle-sidebar">

@@ -34,7 +34,7 @@
         <div class="logo-header" data-background-color="white">
             <a href="{{ $homeUrl }}" class="logo">
                 <img src="{{ asset('assets/img/kaiadmin/favicon-1.png')}}" alt="navbar brand" class="navbar-brand" height="80" />
-                <div class="text-decoration-none logo-industrial">V-People</div>
+                <div class="text-decoration-none logo-industrial logo-industrial--sidebar">V-People</div>
             </a>
             <div class="nav-toggle">
                 <button class="btn btn-toggle toggle-sidebar">
