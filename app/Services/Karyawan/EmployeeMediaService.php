@@ -54,7 +54,7 @@ class EmployeeMediaService
         ],
     ];
 
-    public function storeUploadedFile(Employee $employee, UploadedFile $file, string $type): string
+    public function storeUploadedFile(Employee $employee, UploadedFile $file, string $type, bool $allowCompression = true): string
     {
         $config = $this->getTypeConfig($type);
         $relativeDirectory = sprintf($config['directory'], $employee->nik);
@@ -68,7 +68,7 @@ class EmployeeMediaService
 
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
 
-        if ($this->shouldCompressImage($file)) {
+        if ($this->shouldCompressImage($file, $allowCompression)) {
             $extension = 'jpg';
         }
 
@@ -77,7 +77,7 @@ class EmployeeMediaService
         $newRelativePath = $relativeDirectory . '/' . $filename;
         $absolutePath = $absoluteDirectory . DIRECTORY_SEPARATOR . $filename;
 
-        if (!$this->storeImageWithCompressionIfNeeded($file, $absolutePath)) {
+        if (!$this->storeImageWithCompressionIfNeeded($file, $absolutePath, $allowCompression)) {
             $file->move($absoluteDirectory, $filename);
         }
 
@@ -151,9 +151,10 @@ class EmployeeMediaService
         return self::TYPE_CONFIG[$type];
     }
 
-    private function shouldCompressImage(UploadedFile $file): bool
+    private function shouldCompressImage(UploadedFile $file, bool $allowCompression): bool
     {
-        return $this->isImageFile($file)
+        return $allowCompression
+            && $this->isImageFile($file)
             && $file->getSize() > self::TARGET_IMAGE_BYTES
             && extension_loaded('gd');
     }
@@ -165,9 +166,9 @@ class EmployeeMediaService
         return Str::startsWith($mimeType, 'image/');
     }
 
-    private function storeImageWithCompressionIfNeeded(UploadedFile $file, string $destinationPath): bool
+    private function storeImageWithCompressionIfNeeded(UploadedFile $file, string $destinationPath, bool $allowCompression): bool
     {
-        if (!$this->shouldCompressImage($file)) {
+        if (!$this->shouldCompressImage($file, $allowCompression)) {
             return false;
         }
 

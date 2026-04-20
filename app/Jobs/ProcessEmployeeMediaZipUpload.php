@@ -103,12 +103,22 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $column = $mediaService->getColumnForType($this->mediaType);
         $summary = $this->loadSummary();
         $startIndex = max(0, $this->offset);
-        $chunkSize = max(5, (int) env('EMPLOYEE_MEDIA_ZIP_CHUNK_SIZE', 20));
+        $chunkSize = max(1, (int) env('EMPLOYEE_MEDIA_ZIP_CHUNK_SIZE', 5));
         $endIndex = min($zip->numFiles, $startIndex + $chunkSize);
+        $totalEntries = $zip->numFiles;
 
         if (!File::exists($tempDirectory)) {
             File::makeDirectory($tempDirectory, 0755, true);
         }
+
+        Log::info('Employee ZIP media import chunk started.', [
+            'media_type' => $this->mediaType,
+            'uploader_id' => $this->uploaderId,
+            'import_id' => $this->importId,
+            'offset' => $this->offset,
+            'chunk_size' => $chunkSize,
+            'total_entries' => $totalEntries,
+        ]);
 
         try {
             for ($index = $startIndex; $index < $endIndex; $index++) {
@@ -124,6 +134,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                 if (!in_array($extension, $allowedExtensions, true)) {
                     $summary['skipped_count']++;
                     $this->rememberItem($summary, 'skip', $basename, 'Ekstensi file tidak sesuai untuk jenis upload ini.');
+                    $this->persistSummary($summary);
                     continue;
                 }
 
@@ -132,12 +143,14 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                 if (!$nik) {
                     $summary['skipped_count']++;
                     $this->rememberItem($summary, 'skip', $basename, 'NIK tidak dikenali dari nama file.');
+                    $this->persistSummary($summary);
                     continue;
                 }
 
                 if (isset($summary['processed_niks'][$nik])) {
                     $summary['skipped_count']++;
                     $this->rememberItem($summary, 'skip', $basename, "Duplikat file untuk NIK {$nik} dalam ZIP yang sama.");
+                    $this->persistSummary($summary);
                     continue;
                 }
 
@@ -146,6 +159,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                 if (!$employee) {
                     $summary['skipped_count']++;
                     $this->rememberItem($summary, 'skip', $basename, "Karyawan dengan NIK {$nik} tidak ditemukan atau di luar scope.");
+                    $this->persistSummary($summary);
                     continue;
                 }
 
@@ -154,6 +168,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                 if (!$temporaryFile) {
                     $summary['skipped_count']++;
                     $this->rememberItem($summary, 'skip', $basename, 'File di dalam ZIP tidak dapat diekstrak.');
+                    $this->persistSummary($summary);
                     continue;
                 }
 
@@ -166,7 +181,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                         true
                     );
 
-                    $path = $mediaService->storeUploadedFile($employee, $uploadedFile, $this->mediaType);
+                    $path = $mediaService->storeUploadedFile($employee, $uploadedFile, $this->mediaType, false);
                     $employee->forceFill([$column => $path])->save();
                     $summary['processed_niks'][$nik] = true;
                     $summary['success_count']++;
@@ -177,11 +192,15 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 
                     Log::warning('Employee ZIP media import failed for file.', [
                         'media_type' => $this->mediaType,
+                        'import_id' => $this->importId,
+                        'offset' => $this->offset,
                         'entry_name' => $entryName,
                         'nik' => $nik,
                         'error' => $exception->getMessage(),
                     ]);
                 } finally {
+                    $this->persistSummary($summary);
+
                     if (File::exists($temporaryFile)) {
                         File::delete($temporaryFile);
                     }
@@ -195,9 +214,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             }
         }
 
-        $this->persistSummary($summary);
-
-        if ($endIndex < $zip->numFiles) {
+        if ($endIndex < $totalEntries) {
             Log::info('Employee ZIP media import chunk finished.', [
                 'media_type' => $this->mediaType,
                 'uploader_id' => $this->uploaderId,
@@ -205,6 +222,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                 'offset' => $this->offset,
                 'chunk_size' => $chunkSize,
                 'next_offset' => $endIndex,
+                'total_entries' => $totalEntries,
                 'success_count' => $summary['success_count'],
                 'skipped_count' => $summary['skipped_count'],
             ]);
@@ -391,10 +409,25 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             ? "ZIP {$label} gagal diproses. Berhasil {$summary['success_count']} file, dilewati {$summary['skipped_count']} file."
             : "ZIP {$label} selesai diproses. Berhasil {$summary['success_count']} file, dilewati {$summary['skipped_count']} file.";
 
+        if (!empty($summary['items'])) {
+            $sampleMessages = collect($summary['items'])
+                ->pluck('message')
+                ->filter()
+                ->unique()
+                ->take(2)
+                ->implode(' | ');
+
+            if ($sampleMessages !== '') {
+                $message .= ' Info: ' . $sampleMessages;
+            }
+        }
+
         $uploader->notify(new StatusPengajuanNotification([
             'judul' => $title,
             'pesan' => $message,
-            'url' => $isFaceReference ? route('set-kehadiran.index') : route('karyawan.index'),
+            'url' => $isFaceReference
+                ? route('set-kehadiran.index', [], false)
+                : route('karyawan.index', [], false),
             'tipe' => 'bulk_upload',
         ]));
     }
