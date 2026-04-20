@@ -1,0 +1,26 @@
+CONTOH FORMAT ZIP FOTO REFERENSI PRESENSI
+
+Gunakan satu file ZIP khusus untuk foto referensi presensi.
+
+Aturan isi ZIP:
+- Nama file wajib mengandung NIK karyawan
+- File harus berupa gambar: jpg, jpeg, png, webp
+- Satu NIK hanya boleh satu file dalam satu ZIP
+- Foto sebaiknya wajah lurus ke kamera
+- Hindari foto blur, gelap, dan lebih dari satu wajah
+
+Contoh nama file yang benar:
+- 2200112233.jpg
+- 2200112234-reference.png
+- 2200112235_foto.webp
+
+Contoh struktur ZIP yang benar:
+face-reference.zip
+  2200112233.jpg
+  2200112234.png
+  2200112235.webp
+
+Catatan:
+- File di subfolder tetap bisa diproses, tetapi lebih aman simpan langsung di root ZIP
+- Jika ada NIK yang tidak ditemukan, file itu akan dilewati
+- Hasil proses dikirim ke notifikasi aplikasi

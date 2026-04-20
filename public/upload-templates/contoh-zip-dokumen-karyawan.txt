@@ -1,0 +1,38 @@
+CONTOH FORMAT ZIP DOKUMEN KARYAWAN
+
+Gunakan satu file ZIP per jenis dokumen:
+- photo.zip
+- ktp.zip
+- kk.zip
+- sim.zip
+- sio.zip
+
+Aturan isi ZIP:
+- Nama file wajib mengandung NIK karyawan
+- Boleh ada teks tambahan setelah NIK
+- File yang didukung:
+  - PHOTO: jpg, jpeg, png, webp
+  - KTP/KK/SIM/SIO: jpg, jpeg, png, webp, pdf
+- Jangan isi dua file untuk NIK yang sama dalam satu ZIP
+
+Contoh nama file yang benar:
+- 2200112233.jpg
+- 2200112234-foto.png
+- 2200112235.pdf
+- 2200112236_ktp.jpg
+
+Contoh struktur ZIP yang benar:
+photo.zip
+  2200112233.jpg
+  2200112234.png
+  2200112235.webp
+
+ktp.zip
+  2200112233.jpg
+  2200112234.pdf
+  2200112235.png
+
+Catatan:
+- File di subfolder tetap bisa diproses, tetapi lebih aman simpan langsung di root ZIP
+- Jika ada NIK yang tidak ditemukan, file itu akan dilewati
+- Hasil proses dikirim ke notifikasi aplikasi

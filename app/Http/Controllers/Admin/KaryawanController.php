@@ -5,13 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\KaryawanRequest\UpdateKaryawanRequest;
 use App\Imports\ImportEmployee;
+use App\Jobs\ProcessEmployeeMediaZipUpload;
 use App\Jobs\DeleteImportedFile;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
 use App\Models\Perusahaan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Facades\Excel;
 
 class KaryawanController extends Controller
@@ -94,33 +94,82 @@ class KaryawanController extends Controller
             ->where('nik', $nik)
             ->firstOrFail();
 
-        $validatedData = $request->safe()->except('face_reference');
+        $validatedData = $request->safe()->except([
+            'photo_file',
+            'ktp_file',
+            'kk_file',
+            'sim_file',
+            'sio_file',
+            'face_reference',
+        ]);
+        $mediaService = app()->make(\App\Services\Karyawan\EmployeeMediaService::class);
+        $fileInputs = [
+            'photo_file' => 'photo',
+            'ktp_file' => 'ktp',
+            'kk_file' => 'kk',
+            'sim_file' => 'sim',
+            'sio_file' => 'sio',
+            'face_reference' => 'face_reference',
+        ];
 
-        if ($request->hasFile('face_reference')) {
-            $faceDirectory = public_path('face-reference/' . $employee->nik);
-
-            if (!File::exists($faceDirectory)) {
-                File::makeDirectory($faceDirectory, 0755, true);
+        foreach ($fileInputs as $input => $type) {
+            if (!$request->hasFile($input)) {
+                continue;
             }
 
-            if (!empty($employee->face_reference_path)) {
-                $oldFacePath = public_path($employee->face_reference_path);
+            $column = $mediaService->getColumnForType($type);
+            $path = $mediaService->storeUploadedFile($employee, $request->file($input), $type);
 
-                if (File::exists($oldFacePath)) {
-                    File::delete($oldFacePath);
-                }
-            }
-
-            $file = $request->file('face_reference');
-            $filename = 'reference_' . now()->format('YmdHis') . '.' . $file->getClientOriginalExtension();
-            $file->move($faceDirectory, $filename);
-
-            $validatedData['face_reference_path'] = 'face-reference/' . $employee->nik . '/' . $filename;
+            $validatedData[$column] = $path;
+            $employee->{$column} = $path;
         }
 
         $employee->update($validatedData);
 
         toast('Data karyawan berhasil diperbarui!', 'success');
+        return redirect()->route('karyawan.index');
+    }
+
+    public function bulkUploadDocuments(Request $request)
+    {
+        abort_unless($request->user()->canAccessAllEmployees(), 403, 'Akses tidak diizinkan.');
+
+        $request->validate([
+            'bulk_photo_zip' => 'nullable|file|mimes:zip|max:512000',
+            'bulk_ktp_zip' => 'nullable|file|mimes:zip|max:512000',
+            'bulk_kk_zip' => 'nullable|file|mimes:zip|max:512000',
+            'bulk_sim_zip' => 'nullable|file|mimes:zip|max:512000',
+            'bulk_sio_zip' => 'nullable|file|mimes:zip|max:512000',
+        ]);
+
+        $inputMap = [
+            'bulk_photo_zip' => 'photo',
+            'bulk_ktp_zip' => 'ktp',
+            'bulk_kk_zip' => 'kk',
+            'bulk_sim_zip' => 'sim',
+            'bulk_sio_zip' => 'sio',
+        ];
+        $hasAnyUpload = collect(array_keys($inputMap))
+            ->contains(fn($input) => $request->hasFile($input));
+
+        if (!$hasAnyUpload) {
+            return back()->withErrors([
+                'bulk_documents_zip' => 'Pilih minimal satu file ZIP dokumen untuk diproses.',
+            ]);
+        }
+        $queuedCount = 0;
+
+        foreach ($inputMap as $input => $type) {
+            if (!$request->hasFile($input)) {
+                continue;
+            }
+
+            $filePath = $request->file($input)->store('employee-zip-imports');
+            ProcessEmployeeMediaZipUpload::dispatch($filePath, $type, $request->user()->id);
+            $queuedCount++;
+        }
+
+        toast()->success('Success', "{$queuedCount} file ZIP dokumen sedang diproses di background. Cek notifikasi untuk hasil akhirnya.");
         return redirect()->route('karyawan.index');
     }
 

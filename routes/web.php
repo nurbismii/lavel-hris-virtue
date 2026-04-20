@@ -105,6 +105,9 @@ Route::middleware(['android.redirect'])->group(function () {
 
         Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->middleware('menu:dashboard_admin')->name('home');
 
+        Route::post('/karyawan/bulk-upload-documents', [App\Http\Controllers\Admin\KaryawanController::class, 'bulkUploadDocuments'])
+            ->middleware('menu:data_karyawan')
+            ->name('karyawan.bulk-upload-documents');
         Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController')->middleware('menu:data_karyawan');
 
         Route::resource('/user', 'App\Http\Controllers\Admin\UserController')->middleware('menu:data_user');
@@ -177,6 +180,7 @@ Route::middleware(['android.redirect'])->group(function () {
 
         Route::get('/set-kehadiran', [AttendanceSettingController::class, 'index'])->name('set-kehadiran.index');
         Route::post('/set-kehadiran/update', [AttendanceSettingController::class, 'update'])->name('set-kehadiran.update');
+        Route::post('/set-kehadiran/bulk-upload-face-reference', [AttendanceSettingController::class, 'bulkUploadFaceReferences'])->name('set-kehadiran.bulk-upload-face-reference');
     });
 });
 

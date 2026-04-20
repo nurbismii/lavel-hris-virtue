@@ -49,6 +49,12 @@
                 </small>
                 <small class="text-muted d-block">Checked = OFF</small>
             </div>
+
+            <div class="ms-md-auto pt-3 pt-md-0">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalBulkFaceReference">
+                    Bulk Foto Referensi Presensi
+                </button>
+            </div>
         </div>
 
         <form method="GET" class="row g-2 mb-3 align-items-end">
@@ -184,6 +190,57 @@
                     </table>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalBulkFaceReference" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalBulkFaceReferenceLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalBulkFaceReferenceLabel">Bulk Upload Foto Referensi Presensi</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ route('set-kehadiran.bulk-upload-face-reference') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                <input type="hidden" name="periode" value="{{ $periode }}">
+                <input type="hidden" name="departemen" value="{{ $selectedDepartemenId }}">
+                <input type="hidden" name="divisi" value="{{ $selectedDivisiId }}">
+
+                <div class="modal-body">
+                    <div class="alert alert-light border small">
+                        Upload satu file ZIP khusus foto referensi presensi.
+                        Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya <code>2200112233.jpg</code>.
+                        ZIP akan diproses di background dan hasil akhirnya dikirim ke notifikasi.
+                    </div>
+
+                    <div class="alert alert-warning small">
+                        Batas upload ZIP dari aplikasi ini disiapkan sampai sekitar <code>500MB</code> per file ZIP. Pastikan worker queue aktif agar proses berjalan di background.
+                    </div>
+
+                    <div class="alert alert-info small">
+                        <div class="fw-semibold mb-1">Panduan cepat</div>
+                        <div>Queue aktif saat ini: <code>{{ config('queue.default') }}</code></div>
+                        <div>Perintah worker yang disarankan: <code>php artisan queue:work --queue=default --tries=1 --timeout=14400</code></div>
+                        <div class="mt-2">
+                            <a href="{{ asset('upload-templates/contoh-zip-foto-referensi-presensi.txt') }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                Download Template ZIP
+                            </a>
+                        </div>
+                    </div>
+
+                    <label class="form-label">Pilih ZIP Foto Referensi</label>
+                    <input type="file" name="face_reference_zip" class="form-control" accept=".zip,application/zip" required>
+                    <small class="text-muted d-block mt-2">
+                        Satu ZIP ini hanya akan dipasangkan ke karyawan dalam scope akses Anda. Maksimal sekitar 500MB per ZIP.
+                    </small>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                    <button type="submit" class="btn btn-primary">Upload ZIP</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

@@ -10,7 +10,46 @@
 
         <div class="card">
             <div class="card-body">
-                <form action="{{ route('karyawan.update', $employee->nik) }}" method="POST" enctype="multipart/form-data">
+                @php
+                    $documentFields = [
+                        [
+                            'label' => 'Foto Karyawan',
+                            'input' => 'photo_file',
+                            'path' => $employee->photo_path,
+                            'accept' => 'image/png,image/jpeg,image/webp',
+                            'help' => 'Upload foto profil atau pas foto karyawan.',
+                        ],
+                        [
+                            'label' => 'KTP',
+                            'input' => 'ktp_file',
+                            'path' => $employee->ktp_path,
+                            'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
+                            'help' => 'Bisa berupa gambar atau PDF.',
+                        ],
+                        [
+                            'label' => 'KK',
+                            'input' => 'kk_file',
+                            'path' => $employee->kk_path,
+                            'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
+                            'help' => 'Bisa berupa gambar atau PDF.',
+                        ],
+                        [
+                            'label' => 'SIM',
+                            'input' => 'sim_file',
+                            'path' => $employee->sim_path,
+                            'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
+                            'help' => 'Bisa berupa gambar atau PDF.',
+                        ],
+                        [
+                            'label' => 'SIO',
+                            'input' => 'sio_file',
+                            'path' => $employee->sio_path,
+                            'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
+                            'help' => 'Bisa berupa gambar atau PDF.',
+                        ],
+                    ];
+                @endphp
+                <form action="{{ route('karyawan.update', $employee->nik) }}" method="POST" enctype="multipart/form-data" data-auto-compress-images="true">
                     @csrf
                     @method('PUT')
 
@@ -38,12 +77,12 @@
 
                         <div class="col-md-4 mb-3">
                             <label class="form-label">Foto Referensi Wajah</label>
-                            <input type="file" class="form-control @error('face_reference') is-invalid @enderror" name="face_reference" accept="image/png,image/jpeg,image/webp">
+                            <input type="file" class="form-control @error('face_reference') is-invalid @enderror" name="face_reference" accept="image/png,image/jpeg,image/webp" data-compress-images="true">
                             @error('face_reference')
                             <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                             <small class="text-muted d-block mt-2">
-                                Upload foto wajah lurus ke kamera. Foto ini dipakai untuk verifikasi presensi.
+                                Upload foto wajah lurus ke kamera. Gambar akan dikompres otomatis ke kisaran 1-2MB bila terlalu besar.
                             </small>
                         </div>
 
@@ -57,6 +96,49 @@
                             </div>
                             @endif
                         </div>
+                    </div>
+
+                    <h5 class="fw-bold mt-4 mb-3">Dokumen Karyawan</h5>
+                    <div class="row">
+                        @foreach($documentFields as $document)
+                            @php
+                                $currentPath = $document['path'] ?? null;
+                                $isImage = $currentPath
+                                    ? \Illuminate\Support\Str::endsWith(strtolower($currentPath), ['.jpg', '.jpeg', '.png', '.webp'])
+                                    : false;
+                            @endphp
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">{{ $document['label'] }}</label>
+                                <input
+                                    type="file"
+                                    class="form-control @error($document['input']) is-invalid @enderror"
+                                    name="{{ $document['input'] }}"
+                                    accept="{{ $document['accept'] }}"
+                                    data-compress-images="true">
+                                @error($document['input'])
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <small class="text-muted d-block mt-2">{{ $document['help'] }} Gambar akan dikompres otomatis ke kisaran 1-2MB, sedangkan PDF tidak dikompres.</small>
+
+                                <div class="border rounded bg-light p-3 mt-3">
+                                    @if($currentPath)
+                                        @if($isImage)
+                                            <img
+                                                src="{{ asset($currentPath) }}"
+                                                alt="{{ $document['label'] }}"
+                                                class="img-fluid rounded border"
+                                                style="max-height: 180px; object-fit: cover;">
+                                        @else
+                                            <a href="{{ asset($currentPath) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                Lihat file saat ini
+                                            </a>
+                                        @endif
+                                    @else
+                                        <div class="text-muted small">Belum ada file {{ strtolower($document['label']) }}.</div>
+                                    @endif
+                                </div>
+                            </div>
+                        @endforeach
                     </div>
 
                     {{-- PEKERJAAN --}}

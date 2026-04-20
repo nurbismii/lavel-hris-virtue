@@ -5,6 +5,7 @@ namespace App\Http\Controllers\AdminDivisi;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\EmployeeAttendanceSetting;
+use App\Jobs\ProcessEmployeeMediaZipUpload;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
@@ -178,5 +179,18 @@ class AttendanceSettingController extends Controller
         return response()->json([
             'success' => true
         ]);
+    }
+
+    public function bulkUploadFaceReferences(Request $request)
+    {
+        $request->validate([
+            'face_reference_zip' => 'required|file|mimes:zip|max:512000',
+        ]);
+
+        $filePath = $request->file('face_reference_zip')->store('employee-zip-imports');
+        ProcessEmployeeMediaZipUpload::dispatch($filePath, 'face_reference', $request->user()->id);
+
+        toast()->success('Success', 'ZIP foto referensi sedang diproses di background. Cek notifikasi untuk hasil akhirnya.');
+        return redirect()->route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
     }
 }

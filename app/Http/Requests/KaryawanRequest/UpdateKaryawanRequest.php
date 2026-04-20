@@ -47,6 +47,11 @@ class UpdateKaryawanRequest extends FormRequest
             'npwp' => 'nullable|string|max:50',
             'bpjs_kesehatan' => 'nullable|string|max:50',
             'bpjs_tk' => 'nullable|string|max:50',
+            'photo_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
+            'ktp_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
+            'kk_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
+            'sim_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
+            'sio_file' => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
             'face_reference' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
         ];
     }

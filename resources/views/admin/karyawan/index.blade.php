@@ -32,7 +32,10 @@
             </div>
 
             @if($canManageMasterData)
-                <div class="ms-md-auto py-2 py-md-0">
+                <div class="ms-md-auto py-2 py-md-0 d-flex flex-wrap gap-2">
+                    <a class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalBulkDocuments">
+                        Bulk Dokumen
+                    </a>
                     <a class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalImportEmployee">
                         Bulk Karyawan
                     </a>
@@ -65,15 +68,15 @@
                                 <select id="filter_departemen" class="form-select">
                                     <option value="">Semua Departemen</option>
                                     @php
-                                    $groupedDepts = [];
-                                    foreach ($departemens as $d) {
-                                    $groupedDepts[$d->perusahaan['nama_perusahaan']][] = $d;
-                                    }
+                                        $groupedDepts = [];
+                                        foreach ($departemens as $d) {
+                                            $groupedDepts[optional($d->perusahaan)->nama_perusahaan ?? 'Lainnya'][] = $d;
+                                        }
                                     @endphp
 
-                                    @foreach($groupedDepts as $perusahaan => $departemens)
+                                    @foreach($groupedDepts as $perusahaan => $departemenItems)
                                     <optgroup label="{{ $perusahaan }}">
-                                        @foreach($departemens as $d)
+                                        @foreach($departemenItems as $d)
                                         <option value="{{ $d->id }}">{{ $d->departemen }}</option>
                                         @endforeach
                                     </optgroup>
@@ -132,6 +135,84 @@
 </div>
 
 @if($canManageMasterData)
+    <div class="modal fade" id="modalBulkDocuments" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalBulkDocumentsLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="modalBulkDocumentsLabel">Bulk Upload Dokumen Karyawan</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('karyawan.bulk-upload-documents') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="alert alert-light border small">
+                            Upload satu file ZIP per jenis dokumen.
+                            Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya <code>2200112233.jpg</code> atau <code>2200112233.pdf</code>.
+                            ZIP akan diproses di background dan hasil akhirnya dikirim ke notifikasi.
+                        </div>
+
+                        <div class="alert alert-warning small">
+                            Batas upload ZIP dari aplikasi ini disiapkan sampai sekitar <code>500MB</code> per file ZIP. Pastikan worker queue aktif agar proses berjalan di background.
+                        </div>
+
+                        <div class="alert alert-info small mb-0">
+                            <div class="fw-semibold mb-1">Panduan cepat</div>
+                            <div>Queue aktif saat ini: <code>{{ config('queue.default') }}</code></div>
+                            <div>Perintah worker yang disarankan: <code>php artisan queue:work --queue=default --tries=1 --timeout=14400</code></div>
+                            <div class="mt-2">
+                                <a href="{{ asset('upload-templates/contoh-zip-dokumen-karyawan.txt') }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    Download Template ZIP
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">ZIP Foto Karyawan</label>
+                                <input type="file" name="bulk_photo_zip" class="form-control" accept=".zip,application/zip">
+                                <small class="text-muted">Satu ZIP khusus isi foto karyawan. Maksimal sekitar 500MB per ZIP.</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">ZIP KTP</label>
+                                <input type="file" name="bulk_ktp_zip" class="form-control" accept=".zip,application/zip">
+                                <small class="text-muted">Satu ZIP khusus isi file KTP. Maksimal sekitar 500MB per ZIP.</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">ZIP KK</label>
+                                <input type="file" name="bulk_kk_zip" class="form-control" accept=".zip,application/zip">
+                                <small class="text-muted">Satu ZIP khusus isi file KK. Maksimal sekitar 500MB per ZIP.</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">ZIP SIM</label>
+                                <input type="file" name="bulk_sim_zip" class="form-control" accept=".zip,application/zip">
+                                <small class="text-muted">Satu ZIP khusus isi file SIM. Maksimal sekitar 500MB per ZIP.</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">ZIP SIO</label>
+                                <input type="file" name="bulk_sio_zip" class="form-control" accept=".zip,application/zip">
+                                <small class="text-muted">Satu ZIP khusus isi file SIO. Maksimal sekitar 500MB per ZIP.</small>
+                            </div>
+                        </div>
+
+                        @if($errors->has('bulk_documents_zip'))
+                            <div class="alert alert-warning mt-3 mb-0">
+                                {{ $errors->first('bulk_documents_zip') }}
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        <button type="submit" class="btn btn-primary">Upload ZIP</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="modalImportEmployee" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalImportEmployeeLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
