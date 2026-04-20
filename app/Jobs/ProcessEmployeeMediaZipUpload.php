@@ -23,10 +23,8 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    private const ENTRY_CHUNK_SIZE = 100;
-
     public $tries = 1;
-    public $timeout = 1200;
+    public $timeout = 300;
     public $failOnTimeout = true;
 
     protected $zipPath;
@@ -42,6 +40,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $this->uploaderId = $uploaderId;
         $this->offset = $offset;
         $this->importId = $importId ?: (string) Str::uuid();
+        $this->onQueue(config('queue.connections.' . config('queue.default') . '.queue', 'default'));
     }
 
     public function handle(EmployeeMediaService $mediaService)
@@ -104,7 +103,8 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $column = $mediaService->getColumnForType($this->mediaType);
         $summary = $this->loadSummary();
         $startIndex = max(0, $this->offset);
-        $endIndex = min($zip->numFiles, $startIndex + self::ENTRY_CHUNK_SIZE);
+        $chunkSize = max(5, (int) env('EMPLOYEE_MEDIA_ZIP_CHUNK_SIZE', 20));
+        $endIndex = min($zip->numFiles, $startIndex + $chunkSize);
 
         if (!File::exists($tempDirectory)) {
             File::makeDirectory($tempDirectory, 0755, true);
@@ -203,6 +203,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                 'uploader_id' => $this->uploaderId,
                 'import_id' => $this->importId,
                 'offset' => $this->offset,
+                'chunk_size' => $chunkSize,
                 'next_offset' => $endIndex,
                 'success_count' => $summary['success_count'],
                 'skipped_count' => $summary['skipped_count'],
