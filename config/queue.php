@@ -37,14 +37,14 @@ return [
         'database' => [
             'driver' => 'database',
             'table' => 'jobs',
-            'queue' => 'default',
+            'queue' => env('QUEUE_NAME', 'default'),
             'retry_after' => env('QUEUE_RETRY_AFTER', 1800),
         ],
 
         'beanstalkd' => [
             'driver' => 'beanstalkd',
             'host' => 'localhost',
-            'queue' => 'default',
+            'queue' => env('QUEUE_NAME', 'default'),
             'retry_after' => env('QUEUE_RETRY_AFTER', 1800),
             'block_for' => 0,
         ],
@@ -62,7 +62,7 @@ return [
         'redis' => [
             'driver' => 'redis',
             'connection' => 'default',
-            'queue' => env('REDIS_QUEUE', 'default'),
+            'queue' => env('REDIS_QUEUE', env('QUEUE_NAME', 'default')),
             'retry_after' => env('QUEUE_RETRY_AFTER', 1800),
             'block_for' => null,
         ],
