@@ -3,6 +3,7 @@
 /public/foto-karyawan
 /public/storage
 /public/face-reference
+/public/employee-documents
 /storage/*.key
 /vendor
 .env

@@ -98,12 +98,16 @@ class EmployeeMediaService
         return $this->getTypeConfig($type)['allowed_extensions'];
     }
 
-    public function resolveNikFromFilename(string $originalName, array $knownNiks): ?string
+    public function resolveNikFromFilename(string $originalName, array $knownNiks = []): ?string
     {
-        $basename = strtolower(trim(pathinfo($originalName, PATHINFO_FILENAME)));
+        $candidates = $this->extractNikCandidatesFromFilename($originalName);
 
-        if ($basename === '') {
+        if (empty($candidates)) {
             return null;
+        }
+
+        if (empty($knownNiks)) {
+            return $candidates[0] ?? null;
         }
 
         $normalizedNiks = [];
@@ -112,21 +116,34 @@ class EmployeeMediaService
             $normalizedNiks[strtolower((string) $nik)] = (string) $nik;
         }
 
-        if (isset($normalizedNiks[$basename])) {
-            return $normalizedNiks[$basename];
-        }
+        foreach ($candidates as $candidate) {
+            $normalizedCandidate = strtolower((string) $candidate);
 
-        $tokens = preg_split('/[^a-zA-Z0-9]+/', $basename, -1, PREG_SPLIT_NO_EMPTY) ?: [];
-
-        foreach ($tokens as $token) {
-            $normalizedToken = strtolower(trim($token));
-
-            if (isset($normalizedNiks[$normalizedToken])) {
-                return $normalizedNiks[$normalizedToken];
+            if (isset($normalizedNiks[$normalizedCandidate])) {
+                return $normalizedNiks[$normalizedCandidate];
             }
         }
 
         return null;
+    }
+
+    public function extractNikCandidatesFromFilename(string $originalName): array
+    {
+        $basename = strtolower(trim(pathinfo($originalName, PATHINFO_FILENAME)));
+
+        if ($basename === '') {
+            return [];
+        }
+
+        $tokens = preg_split('/[^a-zA-Z0-9]+/', $basename, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        return collect(array_merge([$basename], $tokens))
+            ->map(fn($token) => strtolower(trim((string) $token)))
+            ->filter(fn($token) => $token !== '')
+            ->unique()
+            ->sortByDesc(fn($token) => strlen($token))
+            ->values()
+            ->all();
     }
 
     public function deleteRelativePath(?string $relativePath): void
@@ -154,6 +171,7 @@ class EmployeeMediaService
     private function shouldCompressImage(UploadedFile $file, bool $allowCompression): bool
     {
         return $allowCompression
+            && (bool) config('app.employee_media_server_side_compression', false)
             && $this->isImageFile($file)
             && $file->getSize() > self::TARGET_IMAGE_BYTES
             && extension_loaded('gd');

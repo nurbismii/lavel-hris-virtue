@@ -41,24 +41,26 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $this->offset = $offset;
         $this->importId = $importId ?: (string) Str::uuid();
         $this->onQueue(config('queue.connections.' . config('queue.default') . '.queue', 'default'));
+        $this->bootstrapSummaryFile();
     }
 
     public function handle(EmployeeMediaService $mediaService)
     {
         $uploader = User::find($this->uploaderId);
+        $summary = $this->defaultSummary($this->loadSummary());
 
         if (!Storage::exists($this->zipPath)) {
-            $this->notifyResult($uploader, [
-                'success_count' => 0,
-                'skipped_count' => 1,
-                'items' => [
-                    [
-                        'status' => 'skip',
-                        'file' => basename($this->zipPath),
-                        'message' => 'File ZIP tidak ditemukan di server.',
-                    ],
-                ],
-            ], true);
+            $summary['status'] = 'failed';
+            $summary['skipped_count'] = 1;
+            $summary['items'] = [[
+                'status' => 'skip',
+                'file' => basename($this->zipPath),
+                'message' => 'File ZIP tidak ditemukan di server.',
+            ]];
+            $summary['finished_at'] = now()->toIso8601String();
+            $this->persistSummary($summary);
+
+            $this->notifyResult($uploader, $this->toPublicSummary($summary), true);
 
             return;
         }
@@ -69,43 +71,38 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 
         if ($zipOpened !== true) {
             Storage::delete($this->zipPath);
+            $summary['status'] = 'failed';
+            $summary['skipped_count'] = 1;
+            $summary['items'] = [[
+                'status' => 'skip',
+                'file' => basename($this->zipPath),
+                'message' => 'ZIP tidak dapat dibuka atau rusak.',
+            ]];
+            $summary['finished_at'] = now()->toIso8601String();
+            $this->persistSummary($summary);
 
-            $this->notifyResult($uploader, [
-                'success_count' => 0,
-                'skipped_count' => 1,
-                'items' => [
-                    [
-                        'status' => 'skip',
-                        'file' => basename($this->zipPath),
-                        'message' => 'ZIP tidak dapat dibuka atau rusak.',
-                    ],
-                ],
-            ], true);
+            $this->notifyResult($uploader, $this->toPublicSummary($summary), true);
 
             return;
         }
 
-        $summary = [
-            'success_count' => 0,
-            'skipped_count' => 0,
-            'items' => [],
-            'processed_niks' => [],
-        ];
         $tempDirectory = storage_path('app/temp/employee-media-imports/' . Str::uuid());
-        $employeesQuery = Employee::query();
-
-        if ($uploader) {
-            $uploader->applyEmployeeScope($employeesQuery);
-        }
-
-        $employees = $employeesQuery->get()->keyBy('nik');
         $allowedExtensions = $mediaService->getAllowedExtensions($this->mediaType);
         $column = $mediaService->getColumnForType($this->mediaType);
-        $summary = $this->loadSummary();
         $startIndex = max(0, $this->offset);
         $chunkSize = max(1, (int) env('EMPLOYEE_MEDIA_ZIP_CHUNK_SIZE', 5));
+        $summary['total_entries'] = max(0, (int) ($summary['total_entries'] ?? 0));
+
+        if ($summary['total_entries'] === 0) {
+            $summary['total_entries'] = $this->countValidZipEntries($zip);
+        }
+
+        $summary['status'] = 'processing';
+        $summary['updated_at'] = now()->toIso8601String();
+        $this->persistSummary($summary);
+
         $endIndex = min($zip->numFiles, $startIndex + $chunkSize);
-        $totalEntries = $zip->numFiles;
+        $totalEntries = (int) $summary['total_entries'];
 
         if (!File::exists($tempDirectory)) {
             File::makeDirectory($tempDirectory, 0755, true);
@@ -138,27 +135,29 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                     continue;
                 }
 
-                $nik = $mediaService->resolveNikFromFilename($basename, $employees->keys()->all());
+                $nikCandidates = $mediaService->extractNikCandidatesFromFilename($basename);
 
-                if (!$nik) {
+                if (empty($nikCandidates)) {
                     $summary['skipped_count']++;
                     $this->rememberItem($summary, 'skip', $basename, 'NIK tidak dikenali dari nama file.');
                     $this->persistSummary($summary);
                     continue;
                 }
 
-                if (isset($summary['processed_niks'][$nik])) {
+                $employee = $this->findEmployeeForUpload($nikCandidates, $column, $uploader);
+
+                if (!$employee) {
                     $summary['skipped_count']++;
-                    $this->rememberItem($summary, 'skip', $basename, "Duplikat file untuk NIK {$nik} dalam ZIP yang sama.");
+                    $this->rememberItem($summary, 'skip', $basename, "Karyawan dengan NIK {$nikCandidates[0]} tidak ditemukan atau di luar scope.");
                     $this->persistSummary($summary);
                     continue;
                 }
 
-                $employee = $employees->get($nik);
+                $nik = (string) $employee->nik;
 
-                if (!$employee) {
+                if (isset($summary['processed_niks'][$nik])) {
                     $summary['skipped_count']++;
-                    $this->rememberItem($summary, 'skip', $basename, "Karyawan dengan NIK {$nik} tidak ditemukan atau di luar scope.");
+                    $this->rememberItem($summary, 'skip', $basename, "Duplikat file untuk NIK {$nik} dalam ZIP yang sama.");
                     $this->persistSummary($summary);
                     continue;
                 }
@@ -227,6 +226,9 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                 'skipped_count' => $summary['skipped_count'],
             ]);
 
+            $summary['updated_at'] = now()->toIso8601String();
+            $this->persistSummary($summary);
+
             self::dispatch($this->zipPath, $this->mediaType, $this->uploaderId, $endIndex, $this->importId)
                 ->onQueue($this->queue);
 
@@ -234,8 +236,11 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         }
 
         Storage::delete($this->zipPath);
+        $summary['status'] = 'completed';
+        $summary['updated_at'] = now()->toIso8601String();
+        $summary['finished_at'] = now()->toIso8601String();
+        $this->persistSummary($summary);
         $publicSummary = $this->toPublicSummary($summary);
-        $this->deleteSummary();
 
         Log::info('Employee ZIP media import finished.', [
             'media_type' => $this->mediaType,
@@ -254,8 +259,10 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         Storage::delete($this->zipPath);
 
         $uploader = User::find($this->uploaderId);
-        $summary = $this->toPublicSummary($this->loadSummary());
-        $this->deleteSummary();
+        $summary = $this->defaultSummary($this->loadSummary());
+        $summary['status'] = 'failed';
+        $summary['updated_at'] = now()->toIso8601String();
+        $summary['finished_at'] = now()->toIso8601String();
 
         Log::error('Employee ZIP media import job failed.', [
             'media_type' => $this->mediaType,
@@ -275,7 +282,9 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             $summary['skipped_count']++;
         }
 
-        $this->notifyResult($uploader, $summary, true);
+        $this->persistSummary($summary);
+
+        $this->notifyResult($uploader, $this->toPublicSummary($summary), true);
     }
 
     protected function isValidZipEntry(?string $entryName): bool
@@ -339,41 +348,49 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         ];
     }
 
+    protected function findEmployeeForUpload(array $nikCandidates, string $column, ?User $uploader): ?Employee
+    {
+        $query = Employee::query()
+            ->select(['nik', 'nama_karyawan', $column])
+            ->whereIn('nik', $nikCandidates);
+
+        if ($uploader) {
+            $uploader->applyEmployeeScope($query);
+        }
+
+        $employees = $query->get()->keyBy(fn(Employee $employee) => (string) $employee->nik);
+
+        foreach ($nikCandidates as $candidate) {
+            if ($employees->has($candidate)) {
+                return $employees->get($candidate);
+            }
+        }
+
+        return null;
+    }
+
     protected function loadSummary(): array
     {
         $summaryPath = $this->summaryStoragePath();
 
         if (!Storage::exists($summaryPath)) {
-            return [
-                'success_count' => 0,
-                'skipped_count' => 0,
-                'items' => [],
-                'processed_niks' => [],
-            ];
+            return [];
         }
 
         $contents = Storage::get($summaryPath);
         $decoded = json_decode($contents, true);
 
         if (!is_array($decoded)) {
-            return [
-                'success_count' => 0,
-                'skipped_count' => 0,
-                'items' => [],
-                'processed_niks' => [],
-            ];
+            return [];
         }
 
-        return array_merge([
-            'success_count' => 0,
-            'skipped_count' => 0,
-            'items' => [],
-            'processed_niks' => [],
-        ], $decoded);
+        return $decoded;
     }
 
     protected function persistSummary(array $summary): void
     {
+        $summary['updated_at'] = $summary['updated_at'] ?? now()->toIso8601String();
+
         Storage::put($this->summaryStoragePath(), json_encode($summary));
     }
 
@@ -392,6 +409,46 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         unset($summary['processed_niks']);
 
         return $summary;
+    }
+
+    protected function defaultSummary(array $overrides = []): array
+    {
+        return array_merge([
+            'import_id' => $this->importId,
+            'uploader_id' => $this->uploaderId,
+            'media_type' => $this->mediaType,
+            'status' => 'queued',
+            'success_count' => 0,
+            'skipped_count' => 0,
+            'total_entries' => 0,
+            'items' => [],
+            'processed_niks' => [],
+            'created_at' => now()->toIso8601String(),
+            'updated_at' => now()->toIso8601String(),
+            'finished_at' => null,
+        ], $overrides);
+    }
+
+    protected function bootstrapSummaryFile(): void
+    {
+        if (Storage::exists($this->summaryStoragePath())) {
+            return;
+        }
+
+        $this->persistSummary($this->defaultSummary());
+    }
+
+    protected function countValidZipEntries(ZipArchive $zip): int
+    {
+        $count = 0;
+
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            if ($this->isValidZipEntry($zip->getNameIndex($index))) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     protected function notifyResult(?User $uploader, array $summary, bool $failed): void

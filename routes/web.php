@@ -108,6 +108,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::post('/karyawan/bulk-upload-documents', [App\Http\Controllers\Admin\KaryawanController::class, 'bulkUploadDocuments'])
             ->middleware('menu:data_karyawan')
             ->name('karyawan.bulk-upload-documents');
+        Route::get('/karyawan/upload-progress', [App\Http\Controllers\Admin\KaryawanController::class, 'uploadProgress'])
+            ->middleware('menu:data_karyawan')
+            ->name('karyawan.upload-progress');
         Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController')->middleware('menu:data_karyawan');
 
         Route::resource('/user', 'App\Http\Controllers\Admin\UserController')->middleware('menu:data_user');
@@ -181,6 +184,7 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/set-kehadiran', [AttendanceSettingController::class, 'index'])->name('set-kehadiran.index');
         Route::post('/set-kehadiran/update', [AttendanceSettingController::class, 'update'])->name('set-kehadiran.update');
         Route::post('/set-kehadiran/bulk-upload-face-reference', [AttendanceSettingController::class, 'bulkUploadFaceReferences'])->name('set-kehadiran.bulk-upload-face-reference');
+        Route::get('/set-kehadiran/upload-progress', [AttendanceSettingController::class, 'uploadProgress'])->name('set-kehadiran.upload-progress');
     });
 });
 

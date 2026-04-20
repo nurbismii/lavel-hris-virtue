@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use Illuminate\Support\Facades\DB;
+use App\Services\Karyawan\EmployeeMediaImportStatusService;
 
 class AttendanceSettingController extends Controller
 {
@@ -84,6 +85,8 @@ class AttendanceSettingController extends Controller
 
         $employees = collect();
         $offData = collect();
+        $importStatusService = app()->make(EmployeeMediaImportStatusService::class);
+        $uploadProgressStatuses = $importStatusService->listForUser($request->user(), ['face_reference']);
 
         if ($selectedDepartemenId) {
             $employees = Employee::with(['divisi', 'departemen'])
@@ -125,7 +128,8 @@ class AttendanceSettingController extends Controller
             'isDepartmentScoped',
             'isDivisionScoped',
             'isDepartmentReadonly',
-            'isDivisionReadonly'
+            'isDivisionReadonly',
+            'uploadProgressStatuses'
         ));
     }
 
@@ -192,5 +196,12 @@ class AttendanceSettingController extends Controller
 
         toast()->success('Success', 'ZIP foto referensi sedang diproses di background. Cek notifikasi untuk hasil akhirnya.');
         return redirect()->route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
+    }
+
+    public function uploadProgress(Request $request, EmployeeMediaImportStatusService $importStatusService)
+    {
+        return response()->json([
+            'items' => $importStatusService->listForUser($request->user(), ['face_reference']),
+        ]);
     }
 }
