@@ -23,18 +23,25 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    private const ENTRY_CHUNK_SIZE = 100;
+
     public $tries = 1;
-    public $timeout = 14400;
+    public $timeout = 1200;
+    public $failOnTimeout = true;
 
     protected $zipPath;
     protected $mediaType;
     protected $uploaderId;
+    protected $offset;
+    protected $importId;
 
-    public function __construct(string $zipPath, string $mediaType, string $uploaderId)
+    public function __construct(string $zipPath, string $mediaType, string $uploaderId, int $offset = 0, ?string $importId = null)
     {
         $this->zipPath = $zipPath;
         $this->mediaType = $mediaType;
         $this->uploaderId = $uploaderId;
+        $this->offset = $offset;
+        $this->importId = $importId ?: (string) Str::uuid();
     }
 
     public function handle(EmployeeMediaService $mediaService)
@@ -83,6 +90,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             'success_count' => 0,
             'skipped_count' => 0,
             'items' => [],
+            'processed_niks' => [],
         ];
         $tempDirectory = storage_path('app/temp/employee-media-imports/' . Str::uuid());
         $employeesQuery = Employee::query();
@@ -94,14 +102,16 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $employees = $employeesQuery->get()->keyBy('nik');
         $allowedExtensions = $mediaService->getAllowedExtensions($this->mediaType);
         $column = $mediaService->getColumnForType($this->mediaType);
-        $processedNiks = [];
+        $summary = $this->loadSummary();
+        $startIndex = max(0, $this->offset);
+        $endIndex = min($zip->numFiles, $startIndex + self::ENTRY_CHUNK_SIZE);
 
         if (!File::exists($tempDirectory)) {
             File::makeDirectory($tempDirectory, 0755, true);
         }
 
         try {
-            for ($index = 0; $index < $zip->numFiles; $index++) {
+            for ($index = $startIndex; $index < $endIndex; $index++) {
                 $entryName = $zip->getNameIndex($index);
 
                 if (!$this->isValidZipEntry($entryName)) {
@@ -125,7 +135,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                     continue;
                 }
 
-                if (isset($processedNiks[$nik])) {
+                if (isset($summary['processed_niks'][$nik])) {
                     $summary['skipped_count']++;
                     $this->rememberItem($summary, 'skip', $basename, "Duplikat file untuk NIK {$nik} dalam ZIP yang sama.");
                     continue;
@@ -158,7 +168,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 
                     $path = $mediaService->storeUploadedFile($employee, $uploadedFile, $this->mediaType);
                     $employee->forceFill([$column => $path])->save();
-                    $processedNiks[$nik] = true;
+                    $summary['processed_niks'][$nik] = true;
                     $summary['success_count']++;
                     $this->rememberItem($summary, 'success', $basename, "Berhasil dipasangkan ke {$employee->nama_karyawan} ({$employee->nik}).");
                 } catch (Throwable $exception) {
@@ -179,22 +189,45 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             }
         } finally {
             $zip->close();
-            Storage::delete($this->zipPath);
 
             if (File::exists($tempDirectory)) {
                 File::deleteDirectory($tempDirectory);
             }
         }
 
+        $this->persistSummary($summary);
+
+        if ($endIndex < $zip->numFiles) {
+            Log::info('Employee ZIP media import chunk finished.', [
+                'media_type' => $this->mediaType,
+                'uploader_id' => $this->uploaderId,
+                'import_id' => $this->importId,
+                'offset' => $this->offset,
+                'next_offset' => $endIndex,
+                'success_count' => $summary['success_count'],
+                'skipped_count' => $summary['skipped_count'],
+            ]);
+
+            self::dispatch($this->zipPath, $this->mediaType, $this->uploaderId, $endIndex, $this->importId)
+                ->onQueue($this->queue);
+
+            return;
+        }
+
+        Storage::delete($this->zipPath);
+        $publicSummary = $this->toPublicSummary($summary);
+        $this->deleteSummary();
+
         Log::info('Employee ZIP media import finished.', [
             'media_type' => $this->mediaType,
             'uploader_id' => $this->uploaderId,
-            'success_count' => $summary['success_count'],
-            'skipped_count' => $summary['skipped_count'],
-            'sample_items' => $summary['items'],
+            'import_id' => $this->importId,
+            'success_count' => $publicSummary['success_count'],
+            'skipped_count' => $publicSummary['skipped_count'],
+            'sample_items' => $publicSummary['items'],
         ]);
 
-        $this->notifyResult($uploader, $summary, false);
+        $this->notifyResult($uploader, $publicSummary, false);
     }
 
     public function failed(Throwable $exception)
@@ -202,25 +235,28 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         Storage::delete($this->zipPath);
 
         $uploader = User::find($this->uploaderId);
+        $summary = $this->toPublicSummary($this->loadSummary());
+        $this->deleteSummary();
 
         Log::error('Employee ZIP media import job failed.', [
             'media_type' => $this->mediaType,
             'uploader_id' => $this->uploaderId,
             'zip_path' => $this->zipPath,
+            'import_id' => $this->importId,
+            'offset' => $this->offset,
             'error' => $exception->getMessage(),
         ]);
 
-        $this->notifyResult($uploader, [
-            'success_count' => 0,
-            'skipped_count' => 1,
-            'items' => [
-                [
-                    'status' => 'skip',
-                    'file' => basename($this->zipPath),
-                    'message' => 'Proses ZIP gagal dijalankan. Cek log aplikasi.',
-                ],
-            ],
-        ], true);
+        if (empty($summary['items'])) {
+            $summary['items'][] = [
+                'status' => 'skip',
+                'file' => basename($this->zipPath),
+                'message' => 'Proses ZIP gagal dijalankan. Cek log aplikasi.',
+            ];
+            $summary['skipped_count']++;
+        }
+
+        $this->notifyResult($uploader, $summary, true);
     }
 
     protected function isValidZipEntry(?string $entryName): bool
@@ -282,6 +318,61 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             'file' => $file,
             'message' => $message,
         ];
+    }
+
+    protected function loadSummary(): array
+    {
+        $summaryPath = $this->summaryStoragePath();
+
+        if (!Storage::exists($summaryPath)) {
+            return [
+                'success_count' => 0,
+                'skipped_count' => 0,
+                'items' => [],
+                'processed_niks' => [],
+            ];
+        }
+
+        $contents = Storage::get($summaryPath);
+        $decoded = json_decode($contents, true);
+
+        if (!is_array($decoded)) {
+            return [
+                'success_count' => 0,
+                'skipped_count' => 0,
+                'items' => [],
+                'processed_niks' => [],
+            ];
+        }
+
+        return array_merge([
+            'success_count' => 0,
+            'skipped_count' => 0,
+            'items' => [],
+            'processed_niks' => [],
+        ], $decoded);
+    }
+
+    protected function persistSummary(array $summary): void
+    {
+        Storage::put($this->summaryStoragePath(), json_encode($summary));
+    }
+
+    protected function deleteSummary(): void
+    {
+        Storage::delete($this->summaryStoragePath());
+    }
+
+    protected function summaryStoragePath(): string
+    {
+        return 'employee-zip-imports/status/' . $this->importId . '.json';
+    }
+
+    protected function toPublicSummary(array $summary): array
+    {
+        unset($summary['processed_niks']);
+
+        return $summary;
     }
 
     protected function notifyResult(?User $uploader, array $summary, bool $failed): void

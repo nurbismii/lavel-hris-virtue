@@ -158,7 +158,7 @@
                         <div class="alert alert-info small mb-0">
                             <div class="fw-semibold mb-1">Panduan cepat</div>
                             <div>Queue aktif saat ini: <code>{{ config('queue.default') }}</code></div>
-                            <div>Perintah worker yang disarankan: <code>php artisan queue:work --queue=default --tries=1 --timeout=14400</code></div>
+                            <div>Perintah worker yang disarankan: <code>php artisan queue:work --queue=default --tries=1 --timeout=1200</code></div>
                             <div class="mt-2">
                                 <a href="{{ asset('upload-templates/contoh-zip-dokumen-karyawan.txt') }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                     Download Template ZIP

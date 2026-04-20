@@ -218,10 +218,10 @@
                         Batas upload ZIP dari aplikasi ini disiapkan sampai sekitar <code>500MB</code> per file ZIP. Pastikan worker queue aktif agar proses berjalan di background.
                     </div>
 
-                    <div class="alert alert-info small">
+                    <div class="alert alert-info small mb-3">
                         <div class="fw-semibold mb-1">Panduan cepat</div>
                         <div>Queue aktif saat ini: <code>{{ config('queue.default') }}</code></div>
-                        <div>Perintah worker yang disarankan: <code>php artisan queue:work --queue=default --tries=1 --timeout=14400</code></div>
+                        <div>Perintah worker yang disarankan: <code>php artisan queue:work --queue=default --tries=1 --timeout=1200</code></div>
                         <div class="mt-2">
                             <a href="{{ asset('upload-templates/contoh-zip-foto-referensi-presensi.txt') }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                 Download Template ZIP
