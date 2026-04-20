@@ -1,5 +1,83 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+    .employee-document-card {
+        border: 1px solid rgba(15, 23, 42, 0.1);
+        border-radius: 16px;
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+    }
+
+    .employee-document-card__preview {
+        min-height: 220px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background:
+            linear-gradient(135deg, rgba(14, 116, 144, 0.08), rgba(16, 185, 129, 0.08)),
+            #f8fafc;
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .employee-document-card__preview img {
+        width: 100%;
+        max-height: 220px;
+        object-fit: contain;
+        background-color: #fff;
+    }
+
+    .employee-document-card__placeholder {
+        text-align: center;
+        color: #64748b;
+        padding: 2rem 1rem;
+    }
+
+    .employee-document-card__placeholder i {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .employee-document-card__body {
+        padding: 1rem;
+    }
+
+    .employee-document-card__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .employee-document-card__meta {
+        color: #64748b;
+        font-size: 0.85rem;
+        word-break: break-word;
+    }
+
+    .employee-document-modal__surface {
+        min-height: 65vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #0f172a;
+    }
+
+    .employee-document-modal__surface img {
+        max-width: 100%;
+        max-height: 75vh;
+        object-fit: contain;
+    }
+
+    .employee-document-modal__surface iframe {
+        width: 100%;
+        height: 75vh;
+        border: 0;
+        background: #fff;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <div class="page-inner">
@@ -89,7 +167,38 @@
                         <div class="col-md-4 mb-3">
                             <label class="form-label d-block">Preview Referensi</label>
                             @if($employee->face_reference_path)
-                            <img src="{{ asset($employee->face_reference_path) }}" alt="Foto referensi wajah" class="img-fluid rounded border" style="max-height: 140px; object-fit: cover;">
+                            <div class="employee-document-card">
+                                <div class="employee-document-card__preview">
+                                    <img
+                                        src="{{ asset($employee->face_reference_path) }}"
+                                        alt="Foto referensi wajah"
+                                        class="img-fluid"
+                                        loading="lazy">
+                                </div>
+                                <div class="employee-document-card__body">
+                                    <div class="employee-document-card__meta mb-3">
+                                        {{ basename($employee->face_reference_path) }}
+                                    </div>
+                                    <div class="employee-document-card__actions">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-primary"
+                                            data-document-preview
+                                            data-file-url="{{ asset($employee->face_reference_path) }}"
+                                            data-file-type="image"
+                                            data-file-label="Foto Referensi Wajah"
+                                            data-file-name="{{ basename($employee->face_reference_path) }}">
+                                            Perbesar
+                                        </button>
+                                        <a
+                                            href="{{ asset($employee->face_reference_path) }}"
+                                            download
+                                            class="btn btn-sm btn-primary">
+                                            Unduh
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                             @else
                             <div class="border rounded p-3 text-muted bg-light small">
                                 Belum ada foto referensi wajah.
@@ -103,9 +212,11 @@
                         @foreach($documentFields as $document)
                             @php
                                 $currentPath = $document['path'] ?? null;
-                                $isImage = $currentPath
-                                    ? \Illuminate\Support\Str::endsWith(strtolower($currentPath), ['.jpg', '.jpeg', '.png', '.webp'])
-                                    : false;
+                                $currentUrl = $currentPath ? asset($currentPath) : null;
+                                $currentFileName = $currentPath ? basename($currentPath) : null;
+                                $extension = $currentPath ? strtolower(pathinfo($currentPath, PATHINFO_EXTENSION)) : null;
+                                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true);
+                                $isPdf = $extension === 'pdf';
                             @endphp
                             <div class="col-md-6 mb-4">
                                 <label class="form-label">{{ $document['label'] }}</label>
@@ -118,23 +229,67 @@
                                 @error($document['input'])
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                                <small class="text-muted d-block mt-2">{{ $document['help'] }} Gambar akan dikompres otomatis ke kisaran 1-2MB, sedangkan PDF tidak dikompres.</small>
+                                <small class="text-muted d-block mt-2">{{ $document['help'] }} Gambar akan dikompres otomatis ke kisaran 1-2MB</small>
 
-                                <div class="border rounded bg-light p-3 mt-3">
+                                <div class="employee-document-card mt-3">
                                     @if($currentPath)
-                                        @if($isImage)
-                                            <img
-                                                src="{{ asset($currentPath) }}"
-                                                alt="{{ $document['label'] }}"
-                                                class="img-fluid rounded border"
-                                                style="max-height: 180px; object-fit: cover;">
-                                        @else
-                                            <a href="{{ asset($currentPath) }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                                Lihat file saat ini
-                                            </a>
-                                        @endif
+                                        <div class="employee-document-card__preview">
+                                            @if($isImage)
+                                                <img
+                                                    src="{{ $currentUrl }}"
+                                                    alt="{{ $document['label'] }}"
+                                                    class="img-fluid"
+                                                    loading="lazy">
+                                            @elseif($isPdf)
+                                                <div class="employee-document-card__placeholder">
+                                                    <i class="fas fa-file-pdf text-danger"></i>
+                                                    <div class="fw-semibold">PDF {{ $document['label'] }}</div>
+                                                    <div class="small mt-1">Buka preview untuk melihat isi file lebih besar.</div>
+                                                </div>
+                                            @else
+                                                <div class="employee-document-card__placeholder">
+                                                    <i class="fas fa-file-alt text-primary"></i>
+                                                    <div class="fw-semibold">File {{ $document['label'] }}</div>
+                                                    <div class="small mt-1">Dokumen siap dibuka atau diunduh.</div>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="employee-document-card__body">
+                                            <div class="employee-document-card__meta mb-3">
+                                                {{ $currentFileName }}
+                                            </div>
+                                            <div class="employee-document-card__actions">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-primary"
+                                                    data-document-preview
+                                                    data-file-url="{{ $currentUrl }}"
+                                                    data-file-type="{{ $isPdf ? 'pdf' : 'image' }}"
+                                                    data-file-label="{{ $document['label'] }}"
+                                                    data-file-name="{{ $currentFileName }}">
+                                                    {{ $isPdf ? 'Lihat PDF' : 'Perbesar' }}
+                                                </button>
+                                                <a
+                                                    href="{{ $currentUrl }}"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="btn btn-sm btn-outline-secondary">
+                                                    Tab Baru
+                                                </a>
+                                                <a
+                                                    href="{{ $currentUrl }}"
+                                                    download
+                                                    class="btn btn-sm btn-primary">
+                                                    Unduh
+                                                </a>
+                                            </div>
+                                        </div>
                                     @else
-                                        <div class="text-muted small">Belum ada file {{ strtolower($document['label']) }}.</div>
+                                        <div class="employee-document-card__placeholder">
+                                            <i class="fas fa-file-upload"></i>
+                                            <div class="fw-semibold">Belum ada file</div>
+                                            <div class="small mt-1">Belum ada file {{ strtolower($document['label']) }}.</div>
+                                        </div>
                                     @endif
                                 </div>
                             </div>
@@ -348,6 +503,36 @@
     </div>
 </div>
 
+<div class="modal fade" id="employeeDocumentPreviewModal" tabindex="-1" aria-labelledby="employeeDocumentPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title" id="employeeDocumentPreviewModalLabel">Preview Dokumen</h5>
+                    <div class="small text-muted" id="employeeDocumentPreviewFileName"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="employee-document-modal__surface" id="employeeDocumentPreviewImageWrap">
+                    <img id="employeeDocumentPreviewImage" src="" alt="Preview dokumen">
+                </div>
+                <div class="employee-document-modal__surface d-none" id="employeeDocumentPreviewPdfWrap">
+                    <iframe id="employeeDocumentPreviewPdf" src="" title="Preview PDF"></iframe>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-outline-secondary" id="employeeDocumentPreviewOpen" target="_blank" rel="noopener noreferrer">
+                    Buka di Tab Baru
+                </a>
+                <a href="#" class="btn btn-primary" id="employeeDocumentPreviewDownload" download>
+                    Unduh
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
 <script>
     const oldPerusahaan = "{{ old('perusahaan_id', $employee->area_kerja) }}";
@@ -436,6 +621,61 @@
         }
 
     });
+</script>
+
+<script>
+    (function() {
+        const modalElement = document.getElementById('employeeDocumentPreviewModal');
+
+        if (!modalElement || typeof bootstrap === 'undefined') {
+            return;
+        }
+
+        const previewModal = new bootstrap.Modal(modalElement);
+        const titleElement = document.getElementById('employeeDocumentPreviewModalLabel');
+        const fileNameElement = document.getElementById('employeeDocumentPreviewFileName');
+        const imageWrap = document.getElementById('employeeDocumentPreviewImageWrap');
+        const imageElement = document.getElementById('employeeDocumentPreviewImage');
+        const pdfWrap = document.getElementById('employeeDocumentPreviewPdfWrap');
+        const pdfElement = document.getElementById('employeeDocumentPreviewPdf');
+        const openButton = document.getElementById('employeeDocumentPreviewOpen');
+        const downloadButton = document.getElementById('employeeDocumentPreviewDownload');
+
+        function resetPreview() {
+            imageWrap.classList.remove('d-none');
+            pdfWrap.classList.add('d-none');
+            imageElement.removeAttribute('src');
+            pdfElement.removeAttribute('src');
+        }
+
+        document.querySelectorAll('[data-document-preview]').forEach((button) => {
+            button.addEventListener('click', function() {
+                const fileUrl = this.dataset.fileUrl;
+                const fileType = this.dataset.fileType || 'image';
+                const fileLabel = this.dataset.fileLabel || 'Preview Dokumen';
+                const fileName = this.dataset.fileName || '';
+
+                titleElement.textContent = fileLabel;
+                fileNameElement.textContent = fileName;
+                openButton.href = fileUrl;
+                downloadButton.href = fileUrl;
+
+                resetPreview();
+
+                if (fileType === 'pdf') {
+                    imageWrap.classList.add('d-none');
+                    pdfWrap.classList.remove('d-none');
+                    pdfElement.src = fileUrl + '#toolbar=1&navpanes=0&view=FitH';
+                } else {
+                    imageElement.src = fileUrl;
+                }
+
+                previewModal.show();
+            });
+        });
+
+        modalElement.addEventListener('hidden.bs.modal', resetPreview);
+    })();
 </script>
 
 <script>
