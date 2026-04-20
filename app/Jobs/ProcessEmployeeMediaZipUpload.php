@@ -48,8 +48,9 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
     {
         $uploader = User::find($this->uploaderId);
         $summary = $this->defaultSummary($this->loadSummary());
+        $storage = $this->importStorage();
 
-        if (!Storage::exists($this->zipPath)) {
+        if (!$storage->exists($this->zipPath)) {
             $summary['status'] = 'failed';
             $summary['skipped_count'] = 1;
             $summary['items'] = [[
@@ -65,12 +66,12 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             return;
         }
 
-        $zipAbsolutePath = Storage::path($this->zipPath);
+        $zipAbsolutePath = $storage->path($this->zipPath);
         $zip = new ZipArchive();
         $zipOpened = $zip->open($zipAbsolutePath);
 
         if ($zipOpened !== true) {
-            Storage::delete($this->zipPath);
+            $storage->delete($this->zipPath);
             $summary['status'] = 'failed';
             $summary['skipped_count'] = 1;
             $summary['items'] = [[
@@ -239,7 +240,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             return;
         }
 
-        Storage::delete($this->zipPath);
+        $storage->delete($this->zipPath);
         $summary['status'] = 'completed';
         $summary['updated_at'] = now()->toIso8601String();
         $summary['finished_at'] = now()->toIso8601String();
@@ -260,7 +261,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 
     public function failed(Throwable $exception)
     {
-        Storage::delete($this->zipPath);
+        $this->importStorage()->delete($this->zipPath);
 
         $uploader = User::find($this->uploaderId);
         $summary = $this->defaultSummary($this->loadSummary());
@@ -377,11 +378,11 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
     {
         $summaryPath = $this->summaryStoragePath();
 
-        if (!Storage::exists($summaryPath)) {
+        if (!$this->importStorage()->exists($summaryPath)) {
             return [];
         }
 
-        $contents = Storage::get($summaryPath);
+        $contents = $this->importStorage()->get($summaryPath);
         $decoded = json_decode($contents, true);
 
         if (!is_array($decoded)) {
@@ -395,12 +396,12 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
     {
         $summary['updated_at'] = $summary['updated_at'] ?? now()->toIso8601String();
 
-        Storage::put($this->summaryStoragePath(), json_encode($summary));
+        $this->importStorage()->put($this->summaryStoragePath(), json_encode($summary));
     }
 
     protected function deleteSummary(): void
     {
-        Storage::delete($this->summaryStoragePath());
+        $this->importStorage()->delete($this->summaryStoragePath());
     }
 
     protected function summaryStoragePath(): string
@@ -453,6 +454,11 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         }
 
         return $count;
+    }
+
+    protected function importStorage()
+    {
+        return Storage::disk(config('filesystems.employee_import_disk', config('filesystems.default')));
     }
 
     protected function notifyResult(?User $uploader, array $summary, bool $failed): void

@@ -28,6 +28,8 @@ return [
 
     'cloud' => env('FILESYSTEM_CLOUD', 's3'),
 
+    'employee_import_disk' => env('EMPLOYEE_IMPORT_DISK', 'employee_imports'),
+
     /*
     |--------------------------------------------------------------------------
     | Filesystem Disks
@@ -53,6 +55,11 @@ return [
             'root' => storage_path('app/public'),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
+        ],
+
+        'employee_imports' => [
+            'driver' => 'local',
+            'root' => public_path(),
         ],
 
         's3' => [

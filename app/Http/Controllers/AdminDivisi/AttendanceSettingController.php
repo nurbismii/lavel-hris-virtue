@@ -12,7 +12,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use Illuminate\Support\Facades\DB;
-use App\Services\Karyawan\EmployeeMediaImportStatusService;
 
 class AttendanceSettingController extends Controller
 {
@@ -85,8 +84,6 @@ class AttendanceSettingController extends Controller
 
         $employees = collect();
         $offData = collect();
-        $importStatusService = app()->make(EmployeeMediaImportStatusService::class);
-        $uploadProgressStatuses = $importStatusService->listForUser($request->user(), ['face_reference']);
 
         if ($selectedDepartemenId) {
             $employees = Employee::with(['divisi', 'departemen'])
@@ -128,8 +125,7 @@ class AttendanceSettingController extends Controller
             'isDepartmentScoped',
             'isDivisionScoped',
             'isDepartmentReadonly',
-            'isDivisionReadonly',
-            'uploadProgressStatuses'
+            'isDivisionReadonly'
         ));
     }
 
@@ -191,17 +187,14 @@ class AttendanceSettingController extends Controller
             'face_reference_zip' => 'required|file|mimes:zip|max:512000',
         ]);
 
-        $filePath = $request->file('face_reference_zip')->store('employee-zip-imports');
+        $filePath = $request->file('face_reference_zip')->store(
+            'employee-zip-imports',
+            config('filesystems.employee_import_disk', config('filesystems.default'))
+        );
         ProcessEmployeeMediaZipUpload::dispatch($filePath, 'face_reference', $request->user()->id);
 
         toast()->success('Success', 'ZIP foto referensi sedang diproses di background. Cek notifikasi untuk hasil akhirnya.');
         return redirect()->route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
     }
 
-    public function uploadProgress(Request $request, EmployeeMediaImportStatusService $importStatusService)
-    {
-        return response()->json([
-            'items' => $importStatusService->listForUser($request->user(), ['face_reference']),
-        ]);
-    }
 }

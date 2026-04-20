@@ -28,23 +28,6 @@
         padding: 10px 0;
     }
 
-    .upload-progress-card {
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        background: #fff;
-        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
-        height: 100%;
-    }
-
-    .upload-progress-card__meta {
-        color: #64748b;
-        font-size: 0.82rem;
-    }
-
-    .upload-progress-card__counts {
-        font-size: 0.82rem;
-        color: #475569;
-    }
 </style>
 
 <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.dataTables.min.css">
@@ -149,21 +132,6 @@
                 Pilih departemen terlebih dahulu untuk menampilkan setting hari off.
             </div>
         @endif
-
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
-                    <div>
-                        <h5 class="mb-1 fw-semibold">Progress Upload Foto Referensi</h5>
-                        <small class="text-muted">Status import ZIP diperbarui otomatis setiap 5 detik.</small>
-                    </div>
-                    <span class="badge bg-light text-dark border">Queue {{ config('queue.connections.' . config('queue.default') . '.queue', 'default') }}</span>
-                </div>
-                <div id="attendance-upload-progress-list" data-progress-url="{{ route('set-kehadiran.upload-progress') }}">
-                    @include('admin.karyawan.partials.upload-progress-cards', ['items' => $uploadProgressStatuses, 'emptyMessage' => 'Belum ada progress upload foto referensi yang berjalan atau baru selesai.'])
-                </div>
-            </div>
-        </div>
 
         <div class="card shadow-sm border-0">
             <div class="card-body">
@@ -327,75 +295,6 @@
             });
         }
     });
-</script>
-
-<script>
-    (function() {
-        const container = document.getElementById('attendance-upload-progress-list');
-
-        if (!container) {
-            return;
-        }
-
-        const progressUrl = container.dataset.progressUrl;
-
-        function statusBadge(item) {
-            return `<span class="badge bg-${item.status_class}">${item.status_label}</span>`;
-        }
-
-        function renderItems(items) {
-            if (!Array.isArray(items) || items.length === 0) {
-                container.innerHTML = '<div class="alert alert-light border mb-0 small text-muted">Belum ada progress upload foto referensi yang berjalan atau baru selesai.</div>';
-                return;
-            }
-
-            container.innerHTML = `<div class="row g-3">${items.map((item) => `
-                <div class="col-md-6 col-xl-4">
-                    <div class="upload-progress-card p-3">
-                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                            <div>
-                                <div class="fw-semibold">${item.label}</div>
-                                <div class="upload-progress-card__meta">Update ${item.updated_at_human}</div>
-                            </div>
-                            ${statusBadge(item)}
-                        </div>
-                        <div class="progress mb-2" style="height: 8px;">
-                            <div class="progress-bar bg-${item.status_class}" role="progressbar" style="width: ${item.progress_percentage}%;" aria-valuenow="${item.progress_percentage}" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <div class="d-flex justify-content-between upload-progress-card__counts">
-                            <span>${item.processed_entries}/${item.total_entries || 0} file</span>
-                            <span>${item.progress_percentage}%</span>
-                        </div>
-                        <div class="upload-progress-card__meta mt-2">
-                            Berhasil ${item.success_count} file, dilewati ${item.skipped_count} file.
-                        </div>
-                    </div>
-                </div>
-            `).join('')}</div>`;
-        }
-
-        async function refreshProgress() {
-            try {
-                const response = await fetch(progressUrl, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json',
-                    }
-                });
-
-                if (!response.ok) {
-                    return;
-                }
-
-                const data = await response.json();
-                renderItems(data.items || []);
-            } catch (error) {
-                console.error('Gagal memuat progress upload foto referensi.', error);
-            }
-        }
-
-        window.setInterval(refreshProgress, 5000);
-    })();
 </script>
 
 <script>

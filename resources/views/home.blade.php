@@ -1,5 +1,31 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+    .upload-progress-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+        height: 100%;
+    }
+
+    .upload-progress-card__meta {
+        color: #64748b;
+        font-size: 0.82rem;
+    }
+
+    .upload-progress-card__counts {
+        font-size: 0.82rem;
+        color: #475569;
+    }
+
+    .upload-progress-delete {
+        text-decoration: none;
+    }
+</style>
+@endpush
+
 @section('content')
 
 <div class="container-fluid">
@@ -46,6 +72,26 @@
                 </div>
             </div>
         </form>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+                    <div>
+                        <h5 class="mb-1 fw-semibold">Progress Upload Dokumen</h5>
+                        <small class="text-muted">Semua proses bulk upload ditampilkan di sini dan diperbarui otomatis setiap 5 detik.</small>
+                    </div>
+                    <span class="badge bg-light text-dark border">Queue {{ config('queue.connections.' . config('queue.default') . '.queue', 'default') }}</span>
+                </div>
+                <div id="dashboard-upload-progress-list"
+                    data-progress-url="{{ route('home.upload-progress') }}"
+                    data-delete-confirm="Hapus progress ini dari dashboard?">
+                    @include('admin.karyawan.partials.upload-progress-cards', [
+                        'items' => $uploadProgressStatuses,
+                        'emptyMessage' => 'Belum ada progress upload yang berjalan atau baru selesai.'
+                    ])
+                </div>
+            </div>
+        </div>
 
         {{-- SUMMARY --}}
         <div class="row">
@@ -274,5 +320,128 @@
         });
 
     });
+</script>
+
+<script>
+    (function() {
+        const container = document.getElementById('dashboard-upload-progress-list');
+
+        if (!container) {
+            return;
+        }
+
+        const progressUrl = container.dataset.progressUrl;
+        const deleteConfirmMessage = container.dataset.deleteConfirm || 'Hapus progress ini?';
+
+        function statusBadge(item) {
+            return `<span class="badge bg-${item.status_class}">${item.status_label}</span>`;
+        }
+
+        function deleteButton(item) {
+            if (!item.delete_url) {
+                return '';
+            }
+
+            return `
+                <button
+                    type="button"
+                    class="btn btn-sm btn-link text-muted p-0 upload-progress-delete"
+                    data-delete-url="${item.delete_url}"
+                    aria-label="Hapus progress ${item.label}">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+        }
+
+        function renderItems(items) {
+            if (!Array.isArray(items) || items.length === 0) {
+                container.innerHTML = '<div class="alert alert-light border mb-0 small text-muted">Belum ada progress upload yang berjalan atau baru selesai.</div>';
+                return;
+            }
+
+            container.innerHTML = `<div class="row g-3">${items.map((item) => `
+                <div class="col-md-6 col-xl-4">
+                    <div class="upload-progress-card p-3">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <div>
+                                <div class="fw-semibold">${item.label}</div>
+                                <div class="upload-progress-card__meta">Update ${item.updated_at_human}</div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                ${statusBadge(item)}
+                                ${deleteButton(item)}
+                            </div>
+                        </div>
+                        <div class="progress mb-2" style="height: 8px;">
+                            <div class="progress-bar bg-${item.status_class}" role="progressbar" style="width: ${item.progress_percentage}%;" aria-valuenow="${item.progress_percentage}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="d-flex justify-content-between upload-progress-card__counts">
+                            <span>${item.processed_entries}/${item.total_entries || 0} file</span>
+                            <span>${item.progress_percentage}%</span>
+                        </div>
+                        <div class="upload-progress-card__meta mt-2">
+                            Berhasil ${item.success_count} file, dilewati ${item.skipped_count} file.
+                        </div>
+                    </div>
+                </div>
+            `).join('')}</div>`;
+        }
+
+        async function refreshProgress() {
+            try {
+                const response = await fetch(progressUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+                renderItems(data.items || []);
+            } catch (error) {
+                console.error('Gagal memuat progress upload dashboard.', error);
+            }
+        }
+
+        container.addEventListener('click', async function(event) {
+            const button = event.target.closest('.upload-progress-delete');
+
+            if (!button) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (!window.confirm(deleteConfirmMessage)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(button.dataset.deleteUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Gagal menghapus progress.');
+                }
+
+                await refreshProgress();
+            } catch (error) {
+                console.error(error);
+                alert('Gagal menghapus progress upload.');
+            }
+        });
+
+        window.setInterval(refreshProgress, 5000);
+    })();
 </script>
 @endpush

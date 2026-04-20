@@ -13,7 +13,6 @@ use App\Models\Employee;
 use App\Models\Perusahaan;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
-use App\Services\Karyawan\EmployeeMediaImportStatusService;
 
 class KaryawanController extends Controller
 {
@@ -34,14 +33,12 @@ class KaryawanController extends Controller
         $departemenIds = (clone $scopeQuery)->select('departemen_id')->distinct()->pluck('departemen_id')->filter();
         $divisiIds = (clone $scopeQuery)->select('divisi_id')->distinct()->pluck('divisi_id')->filter();
         $areaCodes = (clone $scopeQuery)->select('area_kerja')->distinct()->pluck('area_kerja')->filter();
-        $importStatusService = app()->make(EmployeeMediaImportStatusService::class);
 
         return view('admin.karyawan.index', [
             'departemens' => Departemen::with('perusahaan')->whereIn('id', $departemenIds)->orderBy('departemen')->get(),
             'divisis' => Divisi::whereIn('id', $divisiIds)->orderBy('nama_divisi')->get(),
             'areas' => Perusahaan::whereIn('kode_perusahaan', $areaCodes)->get(),
             'canManageMasterData' => $request->user()->canAccessAllEmployees(),
-            'uploadProgressStatuses' => $importStatusService->listForUser($request->user(), ['photo', 'ktp', 'kk', 'sim', 'sio']),
         ]);
     }
 
@@ -174,22 +171,16 @@ class KaryawanController extends Controller
                 continue;
             }
 
-            $filePath = $request->file($input)->store('employee-zip-imports');
+            $filePath = $request->file($input)->store(
+                'employee-zip-imports',
+                config('filesystems.employee_import_disk', config('filesystems.default'))
+            );
             ProcessEmployeeMediaZipUpload::dispatch($filePath, $type, $request->user()->id);
             $queuedCount++;
         }
 
         toast()->success('Success', "{$queuedCount} file ZIP dokumen sedang diproses di background. Cek notifikasi untuk hasil akhirnya.");
         return redirect()->route('karyawan.index');
-    }
-
-    public function uploadProgress(Request $request, EmployeeMediaImportStatusService $importStatusService)
-    {
-        abort_unless($request->user()->canAccessAllEmployees(), 403, 'Akses tidak diizinkan.');
-
-        return response()->json([
-            'items' => $importStatusService->listForUser($request->user(), ['photo', 'ktp', 'kk', 'sim', 'sio']),
-        ]);
     }
 
     public function destroy($nik)

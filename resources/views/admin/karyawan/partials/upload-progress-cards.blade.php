@@ -10,7 +10,18 @@
                             <div class="fw-semibold">{{ $item['label'] }}</div>
                             <div class="upload-progress-card__meta">Update {{ $item['updated_at_human'] }}</div>
                         </div>
-                        <span class="badge bg-{{ $item['status_class'] }}">{{ $item['status_label'] }}</span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-{{ $item['status_class'] }}">{{ $item['status_label'] }}</span>
+                            @if(!empty($item['delete_url']))
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-link text-muted p-0 upload-progress-delete"
+                                    data-delete-url="{{ $item['delete_url'] }}"
+                                    aria-label="Hapus progress {{ $item['label'] }}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            @endif
+                        </div>
                     </div>
                     <div class="progress mb-2" style="height: 8px;">
                         <div

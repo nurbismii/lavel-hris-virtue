@@ -14,13 +14,15 @@ class EmployeeMediaImportStatusService
 
     public function listForUser(User $user, array $mediaTypes = [], int $limit = 8): Collection
     {
-        if (!Storage::exists(self::STATUS_DIRECTORY)) {
+        $storage = $this->storage();
+
+        if (!$storage->exists(self::STATUS_DIRECTORY)) {
             return collect();
         }
 
-        return collect(Storage::files(self::STATUS_DIRECTORY))
-            ->map(function (string $path) {
-                $payload = json_decode((string) Storage::get($path), true);
+        return collect($storage->files(self::STATUS_DIRECTORY))
+            ->map(function (string $path) use ($storage) {
+                $payload = json_decode((string) $storage->get($path), true);
 
                 if (!is_array($payload)) {
                     return null;
@@ -36,7 +38,7 @@ class EmployeeMediaImportStatusService
 
                 if (!$updatedAt || $updatedAt->lt(now()->subDays(self::RETENTION_DAYS))) {
                     if (!empty($item['_path'])) {
-                        Storage::delete($item['_path']);
+                        $this->storage()->delete($item['_path']);
                     }
 
                     return true;
@@ -80,6 +82,34 @@ class EmployeeMediaImportStatusService
             ->sortByDesc('updated_at')
             ->take($limit)
             ->values();
+    }
+
+    public function deleteForUser(User $user, string $importId): bool
+    {
+        $path = $this->summaryPath($importId);
+        $storage = $this->storage();
+
+        if (!$storage->exists($path)) {
+            return false;
+        }
+
+        $payload = json_decode((string) $storage->get($path), true);
+
+        if (!is_array($payload) || (string) ($payload['uploader_id'] ?? '') !== (string) $user->id) {
+            return false;
+        }
+
+        return $storage->delete($path);
+    }
+
+    private function storage()
+    {
+        return Storage::disk(config('filesystems.employee_import_disk', config('filesystems.default')));
+    }
+
+    private function summaryPath(string $importId): string
+    {
+        return self::STATUS_DIRECTORY . '/' . $importId . '.json';
     }
 
     private function labelForType(string $type): string
