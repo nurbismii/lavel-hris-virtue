@@ -114,6 +114,7 @@ class KaryawanController extends Controller
             'sio_file' => 'sio',
             'face_reference' => 'face_reference',
         ];
+        $replacedDocuments = 0;
 
         foreach ($fileInputs as $input => $type) {
             if (!$request->hasFile($input)) {
@@ -121,15 +122,21 @@ class KaryawanController extends Controller
             }
 
             $column = $mediaService->getColumnForType($type);
-            $path = $mediaService->storeUploadedFile($employee, $request->file($input), $type);
+            $replacedExisting = false;
+            $path = $mediaService->storeUploadedFile($employee, $request->file($input), $type, true, $replacedExisting);
 
             $validatedData[$column] = $path;
             $employee->{$column} = $path;
+            $replacedDocuments += $replacedExisting ? 1 : 0;
         }
 
         $employee->update($validatedData);
 
-        toast('Data karyawan berhasil diperbarui!', 'success');
+        $message = $replacedDocuments > 0
+            ? "Data karyawan berhasil diperbarui. {$replacedDocuments} file lama ditimpa dengan file baru."
+            : 'Data karyawan berhasil diperbarui!';
+
+        toast($message, 'success');
         return redirect()->route('karyawan.index');
     }
 

@@ -54,7 +54,7 @@ class EmployeeMediaService
         ],
     ];
 
-    public function storeUploadedFile(Employee $employee, UploadedFile $file, string $type, bool $allowCompression = true): string
+    public function storeUploadedFile(Employee $employee, UploadedFile $file, string $type, bool $allowCompression = true, ?bool &$replacedExisting = null): string
     {
         $config = $this->getTypeConfig($type);
         $relativeDirectory = sprintf($config['directory'], $employee->nik);
@@ -65,6 +65,7 @@ class EmployeeMediaService
         }
 
         $currentPath = $employee->{$config['column']} ?? null;
+        $replacedExisting = !empty($currentPath);
 
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
 

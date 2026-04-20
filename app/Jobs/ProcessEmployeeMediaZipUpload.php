@@ -180,11 +180,15 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                         true
                     );
 
-                    $path = $mediaService->storeUploadedFile($employee, $uploadedFile, $this->mediaType, false);
+                    $replacedExisting = false;
+                    $path = $mediaService->storeUploadedFile($employee, $uploadedFile, $this->mediaType, false, $replacedExisting);
                     $employee->forceFill([$column => $path])->save();
                     $summary['processed_niks'][$nik] = true;
                     $summary['success_count']++;
-                    $this->rememberItem($summary, 'success', $basename, "Berhasil dipasangkan ke {$employee->nama_karyawan} ({$employee->nik}).");
+                    $message = $replacedExisting
+                        ? "File lama untuk {$employee->nama_karyawan} ({$employee->nik}) berhasil ditimpa."
+                        : "Berhasil dipasangkan ke {$employee->nama_karyawan} ({$employee->nik}).";
+                    $this->rememberItem($summary, 'success', $basename, $message);
                 } catch (Throwable $exception) {
                     $summary['skipped_count']++;
                     $this->rememberItem($summary, 'skip', $basename, 'Gagal menyimpan file ke data karyawan.');

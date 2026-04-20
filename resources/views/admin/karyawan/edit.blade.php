@@ -190,6 +190,101 @@
         margin-top: 0.5rem;
     }
 
+    .employee-document-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+    }
+
+    .employee-document-row {
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        background: #fff;
+        padding: 1rem;
+    }
+
+    .employee-document-row__grid {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .employee-document-row__preview {
+        width: 92px;
+        height: 92px;
+        border-radius: 12px;
+        border: 1px solid #dbe4f0;
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .employee-document-row__preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .employee-document-row__placeholder {
+        text-align: center;
+        color: #64748b;
+        font-size: 0.76rem;
+        line-height: 1.25;
+        padding: 0.5rem;
+    }
+
+    .employee-document-row__placeholder i {
+        font-size: 1.35rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .employee-document-row__header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: flex-start;
+        margin-bottom: 0.7rem;
+    }
+
+    .employee-document-row__title {
+        color: #0f172a;
+        font-size: 0.94rem;
+        font-weight: 700;
+        margin-bottom: 0.15rem;
+    }
+
+    .employee-document-row__meta {
+        color: #64748b;
+        font-size: 0.8rem;
+        word-break: break-word;
+    }
+
+    .employee-document-row__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        margin-bottom: 0.85rem;
+    }
+
+    .employee-document-row__upload {
+        border-top: 1px solid #eef2f7;
+        padding-top: 0.85rem;
+    }
+
+    .employee-document-row__upload .form-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .employee-document-row__upload .form-control {
+        background: #f8fafc;
+        border-color: #dbe4f0;
+    }
+
     .employee-action-card {
         position: sticky;
         top: 1.25rem;
@@ -223,6 +318,15 @@
     }
 
     @media (max-width: 575.98px) {
+        .employee-document-row__grid {
+            grid-template-columns: 1fr;
+        }
+
+        .employee-document-row__preview {
+            width: 100%;
+            height: 160px;
+        }
+
         .employee-document-card__content {
             flex-direction: column;
         }
@@ -550,65 +654,51 @@
                                         <div class="employee-edit-section__card">
                                             <div class="employee-edit-section__title">Foto Referensi Wajah</div>
                                             <div class="employee-edit-section__caption">Dipakai untuk validasi presensi berbasis foto. Gunakan foto wajah lurus ke kamera.</div>
-                                            <div class="row g-3 align-items-stretch">
-                                                <div class="col-lg-5">
-                                                    <div class="employee-document-input h-100">
-                                                        <label class="form-label">Upload Foto Referensi</label>
-                                                        <input type="file" class="form-control @error('face_reference') is-invalid @enderror" name="face_reference" accept="image/png,image/jpeg,image/webp" data-compress-images="true">
-                                                        @error('face_reference')
-                                                            <div class="invalid-feedback">{{ $message }}</div>
-                                                        @enderror
-                                                        <div class="employee-document-input__help">
-                                                            Gambar akan dikompres otomatis bila terlalu besar sebelum dikirim.
+                                            <div class="employee-document-list">
+                                                <div class="employee-document-row">
+                                                    <div class="employee-document-row__grid">
+                                                        <div class="employee-document-row__preview">
+                                                            @if($employee->face_reference_path)
+                                                                <img src="{{ asset($employee->face_reference_path) }}" alt="Foto referensi wajah" loading="lazy">
+                                                            @else
+                                                                <div class="employee-document-row__placeholder">
+                                                                    <i class="fas fa-camera"></i>
+                                                                    <div>Belum ada file</div>
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                        <div>
+                                                            <div class="employee-document-row__header">
+                                                                <div>
+                                                                    <div class="employee-document-row__title">Foto Referensi Wajah</div>
+                                                                    <div class="employee-document-row__meta">
+                                                                        {{ $employee->face_reference_path ? basename($employee->face_reference_path) : 'Belum ada foto referensi tersimpan.' }}
+                                                                    </div>
+                                                                </div>
+                                                                <span class="employee-document-card__badge">{{ $employee->face_reference_path ? 'Gambar' : 'Kosong' }}</span>
+                                                            </div>
+                                                            @if($employee->face_reference_path)
+                                                                <div class="employee-document-row__actions">
+                                                                    <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ asset($employee->face_reference_path) }}" data-file-type="image" data-file-label="Foto Referensi Wajah" data-file-name="{{ basename($employee->face_reference_path) }}">
+                                                                        Lihat
+                                                                    </button>
+                                                                    <a href="{{ asset($employee->face_reference_path) }}" download class="btn btn-sm btn-primary">
+                                                                        Unduh
+                                                                    </a>
+                                                                </div>
+                                                            @endif
+                                                            <div class="employee-document-row__upload">
+                                                                <label class="form-label">Ganti Foto Referensi</label>
+                                                                <input type="file" class="form-control @error('face_reference') is-invalid @enderror" name="face_reference" accept="image/png,image/jpeg,image/webp" data-compress-images="true">
+                                                                @error('face_reference')
+                                                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                                @enderror
+                                                                <div class="employee-document-input__help">
+                                                                    Upload baru akan menimpa file lama dan memperbarui data karyawan.
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <div class="col-lg-7">
-                                                    @if($employee->face_reference_path)
-                                                        <div class="employee-document-card">
-                                                            <div class="employee-document-card__content">
-                                                                <div class="employee-document-card__thumb">
-                                                                    <img src="{{ asset($employee->face_reference_path) }}" alt="Foto referensi wajah" loading="lazy">
-                                                                </div>
-                                                                <div class="employee-document-card__body">
-                                                                    <div class="employee-document-card__header">
-                                                                        <div>
-                                                                            <div class="employee-document-card__title">Foto Referensi Wajah</div>
-                                                                            <div class="employee-document-card__meta">{{ basename($employee->face_reference_path) }}</div>
-                                                                        </div>
-                                                                        <span class="employee-document-card__badge">Gambar</span>
-                                                                    </div>
-                                                                    <div class="employee-document-card__actions">
-                                                                        <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ asset($employee->face_reference_path) }}" data-file-type="image" data-file-label="Foto Referensi Wajah" data-file-name="{{ basename($employee->face_reference_path) }}">
-                                                                            Lihat
-                                                                        </button>
-                                                                        <a href="{{ asset($employee->face_reference_path) }}" download class="btn btn-sm btn-primary">
-                                                                            Unduh
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @else
-                                                        <div class="employee-document-card h-100">
-                                                            <div class="employee-document-card__content">
-                                                                <div class="employee-document-card__thumb">
-                                                                    <div class="employee-document-card__placeholder">
-                                                                        <i class="fas fa-camera"></i>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="employee-document-card__body">
-                                                                    <div class="employee-document-card__header">
-                                                                        <div>
-                                                                            <div class="employee-document-card__title">Foto Referensi Wajah</div>
-                                                                            <div class="employee-document-card__meta">Belum ada foto referensi tersimpan.</div>
-                                                                        </div>
-                                                                        <span class="employee-document-card__badge">Kosong</span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    @endif
                                                 </div>
                                             </div>
                                         </div>
@@ -617,78 +707,67 @@
                                     <div class="employee-edit-section">
                                         <div class="employee-edit-section__card">
                                             <div class="employee-edit-section__title">Dokumen Legal Karyawan</div>
-                                            <div class="employee-edit-section__caption">Dokumen aktif dapat dilihat cepat, diunduh, dan diganti dari satu tempat.</div>
-                                            <div class="row g-3">
+                                            <div class="employee-edit-section__caption">Setiap upload baru akan menimpa file lama untuk jenis dokumen yang sama, lalu memperbarui path file di database.</div>
+                                            <div class="employee-document-list">
                                                 @foreach($documentFields as $document)
-                                                    <div class="col-lg-6">
-                                                        <div class="employee-document-input mb-3">
-                                                            <label class="form-label">{{ $document['label'] }}</label>
-                                                            <input
-                                                                type="file"
-                                                                class="form-control @error($document['input']) is-invalid @enderror"
-                                                                name="{{ $document['input'] }}"
-                                                                accept="{{ $document['accept'] }}"
-                                                                data-compress-images="true">
-                                                            @error($document['input'])
-                                                                <div class="invalid-feedback">{{ $message }}</div>
-                                                            @enderror
-                                                            <div class="employee-document-input__help">{{ $document['help'] }}</div>
-                                                        </div>
-
-                                                        <div class="employee-document-card">
-                                                            @if($document['path'])
-                                                                <div class="employee-document-card__content">
-                                                                    <div class="employee-document-card__thumb">
-                                                                        @if($document['is_image'])
-                                                                            <img src="{{ $document['url'] }}" alt="{{ $document['label'] }}" loading="lazy">
-                                                                        @elseif($document['is_pdf'])
-                                                                            <div class="employee-document-card__placeholder">
-                                                                                <i class="fas fa-file-pdf text-danger"></i>
-                                                                                <div>PDF</div>
-                                                                            </div>
-                                                                        @else
-                                                                            <div class="employee-document-card__placeholder">
-                                                                                <i class="fas fa-file-alt text-primary"></i>
-                                                                                <div>File</div>
-                                                                            </div>
-                                                                        @endif
+                                                    <div class="employee-document-row">
+                                                        <div class="employee-document-row__grid">
+                                                            <div class="employee-document-row__preview">
+                                                                @if($document['path'] && $document['is_image'])
+                                                                    <img src="{{ $document['url'] }}" alt="{{ $document['label'] }}" loading="lazy">
+                                                                @elseif($document['path'] && $document['is_pdf'])
+                                                                    <div class="employee-document-row__placeholder">
+                                                                        <i class="fas fa-file-pdf text-danger"></i>
+                                                                        <div>PDF</div>
                                                                     </div>
-                                                                    <div class="employee-document-card__body">
-                                                                        <div class="employee-document-card__header">
-                                                                            <div>
-                                                                                <div class="employee-document-card__title">{{ $document['label'] }}</div>
-                                                                                <div class="employee-document-card__meta">{{ $document['file_name'] }}</div>
-                                                                            </div>
-                                                                            <span class="employee-document-card__badge">{{ $document['badge'] }}</span>
+                                                                @elseif($document['path'])
+                                                                    <div class="employee-document-row__placeholder">
+                                                                        <i class="fas fa-file-alt text-primary"></i>
+                                                                        <div>File</div>
+                                                                    </div>
+                                                                @else
+                                                                    <div class="employee-document-row__placeholder">
+                                                                        <i class="fas fa-file-upload"></i>
+                                                                        <div>Belum ada file</div>
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                            <div>
+                                                                <div class="employee-document-row__header">
+                                                                    <div>
+                                                                        <div class="employee-document-row__title">{{ $document['label'] }}</div>
+                                                                        <div class="employee-document-row__meta">
+                                                                            {{ $document['path'] ? $document['file_name'] : 'Belum ada file tersimpan.' }}
                                                                         </div>
-                                                                        <div class="employee-document-card__actions">
-                                                                            <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ $document['url'] }}" data-file-type="{{ $document['is_pdf'] ? 'pdf' : 'image' }}" data-file-label="{{ $document['label'] }}" data-file-name="{{ $document['file_name'] }}">
-                                                                                Lihat
-                                                                            </button>
-                                                                            <a href="{{ $document['url'] }}" download class="btn btn-sm btn-primary">
-                                                                                Unduh
-                                                                            </a>
-                                                                        </div>
+                                                                    </div>
+                                                                    <span class="employee-document-card__badge">{{ $document['badge'] }}</span>
+                                                                </div>
+                                                                @if($document['path'])
+                                                                    <div class="employee-document-row__actions">
+                                                                        <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ $document['url'] }}" data-file-type="{{ $document['is_pdf'] ? 'pdf' : 'image' }}" data-file-label="{{ $document['label'] }}" data-file-name="{{ $document['file_name'] }}">
+                                                                            Lihat
+                                                                        </button>
+                                                                        <a href="{{ $document['url'] }}" download class="btn btn-sm btn-primary">
+                                                                            Unduh
+                                                                        </a>
+                                                                    </div>
+                                                                @endif
+                                                                <div class="employee-document-row__upload">
+                                                                    <label class="form-label">Upload Ulang {{ $document['label'] }}</label>
+                                                                    <input
+                                                                        type="file"
+                                                                        class="form-control @error($document['input']) is-invalid @enderror"
+                                                                        name="{{ $document['input'] }}"
+                                                                        accept="{{ $document['accept'] }}"
+                                                                        data-compress-images="true">
+                                                                    @error($document['input'])
+                                                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                                    @enderror
+                                                                    <div class="employee-document-input__help">
+                                                                        {{ $document['help'] }} Upload baru akan menimpa file lama.
                                                                     </div>
                                                                 </div>
-                                                            @else
-                                                                <div class="employee-document-card__content">
-                                                                    <div class="employee-document-card__thumb">
-                                                                        <div class="employee-document-card__placeholder">
-                                                                            <i class="fas fa-file-upload"></i>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="employee-document-card__body">
-                                                                        <div class="employee-document-card__header">
-                                                                            <div>
-                                                                                <div class="employee-document-card__title">{{ $document['label'] }}</div>
-                                                                                <div class="employee-document-card__meta">Belum ada file tersimpan.</div>
-                                                                            </div>
-                                                                            <span class="employee-document-card__badge">Kosong</span>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            @endif
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 @endforeach
