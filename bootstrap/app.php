@@ -15,6 +15,17 @@ $app = new Illuminate\Foundation\Application(
     $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__)
 );
 
+$publicPath = $_ENV['APP_PUBLIC_PATH']
+    ?? $_SERVER['APP_PUBLIC_PATH']
+    ?? getenv('APP_PUBLIC_PATH')
+    ?? null;
+
+if (!empty($publicPath)) {
+    $app->bind('path.public', function () use ($publicPath) {
+        return rtrim($publicPath, '/\\');
+    });
+}
+
 /*
 |--------------------------------------------------------------------------
 | Bind Important Interfaces

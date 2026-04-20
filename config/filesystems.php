@@ -59,7 +59,7 @@ return [
 
         'employee_imports' => [
             'driver' => 'local',
-            'root' => public_path(),
+            'root' => storage_path('app'),
         ],
 
         's3' => [

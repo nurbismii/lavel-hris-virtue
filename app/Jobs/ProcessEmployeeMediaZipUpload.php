@@ -92,6 +92,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $column = $mediaService->getColumnForType($this->mediaType);
         $startIndex = max(0, $this->offset);
         $chunkSize = max(1, (int) env('EMPLOYEE_MEDIA_ZIP_CHUNK_SIZE', 5));
+        $zipEntriesCount = max(0, (int) $zip->numFiles);
         $summary['total_entries'] = max(0, (int) ($summary['total_entries'] ?? 0));
 
         if ($summary['total_entries'] === 0) {
@@ -102,7 +103,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $summary['updated_at'] = now()->toIso8601String();
         $this->persistSummary($summary);
 
-        $endIndex = min($zip->numFiles, $startIndex + $chunkSize);
+        $endIndex = min($zipEntriesCount, $startIndex + $chunkSize);
         $totalEntries = (int) $summary['total_entries'];
 
         if (!File::exists($tempDirectory)) {
@@ -218,7 +219,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             }
         }
 
-        if ($endIndex < $totalEntries) {
+        if ($endIndex < $zipEntriesCount) {
             Log::info('Employee ZIP media import chunk finished.', [
                 'media_type' => $this->mediaType,
                 'uploader_id' => $this->uploaderId,
@@ -226,6 +227,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                 'offset' => $this->offset,
                 'chunk_size' => $chunkSize,
                 'next_offset' => $endIndex,
+                'zip_entries_count' => $zipEntriesCount,
                 'total_entries' => $totalEntries,
                 'success_count' => $summary['success_count'],
                 'skipped_count' => $summary['skipped_count'],
@@ -436,7 +438,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 
     protected function bootstrapSummaryFile(): void
     {
-        if (Storage::exists($this->summaryStoragePath())) {
+        if ($this->importStorage()->exists($this->summaryStoragePath())) {
             return;
         }
 
