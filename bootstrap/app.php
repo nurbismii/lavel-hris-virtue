@@ -11,14 +11,24 @@
 |
 */
 
-$app = new Illuminate\Foundation\Application(
-    $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__)
-);
+$basePath = $_ENV['APP_BASE_PATH'] ?? dirname(__DIR__);
+
+$app = new Illuminate\Foundation\Application($basePath);
 
 $publicPath = $_ENV['APP_PUBLIC_PATH']
     ?? $_SERVER['APP_PUBLIC_PATH']
     ?? getenv('APP_PUBLIC_PATH')
     ?? null;
+
+if (empty($publicPath)) {
+    $autoDetectedPublicPath = dirname($basePath)
+        . DIRECTORY_SEPARATOR . 'public_html'
+        . DIRECTORY_SEPARATOR . basename($basePath);
+
+    if (is_dir($autoDetectedPublicPath)) {
+        $publicPath = $autoDetectedPublicPath;
+    }
+}
 
 if (!empty($publicPath)) {
     $app->bind('path.public', function () use ($publicPath) {
