@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Concerns;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Validator;
+use App\Support\ZipArchiveStatus;
 use ZipArchive;
 
 trait ValidatesZipUploads
@@ -47,7 +48,7 @@ trait ValidatesZipUploads
                     $zipStatus = $zip->open($temporaryPath);
 
                     if ($zipStatus !== true) {
-                        $fail("{$label} tidak valid atau rusak. Kompres ulang sebagai ZIP standar lalu coba lagi.");
+                        $fail(ZipArchiveStatus::message($zipStatus, $label));
                         return;
                     }
 

@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\User;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\Karyawan\EmployeeMediaService;
+use App\Support\ZipArchiveStatus;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -77,10 +78,18 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             $summary['items'] = [[
                 'status' => 'skip',
                 'file' => basename($this->zipPath),
-                'message' => 'ZIP tidak dapat dibuka atau rusak.',
+                'message' => ZipArchiveStatus::message($zipOpened, 'ZIP upload'),
             ]];
             $summary['finished_at'] = now()->toIso8601String();
             $this->persistSummary($summary);
+
+            Log::warning('Employee ZIP media import rejected ZIP file.', [
+                'media_type' => $this->mediaType,
+                'uploader_id' => $this->uploaderId,
+                'zip_path' => $this->zipPath,
+                'import_id' => $this->importId,
+                'zip_open_status' => $zipOpened,
+            ]);
 
             $this->notifyResult($uploader, $this->toPublicSummary($summary), true);
 
