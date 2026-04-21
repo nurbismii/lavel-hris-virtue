@@ -193,8 +193,18 @@ class AttendanceSettingController extends Controller
         );
         ProcessEmployeeMediaZipUpload::dispatch($filePath, 'face_reference', $request->user()->id);
 
-        toast()->success('Success', 'ZIP foto referensi sedang diproses di background. Cek notifikasi untuk hasil akhirnya.');
-        return redirect()->route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
+        $redirectUrl = route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
+        $message = 'ZIP foto referensi sedang diproses di background. Cek notifikasi untuk hasil akhirnya.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'redirect_url' => $redirectUrl,
+            ]);
+        }
+
+        toast()->success('Success', $message);
+        return redirect()->to($redirectUrl);
     }
 
 }

@@ -160,8 +160,19 @@ class KaryawanController extends Controller
             ->contains(fn($input) => $request->hasFile($input));
 
         if (!$hasAnyUpload) {
+            $message = 'Pilih minimal satu file ZIP dokumen untuk diproses.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $message,
+                    'errors' => [
+                        'bulk_documents_zip' => [$message],
+                    ],
+                ], 422);
+            }
+
             return back()->withErrors([
-                'bulk_documents_zip' => 'Pilih minimal satu file ZIP dokumen untuk diproses.',
+                'bulk_documents_zip' => $message,
             ]);
         }
         $queuedCount = 0;
@@ -179,7 +190,16 @@ class KaryawanController extends Controller
             $queuedCount++;
         }
 
-        toast()->success('Success', "{$queuedCount} file ZIP dokumen sedang diproses di background. Cek notifikasi untuk hasil akhirnya.");
+        $message = "{$queuedCount} file ZIP dokumen sedang diproses di background. Cek notifikasi untuk hasil akhirnya.";
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'redirect_url' => route('karyawan.index'),
+            ]);
+        }
+
+        toast()->success('Success', $message);
         return redirect()->route('karyawan.index');
     }
 

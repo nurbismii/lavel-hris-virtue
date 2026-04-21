@@ -27,6 +27,29 @@
         z-index: 1050;
         padding: 10px 0;
     }
+
+    .bulk-upload-feedback {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        padding: 14px 16px;
+    }
+
+    .bulk-upload-feedback__title {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: #0f172a;
+    }
+
+    .bulk-upload-feedback__text {
+        font-size: 0.84rem;
+        color: #475569;
+    }
+
+    .bulk-upload-feedback__error {
+        font-size: 0.84rem;
+        color: #b91c1c;
+    }
 </style>
 
 <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.dataTables.min.css">
@@ -201,7 +224,7 @@
                 <h1 class="modal-title fs-5" id="modalBulkFaceReferenceLabel">Bulk Upload Foto Referensi Presensi</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('set-kehadiran.bulk-upload-face-reference') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('set-kehadiran.bulk-upload-face-reference') }}" method="POST" enctype="multipart/form-data" class="js-bulk-upload-form" data-redirect-url="{{ route('set-kehadiran.index', request()->only(['periode', 'departemen', 'divisi'])) }}">
                 @csrf
                 <input type="hidden" name="periode" value="{{ $periode }}">
                 <input type="hidden" name="departemen" value="{{ $selectedDepartemenId }}">
@@ -229,11 +252,23 @@
                     <small class="text-muted d-block mt-2">
                         Satu ZIP ini hanya akan dipasangkan ke karyawan dalam scope akses Anda. Maksimal sekitar 500MB per ZIP.
                     </small>
+
+                    <div class="bulk-upload-feedback mt-3 d-none" data-upload-feedback>
+                        <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
+                            <div class="bulk-upload-feedback__title">Upload sedang berjalan</div>
+                            <div class="bulk-upload-feedback__text" data-upload-percent>0%</div>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" data-upload-progress-bar></div>
+                        </div>
+                        <div class="bulk-upload-feedback__text mt-2 mb-0" data-upload-status>Menyiapkan upload ZIP ke server...</div>
+                        <div class="bulk-upload-feedback__error mt-2 d-none" data-upload-error></div>
+                    </div>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary">Upload ZIP</button>
+                    <button type="submit" class="btn btn-primary" data-submit-label="Upload ZIP">Upload ZIP</button>
                 </div>
             </form>
         </div>
@@ -241,6 +276,168 @@
 </div>
 
 @push('scripts')
+<script>
+    (function() {
+        function setUploadState(form, state) {
+            const feedback = form.querySelector('[data-upload-feedback]');
+            const progressBar = form.querySelector('[data-upload-progress-bar]');
+            const percentLabel = form.querySelector('[data-upload-percent]');
+            const statusLabel = form.querySelector('[data-upload-status]');
+            const errorLabel = form.querySelector('[data-upload-error]');
+            const submitButton = form.querySelector('button[type="submit"]');
+            const submitLabel = submitButton ? (submitButton.dataset.submitLabel || submitButton.textContent.trim()) : 'Upload';
+
+            if (!feedback || !progressBar || !percentLabel || !statusLabel || !errorLabel || !submitButton) {
+                return;
+            }
+
+            if (state.mode === 'idle') {
+                feedback.classList.add('d-none');
+                errorLabel.classList.add('d-none');
+                errorLabel.textContent = '';
+                progressBar.style.width = '0%';
+                progressBar.classList.add('progress-bar-animated', 'progress-bar-striped');
+                progressBar.classList.remove('bg-danger', 'bg-success');
+                percentLabel.textContent = '0%';
+                statusLabel.textContent = 'Menyiapkan upload ZIP ke server...';
+                submitButton.disabled = false;
+                submitButton.textContent = submitLabel;
+                return;
+            }
+
+            feedback.classList.remove('d-none');
+            progressBar.style.width = `${state.percent}%`;
+            percentLabel.textContent = `${state.percent}%`;
+            statusLabel.textContent = state.message;
+            submitButton.disabled = true;
+            submitButton.textContent = state.buttonLabel || 'Sedang Upload...';
+
+            if (state.mode === 'error') {
+                progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+                progressBar.classList.add('bg-danger');
+                errorLabel.textContent = state.error || 'Upload gagal diproses.';
+                errorLabel.classList.remove('d-none');
+                submitButton.disabled = false;
+                submitButton.textContent = submitLabel;
+                return;
+            }
+
+            if (state.mode === 'success') {
+                progressBar.classList.remove('progress-bar-animated', 'progress-bar-striped');
+                progressBar.classList.add('bg-success');
+                errorLabel.classList.add('d-none');
+                return;
+            }
+
+            progressBar.classList.remove('bg-danger', 'bg-success');
+            errorLabel.classList.add('d-none');
+        }
+
+        document.querySelectorAll('.js-bulk-upload-form').forEach((form) => {
+            const modal = form.closest('.modal');
+
+            if (modal) {
+                modal.addEventListener('hidden.bs.modal', function() {
+                    setUploadState(form, {
+                        mode: 'idle'
+                    });
+                });
+            }
+
+            form.addEventListener('submit', function(event) {
+                if (!window.FormData || !window.XMLHttpRequest) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                const xhr = new XMLHttpRequest();
+                xhr.open(form.method || 'POST', form.action);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                xhr.setRequestHeader('Accept', 'application/json');
+
+                setUploadState(form, {
+                    mode: 'uploading',
+                    percent: 0,
+                    message: 'Mengunggah file ZIP ke server. Jangan tutup halaman ini.',
+                    buttonLabel: 'Mengunggah...'
+                });
+
+                xhr.upload.addEventListener('progress', function(progressEvent) {
+                    if (!progressEvent.lengthComputable) {
+                        return;
+                    }
+
+                    const percent = Math.max(1, Math.min(99, Math.round((progressEvent.loaded / progressEvent.total) * 100)));
+
+                    setUploadState(form, {
+                        mode: 'uploading',
+                        percent: percent,
+                        message: `Upload berjalan ${percent}%. Setelah selesai, file akan dimasukkan ke antrean background.`,
+                        buttonLabel: 'Mengunggah...'
+                    });
+                });
+
+                xhr.addEventListener('load', function() {
+                    let payload = {};
+
+                    try {
+                        payload = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+                    } catch (error) {
+                        payload = {};
+                    }
+
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        setUploadState(form, {
+                            mode: 'success',
+                            percent: 100,
+                            message: payload.message || 'Upload selesai dikirim. Halaman akan dimuat ulang.',
+                            buttonLabel: 'Selesai'
+                        });
+
+                        window.setTimeout(function() {
+                            window.location.href = payload.redirect_url || form.dataset.redirectUrl || window.location.href;
+                        }, 900);
+
+                        return;
+                    }
+
+                    const errorMessage = payload.message
+                        || (payload.errors ? Object.values(payload.errors).flat().join(' ') : '')
+                        || 'Upload gagal atau server tidak memberikan respons yang valid.';
+
+                    setUploadState(form, {
+                        mode: 'error',
+                        percent: 100,
+                        message: 'Upload berhenti sebelum selesai diproses.',
+                        error: errorMessage
+                    });
+                });
+
+                xhr.addEventListener('error', function() {
+                    setUploadState(form, {
+                        mode: 'error',
+                        percent: 100,
+                        message: 'Koneksi ke server terputus saat upload berlangsung.',
+                        error: 'Server tidak merespons. Kemungkinan batas upload atau timeout di hosting masih terlalu kecil.'
+                    });
+                });
+
+                xhr.addEventListener('abort', function() {
+                    setUploadState(form, {
+                        mode: 'error',
+                        percent: 100,
+                        message: 'Upload dibatalkan.',
+                        error: 'Proses upload dibatalkan sebelum selesai.'
+                    });
+                });
+
+                xhr.send(new FormData(form));
+            });
+        });
+    })();
+</script>
+
 <script>
     $(document).ready(function() {
         $('#table-set-kehadiran').DataTable({
