@@ -119,6 +119,11 @@ return [
             'scope_label' => 'Akun sendiri',
             'description' => 'Akses self service untuk kebutuhan karyawan.',
         ],
+        'Staff Roster' => [
+            'aliases' => ['User Roster'],
+            'scope_label' => 'Akun sendiri',
+            'description' => 'Akses self service untuk kebutuhan karyawan.',
+        ],
         'Admin Divisi' => [
             'aliases' => [],
             'scope_label' => 'Divisi yang ditugaskan',
@@ -177,6 +182,13 @@ return [
             'presensi',
         ],
         'Staff' => [
+            'dashboard_karyawan',
+            'slip_gaji_user',
+            'cuti',
+            'izin',
+            'presensi',
+        ],
+        'Staff Roster' => [
             'dashboard_karyawan',
             'slip_gaji_user',
             'cuti',

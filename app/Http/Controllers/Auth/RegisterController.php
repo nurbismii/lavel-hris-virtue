@@ -43,14 +43,14 @@ class RegisterController extends Controller
     public function register(RegisterRequest $request)
     {
         $role = Role::query()
-            ->whereIn('permission_role', ['Staff', 'User'])
+            ->where('permission_role', 'Staff')
             ->orderByRaw("CASE WHEN permission_role = 'Staff' THEN 0 ELSE 1 END")
             ->select('id')
             ->first();
 
         if (!$role) {
             return back()->withErrors([
-                'nik_karyawan' => 'Role default Staff belum tersedia. Silakan hubungi Super Admin.',
+                'nik_karyawan' => 'Role default Staff belum tersedia. Silakan hubungi HR.',
             ])->withInput();
         }
 

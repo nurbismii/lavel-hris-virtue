@@ -27,7 +27,6 @@
         z-index: 1050;
         padding: 10px 0;
     }
-
 </style>
 
 <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.dataTables.min.css">
@@ -65,53 +64,53 @@
             </div>
 
             @if($isDepartmentReadonly)
-                <div class="col-md-3">
-                    <label class="form-label">Departemen</label>
-                    <input type="text" class="form-control" value="{{ optional($departemen)->departemen ?? '-' }}" readonly>
-                </div>
+            <div class="col-md-3">
+                <label class="form-label">Departemen</label>
+                <input type="text" class="form-control" value="{{ optional($departemen)->departemen ?? '-' }}" readonly>
+            </div>
             @else
-                <div class="col-md-3">
-                    <label class="form-label">Departemen</label>
-                    <select id="filter_departemen" name="departemen" class="form-select form-control">
-                        <option value="">Pilih Departemen</option>
-                        @php
-                            $groupedDepts = [];
-                            foreach ($departemens as $dept) {
-                                $groupedDepts[optional($dept->perusahaan)->nama_perusahaan ?? 'Lainnya'][] = $dept;
-                            }
-                        @endphp
+            <div class="col-md-3">
+                <label class="form-label">Departemen</label>
+                <select id="filter_departemen" name="departemen" class="form-select form-control">
+                    <option value="">Pilih Departemen</option>
+                    @php
+                    $groupedDepts = [];
+                    foreach ($departemens as $dept) {
+                    $groupedDepts[optional($dept->perusahaan)->nama_perusahaan ?? 'Lainnya'][] = $dept;
+                    }
+                    @endphp
 
-                        @foreach($groupedDepts as $perusahaan => $deptItems)
-                            <optgroup label="{{ $perusahaan }}">
-                                @foreach($deptItems as $dept)
-                                    <option value="{{ $dept->id }}" {{ (string) $selectedDepartemenId === (string) $dept->id ? 'selected' : '' }}>
-                                        {{ $dept->departemen }}
-                                    </option>
-                                @endforeach
-                            </optgroup>
+                    @foreach($groupedDepts as $perusahaan => $deptItems)
+                    <optgroup label="{{ $perusahaan }}">
+                        @foreach($deptItems as $dept)
+                        <option value="{{ $dept->id }}" {{ (string) $selectedDepartemenId === (string) $dept->id ? 'selected' : '' }}>
+                            {{ $dept->departemen }}
+                        </option>
                         @endforeach
-                    </select>
-                </div>
+                    </optgroup>
+                    @endforeach
+                </select>
+            </div>
             @endif
 
             @if($isDivisionReadonly)
-                <div class="col-md-4">
-                    <label class="form-label">Divisi</label>
-                    <input type="text" class="form-control" value="{{ optional($divisis->first())->nama_divisi ?? '-' }}" readonly>
-                    <input type="hidden" id="filter_divisi" name="divisi" value="{{ $selectedDivisiId }}">
-                </div>
+            <div class="col-md-4">
+                <label class="form-label">Divisi</label>
+                <input type="text" class="form-control" value="{{ optional($divisis->first())->nama_divisi ?? '-' }}" readonly>
+                <input type="hidden" id="filter_divisi" name="divisi" value="{{ $selectedDivisiId }}">
+            </div>
             @else
-                <div class="col-md-4">
-                    <label class="form-label">Divisi</label>
-                    <select id="filter_divisi" name="divisi" class="form-select form-control" {{ !$selectedDepartemenId ? 'disabled' : '' }}>
-                        <option value="">Semua Divisi</option>
-                        @foreach ($divisis as $v)
-                            <option value="{{ $v->id }}" {{ (string) $selectedDivisiId === (string) $v->id ? 'selected' : '' }}>
-                                {{ $v->nama_divisi }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
+            <div class="col-md-4">
+                <label class="form-label">Divisi</label>
+                <select id="filter_divisi" name="divisi" class="form-select form-control" {{ !$selectedDepartemenId ? 'disabled' : '' }}>
+                    <option value="">Semua Divisi</option>
+                    @foreach ($divisis as $v)
+                    <option value="{{ $v->id }}" {{ (string) $selectedDivisiId === (string) $v->id ? 'selected' : '' }}>
+                        {{ $v->nama_divisi }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
             @endif
 
             <div class="col-md-2 d-grid">
@@ -122,15 +121,15 @@
         </form>
 
         @if($isDivisionScoped && !$isDivisionReadonly)
-            <div class="alert alert-light border small">
-                Akun Admin Divisi ini memiliki akses ke beberapa divisi. Pilih divisi yang ingin ditampilkan pada periode ini.
-            </div>
+        <div class="alert alert-light border small">
+            Akun Admin Divisi ini memiliki akses ke beberapa divisi. Pilih divisi yang ingin ditampilkan pada periode ini.
+        </div>
         @endif
 
         @if(!$selectedDepartemenId)
-            <div class="alert alert-info">
-                Pilih departemen terlebih dahulu untuk menampilkan setting hari off.
-            </div>
+        <div class="alert alert-info">
+            Pilih departemen terlebih dahulu untuk menampilkan setting hari off.
+        </div>
         @endif
 
         <div class="card shadow-sm border-0">
@@ -147,45 +146,45 @@
                                 <th>Posisi</th>
 
                                 @foreach($dates as $date)
-                                    <th class="text-center">
-                                        <div>{{ $date->format('d') }}</div>
-                                        <div style="font-size:11px; color:#666;">
-                                            {{ $date->translatedFormat('D') }}
-                                        </div>
-                                    </th>
+                                <th class="text-center">
+                                    <div>{{ $date->format('d') }}</div>
+                                    <div style="font-size:11px; color:#666;">
+                                        {{ $date->translatedFormat('D') }}
+                                    </div>
+                                </th>
                                 @endforeach
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($employees as $index => $employee)
-                                <tr>
-                                    <td>{{ ++$index }}</td>
-                                    <td>{{ $employee->nama_karyawan }}</td>
-                                    <td>{{ $employee->nik }}</td>
-                                    <td>{{ optional($employee->divisi)->nama_divisi ?? '-' }}</td>
-                                    <td>{{ optional($employee->departemen)->departemen ?? '-' }}</td>
-                                    <td>{{ optional($employee)->posisi ?? '-' }}</td>
+                            <tr>
+                                <td>{{ ++$index }}</td>
+                                <td>{{ $employee->nama_karyawan }}</td>
+                                <td>{{ $employee->nik }}</td>
+                                <td>{{ optional($employee->divisi)->nama_divisi ?? '-' }}</td>
+                                <td>{{ optional($employee->departemen)->departemen ?? '-' }}</td>
+                                <td>{{ optional($employee)->posisi ?? '-' }}</td>
 
-                                    @foreach($dates as $date)
-                                        @php
-                                            $empAttendance = $offData->get($employee->nik);
-                                            $isOff = $empAttendance
-                                                ? $empAttendance->firstWhere('tanggal', $date->toDateString())
-                                                : null;
-                                            $checked = $isOff ? 'checked' : '';
-                                        @endphp
+                                @foreach($dates as $date)
+                                @php
+                                $empAttendance = $offData->get($employee->nik);
+                                $isOff = $empAttendance
+                                ? $empAttendance->firstWhere('tanggal', $date->toDateString())
+                                : null;
+                                $checked = $isOff ? 'checked' : '';
+                                @endphp
 
-                                        <td class="text-center">
-                                            <input type="checkbox" class="attendance-checkbox" data-employee="{{ $employee->nik }}" data-date="{{ $date->toDateString() }}" {{ $checked }}>
-                                        </td>
-                                    @endforeach
-                                </tr>
+                                <td class="text-center">
+                                    <input type="checkbox" class="attendance-checkbox" data-employee="{{ $employee->nik }}" data-date="{{ $date->toDateString() }}" {{ $checked }}>
+                                </td>
+                                @endforeach
+                            </tr>
                             @empty
-                                <tr>
-                                    <td colspan="{{ 6 + count($dates) }}" class="text-center text-muted py-4">
-                                        {{ $selectedDepartemenId ? 'Tidak ada data karyawan untuk filter yang dipilih.' : 'Pilih departemen untuk mulai menampilkan data.' }}
-                                    </td>
-                                </tr>
+                            <tr>
+                                <td colspan="{{ 6 + count($dates) }}" class="text-center text-muted py-4">
+                                    {{ $selectedDepartemenId ? 'Tidak ada data karyawan untuk filter yang dipilih.' : 'Pilih departemen untuk mulai menampilkan data.' }}
+                                </td>
+                            </tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -210,23 +209,16 @@
 
                 <div class="modal-body">
                     <div class="alert alert-light border small">
-                        Upload satu file ZIP khusus foto referensi presensi.
-                        Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya <code>2200112233.jpg</code>.
+                        Upload satu file ZIP per jenis dokumen.
+                        Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya <code>2200112233.jpg</code> atau <code>2200112233.pdf</code>.
                         ZIP akan diproses di background dan hasil akhirnya dikirim ke notifikasi.
                     </div>
 
                     <div class="alert alert-warning small">
-                        Batas upload ZIP dari aplikasi ini disiapkan sampai sekitar <code>500MB</code> per file ZIP. Pastikan worker queue aktif agar proses berjalan di background.
-                    </div>
-
-                    <div class="alert alert-info small mb-3">
                         <div class="fw-semibold mb-1">Panduan cepat</div>
-                        <div>Queue aktif saat ini: <code>{{ config('queue.default') }}</code></div>
-                        <div>Nama queue saat ini: <code>{{ config('queue.connections.' . config('queue.default') . '.queue', 'default') }}</code></div>
-                        <div>Perintah worker yang disarankan: <code>php artisan queue:work --queue={{ config('queue.connections.' . config('queue.default') . '.queue', 'default') }} --tries=1 --timeout=300</code></div>
-                        <div>Chunk ZIP yang disarankan: <code>EMPLOYEE_MEDIA_ZIP_CHUNK_SIZE=5</code></div>
+                        Batas upload ZIP dari aplikasi ini disiapkan sampai sekitar <code>500MB</code> per file ZIP. Pastikan worker queue aktif agar proses berjalan di background.
                         <div class="mt-2">
-                            <a href="{{ asset('upload-templates/contoh-zip-foto-referensi-presensi.txt') }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ asset('upload-templates/contoh-zip-dokumen-karyawan.txt') }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                 Download Template ZIP
                             </a>
                         </div>
