@@ -5,8 +5,6 @@ namespace App\Http\Controllers\Concerns;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Validator;
-use App\Support\ZipArchiveStatus;
-use ZipArchive;
 
 trait ValidatesZipUploads
 {
@@ -41,46 +39,6 @@ trait ValidatesZipUploads
 
                     if (!$temporaryPath || !is_file($temporaryPath)) {
                         $fail("{$label} tidak terbaca dengan benar.");
-                        return;
-                    }
-
-                    $zip = new ZipArchive();
-                    $zipStatus = $zip->open($temporaryPath);
-
-                    if ($zipStatus !== true) {
-                        $fail(ZipArchiveStatus::message($zipStatus, $label));
-                        return;
-                    }
-
-                    $hasUsableEntry = false;
-
-                    for ($index = 0; $index < $zip->numFiles; $index++) {
-                        $entryName = $zip->getNameIndex($index);
-
-                        if (!$entryName) {
-                            continue;
-                        }
-
-                        $normalizedEntry = str_replace('\\', '/', $entryName);
-
-                        if (substr($normalizedEntry, -1) === '/') {
-                            continue;
-                        }
-
-                        $basename = pathinfo($normalizedEntry, PATHINFO_BASENAME);
-
-                        if ($basename === '' || strpos($basename, '.') === 0) {
-                            continue;
-                        }
-
-                        $hasUsableEntry = true;
-                        break;
-                    }
-
-                    $zip->close();
-
-                    if (!$hasUsableEntry) {
-                        $fail("{$label} kosong atau tidak memiliki file yang bisa diproses.");
                     }
                 },
             ]);
