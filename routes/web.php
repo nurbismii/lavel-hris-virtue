@@ -187,6 +187,8 @@ Route::middleware(['android.redirect'])->group(function () {
 });
 
 Route::group(['prefix' => 'wilayah'], function () {
+    Route::get('/distribusi/export', [App\Http\Controllers\Admin\WilayahController::class, 'export'])->name('distribusi.export');
+    Route::get('/distribusi/export-excel', [App\Http\Controllers\Admin\WilayahController::class, 'exportExcel'])->name('distribusi.export-excel');
     Route::resource('/distribusi', 'App\Http\Controllers\Admin\WilayahController');
     Route::get('/provinces', [App\Http\Controllers\Admin\WilayahController::class, 'provinsi'])->name('wilayah.provinces');
     Route::get('/kabupatens/{provinceId}', [App\Http\Controllers\Admin\WilayahController::class, 'kabupaten'])->name('wilayah.kabupatens');

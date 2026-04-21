@@ -1,0 +1,153 @@
+.wilayah-page {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.wilayah-filter-card,
+.wilayah-chart-card,
+.wilayah-summary-card,
+.wilayah-insight-card,
+.wilayah-table-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+}
+
+.wilayah-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    font-size: 0.86rem;
+    color: #1e293b;
+}
+
+.wilayah-filter-chip input {
+    margin: 0;
+}
+
+.wilayah-summary-card__label {
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.wilayah-summary-card__value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.wilayah-summary-card__meta {
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.wilayah-summary-card__stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.9rem;
+    margin-top: 1rem;
+}
+
+.wilayah-summary-card__stat-item {
+    padding: 0.85rem 0.95rem;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.wilayah-summary-card__stat-label {
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+.wilayah-summary-card__stat-value {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.wilayah-summary-card__tagline {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.wilayah-chart-card canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
+
+.wilayah-chart-card__hint,
+.wilayah-insight-card__meta {
+    font-size: 0.84rem;
+    color: #64748b;
+}
+
+.wilayah-chart-stage {
+    position: relative;
+    height: 320px;
+}
+
+.wilayah-insight-list {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.wilayah-insight-item {
+    padding: 0.9rem 1rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f8fafc, #eef2ff);
+    border: 1px solid #e2e8f0;
+}
+
+.wilayah-insight-item__label {
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+.wilayah-insight-item__value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.wilayah-gender-progress {
+    height: 10px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.wilayah-gender-progress__male {
+    background: #0f766e;
+}
+
+.wilayah-gender-progress__female {
+    background: #db2777;
+}
+
+.wilayah-table-card .table th {
+    white-space: nowrap;
+}
+
+.wilayah-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.65rem;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 0.76rem;
+    font-weight: 600;
+}
