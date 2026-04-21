@@ -233,7 +233,7 @@
                 <div class="modal-body">
                     <div class="alert alert-light border small">
                         Upload satu file ZIP per jenis dokumen.
-                        Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya <code>2200112233.jpg</code> atau <code>2200112233.pdf</code>.
+                        Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya <code>2200112233.jpg</code>, <code>2200112233.jpeg</code>, atau <code>2200112233.pdf</code>.
                         ZIP akan diproses di background dan hasil akhirnya dikirim ke notifikasi.
                     </div>
 
@@ -402,8 +402,9 @@
                         return;
                     }
 
-                    const errorMessage = payload.message
-                        || (payload.errors ? Object.values(payload.errors).flat().join(' ') : '')
+                    const validationMessage = payload.errors ? Object.values(payload.errors).flat().join(' ') : '';
+                    const errorMessage = validationMessage
+                        || payload.message
                         || 'Upload gagal atau server tidak memberikan respons yang valid.';
 
                     setUploadState(form, {

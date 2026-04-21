@@ -11,13 +11,14 @@ Aturan isi ZIP:
 
 Contoh nama file yang benar:
 - 2200112233.jpg
+- 2200112233.jpeg
 - 2200112234-reference.png
 - 2200112235_foto.webp
 
 Contoh struktur ZIP yang benar:
 face-reference.zip
   2200112233.jpg
-  2200112234.png
+  2200112234.jpeg
   2200112235.webp
 
 Catatan:

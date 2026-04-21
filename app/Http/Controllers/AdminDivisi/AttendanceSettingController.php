@@ -184,7 +184,13 @@ class AttendanceSettingController extends Controller
     public function bulkUploadFaceReferences(Request $request)
     {
         $request->validate([
-            'face_reference_zip' => 'required|file|mimes:zip|max:512000',
+            'face_reference_zip' => ['required', 'file', 'max:512000', 'mimes:zip', 'mimetypes:application/zip,application/x-zip,application/x-zip-compressed,multipart/x-zip,application/octet-stream'],
+        ], [
+            'face_reference_zip.required' => 'Pilih file ZIP foto referensi terlebih dahulu.',
+            'face_reference_zip.file' => 'File ZIP foto referensi tidak terbaca dengan benar.',
+            'face_reference_zip.max' => 'Ukuran ZIP foto referensi melebihi batas 500MB.',
+            'face_reference_zip.mimes' => 'ZIP foto referensi harus berformat .zip.',
+            'face_reference_zip.mimetypes' => 'ZIP foto referensi tidak dikenali server. Kompres ulang sebagai ZIP standar lalu coba lagi.',
         ]);
 
         $filePath = $request->file('face_reference_zip')->store(
