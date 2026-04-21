@@ -50,6 +50,57 @@
         font-size: 0.84rem;
         color: #b91c1c;
     }
+
+    .attendance-date-header {
+        min-width: 78px;
+        vertical-align: top;
+    }
+
+    .attendance-date-header__date {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .attendance-date-header__day {
+        font-size: 11px;
+        color: #64748b;
+    }
+
+    .attendance-date-header__holiday {
+        margin-top: 4px;
+        font-size: 10px;
+        line-height: 1.3;
+        color: #b91c1c;
+        font-weight: 600;
+        white-space: normal;
+    }
+
+    .attendance-date-header--holiday {
+        background: #fef2f2 !important;
+    }
+
+    .attendance-date-header--holiday .attendance-date-header__date,
+    .attendance-date-header--holiday .attendance-date-header__day {
+        color: #b91c1c;
+    }
+
+    .attendance-date-header--sunday .attendance-date-header__date,
+    .attendance-date-header--sunday .attendance-date-header__day {
+        color: #dc2626;
+    }
+
+    .holiday-manager-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        padding: 14px 16px;
+    }
+
+    .holiday-manager-table td,
+    .holiday-manager-table th {
+        vertical-align: middle;
+    }
 </style>
 
 <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.dataTables.min.css">
@@ -74,9 +125,16 @@
             </div>
 
             <div class="ms-md-auto pt-3 pt-md-0">
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalBulkFaceReference">
-                    Bulk Foto Referensi Presensi
-                </button>
+                <div class="d-flex flex-wrap gap-2 justify-content-md-end">
+                    @if($canManageNationalHolidays)
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalNationalHoliday">
+                        Tanggal Merah Nasional
+                    </button>
+                    @endif
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalBulkFaceReference">
+                        Bulk Foto Referensi Presensi
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -155,6 +213,21 @@
         </div>
         @endif
 
+        @php
+            $currentPeriodHolidays = collect($dates)->map(function ($date) use ($nationalHolidaysByDate) {
+                return $nationalHolidaysByDate->get($date->toDateString());
+            })->filter();
+        @endphp
+
+        @if($currentPeriodHolidays->isNotEmpty())
+        <div class="alert alert-danger border small">
+            <div class="fw-semibold mb-1">Tanggal merah nasional pada periode ini</div>
+            {{ $currentPeriodHolidays->map(function ($holiday) {
+                return formatDateIndonesia($holiday->holiday_date) . ' - ' . $holiday->holiday_name;
+            })->implode(' | ') }}
+        </div>
+        @endif
+
         <div class="card shadow-sm border-0">
             <div class="card-body">
                 <div class="table-responsive">
@@ -169,11 +242,20 @@
                                 <th>Posisi</th>
 
                                 @foreach($dates as $date)
-                                <th class="text-center">
-                                    <div>{{ $date->format('d') }}</div>
-                                    <div style="font-size:11px; color:#666;">
+                                @php
+                                    $holiday = $nationalHolidaysByDate->get($date->toDateString());
+                                    $isSunday = $date->dayOfWeek === \Carbon\Carbon::SUNDAY;
+                                @endphp
+                                <th class="text-center attendance-date-header {{ $holiday ? 'attendance-date-header--holiday' : '' }} {{ $isSunday ? 'attendance-date-header--sunday' : '' }}" title="{{ $holiday ? $holiday->holiday_name : '' }}">
+                                    <div class="attendance-date-header__date">{{ $date->format('d') }}</div>
+                                    <div class="attendance-date-header__day">
                                         {{ $date->translatedFormat('D') }}
                                     </div>
+                                    @if($holiday)
+                                    <div class="attendance-date-header__holiday">
+                                        {{ \Illuminate\Support\Str::limit($holiday->holiday_name, 26) }}
+                                    </div>
+                                    @endif
                                 </th>
                                 @endforeach
                             </tr>
@@ -216,6 +298,95 @@
         </div>
     </div>
 </div>
+
+@if($canManageNationalHolidays)
+<div class="modal fade" id="modalNationalHoliday" tabindex="-1" aria-labelledby="modalNationalHolidayLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalNationalHolidayLabel">Kelola Tanggal Merah Nasional</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @if(!$isNationalHolidayTableReady)
+                <div class="alert alert-warning mb-0">
+                    Fitur ini belum aktif karena tabel tanggal merah nasional belum tersedia. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+                </div>
+                @else
+                <div class="holiday-manager-card mb-3">
+                    <div class="fw-semibold mb-1">Input atau perbarui tanggal merah</div>
+                    <div class="small text-muted mb-3">
+                        Jika tanggal yang sama diinput ulang, nama libur nasionalnya akan diperbarui.
+                    </div>
+
+                    <form action="{{ route('set-kehadiran.national-holidays.store') }}" method="POST" class="row g-3">
+                        @csrf
+                        <input type="hidden" name="periode" value="{{ $periode }}">
+                        <input type="hidden" name="departemen" value="{{ $selectedDepartemenId }}">
+                        <input type="hidden" name="divisi" value="{{ $selectedDivisiId }}">
+
+                        <div class="col-md-4">
+                            <label class="form-label">Tanggal</label>
+                            <input type="date" name="holiday_date" class="form-control @error('holiday_date') is-invalid @enderror" value="{{ old('holiday_date') }}" required>
+                            @error('holiday_date')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-8">
+                            <label class="form-label">Nama Tanggal Merah</label>
+                            <input type="text" name="holiday_name" class="form-control @error('holiday_name') is-invalid @enderror" value="{{ old('holiday_name') }}" maxlength="150" placeholder="Contoh: Hari Raya Idul Fitri" required>
+                            @error('holiday_name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-12 d-flex justify-content-end">
+                            <button type="submit" class="btn btn-danger">
+                                Simpan Tanggal Merah
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered holiday-manager-table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 60px;">No</th>
+                                <th style="width: 160px;">Tanggal</th>
+                                <th>Nama Libur Nasional</th>
+                                <th style="width: 120px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($nationalHolidays as $index => $holiday)
+                            <tr>
+                                <td>{{ $index + 1 }}</td>
+                                <td>{{ formatDateIndonesia($holiday->holiday_date) }}</td>
+                                <td>{{ $holiday->holiday_name }}</td>
+                                <td>
+                                    <form action="{{ route('set-kehadiran.national-holidays.destroy', ['nationalHoliday' => $holiday->id] + request()->only(['periode', 'departemen', 'divisi'])) }}" method="POST" onsubmit="return confirm('Hapus tanggal merah ini?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Hapus</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">Belum ada tanggal merah nasional yang diinput.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+@endif
 
 <div class="modal fade" id="modalBulkFaceReference" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalBulkFaceReferenceLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -441,6 +612,13 @@
 
 <script>
     $(document).ready(function() {
+        @if($canManageNationalHolidays && ($errors->has('holiday_date') || $errors->has('holiday_name')))
+        const nationalHolidayModalElement = document.getElementById('modalNationalHoliday');
+        if (nationalHolidayModalElement) {
+            new bootstrap.Modal(nationalHolidayModalElement).show();
+        }
+        @endif
+
         $('#table-set-kehadiran').DataTable({
             processing: true,
             scrollX: true,

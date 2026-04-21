@@ -183,6 +183,12 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/set-kehadiran', [AttendanceSettingController::class, 'index'])->name('set-kehadiran.index');
         Route::post('/set-kehadiran/update', [AttendanceSettingController::class, 'update'])->name('set-kehadiran.update');
         Route::post('/set-kehadiran/bulk-upload-face-reference', [AttendanceSettingController::class, 'bulkUploadFaceReferences'])->name('set-kehadiran.bulk-upload-face-reference');
+        Route::post('/set-kehadiran/national-holidays', [AttendanceSettingController::class, 'storeNationalHoliday'])
+            ->middleware('role:Super Admin,HR')
+            ->name('set-kehadiran.national-holidays.store');
+        Route::delete('/set-kehadiran/national-holidays/{nationalHoliday}', [AttendanceSettingController::class, 'destroyNationalHoliday'])
+            ->middleware('role:Super Admin,HR')
+            ->name('set-kehadiran.national-holidays.destroy');
     });
 });
 

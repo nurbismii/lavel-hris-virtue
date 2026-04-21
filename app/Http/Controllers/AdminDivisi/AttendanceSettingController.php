@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ValidatesZipUploads;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\EmployeeAttendanceSetting;
+use App\Models\NationalHoliday;
 use App\Jobs\ProcessEmployeeMediaZipUpload;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class AttendanceSettingController extends Controller
 {
@@ -87,6 +89,24 @@ class AttendanceSettingController extends Controller
 
         $employees = collect();
         $offData = collect();
+        $nationalHolidays = collect();
+        $nationalHolidaysByDate = collect();
+        $canManageNationalHolidays = $user->hasRole(['Super Admin', 'HR']);
+        $isNationalHolidayTableReady = Schema::hasTable('national_holidays');
+
+        if ($isNationalHolidayTableReady) {
+            $nationalHolidays = NationalHoliday::query()
+                ->whereBetween('holiday_date', [
+                    $start->copy()->startOfYear()->toDateString(),
+                    $end->copy()->endOfYear()->toDateString(),
+                ])
+                ->orderBy('holiday_date')
+                ->get();
+
+            $nationalHolidaysByDate = $nationalHolidays->keyBy(function ($holiday) {
+                return $holiday->holiday_date->toDateString();
+            });
+        }
 
         if ($selectedDepartemenId) {
             $employees = Employee::with(['divisi', 'departemen'])
@@ -128,7 +148,11 @@ class AttendanceSettingController extends Controller
             'isDepartmentScoped',
             'isDivisionScoped',
             'isDepartmentReadonly',
-            'isDivisionReadonly'
+            'isDivisionReadonly',
+            'nationalHolidays',
+            'nationalHolidaysByDate',
+            'canManageNationalHolidays',
+            'isNationalHolidayTableReady'
         ));
     }
 
@@ -211,6 +235,51 @@ class AttendanceSettingController extends Controller
 
         toast()->success('Success', $message);
         return redirect()->to($redirectUrl);
+    }
+
+    public function storeNationalHoliday(Request $request)
+    {
+        if (!Schema::hasTable('national_holidays')) {
+            toast()->error('Error', 'Tabel tanggal merah nasional belum tersedia. Jalankan migrate terlebih dahulu.');
+            return redirect()->route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
+        }
+
+        $validated = $request->validate([
+            'holiday_date' => 'required|date',
+            'holiday_name' => 'required|string|max:150',
+        ]);
+
+        $holiday = NationalHoliday::firstOrNew([
+            'holiday_date' => $validated['holiday_date'],
+        ]);
+
+        $isNewRecord = !$holiday->exists;
+        $holiday->holiday_name = $validated['holiday_name'];
+        $holiday->updated_by = $request->user()->id;
+
+        if ($isNewRecord) {
+            $holiday->created_by = $request->user()->id;
+        }
+
+        $holiday->save();
+
+        toast()->success(
+            'Success',
+            $isNewRecord
+                ? 'Tanggal merah nasional berhasil ditambahkan.'
+                : 'Tanggal merah nasional berhasil diperbarui.'
+        );
+
+        return redirect()->route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
+    }
+
+    public function destroyNationalHoliday(Request $request, NationalHoliday $nationalHoliday)
+    {
+        $nationalHoliday->delete();
+
+        toast()->success('Success', 'Tanggal merah nasional berhasil dihapus.');
+
+        return redirect()->route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
     }
 
 }
