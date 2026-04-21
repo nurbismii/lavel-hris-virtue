@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\ValidatesZipUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\KaryawanRequest\UpdateKaryawanRequest;
 use App\Imports\ImportEmployee;
@@ -16,6 +17,8 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class KaryawanController extends Controller
 {
+    use ValidatesZipUploads;
+
     public function index(Request $request)
     {
         $title = 'Delete Data!';
@@ -141,35 +144,12 @@ class KaryawanController extends Controller
     {
         abort_unless($request->user()->canAccessAllEmployees(), 403, 'Akses tidak diizinkan.');
 
-        $zipRules = ['nullable', 'file', 'max:512000', 'mimes:zip', 'mimetypes:application/zip,application/x-zip,application/x-zip-compressed,multipart/x-zip,application/octet-stream'];
-
-        $request->validate([
-            'bulk_photo_zip' => $zipRules,
-            'bulk_ktp_zip' => $zipRules,
-            'bulk_kk_zip' => $zipRules,
-            'bulk_sim_zip' => $zipRules,
-            'bulk_sio_zip' => $zipRules,
-        ], [
-            'bulk_photo_zip.file' => 'File ZIP foto karyawan tidak terbaca dengan benar.',
-            'bulk_photo_zip.max' => 'Ukuran ZIP foto karyawan melebihi batas 500MB.',
-            'bulk_photo_zip.mimes' => 'ZIP foto karyawan harus berformat .zip.',
-            'bulk_photo_zip.mimetypes' => 'ZIP foto karyawan tidak dikenali server. Kompres ulang sebagai ZIP standar lalu coba lagi.',
-            'bulk_ktp_zip.file' => 'File ZIP KTP tidak terbaca dengan benar.',
-            'bulk_ktp_zip.max' => 'Ukuran ZIP KTP melebihi batas 500MB.',
-            'bulk_ktp_zip.mimes' => 'ZIP KTP harus berformat .zip.',
-            'bulk_ktp_zip.mimetypes' => 'ZIP KTP tidak dikenali server. Kompres ulang sebagai ZIP standar lalu coba lagi.',
-            'bulk_kk_zip.file' => 'File ZIP KK tidak terbaca dengan benar.',
-            'bulk_kk_zip.max' => 'Ukuran ZIP KK melebihi batas 500MB.',
-            'bulk_kk_zip.mimes' => 'ZIP KK harus berformat .zip.',
-            'bulk_kk_zip.mimetypes' => 'ZIP KK tidak dikenali server. Kompres ulang sebagai ZIP standar lalu coba lagi.',
-            'bulk_sim_zip.file' => 'File ZIP SIM tidak terbaca dengan benar.',
-            'bulk_sim_zip.max' => 'Ukuran ZIP SIM melebihi batas 500MB.',
-            'bulk_sim_zip.mimes' => 'ZIP SIM harus berformat .zip.',
-            'bulk_sim_zip.mimetypes' => 'ZIP SIM tidak dikenali server. Kompres ulang sebagai ZIP standar lalu coba lagi.',
-            'bulk_sio_zip.file' => 'File ZIP SIO tidak terbaca dengan benar.',
-            'bulk_sio_zip.max' => 'Ukuran ZIP SIO melebihi batas 500MB.',
-            'bulk_sio_zip.mimes' => 'ZIP SIO harus berformat .zip.',
-            'bulk_sio_zip.mimetypes' => 'ZIP SIO tidak dikenali server. Kompres ulang sebagai ZIP standar lalu coba lagi.',
+        $this->validateZipUploads($request, [
+            'bulk_photo_zip' => ['label' => 'ZIP foto karyawan'],
+            'bulk_ktp_zip' => ['label' => 'ZIP KTP'],
+            'bulk_kk_zip' => ['label' => 'ZIP KK'],
+            'bulk_sim_zip' => ['label' => 'ZIP SIM'],
+            'bulk_sio_zip' => ['label' => 'ZIP SIO'],
         ]);
 
         $inputMap = [

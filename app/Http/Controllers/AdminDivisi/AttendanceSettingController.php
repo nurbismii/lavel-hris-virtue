@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\AdminDivisi;
 
+use App\Http\Controllers\Concerns\ValidatesZipUploads;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\EmployeeAttendanceSetting;
@@ -15,6 +16,8 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceSettingController extends Controller
 {
+    use ValidatesZipUploads;
+
     public function index(Request $request)
     {
         $periode = $request->periode ?? now()->format('Y-m');
@@ -183,14 +186,11 @@ class AttendanceSettingController extends Controller
 
     public function bulkUploadFaceReferences(Request $request)
     {
-        $request->validate([
-            'face_reference_zip' => ['required', 'file', 'max:512000', 'mimes:zip', 'mimetypes:application/zip,application/x-zip,application/x-zip-compressed,multipart/x-zip,application/octet-stream'],
-        ], [
-            'face_reference_zip.required' => 'Pilih file ZIP foto referensi terlebih dahulu.',
-            'face_reference_zip.file' => 'File ZIP foto referensi tidak terbaca dengan benar.',
-            'face_reference_zip.max' => 'Ukuran ZIP foto referensi melebihi batas 500MB.',
-            'face_reference_zip.mimes' => 'ZIP foto referensi harus berformat .zip.',
-            'face_reference_zip.mimetypes' => 'ZIP foto referensi tidak dikenali server. Kompres ulang sebagai ZIP standar lalu coba lagi.',
+        $this->validateZipUploads($request, [
+            'face_reference_zip' => [
+                'label' => 'ZIP foto referensi',
+                'required' => true,
+            ],
         ]);
 
         $filePath = $request->file('face_reference_zip')->store(
