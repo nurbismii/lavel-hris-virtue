@@ -278,7 +278,7 @@
                                 </div>
 
                                 @if ($statusPresensiHariIni)
-                                <div class="alert alert-info mb-3">
+                                <div class="alert alert-info mb-2 mt-4">
                                     <strong>Status hari ini:</strong> {{ $statusPresensiHariIni }}
                                 </div>
                                 @endif
