@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\Presensi;
+use App\Services\Presensi\AttendanceStatusService;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
@@ -24,8 +25,10 @@ class PresensiController extends Controller
 
         $user = Auth::user();
         $karyawan = $user->employee;
+        $todayString = Carbon::today()->toDateString();
 
         $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
+        app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $todayString);
 
         $absensiHariIni = Presensi::where('nik_karyawan', Auth::user()->nik_karyawan)
             ->whereDate('tanggal', today())
@@ -59,12 +62,10 @@ class PresensiController extends Controller
         $karyawan = $user->employee;
         $today = Carbon::today()->format('Y-m-d');
 
-        $existingStatus = Presensi::where('nik_karyawan', $user->nik_karyawan)
-            ->whereDate('tanggal', $today)
-            ->first();
+        $statusHariIni = app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $today);
 
-        if ($existingStatus && $existingStatus->status_presensi) {
-            toast()->warning('Peringatan', 'Presensi hari ini berstatus ' . $existingStatus->status_presensi . '. Tidak perlu absen jam.');
+        if ($statusHariIni) {
+            toast()->warning('Peringatan', 'Presensi hari ini berstatus ' . $statusHariIni . '. Tidak perlu absen jam.');
             return back();
         }
 

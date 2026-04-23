@@ -38,6 +38,8 @@ class RosterApprovalController extends Controller
             'status_pengajuan' => $request->action // 1 approve, 2 reject
         ]);
 
+        app(AttendanceStatusService::class)->refreshRoster($cuti);
+
         $user = $cuti->user;
 
         $status = $request->action == 1 ? 'Disetujui' : 'Ditolak';
@@ -113,9 +115,7 @@ class RosterApprovalController extends Controller
             'status_pengajuan_hrd' => $request->action
         ]);
 
-        if ($request->action == 1) {
-            app(AttendanceStatusService::class)->syncApprovedRoster($cuti);
-        }
+        app(AttendanceStatusService::class)->refreshRoster($cuti);
 
         $user = $cuti->user;
 

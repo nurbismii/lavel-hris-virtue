@@ -39,6 +39,8 @@ class CutiApprovalController extends Controller
             'status_hod' => $request->action // 1 approve, 2 reject
         ]);
 
+        app(AttendanceStatusService::class)->refreshCuti($cuti);
+
         $user = $cuti->user;
         $status = $request->action == 1 ? 'Disetujui' : 'Ditolak';
 
@@ -88,8 +90,9 @@ class CutiApprovalController extends Controller
         // Jika disetujui HRD → potong sisa cuti
         if ($request->action == 1) {
             $cuti->employee->decrement('sisa_cuti', $cuti->jumlah);
-            app(AttendanceStatusService::class)->syncApprovedCuti($cuti);
         }
+
+        app(AttendanceStatusService::class)->refreshCuti($cuti);
 
         $user = $cuti->user;
         $status = $request->action == 1 ? 'Disetujui' : 'Ditolak';

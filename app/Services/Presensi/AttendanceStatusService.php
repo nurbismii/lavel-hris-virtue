@@ -17,52 +17,106 @@ class AttendanceStatusService
 
     public function syncApprovedCuti(Cuti $cuti): void
     {
-        $this->syncDateRange(
-            $cuti->nik_karyawan,
-            $cuti->tanggal_mulai,
-            $cuti->tanggal_berakhir,
-            self::STATUS_CUTI_TAHUNAN
-        );
+        $this->refreshCuti($cuti);
     }
 
     public function syncApprovedIzin(Cuti $cuti): void
     {
-        $status = $cuti->tipe === 'PAID'
-            ? self::STATUS_IZIN_BERBAYAR
-            : self::STATUS_IZIN_TIDAK_BERBAYAR;
-
-        $this->syncDateRange(
-            $cuti->nik_karyawan,
-            $cuti->tanggal_mulai,
-            $cuti->tanggal_berakhir,
-            $status
-        );
+        $this->refreshIzin($cuti);
     }
 
     public function syncApprovedRoster(Roster $roster): void
     {
-        $periode = $roster->periodeKerjaRoster;
-
-        if (!$periode || (int) $periode->tipe_rencana !== 1) {
-            return;
-        }
-
-        $this->syncDateRange(
-            $roster->nik_karyawan,
-            $roster->tgl_mulai_cuti,
-            $roster->tgl_mulai_cuti_berakhir,
-            self::STATUS_CUTI_ROSTER
-        );
-
-        $this->syncDateRange(
-            $roster->nik_karyawan,
-            $roster->tgl_mulai_cuti_tahunan,
-            $roster->tgl_mulai_cuti_tahunan_berakhir,
-            self::STATUS_CUTI_TAHUNAN
-        );
+        $this->refreshRoster($roster);
     }
 
-    public function syncDateRange(string $nikKaryawan, ?string $tanggalMulai, ?string $tanggalBerakhir, string $status): void
+    public function refreshCuti(Cuti $cuti): void
+    {
+        $this->refreshDateRange($cuti->nik_karyawan, $cuti->tanggal_mulai, $cuti->tanggal_berakhir);
+    }
+
+    public function refreshIzin(Cuti $cuti): void
+    {
+        $this->refreshDateRange($cuti->nik_karyawan, $cuti->tanggal_mulai, $cuti->tanggal_berakhir);
+    }
+
+    public function refreshRoster(Roster $roster): void
+    {
+        $this->refreshDateRange($roster->nik_karyawan, $roster->tgl_mulai_cuti, $roster->tgl_mulai_cuti_berakhir);
+        $this->refreshDateRange($roster->nik_karyawan, $roster->tgl_mulai_cuti_tahunan, $roster->tgl_mulai_cuti_tahunan_berakhir);
+    }
+
+    public function syncStatusForDate(string $nikKaryawan, $tanggal): ?string
+    {
+        if (!$nikKaryawan || !$tanggal) {
+            return null;
+        }
+
+        $dateString = Carbon::parse($tanggal)->toDateString();
+        $status = $this->resolveStatusForDate($nikKaryawan, $dateString);
+        $presensi = Presensi::firstOrNew([
+            'nik_karyawan' => $nikKaryawan,
+            'tanggal' => $dateString,
+        ]);
+
+        if ($status) {
+            $presensi->jam_masuk = null;
+            $presensi->jam_istirahat = null;
+            $presensi->jam_kembali_istirahat = null;
+            $presensi->jam_pulang = null;
+            $presensi->status_presensi = $status;
+            $presensi->save();
+
+            return $status;
+        }
+
+        if ($presensi->exists && $presensi->status_presensi) {
+            $presensi->status_presensi = null;
+            $presensi->save();
+        }
+
+        return null;
+    }
+
+    public function resolveStatusForDate(string $nikKaryawan, $tanggal): ?string
+    {
+        $dateString = Carbon::parse($tanggal)->toDateString();
+
+        $rosterStatus = $this->resolveRosterStatusForDate($nikKaryawan, $dateString);
+
+        if ($rosterStatus) {
+            return $rosterStatus;
+        }
+
+        $cuti = Cuti::query()
+            ->where('nik_karyawan', $nikKaryawan)
+            ->where('status_hod', 1)
+            ->where('status_hrd', '!=', 2)
+            ->whereDate('tanggal_mulai', '<=', $dateString)
+            ->whereDate('tanggal_berakhir', '>=', $dateString)
+            ->latest('id')
+            ->first();
+
+        if (!$cuti) {
+            return null;
+        }
+
+        if ($cuti->tipe === 'CUTI') {
+            return self::STATUS_CUTI_TAHUNAN;
+        }
+
+        if ($cuti->tipe === 'PAID') {
+            return self::STATUS_IZIN_BERBAYAR;
+        }
+
+        if ($cuti->tipe === 'UNPAID') {
+            return self::STATUS_IZIN_TIDAK_BERBAYAR;
+        }
+
+        return null;
+    }
+
+    private function refreshDateRange(string $nikKaryawan, ?string $tanggalMulai, ?string $tanggalBerakhir): void
     {
         if (!$nikKaryawan || !$tanggalMulai || !$tanggalBerakhir) {
             return;
@@ -76,19 +130,64 @@ class AttendanceStatusService
         }
 
         foreach (CarbonPeriod::create($start, $end) as $tanggal) {
-            Presensi::updateOrCreate(
-                [
-                    'nik_karyawan' => $nikKaryawan,
-                    'tanggal' => $tanggal->format('Y-m-d'),
-                ],
-                [
-                    'jam_masuk' => null,
-                    'jam_istirahat' => null,
-                    'jam_kembali_istirahat' => null,
-                    'jam_pulang' => null,
-                    'status_presensi' => $status,
-                ]
-            );
+            $this->syncStatusForDate($nikKaryawan, $tanggal);
         }
+    }
+
+    private function resolveRosterStatusForDate(string $nikKaryawan, string $tanggal): ?string
+    {
+        $roster = Roster::query()
+            ->select([
+                'cuti_roster.tgl_mulai_cuti',
+                'cuti_roster.tgl_mulai_cuti_berakhir',
+                'cuti_roster.tgl_mulai_cuti_tahunan',
+                'cuti_roster.tgl_mulai_cuti_tahunan_berakhir',
+            ])
+            ->join('periode_kerja_roster', 'periode_kerja_roster.cuti_roster_id', '=', 'cuti_roster.id')
+            ->where('cuti_roster.nik_karyawan', $nikKaryawan)
+            ->where('cuti_roster.status_pengajuan', 1)
+            ->where('cuti_roster.status_pengajuan_hrd', '!=', 2)
+            ->where('periode_kerja_roster.tipe_rencana', 1)
+            ->where(function ($query) use ($tanggal) {
+                $query->where(function ($range) use ($tanggal) {
+                    $range->whereNotNull('cuti_roster.tgl_mulai_cuti')
+                        ->whereNotNull('cuti_roster.tgl_mulai_cuti_berakhir')
+                        ->whereDate('cuti_roster.tgl_mulai_cuti', '<=', $tanggal)
+                        ->whereDate('cuti_roster.tgl_mulai_cuti_berakhir', '>=', $tanggal);
+                })->orWhere(function ($range) use ($tanggal) {
+                    $range->whereNotNull('cuti_roster.tgl_mulai_cuti_tahunan')
+                        ->whereNotNull('cuti_roster.tgl_mulai_cuti_tahunan_berakhir')
+                        ->whereDate('cuti_roster.tgl_mulai_cuti_tahunan', '<=', $tanggal)
+                        ->whereDate('cuti_roster.tgl_mulai_cuti_tahunan_berakhir', '>=', $tanggal);
+                });
+            })
+            ->latest('cuti_roster.id')
+            ->first();
+
+        if (!$roster) {
+            return null;
+        }
+
+        if ($this->dateWithinRange($roster->tgl_mulai_cuti, $roster->tgl_mulai_cuti_berakhir, $tanggal)) {
+            return self::STATUS_CUTI_ROSTER;
+        }
+
+        if ($this->dateWithinRange($roster->tgl_mulai_cuti_tahunan, $roster->tgl_mulai_cuti_tahunan_berakhir, $tanggal)) {
+            return self::STATUS_CUTI_TAHUNAN;
+        }
+
+        return null;
+    }
+
+    private function dateWithinRange(?string $tanggalMulai, ?string $tanggalBerakhir, string $tanggal): bool
+    {
+        if (!$tanggalMulai || !$tanggalBerakhir) {
+            return false;
+        }
+
+        $start = Carbon::parse($tanggalMulai)->toDateString();
+        $end = Carbon::parse($tanggalBerakhir)->toDateString();
+
+        return $tanggal >= $start && $tanggal <= $end;
     }
 }
