@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Auth;
 
 class CutiController extends Controller
 {
-    //
     public function index()
     {
         $title = 'Delete Data!';
@@ -18,7 +17,11 @@ class CutiController extends Controller
         confirmDelete($title, $text);
 
         return view('user.cuti.index', [
-            'cuti' => Cuti::where('nik_karyawan', Auth::user()->nik_karyawan)->where('tipe', 'cuti')->get(),
+            'cuti' => Cuti::with('employee')
+                ->where('nik_karyawan', Auth::user()->nik_karyawan)
+                ->where('tipe', 'CUTI')
+                ->latest('id')
+                ->get(),
         ]);
     }
 
@@ -31,6 +34,13 @@ class CutiController extends Controller
         return view('user.cuti.create', [
             'karyawan' => $karyawan
         ]);
+    }
+
+    public function show($id)
+    {
+        $this->findUserCuti($id);
+
+        return redirect()->route('cuti.index');
     }
 
     public function store(Request $request)
@@ -49,41 +59,61 @@ class CutiController extends Controller
 
     public function edit($id)
     {
-        $APPROVE = 1;
-        $REJECT = 2;
-
-        $cuti = Cuti::findOrFail($id);
+        $cuti = $this->findUserCuti($id);
         $karyawan = $cuti->employee;
 
-        if ($cuti->status_hod == $APPROVE || $cuti->status_hod == $REJECT) {
-            toast()->warning('Warning', 'Perubahan cuti tidak dapat dilakukan, pengajuan telah ' . ($cuti->status_hod == $APPROVE ? 'disetujui' : 'ditolak'));
-            return back();
+        if (!$this->canManageCuti($cuti)) {
+            toast()->warning('Warning', 'Pengajuan cuti yang sudah diproses tidak dapat diedit');
+            return redirect()->route('cuti.index');
         }
 
         return view('user.cuti.edit', compact('cuti', 'karyawan'));
     }
 
-    public function update(Request $request, $nik_karyawan)
+    public function update(Request $request, $id)
     {
-        app()->make(\App\Services\Cuti\CutiService::class)->updateCuti($request, $nik_karyawan);
+        $cuti = $this->findUserCuti($id);
 
-        toast()->success('Success', 'User updated successfully.');
+        if (!$this->canManageCuti($cuti)) {
+            toast()->warning('Warning', 'Pengajuan cuti yang sudah diproses tidak dapat diubah');
+            return redirect()->route('cuti.index');
+        }
+
+        $result = app()->make(\App\Services\Cuti\CutiService::class)->updateCuti($request, $cuti->id);
+
+        if (!$result['status']) {
+            toast()->warning('Warning', $result['message']);
+            return redirect()->route('cuti.index');
+        }
+
+        toast()->success('Success', $result['message']);
         return redirect()->route('cuti.index');
     }
 
     public function destroy($id)
     {
-        $APPROVE = 1;
+        $cuti = $this->findUserCuti($id);
 
-        $cuti = Cuti::findOrFail($id);
-
-        if ($cuti->status_hod == $APPROVE) {
-            toast()->error('Error', 'Pengajuan cuti telah di approve, tidak dapat dihapus');
+        if (!$this->canManageCuti($cuti)) {
+            toast()->warning('Warning', 'Pengajuan cuti yang sudah diproses tidak dapat dihapus');
             return redirect()->route('cuti.index');
         }
-        
+
         $cuti->delete();
         toast()->success('Success', 'Pengajuan cuti berhasil dihapus.');
         return redirect()->route('cuti.index');
+    }
+
+    private function findUserCuti($id): Cuti
+    {
+        return Cuti::with('employee')
+            ->where('nik_karyawan', Auth::user()->nik_karyawan)
+            ->where('tipe', 'CUTI')
+            ->findOrFail($id);
+    }
+
+    private function canManageCuti(Cuti $cuti): bool
+    {
+        return (int) $cuti->status_hod === 0 && (int) $cuti->status_hrd === 0;
     }
 }

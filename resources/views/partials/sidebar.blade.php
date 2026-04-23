@@ -4,31 +4,6 @@
     $can = fn(string $menu) => $user && $user->hasMenuAccess($menu);
 @endphp
 
-@push('styles')
-<style>
-    .has-sidebar-badge {
-        position: relative;
-        padding-right: 2.75rem !important;
-    }
-
-    .has-sidebar-badge .badge {
-        position: absolute;
-        top: 0.3rem;
-        right: 0.85rem;
-        min-width: 1.15rem;
-        height: 1.15rem;
-        padding: 0 0.35rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 999px;
-        font-size: 0.64rem;
-        line-height: 1;
-        box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12);
-    }
-</style>
-@endpush
-
 <div class="sidebar" data-background-color="white">
     <div class="sidebar-logo">
         <div class="logo-header" data-background-color="white">
@@ -212,7 +187,7 @@
                             <i class="fas fa-pen"></i>
                             <p>Cuti Tahunan</p>
                             @if(($approvalHodCounts['cuti'] ?? 0) > 0)
-                                <span class="badge badge-success"> {{ $approvalHodCounts['cuti'] }}</span>
+                                <span class="badge badge-success">{{ $approvalHodCounts['cuti'] }}</span>
                             @endif
                         </a>
                     </li>
@@ -222,7 +197,7 @@
                             <i class="fas fa-pencil-alt"></i>
                             <p>Izin (Paid & Unpaid)</p>
                             @if(($approvalHodCounts['izin'] ?? 0) > 0)
-                                <span class="badge badge-secondary"> {{ $approvalHodCounts['izin'] }}</span>
+                                <span class="badge badge-secondary">{{ $approvalHodCounts['izin'] }}</span>
                             @endif
                         </a>
                     </li>
@@ -232,7 +207,7 @@
                             <i class="fas fa-pen-fancy"></i>
                             <p>Roster</p>
                             @if(($approvalHodCounts['roster'] ?? 0) > 0)
-                                <span class="badge badge-warning"> {{ $approvalHodCounts['roster'] }}</span>
+                                <span class="badge badge-warning">{{ $approvalHodCounts['roster'] }}</span>
                             @endif
                         </a>
                     </li>
@@ -253,7 +228,7 @@
                             <i class="fas fa-pen"></i>
                             <p>Cuti Tahunan</p>
                             @if(($approvalHrCounts['cuti'] ?? 0) > 0)
-                                <span class="badge badge-primary"> {{ $approvalHrCounts['cuti'] }}</span>
+                                <span class="badge badge-primary">{{ $approvalHrCounts['cuti'] }}</span>
                             @endif
                         </a>
                     </li>
@@ -263,7 +238,7 @@
                             <i class="fas fa-pencil-alt"></i>
                             <p>Izin (Paid & Unpaid)</p>
                             @if(($approvalHrCounts['izin'] ?? 0) > 0)
-                                <span class="badge badge-secondary"> {{ $approvalHrCounts['izin'] }}</span>
+                                <span class="badge badge-secondary">{{ $approvalHrCounts['izin'] }}</span>
                             @endif
                         </a>
                     </li>
@@ -273,7 +248,7 @@
                             <i class="fas fa-pen-fancy"></i>
                             <p>Roster</p>
                             @if(($approvalHrCounts['roster'] ?? 0) > 0)
-                                <span class="badge badge-warning"> {{ $approvalHrCounts['roster'] }}</span>
+                                <span class="badge badge-warning">{{ $approvalHrCounts['roster'] }}</span>
                             @endif
                         </a>
                     </li>

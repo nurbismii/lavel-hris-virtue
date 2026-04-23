@@ -5,79 +5,18 @@
     <meta charset="utf-8">
     <title>PT VDNI - E-Payslip</title>
     <link rel="icon" href="{{ asset('/assets/img/kaiadmin/favicon.ico') }}" type="image/x-icon" />
-    <style>
-        body {
-            font-family: 'NotoSansSC', DejaVu Sans, sans-serif;
-            font-size: 10px;
-            color: #333;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .title {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        .subtitle {
-            font-size: 12px;
-            color: #666;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-        }
-
-        th,
-        td {
-            padding: 6px 8px;
-            border: 1px solid #ddd;
-        }
-
-        th {
-            background: #f5f5f5;
-            text-align: left;
-        }
-
-        .text-right {
-            text-align: right;
-        }
-
-        .section-title {
-            background: #eee;
-            font-weight: bold;
-        }
-
-        .total {
-            font-size: 10px;
-            font-weight: bold;
-            background: #e6ffe6;
-        }
-
-        @font-face {
-            font-family: 'NotoSansSC';
-            src: url('{{ storage_path(' fonts/NotoSansSC-Regular.ttf') }}')format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
-    </style>
+    <link rel="stylesheet" href="file:///{{ str_replace('\\', '/', public_path('assets/css/user-slip-gaji-pdf.css')) }}">
 </head>
 
 <body>
 
     <div class="header">
-        <table width="100%" style="border:none;">
+        <table width="100%" class="pdf-header-table">
             <tr>
-                <td width="25%" style="border:none;">
-                    <img src="{{ public_path('assets/img/logo-company.png') }}"
-                        style="width:120px;">
+                <td width="25%">
+                    <img src="{{ public_path('assets/img/logo-company.png') }}" class="pdf-logo">
                 </td>
-                <td width="75%" style="border:none; text-align:right;">
+                <td width="75%" class="pdf-header-meta">
                     <div class="title">SLIP GAJI KARYAWAN</div>
                     <div class="subtitle">
                         Periode {{ formatDateIndonesia($slip->mulai_periode) }} - {{ formatDateIndonesia($slip->akhir_periode) }}<br>
@@ -86,7 +25,7 @@
                 </td>
             </tr>
         </table>
-        <hr style="margin-top:10px; border:1px solid #ccc;">
+        <hr class="pdf-header-divider">
     </div>
 
     {{-- INFO KARYAWAN --}}
@@ -269,12 +208,12 @@
         </tr>
     </table>
 
-    <table width="100%" style="border:none; margin-top:15px;">
+    <table width="100%" class="pdf-footer-table">
         <tr>
-            <td style="border:none; font-size:10px; color:#777;">
+            <td class="pdf-footer-note">
                 Slip gaji ini dihasilkan secara otomatis oleh sistem.
             </td>
-            <td style="border:none; font-size:10px; color:#777; text-align:right;">
+            <td class="pdf-footer-bank">
                 <strong>{{ $slip->karyawan->nama ?? '-' }}</strong><br>
                 Bank : {{ $slip->bank_name ?? '-' }}<br>
                 No Rekening : {{ $slip->bank_number ?? '-' }}

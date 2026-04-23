@@ -1,0 +1,21 @@
+.upload-progress-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+    height: 100%;
+}
+
+.upload-progress-card__meta {
+    color: #64748b;
+    font-size: 0.82rem;
+}
+
+.upload-progress-card__counts {
+    font-size: 0.82rem;
+    color: #475569;
+}
+
+.upload-progress-delete {
+    text-decoration: none;
+}

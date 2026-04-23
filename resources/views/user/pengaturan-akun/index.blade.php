@@ -3,18 +3,7 @@
 @section('title', 'Pengaturan Akun')
 
 @push('styles')
-<style>
-    .avatar-circle {
-        width: 90px;
-        height: 90px;
-        border-radius: 50%;
-        font-size: 36px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-</style>
+<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-account.css') }}">
 @endpush
 
 @section('content')

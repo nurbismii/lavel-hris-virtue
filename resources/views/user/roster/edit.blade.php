@@ -1,77 +1,15 @@
 @extends('layouts.app')
 
 @php
-    $employee = Auth::user()->employee;
-    $selectedPlanType = old('tipe_rencana', optional($roster->periodeKerjaRoster)->tipe_rencana);
-    $weekLabels = ['MINGGU KE-1', 'MINGGU KE-2', 'MINGGU KE-3', 'MINGGU KE-4', 'MINGGU KE-5'];
-    $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
+$employee = Auth::user()->employee;
+$selectedPlanType = old('tipe_rencana', optional($roster->periodeKerjaRoster)->tipe_rencana);
+$weekLabels = ['MINGGU KE-1', 'MINGGU KE-2', 'MINGGU KE-3', 'MINGGU KE-4', 'MINGGU KE-5'];
+$weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
 @endphp
 
 @push('styles')
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
-<style>
-    .select2 { width: 100% !important; }
-    .wizard-wrap { max-width: 980px; margin: 0 auto; }
-    .wizard-card { border: 0; border-radius: 24px; box-shadow: 0 18px 44px rgba(15, 23, 42, .08); }
-    .wizard-head { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; margin-bottom: 1.25rem; }
-    .wizard-step { display: flex; gap: .75rem; align-items: center; padding: .9rem 1rem; border: 1px solid rgba(148, 163, 184, .18); border-radius: 18px; background: #fff; color: #64748b; }
-    .wizard-step.active { background: rgba(13, 110, 253, .07); border-color: rgba(13, 110, 253, .25); color: #0f172a; }
-    .wizard-step.done { background: rgba(25, 135, 84, .08); border-color: rgba(25, 135, 84, .22); color: #14532d; }
-    .wizard-num { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; background: #e2e8f0; font-weight: 800; font-size: 13px; }
-    .wizard-step.active .wizard-num { background: #0d6efd; color: #fff; }
-    .wizard-step.done .wizard-num { background: #198754; color: #fff; }
-    .wizard-label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: .05em; }
-    .wizard-title { display: block; font-size: 14px; font-weight: 700; line-height: 1.3; }
-    .wizard-pane { display: none; }
-    .wizard-pane.active { display: block; }
-    .pane-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-    .pane-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #0f172a; }
-    .pane-text { margin: .25rem 0 0; color: #64748b; line-height: 1.6; }
-    .pane-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: #f8fafc; color: #334155; font-size: 12px; font-weight: 700; }
-    .box { border: 1px solid rgba(148, 163, 184, .16); border-radius: 20px; background: #fff; box-shadow: 0 10px 26px rgba(15, 23, 42, .05); }
-    .box + .box { margin-top: 1rem; }
-    .box-head { padding: 1rem 1rem .85rem; border-bottom: 1px solid rgba(148, 163, 184, .12); }
-    .box-title { margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; }
-    .box-text { margin: .25rem 0 0; font-size: 13px; color: #64748b; line-height: 1.5; }
-    .box-body { padding: 1rem; }
-    .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: .9rem; margin-bottom: 1rem; }
-    .info-item { padding: 1rem; border-radius: 16px; background: #f8fafc; border: 1px solid rgba(148, 163, 184, .14); }
-    .info-item small { display: block; margin-bottom: .35rem; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: .05em; }
-    .info-item strong { font-size: 15px; color: #0f172a; }
-    .week-list { display: grid; gap: .85rem; }
-    .week-item { display: grid; grid-template-columns: 130px 1fr 1fr; gap: .85rem; align-items: end; padding: .9rem; border-radius: 16px; background: #f8fafc; border: 1px solid rgba(148, 163, 184, .12); }
-    .week-label { font-weight: 700; color: #1e293b; }
-    .plan-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem; }
-    .plan-option input { position: absolute; opacity: 0; pointer-events: none; }
-    .plan-option label { display: block; height: 100%; padding: 1rem; border-radius: 18px; border: 1px solid rgba(148, 163, 184, .16); background: #fff; cursor: pointer; }
-    .plan-option input:checked + label { border-color: rgba(13, 110, 253, .25); box-shadow: 0 14px 32px rgba(13, 110, 253, .08); }
-    .plan-tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-    .plan-tag.cuti { background: rgba(13, 110, 253, .1); color: #0d6efd; }
-    .plan-tag.insentif { background: rgba(25, 135, 84, .12); color: #198754; }
-    .plan-option strong { display: block; margin: .8rem 0 .3rem; color: #0f172a; }
-    .plan-option span.desc { display: block; color: #64748b; font-size: 14px; line-height: 1.55; }
-    .plan-panel { display: none; }
-    .plan-panel.active { display: block; }
-    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .85rem; margin-top: 1rem; }
-    .summary-item { padding: 1rem; border-radius: 16px; background: #f8fafc; border: 1px solid rgba(148, 163, 184, .14); }
-    .summary-item small { display: block; margin-bottom: .35rem; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #94a3b8; letter-spacing: .05em; }
-    .summary-item strong { font-size: 1.05rem; color: #0f172a; }
-    .total-banner { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1rem; padding: 1rem 1.1rem; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #0f172a, #1e293b); }
-    .total-banner.success { background: linear-gradient(135deg, #14532d, #198754); }
-    .total-banner small { display: block; margin-bottom: .25rem; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: rgba(255, 255, 255, .66); }
-    .total-banner strong { font-size: 1.25rem; }
-    .upload-box { padding: 1rem; border-radius: 18px; background: #f8fafc; border: 1px dashed rgba(148, 163, 184, .4); }
-    .wizard-footer { display: flex; justify-content: space-between; gap: .75rem; margin-top: 1.25rem; }
-    .wizard-footer .btn { min-height: 48px; border-radius: 14px; font-weight: 700; }
-    .form-control.is-overlap-range, .form-select.is-overlap-range { border-color: #dc3545 !important; background: #fff5f5; box-shadow: 0 0 0 .24rem rgba(220, 53, 69, .14); animation: overlapGlow 1.4s ease; }
-    @keyframes overlapGlow {
-        0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, .08); }
-        50% { box-shadow: 0 0 0 .3rem rgba(220, 53, 69, .16); }
-        100% { box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .12); }
-    }
-    @media (max-width: 991.98px) { .wizard-head, .info-grid, .plan-grid, .summary-grid { grid-template-columns: 1fr; } .week-item { grid-template-columns: 1fr; } }
-    @media (max-width: 767.98px) { .wizard-footer { flex-direction: column; } .wizard-footer .btn { width: 100%; } }
-</style>
+<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-roster-form.css') }}">
 @endpush
 
 @section('content')
@@ -94,10 +32,18 @@
                 <div class="card wizard-card">
                     <div class="card-body p-3 p-md-4">
                         <div class="wizard-head">
-                            <div class="wizard-step active" data-step-indicator="1"><span class="wizard-num">1</span><div><span class="wizard-label">Langkah 1</span><span class="wizard-title">Data Karyawan</span></div></div>
-                            <div class="wizard-step" data-step-indicator="2"><span class="wizard-num">2</span><div><span class="wizard-label">Langkah 2</span><span class="wizard-title">Periode Roster</span></div></div>
-                            <div class="wizard-step" data-step-indicator="3"><span class="wizard-num">3</span><div><span class="wizard-label">Langkah 3</span><span class="wizard-title">Rencana</span></div></div>
-                            <div class="wizard-step" data-step-indicator="4"><span class="wizard-num">4</span><div><span class="wizard-label">Langkah 4</span><span class="wizard-title">Perjalanan</span></div></div>
+                            <div class="wizard-step active" data-step-indicator="1"><span class="wizard-num">1</span>
+                                <div><span class="wizard-label">Langkah 1</span><span class="wizard-title">Data Karyawan</span></div>
+                            </div>
+                            <div class="wizard-step" data-step-indicator="2"><span class="wizard-num">2</span>
+                                <div><span class="wizard-label">Langkah 2</span><span class="wizard-title">Periode Roster</span></div>
+                            </div>
+                            <div class="wizard-step" data-step-indicator="3"><span class="wizard-num">3</span>
+                                <div><span class="wizard-label">Langkah 3</span><span class="wizard-title">Rencana</span></div>
+                            </div>
+                            <div class="wizard-step" data-step-indicator="4"><span class="wizard-num">4</span>
+                                <div><span class="wizard-label">Langkah 4</span><span class="wizard-title">Perjalanan</span></div>
+                            </div>
                         </div>
 
                         <section class="wizard-pane active" data-step-pane="1">
@@ -152,23 +98,23 @@
                                 <div class="box-body">
                                     <div class="week-list">
                                         @foreach ($weekFields as $no => $field)
-                                            @php
-                                                $dateField = 'tanggal_' . $field;
-                                            @endphp
-                                            <div class="week-item">
-                                                <div class="week-label">{{ $weekLabels[$no - 1] }}</div>
-                                                <div>
-                                                    <label class="form-label">Status</label>
-                                                    <select name="{{ $field }}" class="form-select form-control">
-                                                        <option value="OFF" {{ old($field, optional($roster->periodeKerjaRoster)->{$field}) === 'OFF' ? 'selected' : '' }}>OFF</option>
-                                                        <option value="BEKERJA" {{ old($field, optional($roster->periodeKerjaRoster)->{$field}) === 'BEKERJA' ? 'selected' : '' }}>BEKERJA</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label class="form-label">Tanggal</label>
-                                                    <input type="date" name="{{ $dateField }}" class="form-control" value="{{ old($dateField, optional($roster->periodeKerjaRoster)->{$dateField}) }}" required>
-                                                </div>
+                                        @php
+                                        $dateField = 'tanggal_' . $field;
+                                        @endphp
+                                        <div class="week-item">
+                                            <div class="week-label">{{ $weekLabels[$no - 1] }}</div>
+                                            <div>
+                                                <label class="form-label">Status</label>
+                                                <select name="{{ $field }}" class="form-select form-control">
+                                                    <option value="OFF" {{ old($field, optional($roster->periodeKerjaRoster)->{$field}) === 'OFF' ? 'selected' : '' }}>OFF</option>
+                                                    <option value="BEKERJA" {{ old($field, optional($roster->periodeKerjaRoster)->{$field}) === 'BEKERJA' ? 'selected' : '' }}>BEKERJA</option>
+                                                </select>
                                             </div>
+                                            <div>
+                                                <label class="form-label">Tanggal</label>
+                                                <input type="date" name="{{ $dateField }}" class="form-control" value="{{ old($dateField, optional($roster->periodeKerjaRoster)->{$dateField}) }}" required>
+                                            </div>
+                                        </div>
                                         @endforeach
                                     </div>
                                 </div>
@@ -241,7 +187,7 @@
                                             <div class="col-md-6"><label class="form-label">Tanggal mulai insentif</label><input type="date" id="tgl_awal_kerja" name="tgl_awal_kerja" class="form-control" value="{{ old('tgl_awal_kerja', $roster->tgl_awal_kerja) }}"></div>
                                             <div class="col-md-6"><label class="form-label">Tanggal akhir insentif</label><input type="date" id="tgl_akhir_kerja" name="tgl_akhir_kerja" class="form-control" value="{{ old('tgl_akhir_kerja', $roster->tgl_akhir_kerja) }}"></div>
                                         </div>
-                                        <div class="summary-grid" style="grid-template-columns:repeat(2, 1fr);">
+                                        <div class="summary-grid summary-grid--two-columns">
                                             <div class="summary-item"><small>Hari Insentif</small><strong><span id="total_insentif">0</span> Hari</strong></div>
                                             <div class="summary-item"><small>Status Bekerja</small><strong><span id="jumlah_bekerja">0</span> Minggu</strong></div>
                                         </div>
@@ -263,7 +209,10 @@
                                 <span class="pane-chip"><i class="fas fa-plane-departure"></i> Langkah terakhir</span>
                             </div>
                             <div class="box">
-                                <div class="box-head"><h6 class="box-title">Detail Keberangkatan</h6><p class="box-text">Perbarui tanggal, jam, rute, dan catatan keberangkatan bila ada perubahan.</p></div>
+                                <div class="box-head">
+                                    <h6 class="box-title">Detail Keberangkatan</h6>
+                                    <p class="box-text">Perbarui tanggal, jam, rute, dan catatan keberangkatan bila ada perubahan.</p>
+                                </div>
                                 <div class="box-body">
                                     <div class="row g-3">
                                         <div class="col-md-6"><label class="form-label">Tanggal Keberangkatan</label><input type="date" name="tanggal_keberangkatan" class="form-control" value="{{ old('tanggal_keberangkatan', $roster->tgl_keberangkatan) }}"></div>
@@ -275,7 +224,10 @@
                                 </div>
                             </div>
                             <div class="box">
-                                <div class="box-head"><h6 class="box-title">Detail Kepulangan</h6><p class="box-text">Perbarui detail perjalanan pulang bila ada perubahan jadwal atau rute.</p></div>
+                                <div class="box-head">
+                                    <h6 class="box-title">Detail Kepulangan</h6>
+                                    <p class="box-text">Perbarui detail perjalanan pulang bila ada perubahan jadwal atau rute.</p>
+                                </div>
                                 <div class="box-body">
                                     <div class="row g-3">
                                         <div class="col-md-6"><label class="form-label">Tanggal Kepulangan</label><input type="date" name="tanggal_kepulangan" class="form-control" value="{{ old('tanggal_kepulangan', $roster->tgl_kepulangan) }}"></div>
@@ -287,15 +239,18 @@
                                 </div>
                             </div>
                             <div class="box">
-                                <div class="box-head"><h6 class="box-title">Berkas Pendukung</h6><p class="box-text">Upload file baru bila perlu mengganti berkas lama.</p></div>
+                                <div class="box-head">
+                                    <h6 class="box-title">Berkas Pendukung</h6>
+                                    <p class="box-text">Upload file baru bila perlu mengganti berkas lama.</p>
+                                </div>
                                 <div class="box-body">
                                     <div class="upload-box">
                                         <label class="form-label fw-semibold">Upload Berkas Baru</label>
                                         <input type="file" name="berkas_cuti" class="form-control">
                                         @if($roster->file)
-                                            <a href="{{ asset('cuti-roster/' . $roster->nik_karyawan . '/' . $roster->file) }}" target="_blank" class="btn btn-sm btn-outline-primary mt-3">
-                                                Lihat File Lama
-                                            </a>
+                                        <a href="{{ asset('cuti-roster/' . $roster->nik_karyawan . '/' . $roster->file) }}" target="_blank" class="btn btn-sm btn-outline-primary mt-3">
+                                            Lihat File Lama
+                                        </a>
                                         @endif
                                     </div>
                                 </div>
@@ -317,265 +272,275 @@
 @push('scripts')
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/js/select2.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const form = document.getElementById('rosterWizardForm');
-    const panes = Array.from(document.querySelectorAll('[data-step-pane]'));
-    const steps = Array.from(document.querySelectorAll('[data-step-indicator]'));
-    const prevBtn = document.getElementById('wizardPrevBtn');
-    const nextBtn = document.getElementById('wizardNextBtn');
-    const submitBtn = document.getElementById('wizardSubmitBtn');
-    const planInputs = document.querySelectorAll('input[name="tipe_rencana"]');
-    const cutiPanel = document.getElementById('planPanelCuti');
-    const insentifPanel = document.getElementById('planPanelInsentif');
-    const weekNames = ['satu', 'dua', 'tiga', 'empat', 'lima'];
-    let currentStep = 1;
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('rosterWizardForm');
+        const panes = Array.from(document.querySelectorAll('[data-step-pane]'));
+        const steps = Array.from(document.querySelectorAll('[data-step-indicator]'));
+        const prevBtn = document.getElementById('wizardPrevBtn');
+        const nextBtn = document.getElementById('wizardNextBtn');
+        const submitBtn = document.getElementById('wizardSubmitBtn');
+        const planInputs = document.querySelectorAll('input[name="tipe_rencana"]');
+        const cutiPanel = document.getElementById('planPanelCuti');
+        const insentifPanel = document.getElementById('planPanelInsentif');
+        const weekNames = ['satu', 'dua', 'tiga', 'empat', 'lima'];
+        let currentStep = 1;
 
-    function initAirportSelects() {
-        $('.search-airport').each(function () {
-            if ($(this).data('select2')) return;
-            $(this).select2({
-                width: '100%',
-                placeholder: $(this).data('placeholder') || 'Cari bandara...',
-                allowClear: true,
-                ajax: {
-                    url: '/api/airports',
-                    dataType: 'json',
-                    delay: 250,
-                    processResults: function (data) {
-                        return {
-                            results: $.map(data, function (item) {
-                                return { id: item.name, text: item.name + ' | ' + item.iata_code };
-                            })
-                        };
-                    },
-                    cache: true
+        function initAirportSelects() {
+            $('.search-airport').each(function() {
+                if ($(this).data('select2')) return;
+                $(this).select2({
+                    width: '100%',
+                    placeholder: $(this).data('placeholder') || 'Cari bandara...',
+                    allowClear: true,
+                    ajax: {
+                        url: '/api/airports',
+                        dataType: 'json',
+                        delay: 250,
+                        processResults: function(data) {
+                            return {
+                                results: $.map(data, function(item) {
+                                    return {
+                                        id: item.name,
+                                        text: item.name + ' | ' + item.iata_code
+                                    };
+                                })
+                            };
+                        },
+                        cache: true
+                    }
+                });
+            });
+        }
+
+        function showPlanPanel() {
+            const selected = document.querySelector('input[name="tipe_rencana"]:checked');
+            const type = selected ? selected.value : '';
+            cutiPanel.classList.toggle('active', type === '1');
+            insentifPanel.classList.toggle('active', type === '2');
+        }
+
+        function syncStep() {
+            panes.forEach(function(pane, index) {
+                pane.classList.toggle('active', index + 1 === currentStep);
+            });
+
+            steps.forEach(function(step, index) {
+                const no = index + 1;
+                step.classList.toggle('active', no === currentStep);
+                step.classList.toggle('done', no < currentStep);
+            });
+
+            prevBtn.classList.toggle('d-none', currentStep === 1);
+            nextBtn.classList.toggle('d-none', currentStep === panes.length);
+            submitBtn.classList.toggle('d-none', currentStep !== panes.length);
+
+            if (currentStep === 4) initAirportSelects();
+
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        function validateStep() {
+            const pane = panes[currentStep - 1];
+            if (!pane) return true;
+
+            const fields = Array.from(pane.querySelectorAll('input, select, textarea'));
+            for (const field of fields) {
+                if (field.disabled || field.type === 'hidden' || field.type === 'file') continue;
+
+                const hiddenPanel = field.closest('.plan-panel');
+                if (hiddenPanel && !hiddenPanel.classList.contains('active')) continue;
+
+                if (typeof field.reportValidity === 'function' && !field.reportValidity()) {
+                    return false;
                 }
-            });
-        });
-    }
-
-    function showPlanPanel() {
-        const selected = document.querySelector('input[name="tipe_rencana"]:checked');
-        const type = selected ? selected.value : '';
-        cutiPanel.classList.toggle('active', type === '1');
-        insentifPanel.classList.toggle('active', type === '2');
-    }
-
-    function syncStep() {
-        panes.forEach(function (pane, index) {
-            pane.classList.toggle('active', index + 1 === currentStep);
-        });
-
-        steps.forEach(function (step, index) {
-            const no = index + 1;
-            step.classList.toggle('active', no === currentStep);
-            step.classList.toggle('done', no < currentStep);
-        });
-
-        prevBtn.classList.toggle('d-none', currentStep === 1);
-        nextBtn.classList.toggle('d-none', currentStep === panes.length);
-        submitBtn.classList.toggle('d-none', currentStep !== panes.length);
-
-        if (currentStep === 4) initAirportSelects();
-
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function validateStep() {
-        const pane = panes[currentStep - 1];
-        if (!pane) return true;
-
-        const fields = Array.from(pane.querySelectorAll('input, select, textarea'));
-        for (const field of fields) {
-            if (field.disabled || field.type === 'hidden' || field.type === 'file') continue;
-
-            const hiddenPanel = field.closest('.plan-panel');
-            if (hiddenPanel && !hiddenPanel.classList.contains('active')) continue;
-
-            if (typeof field.reportValidity === 'function' && !field.reportValidity()) {
-                return false;
             }
+
+            return true;
         }
 
-        return true;
-    }
+        nextBtn.addEventListener('click', function() {
+            if (!validateStep()) return;
+            if (currentStep < panes.length) {
+                currentStep += 1;
+                syncStep();
+            }
+        });
 
-    nextBtn.addEventListener('click', function () {
-        if (!validateStep()) return;
-        if (currentStep < panes.length) {
-            currentStep += 1;
-            syncStep();
-        }
-    });
+        prevBtn.addEventListener('click', function() {
+            if (currentStep > 1) {
+                currentStep -= 1;
+                syncStep();
+            }
+        });
 
-    prevBtn.addEventListener('click', function () {
-        if (currentStep > 1) {
-            currentStep -= 1;
-            syncStep();
-        }
-    });
+        form.addEventListener('submit', function(event) {
+            if (!form.reportValidity()) event.preventDefault();
+        });
 
-    form.addEventListener('submit', function (event) {
-        if (!form.reportValidity()) event.preventDefault();
-    });
-
-    function parseDate(id) {
-        const el = document.getElementById(id);
-        if (!el || !el.value) return null;
-        const date = new Date(el.value);
-        date.setHours(0, 0, 0, 0);
-        return date;
-    }
-
-    function hitungHari(mulaiId, akhirId) {
-        const mulai = parseDate(mulaiId);
-        const akhir = parseDate(akhirId);
-        if (mulai && akhir && akhir >= mulai) return ((akhir - mulai) / 86400000) + 1;
-        return 0;
-    }
-
-    function isOverlap(start1, end1, start2, end2) {
-        return start1 <= end2 && end1 >= start2;
-    }
-
-    function showOverlapWarning(message) {
-        if (window.Swal && typeof window.Swal.fire === 'function') {
-            window.Swal.fire('Perhatian!', message, 'warning');
-            return;
+        function parseDate(id) {
+            const el = document.getElementById(id);
+            if (!el || !el.value) return null;
+            const date = new Date(el.value);
+            date.setHours(0, 0, 0, 0);
+            return date;
         }
 
-        if (typeof window.swal === 'function') {
-            window.swal({
-                title: 'Perhatian!',
-                text: message,
-                icon: 'warning'
-            });
-            return;
+        function hitungHari(mulaiId, akhirId) {
+            const mulai = parseDate(mulaiId);
+            const akhir = parseDate(akhirId);
+            if (mulai && akhir && akhir >= mulai) return ((akhir - mulai) / 86400000) + 1;
+            return 0;
         }
 
-        window.alert(message);
-    }
+        function isOverlap(start1, end1, start2, end2) {
+            return start1 <= end2 && end1 >= start2;
+        }
 
-    function highlightConflictFields(fieldIds) {
-        fieldIds.forEach(function (fieldId) {
-            const field = document.getElementById(fieldId);
-
-            if (!field) {
+        function showOverlapWarning(message) {
+            if (window.Swal && typeof window.Swal.fire === 'function') {
+                window.Swal.fire('Perhatian!', message, 'warning');
                 return;
             }
 
-            if (field.dataset.overlapTimer) {
-                clearTimeout(Number(field.dataset.overlapTimer));
+            if (typeof window.swal === 'function') {
+                window.swal({
+                    title: 'Perhatian!',
+                    text: message,
+                    icon: 'warning'
+                });
+                return;
             }
 
-            field.classList.remove('is-overlap-range');
-            void field.offsetWidth;
-            field.classList.add('is-overlap-range');
+            window.alert(message);
+        }
 
-            const clearHighlight = function () {
+        function highlightConflictFields(fieldIds) {
+            fieldIds.forEach(function(fieldId) {
+                const field = document.getElementById(fieldId);
+
+                if (!field) {
+                    return;
+                }
+
+                if (field.dataset.overlapTimer) {
+                    clearTimeout(Number(field.dataset.overlapTimer));
+                }
+
                 field.classList.remove('is-overlap-range');
-                delete field.dataset.overlapTimer;
-                field.removeEventListener('input', clearHighlight);
-                field.removeEventListener('change', clearHighlight);
-            };
+                void field.offsetWidth;
+                field.classList.add('is-overlap-range');
 
-            field.addEventListener('input', clearHighlight, { once: true });
-            field.addEventListener('change', clearHighlight, { once: true });
+                const clearHighlight = function() {
+                    field.classList.remove('is-overlap-range');
+                    delete field.dataset.overlapTimer;
+                    field.removeEventListener('input', clearHighlight);
+                    field.removeEventListener('change', clearHighlight);
+                };
 
-            field.dataset.overlapTimer = String(window.setTimeout(clearHighlight, 3200));
+                field.addEventListener('input', clearHighlight, {
+                    once: true
+                });
+                field.addEventListener('change', clearHighlight, {
+                    once: true
+                });
+
+                field.dataset.overlapTimer = String(window.setTimeout(clearHighlight, 3200));
+            });
+        }
+
+        function resetRange(startId, endId) {
+            const startField = document.getElementById(startId);
+            const endField = document.getElementById(endId);
+            if (startField) startField.value = '';
+            if (endField) endField.value = '';
+        }
+
+        function renderRosterTotals() {
+            const totalRoster = hitungHari('mulai_cuti_roster', 'akhir_cuti_roster');
+            const totalTahunan = hitungHari('mulai_cuti_tahunan', 'akhir_cuti_tahunan');
+            const totalOff = hitungHari('mulai_off', 'akhir_off');
+
+            document.getElementById('total_cuti_roster').innerText = totalRoster;
+            document.getElementById('total_cuti_tahunan').innerText = totalTahunan;
+            document.getElementById('total_off').innerText = totalOff;
+            document.getElementById('grand_total').innerText = (totalRoster + totalTahunan + totalOff) + ' Hari';
+        }
+
+        function cekTumpangTindih() {
+            const rStart = parseDate('mulai_cuti_roster');
+            const rEnd = parseDate('akhir_cuti_roster');
+            const tStart = parseDate('mulai_cuti_tahunan');
+            const tEnd = parseDate('akhir_cuti_tahunan');
+            const oStart = parseDate('mulai_off');
+            const oEnd = parseDate('akhir_off');
+
+            if (rStart && rEnd && tStart && tEnd && isOverlap(rStart, rEnd, tStart, tEnd)) {
+                resetRange('mulai_cuti_tahunan', 'akhir_cuti_tahunan');
+                highlightConflictFields(['mulai_cuti_tahunan', 'akhir_cuti_tahunan']);
+                renderRosterTotals();
+                showOverlapWarning('Cuti Tahunan tidak boleh tumpang tindih dengan Cuti Roster!');
+                return true;
+            }
+            if (rStart && rEnd && oStart && oEnd && isOverlap(rStart, rEnd, oStart, oEnd)) {
+                resetRange('mulai_off', 'akhir_off');
+                highlightConflictFields(['mulai_off', 'akhir_off']);
+                renderRosterTotals();
+                showOverlapWarning('OFF tidak boleh tumpang tindih dengan Cuti Roster!');
+                return true;
+            }
+            if (tStart && tEnd && oStart && oEnd && isOverlap(tStart, tEnd, oStart, oEnd)) {
+                resetRange('mulai_off', 'akhir_off');
+                highlightConflictFields(['mulai_off', 'akhir_off']);
+                renderRosterTotals();
+                showOverlapWarning('OFF tidak boleh tumpang tindih dengan Cuti Tahunan!');
+                return true;
+            }
+            return false;
+        }
+
+        function updateTotal() {
+            if (cekTumpangTindih()) return;
+            renderRosterTotals();
+        }
+
+        function updateInsentifRoster() {
+            let jumlahBekerja = 0;
+            weekNames.forEach(function(fieldName) {
+                const field = document.querySelector('[name="' + fieldName + '"]');
+                if (field && field.value === 'BEKERJA') jumlahBekerja++;
+            });
+
+            const totalInsentif = hitungHari('tgl_awal_kerja', 'tgl_akhir_kerja');
+            document.getElementById('jumlah_bekerja').innerText = jumlahBekerja;
+            document.getElementById('total_insentif').innerText = totalInsentif;
+            document.getElementById('grand_total_insentif').innerText = (jumlahBekerja + totalInsentif) + ' Hari';
+        }
+
+        document.querySelectorAll('input[type="date"]').forEach(function(el) {
+            el.addEventListener('change', updateTotal);
         });
-    }
 
-    function resetRange(startId, endId) {
-        const startField = document.getElementById(startId);
-        const endField = document.getElementById(endId);
-        if (startField) startField.value = '';
-        if (endField) endField.value = '';
-    }
+        document.querySelectorAll('#tgl_awal_kerja, #tgl_akhir_kerja').forEach(function(el) {
+            el.addEventListener('change', updateInsentifRoster);
+        });
 
-    function renderRosterTotals() {
-        const totalRoster = hitungHari('mulai_cuti_roster', 'akhir_cuti_roster');
-        const totalTahunan = hitungHari('mulai_cuti_tahunan', 'akhir_cuti_tahunan');
-        const totalOff = hitungHari('mulai_off', 'akhir_off');
-
-        document.getElementById('total_cuti_roster').innerText = totalRoster;
-        document.getElementById('total_cuti_tahunan').innerText = totalTahunan;
-        document.getElementById('total_off').innerText = totalOff;
-        document.getElementById('grand_total').innerText = (totalRoster + totalTahunan + totalOff) + ' Hari';
-    }
-
-    function cekTumpangTindih() {
-        const rStart = parseDate('mulai_cuti_roster');
-        const rEnd = parseDate('akhir_cuti_roster');
-        const tStart = parseDate('mulai_cuti_tahunan');
-        const tEnd = parseDate('akhir_cuti_tahunan');
-        const oStart = parseDate('mulai_off');
-        const oEnd = parseDate('akhir_off');
-
-        if (rStart && rEnd && tStart && tEnd && isOverlap(rStart, rEnd, tStart, tEnd)) {
-            resetRange('mulai_cuti_tahunan', 'akhir_cuti_tahunan');
-            highlightConflictFields(['mulai_cuti_tahunan', 'akhir_cuti_tahunan']);
-            renderRosterTotals();
-            showOverlapWarning('Cuti Tahunan tidak boleh tumpang tindih dengan Cuti Roster!');
-            return true;
-        }
-        if (rStart && rEnd && oStart && oEnd && isOverlap(rStart, rEnd, oStart, oEnd)) {
-            resetRange('mulai_off', 'akhir_off');
-            highlightConflictFields(['mulai_off', 'akhir_off']);
-            renderRosterTotals();
-            showOverlapWarning('OFF tidak boleh tumpang tindih dengan Cuti Roster!');
-            return true;
-        }
-        if (tStart && tEnd && oStart && oEnd && isOverlap(tStart, tEnd, oStart, oEnd)) {
-            resetRange('mulai_off', 'akhir_off');
-            highlightConflictFields(['mulai_off', 'akhir_off']);
-            renderRosterTotals();
-            showOverlapWarning('OFF tidak boleh tumpang tindih dengan Cuti Tahunan!');
-            return true;
-        }
-        return false;
-    }
-
-    function updateTotal() {
-        if (cekTumpangTindih()) return;
-        renderRosterTotals();
-    }
-
-    function updateInsentifRoster() {
-        let jumlahBekerja = 0;
-        weekNames.forEach(function (fieldName) {
+        weekNames.forEach(function(fieldName) {
             const field = document.querySelector('[name="' + fieldName + '"]');
-            if (field && field.value === 'BEKERJA') jumlahBekerja++;
+            if (field) field.addEventListener('change', updateInsentifRoster);
         });
 
-        const totalInsentif = hitungHari('tgl_awal_kerja', 'tgl_akhir_kerja');
-        document.getElementById('jumlah_bekerja').innerText = jumlahBekerja;
-        document.getElementById('total_insentif').innerText = totalInsentif;
-        document.getElementById('grand_total_insentif').innerText = (jumlahBekerja + totalInsentif) + ' Hari';
-    }
+        planInputs.forEach(function(input) {
+            input.addEventListener('change', showPlanPanel);
+        });
 
-    document.querySelectorAll('input[type="date"]').forEach(function (el) {
-        el.addEventListener('change', updateTotal);
+        showPlanPanel();
+        syncStep();
+        updateTotal();
+        updateInsentifRoster();
     });
-
-    document.querySelectorAll('#tgl_awal_kerja, #tgl_akhir_kerja').forEach(function (el) {
-        el.addEventListener('change', updateInsentifRoster);
-    });
-
-    weekNames.forEach(function (fieldName) {
-        const field = document.querySelector('[name="' + fieldName + '"]');
-        if (field) field.addEventListener('change', updateInsentifRoster);
-    });
-
-    planInputs.forEach(function (input) {
-        input.addEventListener('change', showPlanPanel);
-    });
-
-    showPlanPanel();
-    syncStep();
-    updateTotal();
-    updateInsentifRoster();
-});
 </script>
 @endpush
 @endsection

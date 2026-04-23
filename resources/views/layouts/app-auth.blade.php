@@ -11,25 +11,7 @@
     <link rel="stylesheet" href="{{ versioned_asset('assets/css/bootstrap.min.css') }}" />
     <link rel="stylesheet" href="{{ versioned_asset('assets/css/plugins.min.css') }}" />
     <link rel="stylesheet" href="{{ versioned_asset('assets/css/kaiadmin.min.css') }}" />
-
-    <style>
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        }
-
-        .form-control::placeholder {
-            color: #adb5bd;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #4f46e5, #6366f1);
-            border: none;
-        }
-
-        .btn-primary:hover {
-            opacity: .9;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ versioned_asset('assets/css/app-auth.css') }}" />
 
 </head>
 

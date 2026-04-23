@@ -6,7 +6,7 @@
 
 @section('content')
 @php
-    $selectedTipe = old('tipe', request('type'));
+    $selectedTipe = old('tipe', $izin->tipe);
     $selectedTipe = in_array($selectedTipe, ['PAID', 'UNPAID']) ? $selectedTipe : null;
 @endphp
 
@@ -16,11 +16,11 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h4 class="fw-bold mb-1">
-                    <i class="fas fa-file-alt text-primary me-2"></i>
-                    Form pengajuan izin
+                    <i class="fas fa-edit text-primary me-2"></i>
+                    Edit pengajuan izin
                 </h4>
                 <small class="text-muted">
-                    Pilih izin berbayar atau tidak berbayar
+                    Perbarui izin berbayar atau tidak berbayar yang masih pending
                 </small>
             </div>
 
@@ -30,13 +30,11 @@
         </div>
 
         <div class="card shadow-sm border-0">
-
-
             <div class="card-body">
-                <form action="{{ route('izin.store') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ route('izin.update', $izin->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
+                    @method('PUT')
 
-                    {{-- PILIH TIPE IZIN --}}
                     <div class="mb-3">
                         <label class="form-label fw-bold">Jenis Izin</label>
 
@@ -55,86 +53,82 @@
                         </div>
                     </div>
 
-                    {{-- KHUSUS PAID --}}
                     <div id="paidOptions" class="{{ $selectedTipe === 'PAID' ? '' : 'izin-paid-options-hidden' }}">
                         <label class="form-label fw-bold">Kategori Izin Berbayar</label>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Izin Menikah ( 3 Hari )" {{ old('tipe_izin') === 'Izin Menikah ( 3 Hari )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Menikah ( 3 Hari )" {{ old('tipe_izin') === 'Izin Menikah ( 3 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin Menikah ( 3 Hari )
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Izin menikahkan anak ( 2 Hari )" {{ old('tipe_izin') === 'Izin menikahkan anak ( 2 Hari )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin menikahkan anak ( 2 Hari )" {{ old('tipe_izin') === 'Izin menikahkan anak ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin menikahkan anak ( 2 Hari )
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Izin Khitan / Baptis anak ( 2 Hari )" {{ old('tipe_izin') === 'Izin Khitan / Baptis anak ( 2 Hari )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Khitan / Baptis anak ( 2 Hari )" {{ old('tipe_izin') === 'Izin Khitan / Baptis anak ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin Khitan / Baptis anak ( 2 Hari )
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Izin istri melahirkan / Keguguran ( 2 Hari )" {{ old('tipe_izin') === 'Izin istri melahirkan / Keguguran ( 2 Hari )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin istri melahirkan / Keguguran ( 2 Hari )" {{ old('tipe_izin') === 'Izin istri melahirkan / Keguguran ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin istri melahirkan / Keguguran ( 2 Hari )
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Izin Duka keluarga ( 2 Hari )" {{ old('tipe_izin') === 'Izin Duka keluarga ( 2 Hari )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Duka keluarga ( 2 Hari )" {{ old('tipe_izin') === 'Izin Duka keluarga ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin Duka keluarga ( 2 Hari )
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin"
-                                value="Cuti melahirkan ( 3 Bulan )" {{ old('tipe_izin') === 'Cuti melahirkan ( 3 Bulan )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Cuti melahirkan ( 3 Bulan )" {{ old('tipe_izin') === 'Cuti melahirkan ( 3 Bulan )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Cuti melahirkan ( 3 Bulan )
                             </label>
                         </div>
                     </div>
 
-                    {{-- TANGGAL --}}
                     <div class="row mt-3">
                         <div class="col-md-6">
                             <label class="form-label">Tanggal Mulai</label>
-                            <input type="date" name="tanggal_mulai" class="form-control">
+                            <input type="date" name="tanggal_mulai" class="form-control" value="{{ old('tanggal_mulai', $izin->tanggal_mulai) }}">
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Tanggal Berakhir</label>
-                            <input type="date" name="tanggal_berakhir" class="form-control">
+                            <input type="date" name="tanggal_berakhir" class="form-control" value="{{ old('tanggal_berakhir', $izin->tanggal_berakhir) }}">
                         </div>
                     </div>
 
-                    {{-- KETERANGAN --}}
                     <div class="mt-3">
                         <label class="form-label">Keterangan</label>
-                        <textarea name="keterangan" class="form-control"></textarea>
+                        <textarea name="keterangan" class="form-control">{{ old('keterangan', $izin->keterangan) }}</textarea>
                     </div>
 
-                    {{-- UPLOAD --}}
                     <div class="mt-3">
                         <label class="form-label">Upload Bukti (Opsional)</label>
                         <input type="file" name="foto" class="form-control">
+                        @if($izin->foto && $izin->foto !== '-')
+                        <small class="d-block mt-2">
+                            Bukti saat ini:
+                            <a href="{{ asset($izin->foto) }}" target="_blank">Lihat file</a>
+                        </small>
+                        @endif
                     </div>
 
                     <button type="submit" class="btn btn-primary mt-4">
-                        Ajukan Izin
+                        Simpan Perubahan
                     </button>
                 </form>
             </div>

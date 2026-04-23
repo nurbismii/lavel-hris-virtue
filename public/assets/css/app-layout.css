@@ -7,6 +7,20 @@
     padding-left: 3px;
 }
 
+.has-sidebar-badge {
+    gap: 0.75rem;
+    padding-right: 1rem !important;
+}
+
+.has-sidebar-badge p {
+    margin-right: 0 !important;
+}
+
+.has-sidebar-badge .badge {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
 .mobile-bottom-nav {
     display: none;
 }

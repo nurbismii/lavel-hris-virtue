@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\Cuti;
 use App\Models\PeriodeKerjaRoster;
 use App\Models\Roster;
 use Illuminate\Http\Request;
@@ -22,6 +21,13 @@ class RosterController extends Controller
         $cutis = Roster::with('employee', 'periodeKerjaRoster')->where('nik_karyawan', Auth::user()->nik_karyawan)->get();
 
         return view('user.roster.index', compact('cutis'));
+    }
+
+    public function show($id)
+    {
+        $this->findUserRoster($id);
+
+        return redirect()->route('roster.index');
     }
 
     public function create()
@@ -141,11 +147,11 @@ class RosterController extends Controller
 
     public function edit($id)
     {
-        $roster = Roster::with('periodeKerjaRoster')->where('id', $id)->first();
+        $roster = $this->findUserRoster($id);
 
-        if ($roster->status_pengajuan == '1') {
-            toast()->warning('Peringatan', 'Pengajuan roster telah di approve tidak dapat diedit');
-            return back();
+        if (!$this->canManageRoster($roster)) {
+            toast()->warning('Peringatan', 'Pengajuan roster yang sudah diproses tidak dapat diedit');
+            return redirect()->route('roster.index');
         }
 
         return view('user.roster.edit', compact('roster'));
@@ -153,7 +159,12 @@ class RosterController extends Controller
 
     public function update(Request $request, $id)
     {
-        $roster = Roster::with('periodeKerjaRoster')->where('id', $id)->first();
+        $roster = $this->findUserRoster($id);
+
+        if (!$this->canManageRoster($roster)) {
+            toast()->warning('Peringatan', 'Pengajuan roster yang sudah diproses tidak dapat diubah');
+            return redirect()->route('roster.index');
+        }
 
         DB::beginTransaction();
 
@@ -246,7 +257,7 @@ class RosterController extends Controller
             DB::commit();
 
             toast()->success('Success', 'Cuti Roster updated successfully');
-            return back();
+            return redirect()->route('roster.index');
         } catch (\Throwable $e) {
 
             DB::rollBack();
@@ -258,11 +269,11 @@ class RosterController extends Controller
 
     public function destroy($id)
     {
-        $roster = Roster::where('id', $id)->first();
+        $roster = $this->findUserRoster($id);
 
-        if ($roster->status_pengajuan == '1') {
-            toast()->warning('Peringatan', 'Pengajuan roster telah di approve tidak dapat dihapus');
-            return back();
+        if (!$this->canManageRoster($roster)) {
+            toast()->warning('Peringatan', 'Pengajuan roster yang sudah diproses tidak dapat dihapus');
+            return redirect()->route('roster.index');
         }
 
         if ($roster->file) {
@@ -272,7 +283,21 @@ class RosterController extends Controller
             }
         }
 
+        $roster->periodeKerjaRoster()->delete();
         $roster->delete();
-        return back();
+        toast()->success('Success', 'Pengajuan roster berhasil dihapus');
+        return redirect()->route('roster.index');
+    }
+
+    private function findUserRoster($id): Roster
+    {
+        return Roster::with('periodeKerjaRoster')
+            ->where('nik_karyawan', Auth::user()->nik_karyawan)
+            ->findOrFail($id);
+    }
+
+    private function canManageRoster(Roster $roster): bool
+    {
+        return (int) $roster->status_pengajuan === 0 && (int) $roster->status_pengajuan_hrd === 0;
     }
 }
