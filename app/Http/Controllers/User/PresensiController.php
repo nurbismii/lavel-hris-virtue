@@ -28,7 +28,7 @@ class PresensiController extends Controller
         $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
 
         $absensiHariIni = Presensi::where('nik_karyawan', Auth::user()->nik_karyawan)
-            ->whereDate('created_at', today())
+            ->whereDate('tanggal', today())
             ->first();
 
         $today = Carbon::today();
@@ -55,6 +55,19 @@ class PresensiController extends Controller
 
     public function store(Request $request, $type)
     {
+        $user = Auth::user();
+        $karyawan = $user->employee;
+        $today = Carbon::today()->format('Y-m-d');
+
+        $existingStatus = Presensi::where('nik_karyawan', $user->nik_karyawan)
+            ->whereDate('tanggal', $today)
+            ->first();
+
+        if ($existingStatus && $existingStatus->status_presensi) {
+            toast()->warning('Peringatan', 'Presensi hari ini berstatus ' . $existingStatus->status_presensi . '. Tidak perlu absen jam.');
+            return back();
+        }
+
         $request->validate([
             'lat_user' => 'required|numeric',
             'long_user' => 'required|numeric',
@@ -68,10 +81,6 @@ class PresensiController extends Controller
             'face_detection_count' => 'required|integer|min:1|max:5',
             'face_verification_meta' => 'nullable|string|max:5000',
         ]);
-
-        $user = Auth::user();
-        $karyawan = $user->employee;
-        $today = Carbon::today()->format('Y-m-d');
 
         $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
 

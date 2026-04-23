@@ -87,10 +87,11 @@ class PresensiController extends Controller
             $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
 
             $presensiMap[$p->nik_karyawan][$tgl] = [
-                'm' => $p->jam_masuk ? Carbon::parse($p->jam_masuk)->format('H:i') : null,
-                'i' => $p->jam_istirahat ? Carbon::parse($p->jam_istirahat)->format('H:i') : null,
-                'k' => $p->jam_kembali_istirahat ? Carbon::parse($p->jam_kembali_istirahat)->format('H:i') : null,
-                'p' => $p->jam_pulang ? Carbon::parse($p->jam_pulang)->format('H:i') : null,
+                'status' => $p->status_presensi ?: null,
+                'm' => $p->status_presensi ? null : ($p->jam_masuk ? Carbon::parse($p->jam_masuk)->format('H:i') : null),
+                'i' => $p->status_presensi ? null : ($p->jam_istirahat ? Carbon::parse($p->jam_istirahat)->format('H:i') : null),
+                'k' => $p->status_presensi ? null : ($p->jam_kembali_istirahat ? Carbon::parse($p->jam_kembali_istirahat)->format('H:i') : null),
+                'p' => $p->status_presensi ? null : ($p->jam_pulang ? Carbon::parse($p->jam_pulang)->format('H:i') : null),
             ];
         }
 
@@ -155,10 +156,11 @@ class PresensiController extends Controller
             $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
 
             $presensiMap[$p->nik_karyawan][$tgl] = [
-                'm' => $p->jam_masuk ? Carbon::parse($p->jam_masuk)->format('H:i') : '',
-                'i' => $p->jam_istirahat ? Carbon::parse($p->jam_istirahat)->format('H:i') : '',
-                'k' => $p->jam_kembali_istirahat ? Carbon::parse($p->jam_kembali_istirahat)->format('H:i') : '',
-                'p' => $p->jam_pulang ? Carbon::parse($p->jam_pulang)->format('H:i') : '',
+                'status' => $p->status_presensi ?: '',
+                'm' => $p->status_presensi ? '' : ($p->jam_masuk ? Carbon::parse($p->jam_masuk)->format('H:i') : ''),
+                'i' => $p->status_presensi ? '' : ($p->jam_istirahat ? Carbon::parse($p->jam_istirahat)->format('H:i') : ''),
+                'k' => $p->status_presensi ? '' : ($p->jam_kembali_istirahat ? Carbon::parse($p->jam_kembali_istirahat)->format('H:i') : ''),
+                'p' => $p->status_presensi ? '' : ($p->jam_pulang ? Carbon::parse($p->jam_pulang)->format('H:i') : ''),
             ];
         }
 
@@ -189,8 +191,9 @@ class PresensiController extends Controller
 
                         $p = $presensiMap[$emp->nik][$tgl];
 
-                        $row[] =
-                            "$p[m] $p[i] $p[k] $p[p]";
+                        $row[] = $p['status']
+                            ? $p['status']
+                            : trim("$p[m] $p[i] $p[k] $p[p]");
                     } else {
                         $row[] = '';
                     }

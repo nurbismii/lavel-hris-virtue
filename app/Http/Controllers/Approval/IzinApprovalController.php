@@ -6,6 +6,7 @@ use App\Models\Cuti;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Presensi\AttendanceStatusService;
 
 class IzinApprovalController extends Controller
 {
@@ -91,6 +92,7 @@ class IzinApprovalController extends Controller
         // Jika disetujui HRD → potong sisa cuti
         if ($request->action == 1) {
             $cuti->employee->decrement('sisa_cuti', $cuti->jumlah);
+            app(AttendanceStatusService::class)->syncApprovedIzin($cuti);
         }
 
         $user = $cuti->user;

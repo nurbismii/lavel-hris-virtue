@@ -10,6 +10,10 @@ class Presensi extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'tanggal' => 'date:Y-m-d',
+    ];
+
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'nik_karyawan')->select('nik', 'divisi_id');

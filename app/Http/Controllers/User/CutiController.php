@@ -75,13 +75,14 @@ class CutiController extends Controller
     {
         $APPROVE = 1;
 
-        $cuti = Cuti::findOrFail($id)->delete();
+        $cuti = Cuti::findOrFail($id);
 
         if ($cuti->status_hod == $APPROVE) {
             toast()->error('Error', 'Pengajuan cuti telah di approve, tidak dapat dihapus');
             return redirect()->route('cuti.index');
         }
-
+        
+        $cuti->delete();
         toast()->success('Success', 'Pengajuan cuti berhasil dihapus.');
         return redirect()->route('cuti.index');
     }

@@ -159,6 +159,13 @@
                     render: function(data) {
 
                         if (!data) return '-';
+                        if (data.status) {
+                            return `
+                        <div class="text-center fw-semibold text-primary">
+                            ${data.status}
+                        </div>
+                    `;
+                        }
 
                         const formatTime = (val) => {
                             if (!val) return '-';

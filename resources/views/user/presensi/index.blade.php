@@ -36,6 +36,7 @@
         @endif
 
         @php
+            $statusPresensiHariIni = $absensiHariIni->status_presensi ?? null;
             $nextType = null;
             $label = '';
             $btnClass = 'btn-primary';
@@ -43,7 +44,10 @@
             $actionTitle = 'Siap untuk langkah berikutnya';
             $actionText = 'Ambil selfie terlebih dahulu, tunggu matching berhasil, lalu lanjutkan presensi saat GPS valid.';
 
-            if (!$absensiHariIni || !$absensiHariIni->jam_masuk) {
+            if ($statusPresensiHariIni) {
+                $actionTitle = 'Status presensi hari ini';
+                $actionText = 'Hari ini tercatat sebagai ' . $statusPresensiHariIni . '. Presensi jam tidak diperlukan.';
+            } elseif (!$absensiHariIni || !$absensiHariIni->jam_masuk) {
                 $nextType = 'masuk';
                 $label = 'Absen Masuk';
                 $btnClass = 'btn-primary';
@@ -273,6 +277,12 @@
                                     </div>
                                 </div>
 
+                                @if ($statusPresensiHariIni)
+                                <div class="alert alert-info mb-3">
+                                    <strong>Status hari ini:</strong> {{ $statusPresensiHariIni }}
+                                </div>
+                                @endif
+
                                 <div class="attendance-summary row g-3">
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
@@ -362,6 +372,7 @@
                     <thead class="table-light">
                         <tr>
                             <th>Tanggal</th>
+                            <th>Status</th>
                             <th>Masuk</th>
                             <th>Istirahat</th>
                             <th>Kembali</th>
@@ -372,6 +383,7 @@
                         @forelse($presensi as $item)
                         <tr>
                             <td>{{ formatDateIndonesia($item->tanggal) }}</td>
+                            <td>{{ $item->status_presensi ?? '-' }}</td>
                             <td>{{ $item->jam_masuk ?? '-' }}</td>
                             <td>{{ $item->jam_istirahat ?? '-' }}</td>
                             <td>{{ $item->jam_kembali_istirahat ?? '-' }}</td>
@@ -379,7 +391,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="5" class="text-muted">
+                            <td colspan="6" class="text-muted">
                                 Tidak ada data pada periode ini
                             </td>
                         </tr>

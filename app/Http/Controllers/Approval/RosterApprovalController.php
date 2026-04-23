@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Roster;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Presensi\AttendanceStatusService;
 
 class RosterApprovalController extends Controller
 {
@@ -111,6 +112,10 @@ class RosterApprovalController extends Controller
         $cuti->update([
             'status_pengajuan_hrd' => $request->action
         ]);
+
+        if ($request->action == 1) {
+            app(AttendanceStatusService::class)->syncApprovedRoster($cuti);
+        }
 
         $user = $cuti->user;
 
