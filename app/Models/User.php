@@ -51,6 +51,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'terakhir_login' => 'datetime',
         'authorized_divisi_ids' => 'array',
     ];
 
@@ -318,5 +319,12 @@ class User extends Authenticatable implements MustVerifyEmail
     public function sendPasswordResetNotification($token)
     {
         $this->notify(new ResetPasswordNotification($token));
+    }
+
+    public function markLastLogin(): void
+    {
+        $this->forceFill([
+            'terakhir_login' => now(),
+        ])->save();
     }
 }

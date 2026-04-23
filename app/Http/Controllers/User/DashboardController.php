@@ -15,11 +15,6 @@ class DashboardController extends Controller
             'employee.divisi.departemen',
         ])->where('id', auth()->user()->id)->first();
 
-        if ($user->terakhir_login == null) {
-            $user->terakhir_login = now();
-            $user->save();
-        }
-
         return view('user.dashboard', compact('user'));
     }
 }

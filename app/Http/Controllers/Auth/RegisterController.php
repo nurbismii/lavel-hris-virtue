@@ -69,6 +69,7 @@ class RegisterController extends Controller
         event(new Registered($user));
 
         auth()->login($user);
+        $user->markLastLogin();
 
         return redirect()->route('verification.notice');
     }
