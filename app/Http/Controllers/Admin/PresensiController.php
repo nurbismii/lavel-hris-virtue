@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Perusahaan;
+use App\Models\Presensi;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -87,7 +88,7 @@ class PresensiController extends Controller
             $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
 
             $presensiMap[$p->nik_karyawan][$tgl] = [
-                'status' => $p->status_presensi ?: null,
+                'status' => $p->status_presensi ? Presensi::shortStatus($p->status_presensi) : null,
                 'm' => $p->status_presensi ? null : ($p->jam_masuk ? Carbon::parse($p->jam_masuk)->format('H:i') : null),
                 'i' => $p->status_presensi ? null : ($p->jam_istirahat ? Carbon::parse($p->jam_istirahat)->format('H:i') : null),
                 'k' => $p->status_presensi ? null : ($p->jam_kembali_istirahat ? Carbon::parse($p->jam_kembali_istirahat)->format('H:i') : null),
@@ -156,7 +157,7 @@ class PresensiController extends Controller
             $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
 
             $presensiMap[$p->nik_karyawan][$tgl] = [
-                'status' => $p->status_presensi ?: '',
+                'status' => $p->status_presensi ? Presensi::shortStatus($p->status_presensi) : '',
                 'm' => $p->status_presensi ? '' : ($p->jam_masuk ? Carbon::parse($p->jam_masuk)->format('H:i') : ''),
                 'i' => $p->status_presensi ? '' : ($p->jam_istirahat ? Carbon::parse($p->jam_istirahat)->format('H:i') : ''),
                 'k' => $p->status_presensi ? '' : ($p->jam_kembali_istirahat ? Carbon::parse($p->jam_kembali_istirahat)->format('H:i') : ''),

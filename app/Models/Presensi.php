@@ -18,4 +18,20 @@ class Presensi extends Model
     {
         return $this->belongsTo(Employee::class, 'nik_karyawan')->select('nik', 'divisi_id');
     }
+
+    public static function shortStatus(?string $status): ?string
+    {
+        switch ($status) {
+            case 'Izin Tidak Berbayar':
+                return 'I/U';
+            case 'Izin Berbayar':
+                return 'I/P';
+            case 'Cuti Tahunan':
+                return 'CT';
+            case 'Cuti Roster':
+                return 'CR';
+            default:
+                return $status;
+        }
+    }
 }

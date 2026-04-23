@@ -383,7 +383,7 @@
                         @forelse($presensi as $item)
                         <tr>
                             <td>{{ formatDateIndonesia($item->tanggal) }}</td>
-                            <td>{{ $item->status_presensi ?? '-' }}</td>
+                            <td>{{ \App\Models\Presensi::shortStatus($item->status_presensi) ?? '-' }}</td>
                             <td>{{ $item->jam_masuk ?? '-' }}</td>
                             <td>{{ $item->jam_istirahat ?? '-' }}</td>
                             <td>{{ $item->jam_kembali_istirahat ?? '-' }}</td>
