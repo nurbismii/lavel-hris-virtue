@@ -819,8 +819,11 @@
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
                     "X-CSRF-TOKEN": "{{ csrf_token() }}"
                 },
+                credentials: "same-origin",
                 body: JSON.stringify({
                     data: payload.map(p => ({
                         employee_id: p.employee_id,
@@ -831,7 +834,17 @@
                 })
             });
 
-            if (!response.ok) throw new Error();
+            let responseData = null;
+
+            try {
+                responseData = await response.json();
+            } catch (error) {
+                responseData = null;
+            }
+
+            if (!response.ok) {
+                throw new Error(responseData && responseData.message ? responseData.message : 'Update gagal');
+            }
 
             payload.forEach(item => {
                 const shouldResetToAuto = item.status === item.auto_status;
@@ -870,7 +883,7 @@
                 item.element.closest('td').removeClass('table-warning');
             });
 
-            alert('Update gagal');
+            alert(e.message || 'Update gagal');
         }
     }
 </script>

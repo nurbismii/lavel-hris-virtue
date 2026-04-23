@@ -14,11 +14,11 @@ return new class extends Migration
 
         Schema::table('work_patterns', function (Blueprint $table) {
             if (!Schema::hasColumn('work_patterns', 'break_start_time')) {
-                $table->time('break_start_time')->nullable()->after('end_time');
+                $table->time('break_start_time')->nullable();
             }
 
             if (!Schema::hasColumn('work_patterns', 'break_end_time')) {
-                $table->time('break_end_time')->nullable()->after('break_start_time');
+                $table->time('break_end_time')->nullable();
             }
         });
     }

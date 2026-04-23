@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\Departemen;
 use App\Models\Divisi;
+use RuntimeException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -185,32 +186,49 @@ class AttendanceSettingController extends Controller
             ->keys()
             ->all();
 
-        DB::transaction(function () use ($rows, $allowedEmployeeIds, $scopedEmployees) {
-            $scheduleService = app(WorkScheduleService::class);
+        try {
+            DB::transaction(function () use ($rows, $allowedEmployeeIds, $scopedEmployees) {
+                $scheduleService = app(WorkScheduleService::class);
 
-            foreach ($rows as $row) {
-                if (!in_array($row['employee_id'], $allowedEmployeeIds, true)) {
-                    continue;
+                foreach ($rows as $row) {
+                    $employeeId = isset($row['employee_id']) ? (string) $row['employee_id'] : null;
+                    $tanggal = $row['tanggal'] ?? null;
+
+                    if (!$employeeId || !$tanggal || !in_array($employeeId, $allowedEmployeeIds, true)) {
+                        continue;
+                    }
+
+                    $status = strtoupper((string) ($row['status'] ?? ''));
+
+                    if (!in_array($status, [
+                        EmployeeAttendanceSetting::STATUS_OFF,
+                        EmployeeAttendanceSetting::STATUS_HADIR,
+                    ], true)) {
+                        continue;
+                    }
+
+                    $employee = $scopedEmployees->get($employeeId);
+
+                    if (!$employee) {
+                        continue;
+                    }
+
+                    $scheduleService->applyManualOverride($employee, $tanggal, $status);
                 }
+            });
+        } catch (RuntimeException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        } catch (\Throwable $exception) {
+            report($exception);
 
-                $status = strtoupper((string) ($row['status'] ?? ''));
-
-                if (!in_array($status, [
-                    EmployeeAttendanceSetting::STATUS_OFF,
-                    EmployeeAttendanceSetting::STATUS_HADIR,
-                ], true)) {
-                    continue;
-                }
-
-                $employee = $scopedEmployees->get($row['employee_id']);
-
-                if (!$employee) {
-                    continue;
-                }
-
-                $scheduleService->applyManualOverride($employee, $row['tanggal'], $status);
-            }
-        });
+            return response()->json([
+                'success' => false,
+                'message' => 'Update setting hari off gagal disimpan.',
+            ], 500);
+        }
 
         return response()->json([
             'success' => true

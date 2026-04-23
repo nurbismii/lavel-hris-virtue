@@ -9,6 +9,7 @@ use App\Models\Presensi;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
+use RuntimeException;
 
 class WorkScheduleService
 {
@@ -20,6 +21,7 @@ class WorkScheduleService
         $scheduleMap = [];
         $start = Carbon::parse($startDate)->startOfDay();
         $end = Carbon::parse($endDate)->startOfDay();
+        $supportsStatusColumn = EmployeeAttendanceSetting::supportsStatusColumn();
         $overrideMap = $manualOverrides
             ->groupBy('employee_id')
             ->map(fn(Collection $rows) => $rows->keyBy(fn($row) => Carbon::parse($row->tanggal)->toDateString()));
@@ -29,7 +31,10 @@ class WorkScheduleService
                 $dateString = $date->toDateString();
                 $autoStatus = $this->resolveAutoStatus($employee, $dateString);
                 $employeeOverrides = $overrideMap->get($employee->nik, collect());
-                $manualStatus = optional($employeeOverrides->get($dateString))->status;
+                $overrideRow = $employeeOverrides->get($dateString);
+                $manualStatus = $supportsStatusColumn
+                    ? optional($overrideRow)->status
+                    : ($overrideRow ? self::STATUS_OFF : null);
                 $finalStatus = $manualStatus ?: $autoStatus;
                 $isManual = filled($manualStatus);
 
@@ -48,10 +53,15 @@ class WorkScheduleService
     public function resolveFinalStatus(Employee $employee, $tanggal): string
     {
         $dateString = Carbon::parse($tanggal)->toDateString();
-        $manualStatus = EmployeeAttendanceSetting::query()
+        $query = EmployeeAttendanceSetting::query()
             ->where('employee_id', $employee->nik)
-            ->whereDate('tanggal', $dateString)
-            ->value('status');
+            ->whereDate('tanggal', $dateString);
+
+        if (EmployeeAttendanceSetting::supportsStatusColumn()) {
+            $manualStatus = $query->value('status');
+        } else {
+            $manualStatus = $query->exists() ? self::STATUS_OFF : null;
+        }
 
         return $manualStatus ?: $this->resolveAutoStatus($employee, $dateString);
     }
@@ -61,14 +71,60 @@ class WorkScheduleService
         $dateString = Carbon::parse($tanggal)->toDateString();
         $periode = Carbon::parse($dateString)->format('Y-m');
         $autoStatus = $this->resolveAutoStatus($employee, $dateString);
+        $supportsStatusColumn = EmployeeAttendanceSetting::supportsStatusColumn();
+        $supportsPeriodeColumn = EmployeeAttendanceSetting::supportsPeriodeColumn();
+        $baseQuery = EmployeeAttendanceSetting::query()
+            ->where('employee_id', $employee->nik)
+            ->whereDate('tanggal', $dateString);
 
-        if ($desiredStatus === $autoStatus) {
-            EmployeeAttendanceSetting::query()
-                ->where('employee_id', $employee->nik)
-                ->whereDate('tanggal', $dateString)
-                ->delete();
+        if (!$supportsStatusColumn) {
+            if ($desiredStatus === self::STATUS_HADIR) {
+                if ($autoStatus === self::STATUS_OFF) {
+                    throw new RuntimeException('Manual HADIR di atas AUTO OFF membutuhkan migrasi tabel setting hari off terbaru.');
+                }
+
+                $baseQuery->delete();
+
+                return;
+            }
+
+            if ($desiredStatus === $autoStatus) {
+                $baseQuery->delete();
+
+                return;
+            }
+
+            $attributes = [
+                'employee_id' => $employee->nik,
+                'tanggal' => $dateString,
+            ];
+            $values = [];
+
+            if ($supportsPeriodeColumn) {
+                $values['periode'] = $periode;
+            }
+
+            if (empty($values)) {
+                EmployeeAttendanceSetting::firstOrCreate($attributes);
+            } else {
+                EmployeeAttendanceSetting::updateOrCreate($attributes, $values);
+            }
 
             return;
+        }
+
+        if ($desiredStatus === $autoStatus) {
+            $baseQuery->delete();
+
+            return;
+        }
+
+        $values = [
+            'status' => $desiredStatus,
+        ];
+
+        if ($supportsPeriodeColumn) {
+            $values['periode'] = $periode;
         }
 
         EmployeeAttendanceSetting::updateOrCreate(
@@ -76,10 +132,7 @@ class WorkScheduleService
                 'employee_id' => $employee->nik,
                 'tanggal' => $dateString,
             ],
-            [
-                'status' => $desiredStatus,
-                'periode' => $periode,
-            ]
+            $values
         );
     }
 
