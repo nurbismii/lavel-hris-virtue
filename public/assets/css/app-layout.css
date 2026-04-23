@@ -7,6 +7,11 @@
     padding-left: 3px;
 }
 
+.btn:not(.btn-lg):not(.btn-xs) {
+    font-size: 11px;
+    padding: 7px 13px;
+}
+
 .has-sidebar-badge {
     gap: 0.75rem;
     padding-right: 1rem !important;

@@ -10,10 +10,11 @@
 @php
 $currentUser = $user;
 $employee = $currentUser->employee;
+$employeePhotoUrl = optional($employee)->document_photo_url;
 $normalizedRole = $currentUser->normalized_role_name;
 $roleConfig = config('access.roles.' . $normalizedRole, []);
 $displayName = $employee->nama_karyawan ?? $currentUser->name ?? 'Pengguna';
-$displayInitial = strtoupper(substr($displayName, 0, 1));
+$displayInitials = $currentUser->avatar_initials;
 $departmentName = optional(optional(optional($employee)->divisi)->departemen)->departemen
 ?? optional(optional($employee)->departemen)->departemen
 ?? 'Belum diatur';
@@ -288,7 +289,13 @@ $visibleQuickActions = $quickActions->take($quickActionLimit);
                 <div class="hero-body">
                     <div class="hero-top">
                         <div class="hero-user">
-                            <div class="hero-avatar">{{ $displayInitial }}</div>
+                            <div class="hero-avatar{{ $employeePhotoUrl ? ' hero-avatar--photo' : '' }}">
+                                @if($employeePhotoUrl)
+                                    <img src="{{ $employeePhotoUrl }}" alt="{{ $displayName }}">
+                                @else
+                                    {{ $displayInitials }}
+                                @endif
+                            </div>
 
                             <div>
                                 <div class="hero-meta mb-3">

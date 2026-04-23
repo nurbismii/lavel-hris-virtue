@@ -19,6 +19,11 @@ class Employee extends Model
         'tgl_lahir'
     ];
 
+    public function getDocumentPhotoUrlAttribute(): ?string
+    {
+        return filled($this->photo_path) ? asset($this->photo_path) : null;
+    }
+
     public function departemen()
     {
         return $this->belongsTo(Departemen::class, 'departemen_id');

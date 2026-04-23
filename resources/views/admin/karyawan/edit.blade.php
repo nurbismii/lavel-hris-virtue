@@ -6,59 +6,59 @@
 
 @section('content')
 @php
-    $documentFields = collect([
-        [
-            'label' => 'Foto Karyawan',
-            'input' => 'photo_file',
-            'path' => $employee->photo_path,
-            'accept' => 'image/png,image/jpeg,image/webp',
-            'help' => 'Upload foto profil atau pas foto karyawan.',
-        ],
-        [
-            'label' => 'KTP',
-            'input' => 'ktp_file',
-            'path' => $employee->ktp_path,
-            'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
-            'help' => 'Menerima gambar atau PDF.',
-        ],
-        [
-            'label' => 'KK',
-            'input' => 'kk_file',
-            'path' => $employee->kk_path,
-            'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
-            'help' => 'Menerima gambar atau PDF.',
-        ],
-        [
-            'label' => 'SIM',
-            'input' => 'sim_file',
-            'path' => $employee->sim_path,
-            'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
-            'help' => 'Menerima gambar atau PDF.',
-        ],
-        [
-            'label' => 'SIO',
-            'input' => 'sio_file',
-            'path' => $employee->sio_path,
-            'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
-            'help' => 'Menerima gambar atau PDF.',
-        ],
-    ])->map(function ($document) {
-        $path = $document['path'] ?? null;
-        $extension = $path ? strtolower(pathinfo($path, PATHINFO_EXTENSION)) : null;
-        $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true);
-        $isPdf = $extension === 'pdf';
+$documentFields = collect([
+[
+'label' => 'Foto Karyawan',
+'input' => 'photo_file',
+'path' => $employee->photo_path,
+'accept' => 'image/png,image/jpeg,image/webp',
+'help' => 'Upload foto profil atau pas foto karyawan.',
+],
+[
+'label' => 'KTP',
+'input' => 'ktp_file',
+'path' => $employee->ktp_path,
+'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
+'help' => 'Menerima gambar atau PDF.',
+],
+[
+'label' => 'KK',
+'input' => 'kk_file',
+'path' => $employee->kk_path,
+'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
+'help' => 'Menerima gambar atau PDF.',
+],
+[
+'label' => 'SIM',
+'input' => 'sim_file',
+'path' => $employee->sim_path,
+'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
+'help' => 'Menerima gambar atau PDF.',
+],
+[
+'label' => 'SIO',
+'input' => 'sio_file',
+'path' => $employee->sio_path,
+'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
+'help' => 'Menerima gambar atau PDF.',
+],
+])->map(function ($document) {
+$path = $document['path'] ?? null;
+$extension = $path ? strtolower(pathinfo($path, PATHINFO_EXTENSION)) : null;
+$isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true);
+$isPdf = $extension === 'pdf';
 
-        return array_merge($document, [
-            'url' => $path ? asset($path) : null,
-            'file_name' => $path ? basename($path) : null,
-            'is_image' => $isImage,
-            'is_pdf' => $isPdf,
-            'badge' => $path ? ($isPdf ? 'PDF' : 'Gambar') : 'Kosong',
-        ]);
-    });
+return array_merge($document, [
+'url' => $path ? asset($path) : null,
+'file_name' => $path ? basename($path) : null,
+'is_image' => $isImage,
+'is_pdf' => $isPdf,
+'badge' => $path ? ($isPdf ? 'PDF' : 'Gambar') : 'Kosong',
+]);
+});
 
-    $uploadedDocumentCount = $documentFields->filter(fn($document) => filled($document['path']))->count() + (filled($employee->face_reference_path) ? 1 : 0);
-    $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondary';
+$uploadedDocumentCount = $documentFields->filter(fn($document) => filled($document['path']))->count() + (filled($employee->face_reference_path) ? 1 : 0);
+$statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondary';
 @endphp
 
 <div class="container-fluid employee-edit-shell"
@@ -81,8 +81,8 @@
                 <h3 class="fw-bold mb-1">Edit Karyawan</h3>
                 <small class="text-muted">Kelola data inti, alamat dan dokumen karyawan.</small>
             </div>
-            <a href="{{ route('karyawan.index') }}" class="btn btn-outline-secondary">
-                Kembali ke Data Karyawan
+            <a href="{{ route('karyawan.index') }}" class="btn btn-sm btn-light">
+                <i class="fas fa-arrow-left me-1"></i>Kembali
             </a>
         </div>
 
@@ -194,9 +194,9 @@
                                                     <select name="area_kerja" id="perusahaan_id" class="form-select form-control">
                                                         <option value="">-- Pilih Perusahaan --</option>
                                                         @foreach ($areas as $area)
-                                                            <option value="{{ $area->kode_perusahaan }}" {{ old('area_kerja', $employee->area_kerja) == $area->kode_perusahaan ? 'selected' : '' }}>
-                                                                {{ $area->kode_perusahaan }}
-                                                            </option>
+                                                        <option value="{{ $area->kode_perusahaan }}" {{ old('area_kerja', $employee->area_kerja) == $area->kode_perusahaan ? 'selected' : '' }}>
+                                                            {{ $area->kode_perusahaan }}
+                                                        </option>
                                                         @endforeach
                                                     </select>
                                                 </div>
@@ -205,9 +205,9 @@
                                                     <select name="departemen_id" id="departemen_id" class="form-select form-control">
                                                         <option value="">-- Pilih Departemen --</option>
                                                         @foreach ($departemens as $departemen)
-                                                            <option value="{{ $departemen->id }}" {{ old('departemen_id', $employee->departemen_id) == $departemen->id ? 'selected' : '' }}>
-                                                                {{ $departemen->nama_departemen }}
-                                                            </option>
+                                                        <option value="{{ $departemen->id }}" {{ old('departemen_id', $employee->departemen_id) == $departemen->id ? 'selected' : '' }}>
+                                                            {{ $departemen->nama_departemen }}
+                                                        </option>
                                                         @endforeach
                                                     </select>
                                                 </div>
@@ -216,9 +216,9 @@
                                                     <select name="divisi_id" id="divisi_id" class="form-select form-control">
                                                         <option value="">-- Pilih Divisi --</option>
                                                         @foreach ($divisis as $divisi)
-                                                            <option value="{{ $divisi->id }}" {{ old('divisi_id', $employee->divisi_id) == $divisi->id ? 'selected' : '' }}>
-                                                                {{ $divisi->nama_divisi }}
-                                                            </option>
+                                                        <option value="{{ $divisi->id }}" {{ old('divisi_id', $employee->divisi_id) == $divisi->id ? 'selected' : '' }}>
+                                                            {{ $divisi->nama_divisi }}
+                                                        </option>
                                                         @endforeach
                                                     </select>
                                                 </div>
@@ -330,12 +330,12 @@
                                                     <div class="employee-document-row__grid">
                                                         <div class="employee-document-row__preview">
                                                             @if($employee->face_reference_path)
-                                                                <img src="{{ asset($employee->face_reference_path) }}" alt="Foto referensi wajah" loading="lazy">
+                                                            <img src="{{ asset($employee->face_reference_path) }}" alt="Foto referensi wajah" loading="lazy">
                                                             @else
-                                                                <div class="employee-document-row__placeholder">
-                                                                    <i class="fas fa-camera"></i>
-                                                                    <div>Belum ada file</div>
-                                                                </div>
+                                                            <div class="employee-document-row__placeholder">
+                                                                <i class="fas fa-camera"></i>
+                                                                <div>Belum ada file</div>
+                                                            </div>
                                                             @endif
                                                         </div>
                                                         <div>
@@ -349,20 +349,20 @@
                                                                 <span class="employee-document-card__badge">{{ $employee->face_reference_path ? 'Gambar' : 'Kosong' }}</span>
                                                             </div>
                                                             @if($employee->face_reference_path)
-                                                                <div class="employee-document-row__actions">
-                                                                    <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ asset($employee->face_reference_path) }}" data-file-type="image" data-file-label="Foto Referensi Wajah" data-file-name="{{ basename($employee->face_reference_path) }}">
-                                                                        Lihat
-                                                                    </button>
-                                                                    <a href="{{ asset($employee->face_reference_path) }}" download class="btn btn-sm btn-primary">
-                                                                        Unduh
-                                                                    </a>
-                                                                </div>
+                                                            <div class="employee-document-row__actions">
+                                                                <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ asset($employee->face_reference_path) }}" data-file-type="image" data-file-label="Foto Referensi Wajah" data-file-name="{{ basename($employee->face_reference_path) }}">
+                                                                    Lihat
+                                                                </button>
+                                                                <a href="{{ asset($employee->face_reference_path) }}" download class="btn btn-sm btn-primary">
+                                                                    Unduh
+                                                                </a>
+                                                            </div>
                                                             @endif
                                                             <div class="employee-document-row__upload">
                                                                 <label class="form-label">Ganti Foto Referensi</label>
                                                                 <input type="file" class="form-control @error('face_reference') is-invalid @enderror" name="face_reference" accept="image/png,image/jpeg,image/webp" data-compress-images="true">
                                                                 @error('face_reference')
-                                                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                                <div class="invalid-feedback d-block">{{ $message }}</div>
                                                                 @enderror
                                                                 <div class="employee-document-input__help">
                                                                     Upload baru akan menimpa file lama dan memperbarui data karyawan.
@@ -381,66 +381,66 @@
                                             <div class="employee-edit-section__caption">Setiap upload baru akan menimpa file lama untuk jenis dokumen yang sama, lalu memperbarui path file di database.</div>
                                             <div class="employee-document-list">
                                                 @foreach($documentFields as $document)
-                                                    <div class="employee-document-row">
-                                                        <div class="employee-document-row__grid">
-                                                            <div class="employee-document-row__preview">
-                                                                @if($document['path'] && $document['is_image'])
-                                                                    <img src="{{ $document['url'] }}" alt="{{ $document['label'] }}" loading="lazy">
-                                                                @elseif($document['path'] && $document['is_pdf'])
-                                                                    <div class="employee-document-row__placeholder">
-                                                                        <i class="fas fa-file-pdf text-danger"></i>
-                                                                        <div>PDF</div>
-                                                                    </div>
-                                                                @elseif($document['path'])
-                                                                    <div class="employee-document-row__placeholder">
-                                                                        <i class="fas fa-file-alt text-primary"></i>
-                                                                        <div>File</div>
-                                                                    </div>
-                                                                @else
-                                                                    <div class="employee-document-row__placeholder">
-                                                                        <i class="fas fa-file-upload"></i>
-                                                                        <div>Belum ada file</div>
-                                                                    </div>
-                                                                @endif
+                                                <div class="employee-document-row">
+                                                    <div class="employee-document-row__grid">
+                                                        <div class="employee-document-row__preview">
+                                                            @if($document['path'] && $document['is_image'])
+                                                            <img src="{{ $document['url'] }}" alt="{{ $document['label'] }}" loading="lazy">
+                                                            @elseif($document['path'] && $document['is_pdf'])
+                                                            <div class="employee-document-row__placeholder">
+                                                                <i class="fas fa-file-pdf text-danger"></i>
+                                                                <div>PDF</div>
                                                             </div>
-                                                            <div>
-                                                                <div class="employee-document-row__header">
-                                                                    <div>
-                                                                        <div class="employee-document-row__title">{{ $document['label'] }}</div>
-                                                                        <div class="employee-document-row__meta">
-                                                                            {{ $document['path'] ? $document['file_name'] : 'Belum ada file tersimpan.' }}
-                                                                        </div>
+                                                            @elseif($document['path'])
+                                                            <div class="employee-document-row__placeholder">
+                                                                <i class="fas fa-file-alt text-primary"></i>
+                                                                <div>File</div>
+                                                            </div>
+                                                            @else
+                                                            <div class="employee-document-row__placeholder">
+                                                                <i class="fas fa-file-upload"></i>
+                                                                <div>Belum ada file</div>
+                                                            </div>
+                                                            @endif
+                                                        </div>
+                                                        <div>
+                                                            <div class="employee-document-row__header">
+                                                                <div>
+                                                                    <div class="employee-document-row__title">{{ $document['label'] }}</div>
+                                                                    <div class="employee-document-row__meta">
+                                                                        {{ $document['path'] ? $document['file_name'] : 'Belum ada file tersimpan.' }}
                                                                     </div>
-                                                                    <span class="employee-document-card__badge">{{ $document['badge'] }}</span>
                                                                 </div>
-                                                                @if($document['path'])
-                                                                    <div class="employee-document-row__actions">
-                                                                        <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ $document['url'] }}" data-file-type="{{ $document['is_pdf'] ? 'pdf' : 'image' }}" data-file-label="{{ $document['label'] }}" data-file-name="{{ $document['file_name'] }}">
-                                                                            Lihat
-                                                                        </button>
-                                                                        <a href="{{ $document['url'] }}" download class="btn btn-sm btn-primary">
-                                                                            Unduh
-                                                                        </a>
-                                                                    </div>
-                                                                @endif
-                                                                <div class="employee-document-row__upload">
-                                                                    <label class="form-label">Upload Ulang {{ $document['label'] }}</label>
-                                                                    <input
-                                                                        type="file"
-                                                                        class="form-control @error($document['input']) is-invalid @enderror"
-                                                                        name="{{ $document['input'] }}"
-                                                                        accept="{{ $document['accept'] }}"
-                                                                        data-compress-images="true">
-                                                                    @error($document['input'])
-                                                                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                                                                    @enderror
-                                                                    <div class="employee-document-input__help">
-                                                                        {{ $document['help'] }} Upload baru akan menimpa file lama.
-                                                                    </div>
+                                                                <span class="employee-document-card__badge">{{ $document['badge'] }}</span>
+                                                            </div>
+                                                            @if($document['path'])
+                                                            <div class="employee-document-row__actions">
+                                                                <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ $document['url'] }}" data-file-type="{{ $document['is_pdf'] ? 'pdf' : 'image' }}" data-file-label="{{ $document['label'] }}" data-file-name="{{ $document['file_name'] }}">
+                                                                    Lihat
+                                                                </button>
+                                                                <a href="{{ $document['url'] }}" download class="btn btn-sm btn-primary">
+                                                                    Unduh
+                                                                </a>
+                                                            </div>
+                                                            @endif
+                                                            <div class="employee-document-row__upload">
+                                                                <label class="form-label">Upload Ulang {{ $document['label'] }}</label>
+                                                                <input
+                                                                    type="file"
+                                                                    class="form-control @error($document['input']) is-invalid @enderror"
+                                                                    name="{{ $document['input'] }}"
+                                                                    accept="{{ $document['accept'] }}"
+                                                                    data-compress-images="true">
+                                                                @error($document['input'])
+                                                                <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                                @enderror
+                                                                <div class="employee-document-input__help">
+                                                                    {{ $document['help'] }} Upload baru akan menimpa file lama.
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
+                                                </div>
                                                 @endforeach
                                             </div>
                                         </div>
@@ -460,7 +460,7 @@
                                 <div class="d-flex flex-wrap gap-2 mb-4">
                                     <span class="badge bg-{{ $statusBadgeClass }}">{{ $employee->status_resign ?: 'Belum diatur' }}</span>
                                     @if($employee->area_kerja)
-                                        <span class="badge bg-light text-dark border">{{ $employee->area_kerja }}</span>
+                                    <span class="badge bg-light text-dark border">{{ $employee->area_kerja }}</span>
                                     @endif
                                 </div>
 

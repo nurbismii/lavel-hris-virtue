@@ -94,6 +94,18 @@
         font-weight: 700;
         letter-spacing: 0.04em;
         flex-shrink: 0;
+        overflow: hidden;
+    }
+
+    .employee-dashboard .hero-avatar--photo {
+        background: rgba(255, 255, 255, 0.22);
+    }
+
+    .employee-dashboard .hero-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
     }
 
     .employee-dashboard .hero-date {

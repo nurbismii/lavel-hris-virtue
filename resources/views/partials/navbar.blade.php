@@ -7,6 +7,10 @@
             <li class="nav-item topbar-icon dropdown hidden-caret">
                 @php
                 $user = auth()->user();
+                $employee = optional($user)->employee;
+                $employeeName = $employee->nama_karyawan ?? optional($user)->name ?? 'Pengguna';
+                $employeePhotoUrl = $employee->document_photo_url;
+                $employeeInitials = $user->avatar_initials;
                 $unreadCount = $user->unreadNotifications->count();
                 $notifications = $user->notifications()->latest()->limit(5)->get();
                 @endphp
@@ -105,14 +109,18 @@
                     href="#"
                     aria-expanded="false">
                     <div class="avatar-sm">
-                        <img
-                            src="{{ asset('/assets/img/profile.jpg') }}"
-                            alt="..."
-                            class="avatar-img rounded-circle" />
+                        @if($employeePhotoUrl)
+                            <img
+                                src="{{ $employeePhotoUrl }}"
+                                alt="{{ $employeeName }}"
+                                class="avatar-img rounded-circle" />
+                        @else
+                            <span class="avatar-title rounded-circle bg-primary">{{ $employeeInitials }}</span>
+                        @endif
                     </div>
                     <span class="profile-username">
                         <span class="op-7">Hi,</span>
-                        <span class="fw-bold">{{ Auth::user()->employee->nama_karyawan }}</span>
+                        <span class="fw-bold">{{ $employeeName }}</span>
                     </span>
                 </a>
                 <ul class="dropdown-menu dropdown-user animated fadeIn">
@@ -120,14 +128,18 @@
                         <li>
                             <div class="user-box">
                                 <div class="avatar-lg">
-                                    <img
-                                        src="{{ asset('/assets/img/profile.jpg') }}"
-                                        alt="image profile"
-                                        class="avatar-img rounded" />
+                                    @if($employeePhotoUrl)
+                                        <img
+                                            src="{{ $employeePhotoUrl }}"
+                                            alt="{{ $employeeName }}"
+                                            class="avatar-img rounded-circle" />
+                                    @else
+                                        <span class="avatar-title rounded-circle bg-primary">{{ $employeeInitials }}</span>
+                                    @endif
                                 </div>
                                 <div class="u-text">
-                                    <h4>{{ Auth::user()->employee->nama_karyawan }}</h4>
-                                    <p class="text-muted">{{ Auth::user()->email }}</p>
+                                    <h4>{{ $employeeName }}</h4>
+                                    <p class="text-muted">{{ $user->email }}</p>
                                     <a href="{{ route('pengaturan-akun.index') }}" class="btn btn-xs btn-secondary btn-sm">Profil Saya</a>
                                 </div>
                             </div>

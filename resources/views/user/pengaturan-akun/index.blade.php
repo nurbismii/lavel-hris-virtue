@@ -7,6 +7,12 @@
 @endpush
 
 @section('content')
+@php
+    $currentUser = auth()->user();
+    $employee = $currentUser->employee;
+    $employeePhotoUrl = optional($employee)->document_photo_url;
+    $employeeInitials = $currentUser->avatar_initials;
+@endphp
 <div class="container-fluid">
     <div class="page-inner">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -19,8 +25,8 @@
                     Tetap jaga kerahasiaan data kamu
                 </small>
             </div>
-            <a href="{{ route('dashboard.karyawan') }}" class="btn btn-sm btn-secondary">
-                <i class="fas fa-arrow-left me-1"></i> Dashboard
+            <a href="{{ route('dashboard.karyawan') }}" class="btn btn-sm btn-light">
+                <i class="fas fa-arrow-left me-1"></i> Kembali
             </a>
         </div>
 
@@ -33,20 +39,24 @@
 
                         <div class="mb-3">
                             <div class="avatar-circle bg-primary text-white mx-auto">
-                                {{ strtoupper(substr(auth()->user()->employee->nama_karyawan ?? 'U',0,1)) }}
+                                @if($employeePhotoUrl)
+                                    <img src="{{ $employeePhotoUrl }}" alt="{{ $employee->nama_karyawan ?? $currentUser->name ?? 'Pengguna' }}">
+                                @else
+                                    {{ $employeeInitials }}
+                                @endif
                             </div>
                         </div>
 
                         <h5 class="mb-1">
-                            {{ auth()->user()->employee->nama_karyawan ?? '-' }}
+                            {{ $employee->nama_karyawan ?? '-' }}
                         </h5>
 
                         <p class="text-muted mb-2">
-                            {{ auth()->user()->employee->divisi->nama_divisi ?? '-' }}
+                            {{ $employee->divisi->nama_divisi ?? '-' }}
                         </p>
 
                         <span class="badge bg-success">
-                            {{ ucfirst(auth()->user()->status) }}
+                            {{ ucfirst($currentUser->status) }}
                         </span>
 
                     </div>

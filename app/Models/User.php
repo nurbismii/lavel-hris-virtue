@@ -11,6 +11,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Auth\Notifications\VerifyEmail as VerifyEmailNotification;
 use App\Notifications\ResetPasswordNotification;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -57,7 +58,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function employee()
     {
-        return $this->belongsTo(Employee::class, 'nik_karyawan', 'nik')->select(['nik', 'nama_karyawan', 'departemen_id', 'divisi_id', 'sisa_cuti', 'posisi', 'face_reference_path']);
+        return $this->belongsTo(Employee::class, 'nik_karyawan', 'nik')->select(['nik', 'nama_karyawan', 'departemen_id', 'divisi_id', 'sisa_cuti', 'posisi', 'photo_path', 'face_reference_path']);
     }
 
     public function role()
@@ -94,6 +95,26 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getDisplayRoleNameAttribute(): string
     {
         return $this->normalized_role_name ?? optional($this->role)->permission_role ?? 'Belum Diatur';
+    }
+
+    public function getAvatarInitialsAttribute(): string
+    {
+        $name = trim((string) (optional($this->employee)->nama_karyawan ?? $this->name ?? 'U'));
+
+        if ($name === '') {
+            return 'U';
+        }
+
+        $parts = preg_split('/\s+/', $name, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if (count($parts) >= 2) {
+            return Str::upper(
+                Str::substr($parts[0], 0, 1) .
+                Str::substr($parts[1], 0, 1)
+            );
+        }
+
+        return Str::upper(Str::substr($parts[0] ?? $name, 0, 2));
     }
 
     public function hasRole($roles)
