@@ -1,13 +1,16 @@
 <?php
 
 use App\Http\Controllers\Admin\ApiController;
+use App\Http\Controllers\Admin\OvertimeOrderController as AdminOvertimeOrderController;
 use App\Http\Controllers\Admin\SettingRoleController;
 use App\Http\Controllers\Admin\SlipGajiController;
+use App\Http\Controllers\Admin\WorkPatternController;
 use App\Http\Controllers\Approval\CutiApprovalController;
 use App\Http\Controllers\Approval\IzinApprovalController;
 use App\Http\Controllers\Approval\RosterApprovalController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\User\DashboardController;
+use App\Http\Controllers\User\OvertimeOrderController as UserOvertimeOrderController;
 use App\Http\Controllers\User\PresensiController;
 use App\Http\Controllers\Admin\PresensiController as PresensiAdminController;
 use App\Http\Controllers\AdminDivisi\AttendanceSettingController;
@@ -83,6 +86,8 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::resource('/izin', 'App\Http\Controllers\User\IzinController')->middleware('menu:izin');
         Route::resource('/roster', 'App\Http\Controllers\User\RosterController')->middleware('menu:roster');
         Route::resource('/slipgaji', 'App\Http\Controllers\User\SlipgajiController')->middleware('menu:slip_gaji_user');
+        Route::get('/lembur', [UserOvertimeOrderController::class, 'index'])->middleware('menu:lembur')->name('lembur.index');
+        Route::post('/lembur/{id}/respond', [UserOvertimeOrderController::class, 'respond'])->middleware('menu:lembur')->name('lembur.respond');
 
         Route::resource('/pengaturan-akun', 'App\Http\Controllers\User\PengaturanAkunController')->except(['show']);
         Route::get('/pengaturan-akun/update', [App\Http\Controllers\User\PengaturanAkunController::class, 'SetIndex'])->name('update.akun');
@@ -135,6 +140,17 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::resource('/surat-peringatan', 'App\Http\Controllers\Admin\SuratPeringatanController')->middleware('menu:surat_peringatan');
 
         Route::resource('/setting-lokasi-presensi', 'App\Http\Controllers\Admin\SettingLokasiPresensiController')->middleware('menu:setting_lokasi_presensi');
+        Route::resource('/master-jadwal-kerja', WorkPatternController::class)
+            ->except(['show'])
+            ->middleware(['menu:jadwal_kerja', 'role:Super Admin,HR,HOD,Admin Divisi'])
+            ->names('work-patterns');
+        Route::post('/master-jadwal-kerja/bulk-assign', [WorkPatternController::class, 'bulkAssign'])
+            ->middleware(['menu:jadwal_kerja', 'role:Super Admin,HR,HOD,Admin Divisi'])
+            ->name('work-patterns.bulk-assign');
+        Route::resource('/perintah-lembur', AdminOvertimeOrderController::class)
+            ->except(['edit', 'update'])
+            ->middleware(['menu:lembur', 'role:Super Admin,HR,HOD,Admin Divisi'])
+            ->names('overtime-orders');
 
         // === ROLE ===
         Route::resource('/setting-role', '\App\Http\Controllers\Admin\SettingRoleController')->middleware('menu:setting_role');

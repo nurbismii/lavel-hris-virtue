@@ -2,6 +2,7 @@
     $user = auth()->user();
     $homeUrl = $user ? route($user->preferredHomeRouteName()) : '#';
     $can = fn(string $menu) => $user && $user->hasMenuAccess($menu);
+    $canManageOvertimeOrders = $user && $user->hasRole(['Super Admin', 'HR', 'HOD', 'Admin Divisi']);
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -118,7 +119,7 @@
                     </li>
                 @endif
 
-                @if($can('slip_gaji_user') || $can('cuti') || $can('roster') || $can('izin') || $can('presensi'))
+                @if($can('slip_gaji_user') || $can('cuti') || $can('roster') || $can('izin') || $can('presensi') || ($can('lembur') && !$canManageOvertimeOrders))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -168,6 +169,15 @@
                         <a href="{{ route('presensi.index') }}">
                             <i class="fas fa-map-pin"></i>
                             <p>Presensi Karyawan</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('lembur') && !$canManageOvertimeOrders)
+                    <li class="nav-item {{ request()->routeIs('lembur.*') ? 'active' : '' }}">
+                        <a href="{{ route('lembur.index') }}">
+                            <i class="fas fa-clock"></i>
+                            <p>Perintah Lembur</p>
                         </a>
                     </li>
                 @endif
@@ -254,7 +264,7 @@
                     </li>
                 @endif
 
-                @if($can('setting_hari_off') || $can('perusahaan'))
+                @if($can('setting_hari_off') || $can('jadwal_kerja') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan'))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -268,6 +278,24 @@
                         <a href="{{ route('set-kehadiran.index') }}">
                             <i class="fas fa-cog"></i>
                             <p>Setting Hari Off</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('jadwal_kerja'))
+                    <li class="nav-item {{ request()->routeIs('work-patterns.*') ? 'active' : '' }}">
+                        <a href="{{ route('work-patterns.index') }}">
+                            <i class="fas fa-calendar"></i>
+                            <p>Master Jadwal Kerja</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('lembur') && $canManageOvertimeOrders)
+                    <li class="nav-item {{ request()->routeIs('overtime-orders.*') ? 'active' : '' }}">
+                        <a href="{{ route('overtime-orders.index') }}">
+                            <i class="fas fa-clock"></i>
+                            <p>Perintah Lembur</p>
                         </a>
                     </li>
                 @endif

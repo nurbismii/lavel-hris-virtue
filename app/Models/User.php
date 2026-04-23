@@ -58,7 +58,18 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function employee()
     {
-        return $this->belongsTo(Employee::class, 'nik_karyawan', 'nik')->select(['nik', 'nama_karyawan', 'departemen_id', 'divisi_id', 'sisa_cuti', 'posisi', 'photo_path', 'face_reference_path']);
+        return $this->belongsTo(Employee::class, 'nik_karyawan', 'nik')->select([
+            'nik',
+            'nama_karyawan',
+            'departemen_id',
+            'divisi_id',
+            'sisa_cuti',
+            'posisi',
+            'photo_path',
+            'face_reference_path',
+            'work_pattern_id',
+            'work_pattern_start_date',
+        ]);
     }
 
     public function role()
@@ -142,6 +153,10 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         if (!$this->role) {
             return [];
+        }
+
+        if ($this->hasRole('Super Admin')) {
+            return array_keys(config('access.menus', []));
         }
 
         if (is_array($this->role->menu_permissions)) {

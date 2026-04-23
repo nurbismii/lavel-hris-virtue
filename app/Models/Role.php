@@ -46,6 +46,10 @@ class Role extends Model
 
     public function getResolvedMenuPermissionsAttribute(): array
     {
+        if ($this->normalized_name === 'Super Admin') {
+            return array_keys(config('access.menus', []));
+        }
+
         if (is_array($this->menu_permissions)) {
             return array_values(array_unique($this->menu_permissions));
         }

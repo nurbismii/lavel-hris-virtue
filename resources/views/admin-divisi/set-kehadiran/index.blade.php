@@ -101,6 +101,62 @@
     .holiday-manager-table th {
         vertical-align: middle;
     }
+
+    .schedule-legend {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #f8fafc;
+        padding: 14px 16px;
+    }
+
+    .schedule-legend__items {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .schedule-legend__item {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: #334155;
+    }
+
+    .schedule-legend__swatch {
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+    }
+
+    .schedule-cell--auto-off {
+        background: #f1f5f9;
+    }
+
+    .schedule-cell--manual-off {
+        background: #fff7ed;
+    }
+
+    .schedule-cell--manual-hadir {
+        background: #eff6ff;
+    }
+
+    .schedule-cell__meta {
+        display: block;
+        margin-top: 6px;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+    }
+
+    .schedule-cell__meta--auto {
+        color: #64748b;
+    }
+
+    .schedule-cell__meta--manual {
+        color: #0f766e;
+    }
 </style>
 
 <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.dataTables.min.css">
@@ -118,10 +174,11 @@
                 </h4>
 
                 <small class="text-muted d-block">
-                    Setting kehadiran: jika tercentang maka OFF, jika tidak dicentang maka HADIR.
+                    Generator pola kerja otomatis aktif pada periode ini.
+                    Checkbox tetap bisa dipakai untuk override manual per tanggal.
                     (Cut Off {{ formatDateIndonesia($start) }} - {{ formatDateIndonesia($end) }})
                 </small>
-                <small class="text-muted d-block">Checked = OFF</small>
+                <small class="text-muted d-block">Centang = OFF, tidak dicentang = HADIR. Jika kembali sama dengan pola otomatis, override manual akan dihapus.</small>
             </div>
 
             <div class="ms-md-auto pt-3 pt-md-0">
@@ -228,6 +285,24 @@
         </div>
         @endif
 
+        <div class="schedule-legend mb-3">
+            <div class="fw-semibold mb-2">Mode jadwal</div>
+            <div class="schedule-legend__items">
+                <div class="schedule-legend__item">
+                    <span class="schedule-legend__swatch schedule-cell--auto-off"></span>
+                    <span>OFF otomatis dari master pola kerja</span>
+                </div>
+                <div class="schedule-legend__item">
+                    <span class="schedule-legend__swatch schedule-cell--manual-off"></span>
+                    <span>OFF manual override</span>
+                </div>
+                <div class="schedule-legend__item">
+                    <span class="schedule-legend__swatch schedule-cell--manual-hadir"></span>
+                    <span>HADIR manual override di atas pola otomatis OFF</span>
+                </div>
+            </div>
+        </div>
+
         <div class="card shadow-sm border-0">
             <div class="card-body">
                 <div class="table-responsive">
@@ -240,6 +315,7 @@
                                 <th>Divisi</th>
                                 <th>Departemen</th>
                                 <th>Posisi</th>
+                                <th>Pola Kerja</th>
 
                                 @foreach($dates as $date)
                                 @php
@@ -269,24 +345,60 @@
                                 <td>{{ optional($employee->divisi)->nama_divisi ?? '-' }}</td>
                                 <td>{{ optional($employee->departemen)->departemen ?? '-' }}</td>
                                 <td>{{ optional($employee)->posisi ?? '-' }}</td>
+                                <td>
+                                    @if($employee->workPattern)
+                                        <div class="fw-semibold">{{ $employee->workPattern->code }}</div>
+                                        <div class="small text-muted">{{ optional($employee->work_pattern_start_date)->format('d-m-Y') ?: 'Mulai belum diatur' }}</div>
+                                    @else
+                                        <span class="text-muted">Belum ada pola</span>
+                                    @endif
+                                </td>
 
                                 @foreach($dates as $date)
                                 @php
-                                $empAttendance = $offData->get($employee->nik);
-                                $isOff = $empAttendance
-                                ? $empAttendance->firstWhere('tanggal', $date->toDateString())
-                                : null;
-                                $checked = $isOff ? 'checked' : '';
+                                $schedule = $scheduleMap[$employee->nik][$date->toDateString()] ?? [
+                                    'auto_status' => 'HADIR',
+                                    'manual_status' => null,
+                                    'final_status' => 'HADIR',
+                                    'is_manual' => false,
+                                ];
+                                $checked = $schedule['final_status'] === 'OFF' ? 'checked' : '';
+                                $cellClass = '';
+
+                                if ($schedule['is_manual'] && $schedule['manual_status'] === 'OFF') {
+                                    $cellClass = 'schedule-cell--manual-off';
+                                } elseif ($schedule['is_manual'] && $schedule['manual_status'] === 'HADIR') {
+                                    $cellClass = 'schedule-cell--manual-hadir';
+                                } elseif ($schedule['auto_status'] === 'OFF') {
+                                    $cellClass = 'schedule-cell--auto-off';
+                                }
+
+                                $metaLabel = $schedule['is_manual']
+                                    ? 'MANUAL'
+                                    : ($schedule['auto_status'] === 'OFF' ? 'AUTO' : '');
                                 @endphp
 
-                                <td class="text-center">
-                                    <input type="checkbox" class="attendance-checkbox" data-employee="{{ $employee->nik }}" data-date="{{ $date->toDateString() }}" {{ $checked }}>
+                                <td class="text-center {{ $cellClass }}">
+                                    <input
+                                        type="checkbox"
+                                        class="attendance-checkbox"
+                                        data-employee="{{ $employee->nik }}"
+                                        data-date="{{ $date->toDateString() }}"
+                                        data-auto-status="{{ $schedule['auto_status'] }}"
+                                        data-manual-status="{{ $schedule['manual_status'] }}"
+                                        data-status="{{ $schedule['final_status'] }}"
+                                        {{ $checked }}>
+                                    @if($metaLabel)
+                                        <span class="schedule-cell__meta {{ $schedule['is_manual'] ? 'schedule-cell__meta--manual' : 'schedule-cell__meta--auto' }}">
+                                            {{ $metaLabel }}
+                                        </span>
+                                    @endif
                                 </td>
                                 @endforeach
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="{{ 6 + count($dates) }}" class="text-center text-muted py-4">
+                                <td colspan="{{ 7 + count($dates) }}" class="text-center text-muted py-4">
                                     {{ $selectedDepartemenId ? 'Tidak ada data karyawan untuk filter yang dipilih.' : 'Pilih departemen untuk mulai menampilkan data.' }}
                                 </td>
                             </tr>
@@ -627,7 +739,7 @@
             paging: true,
             fixedHeader: true,
             fixedColumns: {
-                leftColumns: 3
+                leftColumns: 4
             },
             pageLength: 10,
             ordering: false
@@ -677,6 +789,7 @@
 
         let newStatus = checkbox.is(':checked') ? 'OFF' : 'HADIR';
         let oldStatus = checkbox.data('status');
+        let autoStatus = checkbox.data('auto-status');
 
         if (newStatus === oldStatus) return;
 
@@ -686,6 +799,7 @@
             employee_id: employee,
             tanggal: date,
             status: newStatus,
+            auto_status: autoStatus,
             element: checkbox
         });
 
@@ -711,7 +825,8 @@
                     data: payload.map(p => ({
                         employee_id: p.employee_id,
                         tanggal: p.tanggal,
-                        status: p.status
+                        status: p.status,
+                        auto_status: p.auto_status
                     }))
                 })
             });
@@ -719,9 +834,27 @@
             if (!response.ok) throw new Error();
 
             payload.forEach(item => {
-                item.element.data('status', item.status);
+                const shouldResetToAuto = item.status === item.auto_status;
+                const finalStatus = shouldResetToAuto ? item.auto_status : item.status;
+
+                item.element.data('status', finalStatus);
+                item.element.data('manual-status', shouldResetToAuto ? '' : item.status);
                 item.element.closest('td').removeClass('table-warning')
-                    .addClass('table-success');
+                    .addClass('table-success')
+                    .removeClass('schedule-cell--auto-off schedule-cell--manual-off schedule-cell--manual-hadir');
+
+                item.element.siblings('.schedule-cell__meta').remove();
+
+                if (shouldResetToAuto && item.auto_status === 'OFF') {
+                    item.element.closest('td').addClass('schedule-cell--auto-off');
+                    item.element.after('<span class="schedule-cell__meta schedule-cell__meta--auto">AUTO</span>');
+                } else if (!shouldResetToAuto && item.status === 'OFF') {
+                    item.element.closest('td').addClass('schedule-cell--manual-off');
+                    item.element.after('<span class="schedule-cell__meta schedule-cell__meta--manual">MANUAL</span>');
+                } else if (!shouldResetToAuto && item.status === 'HADIR') {
+                    item.element.closest('td').addClass('schedule-cell--manual-hadir');
+                    item.element.after('<span class="schedule-cell__meta schedule-cell__meta--manual">MANUAL</span>');
+                }
 
                 setTimeout(() => {
                     item.element.closest('td').removeClass('table-success');

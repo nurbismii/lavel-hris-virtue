@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\Presensi;
+use App\Services\Presensi\AttendanceFulfillmentService;
 use App\Services\Presensi\AttendanceStatusService;
+use App\Services\Presensi\OvertimeOrderService;
+use App\Services\Presensi\WorkScheduleService;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
@@ -29,6 +32,10 @@ class PresensiController extends Controller
 
         $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
         app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $todayString);
+        $overtimeService = app(OvertimeOrderService::class);
+        $workScheduleService = app(WorkScheduleService::class);
+        $attendanceFulfillmentService = app(AttendanceFulfillmentService::class);
+        $activeOvertimeOrder = $overtimeService->getAcceptedOrderForDate($user->nik_karyawan, $todayString);
 
         $absensiHariIni = Presensi::where('nik_karyawan', Auth::user()->nik_karyawan)
             ->whereDate('tanggal', today())
@@ -44,15 +51,63 @@ class PresensiController extends Controller
             $end = Carbon::create($today->year, $today->month, 15);
         }
 
+        $presensiRecords = Presensi::where('nik_karyawan', $user->nik_karyawan)
+            ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
+        $existingDates = $presensiRecords
+            ->filter(function ($row) {
+                return filled($row->status_presensi)
+                    || filled($row->jam_masuk)
+                    || filled($row->jam_istirahat)
+                    || filled($row->jam_kembali_istirahat)
+                    || filled($row->jam_pulang);
+            })
+            ->pluck('tanggal')
+            ->map(fn($tanggal) => Carbon::parse($tanggal)->toDateString())
+            ->all();
+
+        $karyawan->loadMissing('workPattern');
+
+        $virtualOffRows = collect($workScheduleService->buildVirtualOffRows(
+            $user->nik_karyawan,
+            $start,
+            $end,
+            collect([$karyawan]),
+            $existingDates
+        ));
+
+        $virtualAlphaRows = collect($overtimeService->buildAcceptedAlphaVirtualRows(
+            $user->nik_karyawan,
+            $start,
+            $end,
+            $existingDates
+        ));
+
+        $presensiRecords = $presensiRecords
+            ->keyBy(fn($row) => Carbon::parse($row->tanggal)->toDateString())
+            ->merge($virtualOffRows->keyBy(fn($row) => Carbon::parse($row->tanggal)->toDateString()))
+            ->merge($virtualAlphaRows->keyBy(fn($row) => Carbon::parse($row->tanggal)->toDateString()))
+            ->map(function ($row) use ($attendanceFulfillmentService, $karyawan) {
+                $row->attendance_fulfillment = $attendanceFulfillmentService->evaluate($row, $karyawan->workPattern);
+
+                return $row;
+            })
+            ->sortByDesc(fn($row) => Carbon::parse($row->tanggal)->timestamp)
+            ->values();
+
+        $todayFulfillment = $attendanceFulfillmentService->evaluate($absensiHariIni, $karyawan->workPattern);
+
         return view('user.presensi.index', [
-            'presensi' => Presensi::where('nik_karyawan', $user->nik_karyawan)
-                ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
-                ->orderBy('tanggal', 'desc')
-                ->get(),
+            'presensi' => $presensiRecords,
             'absensiHariIni' => $absensiHariIni,
             'lokasi' => $lokasi,
             'cutoffStart' => $start,
             'cutoffEnd' => $end,
+            'activeOvertimeOrder' => $activeOvertimeOrder,
+            'todayFulfillment' => $todayFulfillment,
+            'workPattern' => $karyawan->workPattern,
         ]);
     }
 

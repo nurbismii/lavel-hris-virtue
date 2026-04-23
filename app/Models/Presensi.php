@@ -22,6 +22,10 @@ class Presensi extends Model
     public static function shortStatus(?string $status): ?string
     {
         switch ($status) {
+            case 'Alpa':
+                return 'A';
+            case 'Off':
+                return 'OFF';
             case 'Izin Tidak Berbayar':
                 return 'I/U';
             case 'Izin Berbayar':

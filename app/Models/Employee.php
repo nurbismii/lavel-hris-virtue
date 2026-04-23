@@ -16,7 +16,8 @@ class Employee extends Model
     protected $dates = [
         'entry_date',
         'tgl_resign',
-        'tgl_lahir'
+        'tgl_lahir',
+        'work_pattern_start_date',
     ];
 
     public function getDocumentPhotoUrlAttribute(): ?string
@@ -57,5 +58,15 @@ class Employee extends Model
     public function presensi()
     {
         return $this->hasMany(Presensi::class, 'nik_karyawan');
+    }
+
+    public function workPattern()
+    {
+        return $this->belongsTo(WorkPattern::class, 'work_pattern_id');
+    }
+
+    public function overtimeOrders()
+    {
+        return $this->hasMany(OvertimeOrder::class, 'nik_karyawan', 'nik');
     }
 }

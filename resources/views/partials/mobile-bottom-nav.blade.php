@@ -1,6 +1,7 @@
 @if(auth()->check())
     @php
         $mobileNavItems = [];
+        $canManageOvertimeOrders = auth()->user()->hasRole(['Super Admin', 'HR', 'HOD', 'Admin Divisi']);
 
         if (auth()->user()->hasMenuAccess('dashboard_karyawan')) {
             $mobileNavItems[] = [
@@ -53,6 +54,16 @@
                         'icon' => 'fas fa-file-medical',
                     ],
                 ],
+            ];
+        }
+
+        if (auth()->user()->hasMenuAccess('lembur') && !$canManageOvertimeOrders) {
+            $mobileNavItems[] = [
+                'type' => 'link',
+                'label' => 'Lembur',
+                'route' => route('lembur.index'),
+                'icon' => 'fas fa-business-time',
+                'active' => request()->routeIs('lembur.*'),
             ];
         }
 

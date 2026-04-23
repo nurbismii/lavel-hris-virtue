@@ -143,12 +143,12 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                                     <label class="form-label">Agama</label>
                                                     <select name="agama" class="form-select form-control">
                                                         <option value="">-- Pilih Agama --</option>
-                                                        <option value="ISLAM ä¼Šæ–¯å…°æ•™" {{ $employee->agama == 'ISLAM ä¼Šæ–¯å…°æ•™' ? 'selected' : '' }}>ISLAM ä¼Šæ–¯å…°æ•™</option>
-                                                        <option value="KRISTEN PROTESTAN åŸºç£æ•™æ–°æ•™" {{ $employee->agama == 'KRISTEN PROTESTAN åŸºç£æ•™æ–°æ•™' ? 'selected' : '' }}>KRISTEN PROTESTAN åŸºç£æ•™æ–°æ•™</option>
-                                                        <option value="KRISTEN KATHOLIK å¤©ä¸»æ•™å¾’" {{ $employee->agama == 'KRISTEN KATHOLIK å¤©ä¸»æ•™å¾’' ? 'selected' : '' }}>KRISTEN KATHOLIK å¤©ä¸»æ•™å¾’</option>
-                                                        <option value="HINDU å°åº¦æ•™" {{ $employee->agama == 'HINDU å°åº¦æ•™' ? 'selected' : '' }}>HINDU å°åº¦æ•™</option>
-                                                        <option value="BUDHA ä½›æ•™" {{ $employee->agama == 'BUDHA ä½›æ•™' ? 'selected' : '' }}>BUDHA ä½›æ•™</option>
-                                                        <option value="KHONGHUCU å„’æ•™" {{ $employee->agama == 'KHONGHUCU å„’æ•™' ? 'selected' : '' }}>KHONGHUCU å„’æ•™</option>
+                                                        <option value="ISLAM 伊斯兰教" {{ $employee->agama == 'ISLAM 伊斯兰教' ? 'selected' : '' }}>ISLAM 伊斯兰教</option>
+                                                        <option value="KRISTEN PROTESTAN 基督教新教" {{ $employee->agama == 'KRISTEN PROTESTAN 基督教新教' ? 'selected' : '' }}>KRISTEN PROTESTAN 基督教新教</option>
+                                                        <option value="KRISTEN KATHOLIK 天主教徒" {{ $employee->agama == 'KRISTEN KATHOLIK 天主教徒' ? 'selected' : '' }}>KRISTEN KATHOLIK 天主教徒</option>
+                                                        <option value="HINDU 印度教" {{ $employee->agama == 'HINDU 印度教' ? 'selected' : '' }}>HINDU 印度教</option>
+                                                        <option value="BUDHA 佛教" {{ $employee->agama == 'BUDHA 佛教' ? 'selected' : '' }}>BUDHA 佛教</option>
+                                                        <option value="KHONGHUCU 儒家" {{ $employee->agama == 'KHONGHUCU 儒家' ? 'selected' : '' }}>KHONGHUCU 儒家</option>
                                                     </select>
                                                 </div>
                                                 <div class="col-md-4">
@@ -185,8 +185,8 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                                     <label class="form-label">Status Kontrak</label>
                                                     <select name="status_karyawan" class="form-select form-control">
                                                         <option value="">-- Pilih --</option>
-                                                        <option value="PKWT åˆåŒå·¥" {{ $employee->status_karyawan == 'PKWT åˆåŒå·¥' ? 'selected' : '' }}>PKWT åˆåŒå·¥</option>
-                                                        <option value="PKWTT å›ºå®šå·¥" {{ $employee->status_karyawan == 'PKWTT å›ºå®šå·¥' ? 'selected' : '' }}>PKWTT å›ºå®šå·¥</option>
+                                                        <option value="PKWTT 固定工" {{ $employee->status_karyawan == 'PKWTT 固定工' ? 'selected' : '' }}>PKWTT 固定工</option>
+                                                        <option value="PKWT 合同工" {{ $employee->status_karyawan == 'PKWT 合同工' ? 'selected' : '' }}>PKWT 合同工</option>
                                                     </select>
                                                 </div>
                                                 <div class="col-md-4">
@@ -241,6 +241,27 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                                         <option value="PHK PIDANA" {{ old('status_resign', $employee->status_resign) == 'PHK PIDANA' ? 'selected' : '' }}>PHK Pidana</option>
                                                         <option value="PHK MENINGGAL DUNIA" {{ old('status_resign', $employee->status_resign) == 'PHK MENINGGAL DUNIA' ? 'selected' : '' }}>PHK Meninggal Dunia</option>
                                                     </select>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Master Pola Kerja</label>
+                                                    <select name="work_pattern_id" class="form-select form-control">
+                                                        <option value="">-- Pilih Pola Kerja --</option>
+                                                        @foreach ($workPatterns as $workPattern)
+                                                            <option value="{{ $workPattern->id }}" {{ (string) old('work_pattern_id', $employee->work_pattern_id) === (string) $workPattern->id ? 'selected' : '' }}>
+                                                                {{ $workPattern->code }} - {{ $workPattern->name }} ({{ $workPattern->cycle_summary }} | {{ $workPattern->work_time_range_text }} | Istirahat: {{ $workPattern->break_time_range_text }})
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('work_pattern_id')
+                                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Mulai Berlaku Pola Kerja</label>
+                                                    <input type="date" class="form-control" name="work_pattern_start_date" value="{{ old('work_pattern_start_date', optional($employee->work_pattern_start_date)->format('Y-m-d')) }}">
+                                                    @error('work_pattern_start_date')
+                                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                    @enderror
                                                 </div>
                                             </div>
                                         </div>
@@ -487,6 +508,14 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                         <div class="employee-summary-card__stat">
                                             <div class="employee-summary-card__stat-label">Dokumen</div>
                                             <div class="employee-summary-card__stat-value">{{ $uploadedDocumentCount }}/6 tersedia</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="employee-summary-card__stat">
+                                            <div class="employee-summary-card__stat-label">Pola Kerja</div>
+                                            <div class="employee-summary-card__stat-value">{{ optional($employee->workPattern)->code ?? '-' }}</div>
+                                            <div class="employee-summary-card__stat-label mt-1">{{ optional($employee->workPattern)->work_time_range_text ?? 'Belum diatur' }}</div>
+                                            <div class="employee-summary-card__stat-label">Istirahat {{ optional($employee->workPattern)->break_time_range_text ?? 'Tidak diatur' }}</div>
                                         </div>
                                     </div>
                                 </div>

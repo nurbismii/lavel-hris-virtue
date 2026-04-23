@@ -1,0 +1,243 @@
+<?php
+
+namespace App\Services\Presensi;
+
+use App\Models\Employee;
+use App\Models\EmployeeAttendanceSetting;
+use App\Models\OvertimeOrder;
+use App\Models\Presensi;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
+use Illuminate\Support\Collection;
+
+class WorkScheduleService
+{
+    public const STATUS_OFF = EmployeeAttendanceSetting::STATUS_OFF;
+    public const STATUS_HADIR = EmployeeAttendanceSetting::STATUS_HADIR;
+
+    public function buildScheduleMap(Collection $employees, Collection $manualOverrides, $startDate, $endDate): array
+    {
+        $scheduleMap = [];
+        $start = Carbon::parse($startDate)->startOfDay();
+        $end = Carbon::parse($endDate)->startOfDay();
+        $overrideMap = $manualOverrides
+            ->groupBy('employee_id')
+            ->map(fn(Collection $rows) => $rows->keyBy(fn($row) => Carbon::parse($row->tanggal)->toDateString()));
+
+        foreach ($employees as $employee) {
+            foreach (CarbonPeriod::create($start, $end) as $date) {
+                $dateString = $date->toDateString();
+                $autoStatus = $this->resolveAutoStatus($employee, $dateString);
+                $employeeOverrides = $overrideMap->get($employee->nik, collect());
+                $manualStatus = optional($employeeOverrides->get($dateString))->status;
+                $finalStatus = $manualStatus ?: $autoStatus;
+                $isManual = filled($manualStatus);
+
+                $scheduleMap[$employee->nik][$dateString] = [
+                    'auto_status' => $autoStatus,
+                    'manual_status' => $manualStatus,
+                    'final_status' => $finalStatus,
+                    'is_manual' => $isManual,
+                ];
+            }
+        }
+
+        return $scheduleMap;
+    }
+
+    public function resolveFinalStatus(Employee $employee, $tanggal): string
+    {
+        $dateString = Carbon::parse($tanggal)->toDateString();
+        $manualStatus = EmployeeAttendanceSetting::query()
+            ->where('employee_id', $employee->nik)
+            ->whereDate('tanggal', $dateString)
+            ->value('status');
+
+        return $manualStatus ?: $this->resolveAutoStatus($employee, $dateString);
+    }
+
+    public function applyManualOverride(Employee $employee, $tanggal, string $desiredStatus): void
+    {
+        $dateString = Carbon::parse($tanggal)->toDateString();
+        $periode = Carbon::parse($dateString)->format('Y-m');
+        $autoStatus = $this->resolveAutoStatus($employee, $dateString);
+
+        if ($desiredStatus === $autoStatus) {
+            EmployeeAttendanceSetting::query()
+                ->where('employee_id', $employee->nik)
+                ->whereDate('tanggal', $dateString)
+                ->delete();
+
+            return;
+        }
+
+        EmployeeAttendanceSetting::updateOrCreate(
+            [
+                'employee_id' => $employee->nik,
+                'tanggal' => $dateString,
+            ],
+            [
+                'status' => $desiredStatus,
+                'periode' => $periode,
+            ]
+        );
+    }
+
+    public function buildVirtualOffRows(string $nikKaryawan, $startDate, $endDate, Collection $employees, array $existingDates = []): array
+    {
+        $employee = $employees->firstWhere('nik', $nikKaryawan);
+
+        if (!$employee) {
+            return [];
+        }
+
+        $manualOverrides = EmployeeAttendanceSetting::query()
+            ->where('employee_id', $nikKaryawan)
+            ->whereBetween('tanggal', [
+                Carbon::parse($startDate)->toDateString(),
+                Carbon::parse($endDate)->toDateString(),
+            ])
+            ->get();
+
+        $scheduleMap = $this->buildScheduleMap(collect([$employee]), $manualOverrides, $startDate, $endDate);
+        $acceptedOvertimeDates = OvertimeOrder::query()
+            ->where('nik_karyawan', $nikKaryawan)
+            ->accepted()
+            ->inDateRange($startDate, $endDate)
+            ->pluck('overtime_date')
+            ->map(fn($date) => Carbon::parse($date)->toDateString())
+            ->all();
+        $rows = [];
+
+        foreach (($scheduleMap[$nikKaryawan] ?? []) as $dateString => $schedule) {
+            if (
+                $schedule['final_status'] !== self::STATUS_OFF
+                || in_array($dateString, $existingDates, true)
+                || in_array($dateString, $acceptedOvertimeDates, true)
+            ) {
+                continue;
+            }
+
+            $rows[] = new Presensi([
+                'nik_karyawan' => $nikKaryawan,
+                'tanggal' => $dateString,
+                'status_presensi' => 'Off',
+            ]);
+        }
+
+        return $rows;
+    }
+
+    public function buildOffStatusMap(Collection $employees, $startDate, $endDate, array $existingPresensiMap = []): array
+    {
+        if ($employees->isEmpty()) {
+            return [];
+        }
+
+        $manualOverrides = EmployeeAttendanceSetting::query()
+            ->whereIn('employee_id', $employees->pluck('nik'))
+            ->whereBetween('tanggal', [
+                Carbon::parse($startDate)->toDateString(),
+                Carbon::parse($endDate)->toDateString(),
+            ])
+            ->get();
+
+        $scheduleMap = $this->buildScheduleMap($employees, $manualOverrides, $startDate, $endDate);
+        $acceptedOvertimeMap = OvertimeOrder::query()
+            ->whereIn('nik_karyawan', $employees->pluck('nik'))
+            ->accepted()
+            ->inDateRange($startDate, $endDate)
+            ->get()
+            ->groupBy('nik_karyawan')
+            ->map(fn(Collection $rows) => $rows->pluck('overtime_date')
+                ->map(fn($date) => Carbon::parse($date)->toDateString())
+                ->all());
+        $offMap = [];
+
+        foreach ($employees as $employee) {
+            foreach (($scheduleMap[$employee->nik] ?? []) as $dateString => $schedule) {
+                if ($schedule['final_status'] !== self::STATUS_OFF) {
+                    continue;
+                }
+
+                if (in_array($dateString, $acceptedOvertimeMap->get($employee->nik, []), true)) {
+                    continue;
+                }
+
+                $existing = $existingPresensiMap[$employee->nik][$dateString] ?? null;
+
+                if ($existing && (
+                    !empty($existing['status'])
+                    || !empty($existing['m'])
+                    || !empty($existing['i'])
+                    || !empty($existing['k'])
+                    || !empty($existing['p'])
+                )) {
+                    continue;
+                }
+
+                $offMap[$employee->nik][$dateString] = [
+                    'status' => Presensi::shortStatus('Off'),
+                    'm' => null,
+                    'i' => null,
+                    'k' => null,
+                    'p' => null,
+                ];
+            }
+        }
+
+        return $offMap;
+    }
+
+    public function resolveAutoStatus(Employee $employee, $tanggal): string
+    {
+        $pattern = $employee->workPattern;
+        $startDate = $employee->work_pattern_start_date;
+
+        if (!$pattern || !$startDate) {
+            return self::STATUS_HADIR;
+        }
+
+        $date = Carbon::parse($tanggal)->startOfDay();
+        $cursor = Carbon::parse($startDate)->startOfDay();
+
+        if ($date->lt($cursor)) {
+            return self::STATUS_HADIR;
+        }
+
+        $isWorkSegment = true;
+
+        while ($cursor->lte($date)) {
+            $durationValue = $isWorkSegment
+                ? (int) $pattern->work_duration_value
+                : (int) $pattern->off_duration_value;
+            $durationUnit = $isWorkSegment
+                ? $pattern->work_duration_unit
+                : $pattern->off_duration_unit;
+
+            $segmentEnd = $this->addDuration($cursor->copy(), $durationValue, $durationUnit)->subDay();
+
+            if ($date->betweenIncluded($cursor, $segmentEnd)) {
+                return $isWorkSegment ? self::STATUS_HADIR : self::STATUS_OFF;
+            }
+
+            $cursor = $segmentEnd->copy()->addDay();
+            $isWorkSegment = !$isWorkSegment;
+        }
+
+        return self::STATUS_HADIR;
+    }
+
+    private function addDuration(Carbon $date, int $value, ?string $unit): Carbon
+    {
+        switch ($unit) {
+            case 'week':
+                return $date->addWeeks($value);
+            case 'month':
+                return $date->addMonthsNoOverflow($value);
+            case 'day':
+            default:
+                return $date->addDays($value);
+        }
+    }
+}

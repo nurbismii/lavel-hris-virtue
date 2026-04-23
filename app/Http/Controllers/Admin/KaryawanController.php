@@ -12,6 +12,7 @@ use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
 use App\Models\Perusahaan;
+use App\Models\WorkPattern;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -62,7 +63,17 @@ class KaryawanController extends Controller
             'employee' => $employee,
             'departemens' => Departemen::with('perusahaan')->whereIn('id', $departemenIds)->orderBy('departemen')->get(),
             'divisis' => Divisi::whereIn('id', $divisiIds)->orderBy('nama_divisi')->get(),
-            'areas' => Perusahaan::whereIn('kode_perusahaan', $areaCodes)->get()
+            'areas' => Perusahaan::whereIn('kode_perusahaan', $areaCodes)->get(),
+            'workPatterns' => WorkPattern::query()
+                ->where(function ($query) use ($employee) {
+                    $query->where('is_active', true);
+
+                    if ($employee->work_pattern_id) {
+                        $query->orWhere('id', $employee->work_pattern_id);
+                    }
+                })
+                ->orderBy('name')
+                ->get(),
         ]);
     }
 

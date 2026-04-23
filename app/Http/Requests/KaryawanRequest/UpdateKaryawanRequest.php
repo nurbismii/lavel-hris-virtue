@@ -33,6 +33,8 @@ class UpdateKaryawanRequest extends FormRequest
             'area_kerja' => 'nullable|string|in:VDNI,VDNIP,OSS,PMS-VDNI,PMS-OSS',
             'departemen_id' => 'nullable|exists:departemens,id',
             'divisi_id' => 'nullable|exists:divisis,id',
+            'work_pattern_id' => 'nullable|exists:work_patterns,id',
+            'work_pattern_start_date' => 'nullable|date',
             'status_resign' => 'nullable|in:AKTIF,RESIGN SESUAI PROSEDUR,RESIGN TIDAK SESUAI PROSEDUR,RESIGN TIDAK SESUAI PROSEDUR-PENGAJUAN,RESIGN TIDAK SESUAI PROSEDUR-PAYROLL,RESIGN TIDAK SESUAI PROSEDUR-KABUR,PHK,PHK MENINGGAL DUNIA,PHK PENSIUN,PHK PENSIUN DINI,PUTUS KONTRAK,PHK PIDANA,PB RESIGN',
             'tgl_lahir' => 'nullable|date',
             'agama' => 'nullable|string|max:50',

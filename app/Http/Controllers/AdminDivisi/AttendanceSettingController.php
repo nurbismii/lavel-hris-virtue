@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\EmployeeAttendanceSetting;
 use App\Models\NationalHoliday;
 use App\Jobs\ProcessEmployeeMediaZipUpload;
+use App\Services\Presensi\WorkScheduleService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
@@ -109,7 +110,7 @@ class AttendanceSettingController extends Controller
         }
 
         if ($selectedDepartemenId) {
-            $employees = Employee::with(['divisi', 'departemen'])
+            $employees = Employee::with(['divisi', 'departemen', 'workPattern'])
                 ->where('departemen_id', $selectedDepartemenId)
                 ->where('status_resign', 'AKTIF')
                 ->when($isDivisionScoped, fn($query) => $query->whereIn('divisi_id', $scopedDivisiIds));
@@ -133,10 +134,18 @@ class AttendanceSettingController extends Controller
             }
         }
 
+        $scheduleMap = app(WorkScheduleService::class)->buildScheduleMap(
+            $employees,
+            $offData->flatten(1),
+            $start,
+            $end
+        );
+
         return view('admin-divisi.set-kehadiran.index', compact(
             'employees',
             'dates',
             'offData',
+            'scheduleMap',
             'periode',
             'departemen',
             'departemens',
@@ -167,39 +176,39 @@ class AttendanceSettingController extends Controller
             ], 400);
         }
 
-        $allowedEmployeeIds = Auth::user()
-            ->applyEmployeeScope(Employee::query())
-            ->pluck('nik')
+        $scopedEmployees = Auth::user()
+            ->applyEmployeeScope(Employee::query()->with('workPattern'))
+            ->get()
+            ->keyBy('nik');
+
+        $allowedEmployeeIds = $scopedEmployees
+            ->keys()
             ->all();
 
-        DB::transaction(function () use ($rows, $allowedEmployeeIds) {
+        DB::transaction(function () use ($rows, $allowedEmployeeIds, $scopedEmployees) {
+            $scheduleService = app(WorkScheduleService::class);
 
             foreach ($rows as $row) {
                 if (!in_array($row['employee_id'], $allowedEmployeeIds, true)) {
                     continue;
                 }
 
-                $periode = Carbon::parse($row['tanggal'])->format('Y-m');
+                $status = strtoupper((string) ($row['status'] ?? ''));
 
-                if ($row['status'] === 'OFF') {
-
-                    EmployeeAttendanceSetting::updateOrCreate(
-                        [
-                            'employee_id' => $row['employee_id'],
-                            'tanggal' => $row['tanggal'],
-                        ],
-                        [
-                            'status' => 'OFF',
-                            'periode' => $periode
-                        ]
-                    );
-                } else {
-
-                    EmployeeAttendanceSetting::where([
-                        'employee_id' => $row['employee_id'],
-                        'tanggal' => $row['tanggal'],
-                    ])->delete();
+                if (!in_array($status, [
+                    EmployeeAttendanceSetting::STATUS_OFF,
+                    EmployeeAttendanceSetting::STATUS_HADIR,
+                ], true)) {
+                    continue;
                 }
+
+                $employee = $scopedEmployees->get($row['employee_id']);
+
+                if (!$employee) {
+                    continue;
+                }
+
+                $scheduleService->applyManualOverride($employee, $row['tanggal'], $status);
             }
         });
 

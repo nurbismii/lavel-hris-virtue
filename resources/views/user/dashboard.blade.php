@@ -26,6 +26,8 @@ $statusText = ucfirst($currentUser->status ?? 'nonaktif');
 $statusTone = ($currentUser->status ?? null) === 'aktif' ? 'success' : 'secondary';
 $verificationText = $currentUser->email_verified_at ? 'Terverifikasi' : 'Belum verifikasi';
 $verificationTone = $currentUser->email_verified_at ? 'success' : 'warning';
+$canManageOvertimeOrders = $currentUser->hasRole(['Super Admin', 'HR', 'HOD', 'Admin Divisi']);
+$overtimeRoute = $canManageOvertimeOrders ? route('overtime-orders.index') : route('lembur.index');
 $lastLogin = filled($currentUser->terakhir_login) ? \Illuminate\Support\Carbon::parse($currentUser->terakhir_login) : null;
 $lastLoginText = $lastLogin ? $lastLogin->translatedFormat('d M Y, H:i') . ' WITA' : '-';
 $lastLoginHuman = $lastLogin ? $lastLogin->diffForHumans() : 'Belum ada catatan login';
@@ -141,6 +143,20 @@ $menuCatalog = [
         'tone' => 'sky',
         'description' => 'Atur hari off sesuai unit yang ditangani.',
     ],
+    'jadwal_kerja' => [
+        'route_name' => 'work-patterns.index',
+        'icon' => 'fas fa-calendar-week',
+        'tone' => 'sky',
+        'description' => 'Kelola master pola kerja dan jadwal kerja.',
+    ],
+    'lembur' => [
+        'route' => $overtimeRoute,
+        'icon' => 'fas fa-business-time',
+        'tone' => 'violet',
+        'description' => $canManageOvertimeOrders
+            ? 'Buat dan pantau perintah lembur karyawan.'
+            : 'Lihat dan respons perintah lembur yang ditujukan ke Anda.',
+    ],
     'perusahaan' => [
         'route_name' => 'perusahaan.index',
         'icon' => 'fas fa-building',
@@ -177,15 +193,21 @@ $allAccessibleMenuItems = collect($accessibleMenus)
             return null;
         }
 
-        if (empty($menuMeta['route_name']) || !\Illuminate\Support\Facades\Route::has($menuMeta['route_name'])) {
-            return null;
+        if (!empty($menuMeta['route'] ?? null)) {
+            $route = $menuMeta['route'];
+        } else {
+            if (empty($menuMeta['route_name']) || !\Illuminate\Support\Facades\Route::has($menuMeta['route_name'])) {
+                return null;
+            }
+
+            $route = route($menuMeta['route_name']);
         }
 
         return [
             'key' => $menuKey,
             'group' => $menuConfig['group'] ?? 'Lainnya',
             'label' => $menuConfig['label'] ?? $menuKey,
-            'route' => route($menuMeta['route_name']),
+            'route' => $route,
             'icon' => $menuMeta['icon'] ?? 'fas fa-link',
             'tone' => $menuMeta['tone'] ?? 'primary',
             'description' => $menuMeta['description'] ?? 'Akses menu sesuai permission akun Anda.',
@@ -267,6 +289,16 @@ if ($hour < 11) {
     'route' => route('set-kehadiran.index'),
     'icon' => 'fas fa-calendar-alt',
     'tone' => 'sky',
+    ],
+    [
+    'menu' => 'lembur',
+    'label' => 'Perintah Lembur',
+    'description' => $canManageOvertimeOrders
+        ? 'Buat dan monitor perintah lembur dari HOD/Admin Divisi.'
+        : 'Buka dan respons perintah lembur yang ditujukan kepada Anda.',
+    'route' => $overtimeRoute,
+    'icon' => 'fas fa-business-time',
+    'tone' => 'violet',
     ],
     [
     'menu' => null,

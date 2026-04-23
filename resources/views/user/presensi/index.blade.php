@@ -35,6 +35,31 @@
         </div>
         @endif
 
+        @if (!empty($activeOvertimeOrder))
+        <div class="alert alert-info d-flex flex-column gap-1">
+            <strong>Perintah lembur aktif hari ini: {{ $activeOvertimeOrder->type_label }}</strong>
+            <span>Jadwal: {{ $activeOvertimeOrder->overtime_date->translatedFormat('d M Y') }} | {{ $activeOvertimeOrder->time_range_text }}</span>
+            <span>Karena Anda sudah menyetujui perintah lembur ini, kehadiran hari ini wajib dicatat melalui presensi.</span>
+        </div>
+        @endif
+
+        <div class="alert alert-light border d-flex flex-column gap-1">
+            <strong>Pola kerja aktif:
+                @if($workPattern)
+                    {{ $workPattern->code }} - {{ $workPattern->name }}
+                @else
+                    Belum diassign
+                @endif
+            </strong>
+            <span>Target jam kerja: {{ optional($workPattern)->work_time_range_text ?? 'Belum diatur' }} @if($workPattern) ({{ $workPattern->expected_work_duration_text }}) @endif</span>
+            <span>Jadwal istirahat: {{ optional($workPattern)->break_time_range_text ?? 'Tidak diatur' }}</span>
+            <span>
+                Status pemenuhan hari ini:
+                <span class="badge bg-{{ $todayFulfillment['badge_class'] }}">{{ $todayFulfillment['label'] }}</span>
+                <span class="text-muted">{{ $todayFulfillment['description'] }}</span>
+            </span>
+        </div>
+
         @php
             $statusPresensiHariIni = $absensiHariIni->status_presensi ?? null;
             $nextType = null;
@@ -377,10 +402,12 @@
                             <th>Istirahat</th>
                             <th>Kembali</th>
                             <th>Pulang</th>
+                            <th>Pemenuhan</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($presensi as $item)
+                        @php($fulfillment = $item->attendance_fulfillment ?? null)
                         <tr>
                             <td>{{ formatDateIndonesia($item->tanggal) }}</td>
                             <td>{{ \App\Models\Presensi::shortStatus($item->status_presensi) ?? '-' }}</td>
@@ -388,10 +415,17 @@
                             <td>{{ $item->jam_istirahat ?? '-' }}</td>
                             <td>{{ $item->jam_kembali_istirahat ?? '-' }}</td>
                             <td>{{ $item->jam_pulang ?? '-' }}</td>
+                            <td>
+                                @if($fulfillment)
+                                    <span class="badge bg-{{ $fulfillment['badge_class'] }}">{{ $fulfillment['label'] }}</span>
+                                @else
+                                    -
+                                @endif
+                            </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-muted">
+                            <td colspan="7" class="text-muted">
                                 Tidak ada data pada periode ini
                             </td>
                         </tr>

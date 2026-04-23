@@ -3,6 +3,7 @@
 namespace App\Services\Presensi;
 
 use App\Models\Cuti;
+use App\Models\Employee;
 use App\Models\Presensi;
 use App\Models\Roster;
 use Carbon\Carbon;
@@ -14,6 +15,7 @@ class AttendanceStatusService
     public const STATUS_CUTI_ROSTER = 'Cuti Roster';
     public const STATUS_IZIN_BERBAYAR = 'Izin Berbayar';
     public const STATUS_IZIN_TIDAK_BERBAYAR = 'Izin Tidak Berbayar';
+    public const STATUS_OFF = 'Off';
 
     public function syncApprovedCuti(Cuti $cuti): void
     {
@@ -111,6 +113,21 @@ class AttendanceStatusService
 
         if ($cuti->tipe === 'UNPAID') {
             return self::STATUS_IZIN_TIDAK_BERBAYAR;
+        }
+
+        $acceptedOvertime = app(OvertimeOrderService::class)->getAcceptedOrderForDate($nikKaryawan, $dateString);
+
+        if ($acceptedOvertime) {
+            return null;
+        }
+
+        $employee = Employee::query()
+            ->with('workPattern')
+            ->where('nik', $nikKaryawan)
+            ->first();
+
+        if ($employee && app(WorkScheduleService::class)->resolveFinalStatus($employee, $dateString) === WorkScheduleService::STATUS_OFF) {
+            return self::STATUS_OFF;
         }
 
         return null;

@@ -69,6 +69,14 @@ $menus = [
         'label' => 'Setting Hari Off',
         'group' => 'Operasional',
     ],
+    'jadwal_kerja' => [
+        'label' => 'Master Jadwal Kerja',
+        'group' => 'Operasional',
+    ],
+    'lembur' => [
+        'label' => 'Perintah Lembur',
+        'group' => 'Self Service',
+    ],
     'perusahaan' => [
         'label' => 'Perusahaan & Organisasi',
         'group' => 'Operasional',
@@ -146,6 +154,8 @@ return [
             'approval_hod',
             'approval_hr',
             'setting_hari_off',
+            'jadwal_kerja',
+            'lembur',
             'perusahaan',
             'cuti',
             'roster',
@@ -162,6 +172,8 @@ return [
             'presensi',
             'approval_hod',
             'setting_hari_off',
+            'jadwal_kerja',
+            'lembur',
         ],
         'Manager' => [
             'dashboard_karyawan',
@@ -171,6 +183,7 @@ return [
             'roster',
             'izin',
             'presensi',
+            'lembur',
         ],
         'Supervisor' => [
             'dashboard_karyawan',
@@ -180,6 +193,7 @@ return [
             'roster',
             'izin',
             'presensi',
+            'lembur',
         ],
         'Staff' => [
             'dashboard_karyawan',
@@ -187,6 +201,7 @@ return [
             'cuti',
             'izin',
             'presensi',
+            'lembur',
         ],
         'Staff Roster' => [
             'dashboard_karyawan',
@@ -195,6 +210,7 @@ return [
             'roster',
             'izin',
             'presensi',
+            'lembur',
         ],
         'Admin Divisi' => [
             'dashboard_karyawan',
@@ -205,6 +221,8 @@ return [
             'izin',
             'presensi',
             'setting_hari_off',
+            'jadwal_kerja',
+            'lembur',
         ],
     ],
 ];

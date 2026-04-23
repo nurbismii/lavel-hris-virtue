@@ -11,6 +11,8 @@ use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Perusahaan;
 use App\Models\Presensi;
+use App\Services\Presensi\OvertimeOrderService;
+use App\Services\Presensi\WorkScheduleService;
 use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -60,7 +62,7 @@ class PresensiController extends Controller
             ->toArray();
 
         $baseQuery = Employee::query()
-            ->select('nik', 'nama_karyawan', 'departemen_id', 'divisi_id')
+            ->select('nik', 'nama_karyawan', 'departemen_id', 'divisi_id', 'work_pattern_id', 'work_pattern_start_date')
             ->where('status_resign', 'AKTIF')
             ->where('departemen_id', $request->departemen);
 
@@ -71,10 +73,13 @@ class PresensiController extends Controller
         $length = $request->length ?? 10;
         $startPage = $request->start ?? 0;
 
-        $niks = (clone $baseQuery)
+        $employeePage = (clone $baseQuery)
             ->skip($startPage)
             ->take($length)
-            ->pluck('nik');
+            ->with('workPattern')
+            ->get();
+
+        $niks = $employeePage->pluck('nik');
 
         $presensiRows = DB::table('absensis')
             ->whereIn('nik_karyawan', $niks)
@@ -94,6 +99,24 @@ class PresensiController extends Controller
                 'k' => $p->status_presensi ? null : ($p->jam_kembali_istirahat ? Carbon::parse($p->jam_kembali_istirahat)->format('H:i') : null),
                 'p' => $p->status_presensi ? null : ($p->jam_pulang ? Carbon::parse($p->jam_pulang)->format('H:i') : null),
             ];
+        }
+
+        $actualPresensiMap = $presensiMap;
+
+        $offMap = app(WorkScheduleService::class)->buildOffStatusMap($employeePage, $start, $end, $presensiMap);
+
+        foreach ($offMap as $nik => $dates) {
+            foreach ($dates as $tanggal => $payload) {
+                $presensiMap[$nik][$tanggal] = $payload;
+            }
+        }
+
+        $alphaMap = app(OvertimeOrderService::class)->buildAcceptedAlphaMap($niks, $start, $end, $actualPresensiMap);
+
+        foreach ($alphaMap as $nik => $dates) {
+            foreach ($dates as $tanggal => $payload) {
+                $presensiMap[$nik][$tanggal] = $payload;
+            }
         }
 
         return DataTables::of($baseQuery)
@@ -133,7 +156,7 @@ class PresensiController extends Controller
             ->toArray();
 
         $employeeQuery = Employee::query()
-            ->select('nik', 'nama_karyawan')
+            ->select('nik', 'nama_karyawan', 'work_pattern_id', 'work_pattern_start_date')
             ->where('status_resign', 'AKTIF')
             ->where('departemen_id', $request->departemen);
 
@@ -141,7 +164,9 @@ class PresensiController extends Controller
             $employeeQuery->where('divisi_id', $request->divisi);
         }
 
-        $employees = $employeeQuery->get();
+        $employees = $employeeQuery
+            ->with('workPattern')
+            ->get();
 
         $niks = $employees->pluck('nik');
 
@@ -163,6 +188,36 @@ class PresensiController extends Controller
                 'k' => $p->status_presensi ? '' : ($p->jam_kembali_istirahat ? Carbon::parse($p->jam_kembali_istirahat)->format('H:i') : ''),
                 'p' => $p->status_presensi ? '' : ($p->jam_pulang ? Carbon::parse($p->jam_pulang)->format('H:i') : ''),
             ];
+        }
+
+        $actualPresensiMap = $presensiMap;
+
+        $offMap = app(WorkScheduleService::class)->buildOffStatusMap($employees, $start, $end, $presensiMap);
+
+        foreach ($offMap as $nik => $dates) {
+            foreach ($dates as $tanggal => $payload) {
+                $presensiMap[$nik][$tanggal] = [
+                    'status' => $payload['status'] ?? '',
+                    'm' => $payload['m'] ?? '',
+                    'i' => $payload['i'] ?? '',
+                    'k' => $payload['k'] ?? '',
+                    'p' => $payload['p'] ?? '',
+                ];
+            }
+        }
+
+        $alphaMap = app(OvertimeOrderService::class)->buildAcceptedAlphaMap($niks, $start, $end, $actualPresensiMap);
+
+        foreach ($alphaMap as $nik => $dates) {
+            foreach ($dates as $tanggal => $payload) {
+                $presensiMap[$nik][$tanggal] = [
+                    'status' => $payload['status'] ?? '',
+                    'm' => $payload['m'] ?? '',
+                    'i' => $payload['i'] ?? '',
+                    'k' => $payload['k'] ?? '',
+                    'p' => $payload['p'] ?? '',
+                ];
+            }
         }
 
         return response()->streamDownload(function () use ($employees, $tanggalHeaders, $presensiMap) {

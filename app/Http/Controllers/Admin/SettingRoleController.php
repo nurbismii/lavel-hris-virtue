@@ -46,10 +46,15 @@ class SettingRoleController extends Controller
             'menu_permissions.*' => ['string', Rule::in(array_keys(config('access.menus', [])))],
         ]);
 
+        $normalizedRoleName = Role::normalizeRoleName($validated['permission_role']);
+        $menuPermissions = $normalizedRoleName === 'Super Admin'
+            ? array_keys(config('access.menus', []))
+            : ($validated['menu_permissions'] ?? []);
+
         Role::create([
             'permission_role' => $validated['permission_role'],
-            'description' => $validated['description'] ?: (config('access.roles.' . Role::normalizeRoleName($validated['permission_role']) . '.description')),
-            'menu_permissions' => $validated['menu_permissions'] ?? [],
+            'description' => $validated['description'] ?: (config('access.roles.' . $normalizedRoleName . '.description')),
+            'menu_permissions' => $menuPermissions,
             'status' => $validated['status'],
         ]);
 
@@ -105,10 +110,15 @@ class SettingRoleController extends Controller
             'menu_permissions.*' => ['string', Rule::in(array_keys(config('access.menus', [])))],
         ]);
 
+        $normalizedRoleName = Role::normalizeRoleName($validated['permission_role']);
+        $menuPermissions = $normalizedRoleName === 'Super Admin'
+            ? array_keys(config('access.menus', []))
+            : ($validated['menu_permissions'] ?? []);
+
         $role->update([
             'permission_role' => $validated['permission_role'],
-            'description' => $validated['description'] ?: (config('access.roles.' . Role::normalizeRoleName($validated['permission_role']) . '.description')),
-            'menu_permissions' => $validated['menu_permissions'] ?? [],
+            'description' => $validated['description'] ?: (config('access.roles.' . $normalizedRoleName . '.description')),
+            'menu_permissions' => $menuPermissions,
             'status' => $validated['status'],
         ]);
 
