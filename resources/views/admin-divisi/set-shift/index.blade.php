@@ -2,13 +2,21 @@
 
 @section('title', 'Pengaturan Shift')
 
+@push('styles')
+<link rel="stylesheet" href="{{ versioned_asset('assets/css/shift-settings.css') }}">
+@endpush
+
 @section('content')
 <div class="container-fluid">
-    <div class="page-inner">
-        <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
+    <div
+        class="page-inner shift-settings-page"
+        data-divisions-url="{{ route('ajax.divisi.by.departemen') }}"
+        data-update-url="{{ route('shift-settings.update') }}"
+        data-csrf-token="{{ csrf_token() }}">
+        <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-3">
             <div>
-                <h4 class="fw-bold">
-                    <i class="fas fa-business-time text-primary me-2"></i>
+                <h4 class="fw-bold mb-1">
+                    <i class="fas fa-user-clock text-primary me-2"></i>
                     Pengaturan Shift
                 </h4>
                 <small class="text-muted d-block">
@@ -20,8 +28,8 @@
             </div>
         </div>
 
-        <form method="GET" class="row g-2 mb-3 align-items-end">
-            <div class="col-md-3">
+        <form method="GET" class="row g-2 mb-3 align-items-end shift-filter">
+            <div class="col-md-2">
                 <label class="form-label">Periode</label>
                 <input type="month" name="periode" value="{{ $periode }}" class="form-control">
             </div>
@@ -57,13 +65,13 @@
             @endif
 
             @if($isDivisionReadonly)
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Divisi</label>
                 <input type="text" class="form-control" value="{{ optional($divisis->first())->nama_divisi ?? '-' }}" readonly>
                 <input type="hidden" id="filter_divisi" name="divisi" value="{{ $selectedDivisiId }}">
             </div>
             @else
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label class="form-label">Divisi</label>
                 <select id="filter_divisi" name="divisi" class="form-select" {{ !$selectedDepartemenId ? 'disabled' : '' }}>
                     <option value="">Semua Divisi</option>
@@ -102,28 +110,52 @@
         </div>
         @endif
 
-        <div class="alert alert-light border small">
-            <div class="fw-semibold mb-1">Cara kerja pengaturan shift</div>
-            <div>AUTO = target jam kerja mengikuti master pola kerja karyawan.</div>
-            <div>Pilih shift tertentu jika tanggal itu harus memakai jam kerja Reguler, Shift 1, Shift 2, Shift 3, atau shift custom yang sudah dibuat.</div>
+        @if($requiresDivisionFilter)
+        <div class="alert alert-info">
+            Pilih divisi terlebih dahulu agar tabel pengaturan shift tidak memuat terlalu banyak karyawan sekaligus.
+        </div>
+        @endif
+
+        @if($employeeLimitExceeded)
+        <div class="alert alert-warning">
+            Data dibatasi {{ $matrixEmployeeLimit }} karyawan pertama untuk menjaga halaman tetap ringan. Gunakan filter divisi yang lebih spesifik jika data yang dicari belum tampil.
+        </div>
+        @endif
+
+        <div class="shift-legend">
+            <span><strong>AUTO</strong> mengikuti master pola kerja.</span>
+            <span>Pilih kode shift untuk override jam kerja tanggal tersebut.</span>
+            <span><span class="shift-legend-dot is-sunday"></span> Minggu</span>
+            <span><span class="shift-legend-dot is-national-holiday"></span> Libur nasional</span>
+            <span class="ms-md-auto">{{ $employees->count() }} karyawan ditampilkan</span>
         </div>
 
-        <div class="card border-0">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped table-sm align-middle mb-0">
+        <div class="card border-0 shift-card">
+            <div class="card-body p-0">
+                <div class="shift-table-wrap">
+                    <table class="table table-bordered table-sm align-middle mb-0 shift-matrix-table">
                         <thead>
                             <tr>
-                                <th>No</th>
-                                <th>Nama</th>
-                                <th>NIK</th>
-                                <th>Divisi</th>
-                                <th>Departemen</th>
-                                <th>Pola Kerja</th>
+                                <th class="sticky-col sticky-no text-center">No</th>
+                                <th class="sticky-col sticky-name">Karyawan</th>
+                                <th class="sticky-col sticky-pattern">Pola</th>
                                 @foreach($dates as $date)
-                                    <th class="text-center">
+                                    @php
+                                        $dateString = $date->toDateString();
+                                        $nationalHoliday = $nationalHolidayMap->get($dateString);
+                                        $isNationalHoliday = filled($nationalHoliday);
+                                        $isSunday = $date->isSunday();
+                                    @endphp
+                                    <th
+                                        class="text-center shift-date-head {{ $isSunday ? 'is-sunday' : '' }} {{ $isNationalHoliday ? 'is-national-holiday' : '' }}"
+                                        title="{{ $isNationalHoliday ? $nationalHoliday->holiday_name : ($isSunday ? 'Minggu' : '') }}">
                                         <div>{{ $date->format('d') }}</div>
-                                        <small class="text-muted">{{ $date->translatedFormat('D') }}</small>
+                                        <small>{{ $date->translatedFormat('D') }}</small>
+                                        @if($isNationalHoliday)
+                                            <span class="holiday-chip" title="{{ $nationalHoliday->holiday_name }}">L</span>
+                                        @elseif($isSunday)
+                                            <span class="holiday-chip holiday-chip--sunday">M</span>
+                                        @endif
                                     </th>
                                 @endforeach
                             </tr>
@@ -131,32 +163,43 @@
                         <tbody>
                             @forelse($employees as $index => $employee)
                                 <tr>
-                                    <td>{{ ++$index }}</td>
-                                    <td>{{ $employee->nama_karyawan }}</td>
-                                    <td>{{ $employee->nik }}</td>
-                                    <td>{{ optional($employee->divisi)->nama_divisi ?? '-' }}</td>
-                                    <td>{{ optional($employee->departemen)->departemen ?? '-' }}</td>
-                                    <td>
+                                    <td class="sticky-col sticky-no text-center">{{ ++$index }}</td>
+                                    <td class="sticky-col sticky-name">
+                                        <div class="employee-cell">
+                                            <strong>{{ $employee->nama_karyawan }}</strong>
+                                            <span>{{ $employee->nik }}</span>
+                                            <small>{{ optional($employee->divisi)->nama_divisi ?? '-' }}</small>
+                                        </div>
+                                    </td>
+                                    <td class="sticky-col sticky-pattern">
                                         @if($employee->workPattern)
-                                            <div class="fw-semibold">{{ $employee->workPattern->code }}</div>
-                                            <div class="small text-muted">{{ $employee->workPattern->work_time_range_text }}</div>
+                                            <div class="pattern-cell">
+                                                <strong>{{ $employee->workPattern->code }}</strong>
+                                                <span>{{ $employee->workPattern->work_time_range_text }}</span>
+                                            </div>
                                         @else
-                                            <span class="text-muted">Belum ada pola</span>
+                                            <span class="text-muted small">Belum ada</span>
                                         @endif
                                     </td>
                                     @foreach($dates as $date)
                                         @php
+                                            $dateString = $date->toDateString();
+                                            $nationalHoliday = $nationalHolidayMap->get($dateString);
+                                            $isNationalHoliday = filled($nationalHoliday);
+                                            $isSunday = $date->isSunday();
                                             $assignment = $shiftAssignmentMap[$employee->nik][$date->toDateString()] ?? [
                                                 'shift_id' => null,
                                                 'shift' => null,
                                             ];
                                             $selectedShift = $assignment['shift'] ?? null;
                                         @endphp
-                                        <td>
+                                        <td
+                                            class="shift-cell {{ $isSunday ? 'is-sunday' : '' }} {{ $isNationalHoliday ? 'is-national-holiday' : '' }}"
+                                            title="{{ $isNationalHoliday ? $nationalHoliday->holiday_name : ($isSunday ? 'Minggu' : '') }}">
                                             <select
                                                 class="form-select form-select-sm shift-assignment-select"
                                                 data-employee="{{ $employee->nik }}"
-                                                data-date="{{ $date->toDateString() }}"
+                                                data-date="{{ $dateString }}"
                                                 data-shift-id="{{ $assignment['shift_id'] ?? '' }}"
                                                 {{ $shifts->isEmpty() ? 'disabled' : '' }}>
                                                 <option value="">AUTO</option>
@@ -166,7 +209,7 @@
                                                     </option>
                                                 @endforeach
                                             </select>
-                                            <small class="text-muted d-block mt-1">
+                                            <small class="shift-cell-label">
                                                 {{ $selectedShift ? $selectedShift->type_label : 'Pola Kerja' }}
                                             </small>
                                         </td>
@@ -174,8 +217,8 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="{{ 6 + count($dates) }}" class="text-center text-muted py-4">
-                                        {{ $selectedDepartemenId ? 'Tidak ada data karyawan untuk filter yang dipilih.' : 'Pilih departemen untuk mulai menampilkan data.' }}
+                                    <td colspan="{{ 3 + count($dates) }}" class="text-center text-muted py-4">
+                                        {{ $requiresDivisionFilter ? 'Pilih divisi untuk mulai menampilkan data.' : ($selectedDepartemenId ? 'Tidak ada data karyawan untuk filter yang dipilih.' : 'Pilih departemen untuk mulai menampilkan data.') }}
                                     </td>
                                 </tr>
                             @endforelse
@@ -189,133 +232,5 @@
 @endsection
 
 @push('scripts')
-<script>
-    $(document).ready(function() {
-        const filterDepartemen = $('#filter_departemen');
-        const filterDivisi = $('#filter_divisi');
-
-        if (filterDepartemen.length) {
-            filterDepartemen.on('change', function() {
-                const departemen = $(this).val();
-
-                filterDivisi.prop('disabled', true).html('<option value="">Loading...</option>');
-
-                if (!departemen) {
-                    filterDivisi.html('<option value="">Semua Divisi</option>').prop('disabled', true);
-                    return;
-                }
-
-                $.get("{{ route('ajax.divisi.by.departemen') }}", {
-                    departemen: departemen
-                }).done(function(response) {
-                    let options = '<option value="">Semua Divisi</option>';
-
-                    response.forEach(function(item) {
-                        options += `<option value="${item.id}">${item.nama_divisi}</option>`;
-                    });
-
-                    filterDivisi.html(options).prop('disabled', false);
-                }).fail(function() {
-                    filterDivisi.html('<option value="">Gagal memuat divisi</option>').prop('disabled', true);
-                });
-            });
-        }
-    });
-</script>
-
-<script>
-    let dirtyShiftCells = new Map();
-    let shiftDebounceTimer = null;
-
-    $(document).on('change', '.shift-assignment-select', function() {
-        const select = $(this);
-        const employee = select.data('employee');
-        const date = select.data('date');
-        const oldShiftId = String(select.data('shift-id') || '');
-        const newShiftId = String(select.val() || '');
-
-        if (newShiftId === oldShiftId) {
-            return;
-        }
-
-        const key = employee + '_' + date;
-
-        dirtyShiftCells.set(key, {
-            employee_id: employee,
-            tanggal: date,
-            shift_id: newShiftId,
-            element: select
-        });
-
-        select.closest('td').addClass('table-warning');
-
-        clearTimeout(shiftDebounceTimer);
-        shiftDebounceTimer = setTimeout(sendShiftBatch, 700);
-    });
-
-    async function sendShiftBatch() {
-        const payload = Array.from(dirtyShiftCells.values());
-
-        if (payload.length === 0) {
-            return;
-        }
-
-        try {
-            const response = await fetch("{{ route('shift-settings.update') }}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "X-Requested-With": "XMLHttpRequest",
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                credentials: "same-origin",
-                body: JSON.stringify({
-                    data: payload.map((item) => ({
-                        employee_id: item.employee_id,
-                        tanggal: item.tanggal,
-                        shift_id: item.shift_id || null
-                    }))
-                })
-            });
-
-            let responseData = null;
-
-            try {
-                responseData = await response.json();
-            } catch (error) {
-                responseData = null;
-            }
-
-            if (!response.ok) {
-                throw new Error(responseData && responseData.message ? responseData.message : 'Update gagal');
-            }
-
-            payload.forEach((item) => {
-                const newShiftId = String(item.shift_id || '');
-                const selectedOption = item.element.find('option:selected');
-                const shiftLabel = newShiftId
-                    ? selectedOption.text()
-                    : 'Pola Kerja';
-
-                item.element.data('shift-id', newShiftId);
-                item.element.closest('td').removeClass('table-warning').addClass('table-success');
-                item.element.siblings('small').text(newShiftId ? shiftLabel : 'Pola Kerja');
-
-                setTimeout(() => {
-                    item.element.closest('td').removeClass('table-success');
-                }, 800);
-            });
-
-            dirtyShiftCells.clear();
-        } catch (error) {
-            payload.forEach((item) => {
-                item.element.val(String(item.element.data('shift-id') || ''));
-                item.element.closest('td').removeClass('table-warning');
-            });
-
-            alert(error.message || 'Update gagal');
-        }
-    }
-</script>
+<script src="{{ versioned_asset('assets/js/shift-settings.js') }}"></script>
 @endpush

@@ -104,27 +104,22 @@ class WorkPattern extends Model
 
     public function getScheduledBreakMinutesAttribute(): int
     {
-        if (!$this->break_start_time || !$this->break_end_time) {
-            return 0;
-        }
-
-        [$shiftStart, $shiftEnd] = $this->buildShiftRange();
-        [$breakStart, $breakEnd] = $this->buildBreakRange($shiftStart);
-
-        return $this->calculateOverlapMinutes($shiftStart, $shiftEnd, $breakStart, $breakEnd);
+        return $this->buildScheduleData(
+            $this->start_time,
+            $this->end_time,
+            $this->break_start_time,
+            $this->break_end_time
+        )['scheduled_break_minutes'];
     }
 
     public function getExpectedWorkMinutesAttribute(): ?int
     {
-        if (!$this->start_time || !$this->end_time) {
-            return null;
-        }
-
-        [$start, $end] = $this->buildShiftRange();
-        $grossMinutes = $start->diffInMinutes($end);
-        $netMinutes = max($grossMinutes - $this->scheduled_break_minutes, 0);
-
-        return $netMinutes;
+        return $this->buildScheduleData(
+            $this->start_time,
+            $this->end_time,
+            $this->break_start_time,
+            $this->break_end_time
+        )['expected_work_minutes'];
     }
 
     public function getExpectedWorkDurationTextAttribute(): string
@@ -145,6 +140,57 @@ class WorkPattern extends Model
         }
 
         return $this->formatMinutes($this->scheduled_break_minutes);
+    }
+
+    public function getSixthDayWorkTimeRangeTextAttribute(): string
+    {
+        return $this->buildScheduleData(
+            $this->sixth_day_start_time,
+            $this->sixth_day_end_time,
+            $this->sixth_day_break_start_time,
+            $this->sixth_day_break_end_time
+        )['work_time_range_text'];
+    }
+
+    public function getSixthDayBreakTimeRangeTextAttribute(): string
+    {
+        return $this->buildScheduleData(
+            $this->sixth_day_start_time,
+            $this->sixth_day_end_time,
+            $this->sixth_day_break_start_time,
+            $this->sixth_day_break_end_time
+        )['break_time_range_text'];
+    }
+
+    public function getSixthDayScheduledBreakMinutesAttribute(): int
+    {
+        return $this->buildScheduleData(
+            $this->sixth_day_start_time,
+            $this->sixth_day_end_time,
+            $this->sixth_day_break_start_time,
+            $this->sixth_day_break_end_time
+        )['scheduled_break_minutes'];
+    }
+
+    public function getSixthDayExpectedWorkMinutesAttribute(): ?int
+    {
+        return $this->buildScheduleData(
+            $this->sixth_day_start_time,
+            $this->sixth_day_end_time,
+            $this->sixth_day_break_start_time,
+            $this->sixth_day_break_end_time
+        )['expected_work_minutes'];
+    }
+
+    public function getSixthDayExpectedWorkDurationTextAttribute(): string
+    {
+        $minutes = $this->sixth_day_expected_work_minutes;
+
+        if ($minutes === null) {
+            return 'Belum diatur';
+        }
+
+        return $this->formatMinutes($minutes);
     }
 
     public function getNationalHolidayRuleLabelAttribute(): string
@@ -202,6 +248,11 @@ class WorkPattern extends Model
         return ($this->pattern_basis ?: static::BASIS_CYCLE) === static::BASIS_WEEKLY;
     }
 
+    public function hasSixthDaySchedule(): bool
+    {
+        return filled($this->sixth_day_start_time) && filled($this->sixth_day_end_time);
+    }
+
     public function normalizeWeeklyWorkDays($days = null): array
     {
         $allowed = array_keys(static::weekdayOptions());
@@ -213,6 +264,52 @@ class WorkPattern extends Model
             ->all();
 
         return $days;
+    }
+
+    public function isSixthWeeklyWorkday($date): bool
+    {
+        if (!$this->isWeeklyPattern() || !$this->hasSixthDaySchedule()) {
+            return false;
+        }
+
+        $weeklyWorkDays = $this->normalizeWeeklyWorkDays();
+
+        if (count($weeklyWorkDays) < 6) {
+            return false;
+        }
+
+        $weekdayMap = static::weekdayIndexes();
+        $sixthWorkday = $weeklyWorkDays[5] ?? null;
+        $targetDayIndex = $weekdayMap[$sixthWorkday] ?? null;
+
+        if ($targetDayIndex === null) {
+            return false;
+        }
+
+        return Carbon::parse($date)->dayOfWeek === $targetDayIndex;
+    }
+
+    public function resolveScheduleForDate($date = null): array
+    {
+        $useSixthDaySchedule = $date && $this->isSixthWeeklyWorkday($date);
+
+        $schedule = $useSixthDaySchedule
+            ? $this->buildScheduleData(
+                $this->sixth_day_start_time,
+                $this->sixth_day_end_time,
+                $this->sixth_day_break_start_time,
+                $this->sixth_day_break_end_time
+            )
+            : $this->buildScheduleData(
+                $this->start_time,
+                $this->end_time,
+                $this->break_start_time,
+                $this->break_end_time
+            );
+
+        $schedule['uses_sixth_day_schedule'] = $useSixthDaySchedule;
+
+        return $schedule;
     }
 
     private function formatUnitLabel(int $value, ?string $unit): string
@@ -233,11 +330,71 @@ class WorkPattern extends Model
         return Carbon::createFromFormat('H:i:s', $this->normalizeTime($time))->format('H:i');
     }
 
-    private function buildShiftRange(): array
+    private function buildScheduleData(?string $startTime, ?string $endTime, ?string $breakStartTime = null, ?string $breakEndTime = null): array
+    {
+        $workTimeRangeText = $this->buildTimeRangeText($startTime, $endTime, 'Belum diatur');
+        $breakTimeRangeText = $this->buildTimeRangeText($breakStartTime, $breakEndTime, 'Tidak diatur');
+
+        if (!$startTime || !$endTime) {
+            return [
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'break_start_time' => $breakStartTime,
+                'break_end_time' => $breakEndTime,
+                'work_time_range_text' => $workTimeRangeText,
+                'break_time_range_text' => $breakTimeRangeText,
+                'scheduled_break_minutes' => 0,
+                'expected_work_minutes' => null,
+                'expected_work_duration_text' => 'Belum diatur',
+                'scheduled_break_duration_text' => $breakTimeRangeText === 'Tidak diatur' ? 'Tidak diatur' : '0 menit',
+            ];
+        }
+
+        [$shiftStart, $shiftEnd] = $this->buildShiftRange($startTime, $endTime);
+        $grossMinutes = $shiftStart->diffInMinutes($shiftEnd);
+        $scheduledBreakMinutes = 0;
+
+        if ($breakStartTime && $breakEndTime) {
+            [$resolvedBreakStart, $resolvedBreakEnd] = $this->buildBreakRange($shiftStart, $breakStartTime, $breakEndTime);
+            $scheduledBreakMinutes = $this->calculateOverlapMinutes($shiftStart, $shiftEnd, $resolvedBreakStart, $resolvedBreakEnd);
+        }
+
+        $expectedWorkMinutes = max($grossMinutes - $scheduledBreakMinutes, 0);
+
+        return [
+            'start_time' => $startTime,
+            'end_time' => $endTime,
+            'break_start_time' => $breakStartTime,
+            'break_end_time' => $breakEndTime,
+            'work_time_range_text' => $workTimeRangeText,
+            'break_time_range_text' => $breakTimeRangeText,
+            'scheduled_break_minutes' => $scheduledBreakMinutes,
+            'expected_work_minutes' => $expectedWorkMinutes,
+            'expected_work_duration_text' => $this->formatMinutes($expectedWorkMinutes),
+            'scheduled_break_duration_text' => ($breakStartTime && $breakEndTime)
+                ? $this->formatMinutes($scheduledBreakMinutes)
+                : 'Tidak diatur',
+        ];
+    }
+
+    private function buildTimeRangeText(?string $startTime, ?string $endTime, string $emptyLabel): string
+    {
+        if (!$startTime || !$endTime) {
+            return $emptyLabel;
+        }
+
+        return sprintf(
+            '%s - %s',
+            $this->formatTime($startTime),
+            $this->formatTime($endTime)
+        );
+    }
+
+    private function buildShiftRange(?string $startTime = null, ?string $endTime = null): array
     {
         $baseDate = Carbon::today();
-        $start = Carbon::createFromFormat('Y-m-d H:i:s', $baseDate->format('Y-m-d') . ' ' . $this->normalizeTime($this->start_time));
-        $end = Carbon::createFromFormat('Y-m-d H:i:s', $baseDate->format('Y-m-d') . ' ' . $this->normalizeTime($this->end_time));
+        $start = Carbon::createFromFormat('Y-m-d H:i:s', $baseDate->format('Y-m-d') . ' ' . $this->normalizeTime($startTime ?: $this->start_time));
+        $end = Carbon::createFromFormat('Y-m-d H:i:s', $baseDate->format('Y-m-d') . ' ' . $this->normalizeTime($endTime ?: $this->end_time));
 
         if ($end->lessThanOrEqualTo($start)) {
             $end->addDay();
@@ -246,10 +403,10 @@ class WorkPattern extends Model
         return [$start, $end];
     }
 
-    private function buildBreakRange(Carbon $shiftStart): array
+    private function buildBreakRange(Carbon $shiftStart, ?string $breakStartTime = null, ?string $breakEndTime = null): array
     {
-        $breakStart = Carbon::createFromFormat('Y-m-d H:i:s', $shiftStart->format('Y-m-d') . ' ' . $this->normalizeTime($this->break_start_time));
-        $breakEnd = Carbon::createFromFormat('Y-m-d H:i:s', $shiftStart->format('Y-m-d') . ' ' . $this->normalizeTime($this->break_end_time));
+        $breakStart = Carbon::createFromFormat('Y-m-d H:i:s', $shiftStart->format('Y-m-d') . ' ' . $this->normalizeTime($breakStartTime ?: $this->break_start_time));
+        $breakEnd = Carbon::createFromFormat('Y-m-d H:i:s', $shiftStart->format('Y-m-d') . ' ' . $this->normalizeTime($breakEndTime ?: $this->break_end_time));
 
         if ($breakStart->lessThan($shiftStart)) {
             $breakStart->addDay();

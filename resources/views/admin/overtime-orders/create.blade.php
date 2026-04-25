@@ -2,6 +2,10 @@
 
 @section('title', 'Buat Perintah Lembur')
 
+@push('styles')
+<link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <div class="page-inner">
@@ -19,14 +23,26 @@
                     @csrf
                     <div class="col-md-12">
                         <label class="form-label">Karyawan</label>
-                        <select name="nik_karyawan" class="form-select @error('nik_karyawan') is-invalid @enderror">
-                            <option value="">-- Pilih Karyawan --</option>
-                            @foreach ($employees as $employee)
-                                <option value="{{ $employee->nik }}" {{ old('nik_karyawan') === $employee->nik ? 'selected' : '' }}>
-                                    {{ $employee->nama_karyawan }} - {{ $employee->nik }}@if($employee->workPattern) | {{ $employee->workPattern->code }}@endif
+                        <select
+                            name="nik_karyawan"
+                            class="form-select js-overtime-employee-select @error('nik_karyawan') is-invalid @enderror"
+                            data-search-url="{{ route('overtime-orders.employees.search') }}"
+                            data-placeholder="Ketik minimal 2 karakter nama atau NIK karyawan">
+                            @if($selectedEmployee)
+                                @php
+                                    $selectedDetails = collect([
+                                        optional(optional($selectedEmployee->departemen)->perusahaan)->kode_perusahaan,
+                                        optional($selectedEmployee->departemen)->departemen,
+                                        optional($selectedEmployee->divisi)->nama_divisi,
+                                        optional($selectedEmployee->workPattern)->code ? 'Pola ' . optional($selectedEmployee->workPattern)->code : null,
+                                    ])->filter()->implode(' | ');
+                                @endphp
+                                <option value="{{ $selectedEmployee->nik }}" selected>
+                                    {{ $selectedEmployee->nama_karyawan }} - {{ $selectedEmployee->nik }}{{ $selectedDetails ? ' | ' . $selectedDetails : '' }}
                                 </option>
-                            @endforeach
+                            @endif
                         </select>
+                        <small class="text-muted">Data hanya memuat karyawan aktif VDNI/VDNIP sesuai scope departemen/divisi Anda.</small>
                         @error('nik_karyawan')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4">
@@ -74,3 +90,8 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ versioned_asset('assets/js/plugin/select2/select2.full.min.js') }}"></script>
+<script src="{{ versioned_asset('assets/js/overtime-order-form.js') }}"></script>
+@endpush

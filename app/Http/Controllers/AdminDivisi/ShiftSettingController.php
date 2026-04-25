@@ -6,15 +6,19 @@ use App\Http\Controllers\Controller;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
+use App\Models\NationalHoliday;
 use App\Models\Shift;
 use App\Services\Presensi\ShiftAssignmentService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ShiftSettingController extends Controller
 {
+    private const MATRIX_EMPLOYEE_LIMIT = 500;
+
     public function index(Request $request)
     {
         $periode = $request->periode ?? now()->format('Y-m');
@@ -34,6 +38,14 @@ class ShiftSettingController extends Controller
             $dates[] = $temp->copy();
             $temp->addDay();
         }
+
+        $nationalHolidayMap = Schema::hasTable('national_holidays')
+            ? NationalHoliday::query()
+                ->whereBetween('holiday_date', [$start->toDateString(), $end->toDateString()])
+                ->orderBy('holiday_date')
+                ->get()
+                ->keyBy(fn($holiday) => $holiday->holiday_date->toDateString())
+            : collect();
 
         $departemens = $isDepartmentScoped
             ? Departemen::with('perusahaan')
@@ -78,10 +90,13 @@ class ShiftSettingController extends Controller
             $selectedDivisiId = null;
         }
 
+        $requiresDivisionFilter = $selectedDepartemenId && !$selectedDivisiId && $divisis->count() > 1;
+        $employeeLimitExceeded = false;
+        $matrixEmployeeLimit = self::MATRIX_EMPLOYEE_LIMIT;
         $employees = collect();
         $shiftAssignmentMap = [];
 
-        if ($selectedDepartemenId) {
+        if ($selectedDepartemenId && !$requiresDivisionFilter) {
             $employees = Employee::with(['divisi', 'departemen', 'workPattern'])
                 ->where('departemen_id', $selectedDepartemenId)
                 ->where('status_resign', 'AKTIF')
@@ -93,7 +108,13 @@ class ShiftSettingController extends Controller
 
             $employees = $employees
                 ->orderBy('nama_karyawan')
+                ->limit($matrixEmployeeLimit + 1)
                 ->get();
+
+            if ($employees->count() > $matrixEmployeeLimit) {
+                $employeeLimitExceeded = true;
+                $employees = $employees->take($matrixEmployeeLimit)->values();
+            }
 
             $shiftAssignmentMap = app(ShiftAssignmentService::class)->buildAssignmentMap(
                 $employees,
@@ -105,6 +126,7 @@ class ShiftSettingController extends Controller
         return view('admin-divisi.set-shift.index', [
             'employees' => $employees,
             'dates' => $dates,
+            'nationalHolidayMap' => $nationalHolidayMap,
             'periode' => $periode,
             'departemens' => $departemens,
             'divisis' => $divisis,
@@ -116,6 +138,9 @@ class ShiftSettingController extends Controller
             'isDivisionScoped' => $isDivisionScoped,
             'isDepartmentReadonly' => $isDepartmentReadonly,
             'isDivisionReadonly' => $isDivisionReadonly,
+            'requiresDivisionFilter' => $requiresDivisionFilter,
+            'employeeLimitExceeded' => $employeeLimitExceeded,
+            'matrixEmployeeLimit' => $matrixEmployeeLimit,
             'shiftAssignmentMap' => $shiftAssignmentMap,
             'shifts' => Shift::query()
                 ->orderByRaw("FIELD(type, 'reguler', 'shift_1', 'shift_2', 'shift_3', 'custom')")

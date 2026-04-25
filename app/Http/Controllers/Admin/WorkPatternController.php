@@ -140,6 +140,10 @@ class WorkPatternController extends Controller
             'end_time' => 'nullable|date_format:H:i|required_with:start_time',
             'break_start_time' => 'nullable|date_format:H:i|required_with:break_end_time',
             'break_end_time' => 'nullable|date_format:H:i|required_with:break_start_time',
+            'sixth_day_start_time' => 'nullable|date_format:H:i|required_with:sixth_day_end_time',
+            'sixth_day_end_time' => 'nullable|date_format:H:i|required_with:sixth_day_start_time',
+            'sixth_day_break_start_time' => 'nullable|date_format:H:i|required_with:sixth_day_break_end_time',
+            'sixth_day_break_end_time' => 'nullable|date_format:H:i|required_with:sixth_day_break_start_time',
             'national_holiday_as_off' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
             'description' => 'nullable|string|max:2000',
@@ -180,12 +184,28 @@ class WorkPatternController extends Controller
         }
 
         if (
+            (filled($validated['sixth_day_break_start_time'] ?? null) || filled($validated['sixth_day_break_end_time'] ?? null))
+            && (!filled($validated['sixth_day_start_time'] ?? null) || !filled($validated['sixth_day_end_time'] ?? null))
+        ) {
+            throw ValidationException::withMessages([
+                'sixth_day_break_start_time' => 'Jam istirahat hari ke-6 hanya bisa diisi jika jam masuk dan jam pulang hari ke-6 juga diatur.',
+            ]);
+        }
+
+        if (
             (filled($validated['break_start_time'] ?? null) || filled($validated['break_end_time'] ?? null))
             && (!filled($validated['start_time'] ?? null) || !filled($validated['end_time'] ?? null))
         ) {
             throw ValidationException::withMessages([
                 'break_start_time' => 'Jam istirahat hanya bisa diisi jika jam masuk dan jam pulang juga diatur.',
             ]);
+        }
+
+        if (($validated['pattern_basis'] ?? WorkPattern::BASIS_CYCLE) !== WorkPattern::BASIS_WEEKLY || count($validated['weekly_work_days'] ?? []) < 6) {
+            $validated['sixth_day_start_time'] = null;
+            $validated['sixth_day_end_time'] = null;
+            $validated['sixth_day_break_start_time'] = null;
+            $validated['sixth_day_break_end_time'] = null;
         }
 
         if (filled($validated['start_time'] ?? null)) {
@@ -202,6 +222,22 @@ class WorkPatternController extends Controller
 
         if (filled($validated['break_end_time'] ?? null)) {
             $validated['break_end_time'] .= ':00';
+        }
+
+        if (filled($validated['sixth_day_start_time'] ?? null)) {
+            $validated['sixth_day_start_time'] .= ':00';
+        }
+
+        if (filled($validated['sixth_day_end_time'] ?? null)) {
+            $validated['sixth_day_end_time'] .= ':00';
+        }
+
+        if (filled($validated['sixth_day_break_start_time'] ?? null)) {
+            $validated['sixth_day_break_start_time'] .= ':00';
+        }
+
+        if (filled($validated['sixth_day_break_end_time'] ?? null)) {
+            $validated['sixth_day_break_end_time'] .= ':00';
         }
 
         $validated['is_active'] = $request->boolean('is_active');

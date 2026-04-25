@@ -10,6 +10,10 @@
             'name' => '6:1 Hari Kerja Mingguan',
             'basis' => \App\Models\WorkPattern::BASIS_WEEKLY,
             'weekly_days' => ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'],
+            'sixth_day_start_time' => '08:00',
+            'sixth_day_break_start_time' => '12:00',
+            'sixth_day_break_end_time' => '13:00',
+            'sixth_day_end_time' => '14:00',
         ],
         'weekly_5_2' => [
             'code' => '5-2-MGG',
@@ -204,6 +208,34 @@
                         <small class="text-muted">Opsional. Jika diisi, sistem akan menghitung jam kerja efektif setelah istirahat.</small>
                         @error('break_end_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
+                    <div class="col-12 js-sixth-day-section">
+                        <div class="border rounded p-3 bg-light-subtle">
+                            <h6 class="mb-1">Jam Kerja Hari ke-6 Mingguan</h6>
+                            <small class="text-muted d-block mb-3">Opsional. Dipakai khusus untuk pola mingguan yang memiliki minimal 6 hari kerja, misalnya Sabtu lebih singkat pada pola 6:1 mingguan.</small>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Jam Masuk Hari ke-6</label>
+                                    <input type="time" id="sixthDayStartTime" name="sixth_day_start_time" class="form-control js-sixth-day-input @error('sixth_day_start_time') is-invalid @enderror" value="{{ old('sixth_day_start_time') }}">
+                                    @error('sixth_day_start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Jam Pulang Hari ke-6</label>
+                                    <input type="time" id="sixthDayEndTime" name="sixth_day_end_time" class="form-control js-sixth-day-input @error('sixth_day_end_time') is-invalid @enderror" value="{{ old('sixth_day_end_time') }}">
+                                    @error('sixth_day_end_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Jam Istirahat Hari ke-6</label>
+                                    <input type="time" id="sixthDayBreakStartTime" name="sixth_day_break_start_time" class="form-control js-sixth-day-input @error('sixth_day_break_start_time') is-invalid @enderror" value="{{ old('sixth_day_break_start_time') }}">
+                                    @error('sixth_day_break_start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Jam Kembali Hari ke-6</label>
+                                    <input type="time" id="sixthDayBreakEndTime" name="sixth_day_break_end_time" class="form-control js-sixth-day-input @error('sixth_day_break_end_time') is-invalid @enderror" value="{{ old('sixth_day_break_end_time') }}">
+                                    @error('sixth_day_break_end_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col-md-12">
                         <div class="form-check">
                             <input type="hidden" name="national_holiday_as_off" value="0">
@@ -250,6 +282,12 @@
         const codeInput = document.getElementById('patternCode');
         const nameInput = document.getElementById('patternName');
         const nationalHolidayCheckbox = document.getElementById('national_holiday_as_off');
+        const sixthDaySection = document.querySelector('.js-sixth-day-section');
+        const sixthDayInputs = Array.from(document.querySelectorAll('.js-sixth-day-input'));
+        const sixthDayStartTime = document.getElementById('sixthDayStartTime');
+        const sixthDayEndTime = document.getElementById('sixthDayEndTime');
+        const sixthDayBreakStartTime = document.getElementById('sixthDayBreakStartTime');
+        const sixthDayBreakEndTime = document.getElementById('sixthDayBreakEndTime');
         const weekdayCheckboxes = Array.from(document.querySelectorAll('.js-weekday-checkbox'));
         const presetButtons = Array.from(document.querySelectorAll('.js-pattern-preset'));
         const weeklyValue = '{{ \App\Models\WorkPattern::BASIS_WEEKLY }}';
@@ -278,10 +316,25 @@
             offDurationUnit.disabled = true;
         }
 
+        function toggleSixthDaySection() {
+            if (!sixthDaySection) {
+                return;
+            }
+
+            const checkedDays = weekdayCheckboxes.filter((checkbox) => checkbox.checked).length;
+            const shouldShow = basisSelect.value === weeklyValue && checkedDays >= 6;
+
+            sixthDaySection.style.display = shouldShow ? '' : 'none';
+            sixthDayInputs.forEach(function (input) {
+                input.disabled = !shouldShow;
+            });
+        }
+
         function togglePatternSections() {
             const isWeekly = basisSelect.value === weeklyValue;
             weeklySection.style.display = isWeekly ? '' : 'none';
             syncWeeklyDurations();
+            toggleSixthDaySection();
         }
 
         function applyPreset(preset) {
@@ -303,6 +356,22 @@
                 checkbox.checked = Array.isArray(preset.weekly_days) && preset.weekly_days.includes(checkbox.value);
             });
 
+            if (sixthDayStartTime) {
+                sixthDayStartTime.value = preset.sixth_day_start_time || '';
+            }
+
+            if (sixthDayEndTime) {
+                sixthDayEndTime.value = preset.sixth_day_end_time || '';
+            }
+
+            if (sixthDayBreakStartTime) {
+                sixthDayBreakStartTime.value = preset.sixth_day_break_start_time || '';
+            }
+
+            if (sixthDayBreakEndTime) {
+                sixthDayBreakEndTime.value = preset.sixth_day_break_end_time || '';
+            }
+
             if (basisSelect.value !== weeklyValue) {
                 workDurationValue.readOnly = false;
                 offDurationValue.readOnly = false;
@@ -318,7 +387,10 @@
         }
 
         basisSelect.addEventListener('change', togglePatternSections);
-        weekdayCheckboxes.forEach((checkbox) => checkbox.addEventListener('change', syncWeeklyDurations));
+        weekdayCheckboxes.forEach((checkbox) => checkbox.addEventListener('change', function () {
+            syncWeeklyDurations();
+            toggleSixthDaySection();
+        }));
         presetButtons.forEach((button) => {
             button.addEventListener('click', function () {
                 applyPreset(JSON.parse(this.dataset.preset || '{}'));

@@ -3,22 +3,6 @@
 @section('title', 'Detail Perintah Lembur')
 
 @section('content')
-@php
-    $attendanceOutcome = 'Menunggu hari lembur';
-
-    if ($overtimeOrder->employee_response_status === \App\Models\OvertimeOrder::RESPONSE_REJECTED) {
-        $attendanceOutcome = 'Tidak berlaku karena ditolak karyawan';
-    } elseif ($overtimeOrder->employee_response_status === \App\Models\OvertimeOrder::RESPONSE_ACCEPTED) {
-        if ($attendanceRecord && ($attendanceRecord->jam_masuk || $attendanceRecord->jam_pulang)) {
-            $attendanceOutcome = 'Hadir';
-        } elseif ($overtimeOrder->isPastDate()) {
-            $attendanceOutcome = 'Alpa';
-        } else {
-            $attendanceOutcome = 'Menunggu kehadiran';
-        }
-    }
-@endphp
-
 <div class="container-fluid">
     <div class="page-inner">
         <div class="d-flex justify-content-between align-items-center pt-2 pb-4">
@@ -85,7 +69,9 @@
                         </div>
                         <div>
                             <div class="small text-muted">Hasil Kehadiran</div>
-                            <div class="fw-semibold">{{ $attendanceOutcome }}</div>
+                            <span class="badge bg-{{ $attendanceOutcome['badge_class'] ?? 'secondary' }}">
+                                {{ $attendanceOutcome['label'] ?? '-' }}
+                            </span>
                         </div>
                         @if($attendanceRecord)
                             <div>

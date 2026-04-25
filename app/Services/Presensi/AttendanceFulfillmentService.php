@@ -9,9 +9,10 @@ use Carbon\Carbon;
 
 class AttendanceFulfillmentService
 {
-    public function evaluate(?Presensi $presensi, $scheduleSource): array
+    public function evaluate(?Presensi $presensi, $scheduleSource, $date = null): array
     {
-        $expectedMinutes = $scheduleSource ? $scheduleSource->expected_work_minutes : null;
+        $scheduleData = $this->resolveScheduleData($scheduleSource, $date ?: optional($presensi)->tanggal);
+        $expectedMinutes = $scheduleData['expected_work_minutes'];
 
         if (!$scheduleSource || $expectedMinutes === null) {
             return [
@@ -52,7 +53,7 @@ class AttendanceFulfillmentService
             ];
         }
 
-        $actualMinutes = $this->resolveActualWorkMinutes($presensi, $scheduleSource);
+        $actualMinutes = $this->resolveActualWorkMinutes($presensi, $scheduleData);
 
         if ($actualMinutes >= $expectedMinutes) {
             return [
@@ -89,7 +90,32 @@ class AttendanceFulfillmentService
         ];
     }
 
-    private function resolveActualWorkMinutes(Presensi $presensi, $scheduleSource): int
+    public function resolveScheduleData($scheduleSource, $date = null): array
+    {
+        if (!$scheduleSource) {
+            return [
+                'expected_work_minutes' => null,
+                'scheduled_break_minutes' => 0,
+                'work_time_range_text' => 'Belum diatur',
+                'break_time_range_text' => 'Tidak diatur',
+                'expected_work_duration_text' => 'Belum diatur',
+            ];
+        }
+
+        if (method_exists($scheduleSource, 'resolveScheduleForDate')) {
+            return $scheduleSource->resolveScheduleForDate($date);
+        }
+
+        return [
+            'expected_work_minutes' => $scheduleSource->expected_work_minutes,
+            'scheduled_break_minutes' => $scheduleSource->scheduled_break_minutes,
+            'work_time_range_text' => $scheduleSource->work_time_range_text,
+            'break_time_range_text' => $scheduleSource->break_time_range_text,
+            'expected_work_duration_text' => $scheduleSource->expected_work_duration_text,
+        ];
+    }
+
+    private function resolveActualWorkMinutes(Presensi $presensi, array $scheduleData): int
     {
         $start = Carbon::parse($presensi->jam_masuk);
         $end = Carbon::parse($presensi->jam_pulang);
@@ -99,12 +125,12 @@ class AttendanceFulfillmentService
         }
 
         $grossMinutes = $start->diffInMinutes($end);
-        $breakMinutes = $this->resolveBreakMinutes($presensi, $scheduleSource, $start, $end);
+        $breakMinutes = $this->resolveBreakMinutes($presensi, $scheduleData, $start, $end);
 
         return max($grossMinutes - $breakMinutes, 0);
     }
 
-    private function resolveBreakMinutes(Presensi $presensi, $scheduleSource, Carbon $shiftStart, Carbon $shiftEnd): int
+    private function resolveBreakMinutes(Presensi $presensi, array $scheduleData, Carbon $shiftStart, Carbon $shiftEnd): int
     {
         if ($presensi->jam_istirahat && $presensi->jam_kembali_istirahat) {
             $breakStart = Carbon::parse($presensi->jam_istirahat);
@@ -121,7 +147,7 @@ class AttendanceFulfillmentService
             return $this->calculateOverlapMinutes($shiftStart, $shiftEnd, $breakStart, $breakEnd);
         }
 
-        return $scheduleSource->scheduled_break_minutes;
+        return $scheduleData['scheduled_break_minutes'] ?? 0;
     }
 
     private function calculateOverlapMinutes(Carbon $rangeStart, Carbon $rangeEnd, Carbon $windowStart, Carbon $windowEnd): int

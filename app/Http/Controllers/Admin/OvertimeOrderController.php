@@ -7,11 +7,15 @@ use App\Models\Employee;
 use App\Models\OvertimeOrder;
 use App\Models\Presensi;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Presensi\OvertimeOrderService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class OvertimeOrderController extends Controller
 {
+    private const EMPLOYEE_AREA_CODES = ['VDNI', 'VDNIP'];
+
     public function index(Request $request)
     {
         $title = 'Delete Data!';
@@ -37,24 +41,77 @@ class OvertimeOrderController extends Controller
 
     public function create(Request $request)
     {
+        $selectedEmployee = null;
+        $selectedNik = old('nik_karyawan');
+
+        if (filled($selectedNik)) {
+            $selectedEmployee = $this->buildSelectableEmployeeQuery($request)
+                ->where('nik', $selectedNik)
+                ->first();
+        }
+
         return view('admin.overtime-orders.create', [
-            'employees' => $request->user()
-                ->applyEmployeeScope(Employee::query()->with('workPattern'))
-                ->where('status_resign', 'AKTIF')
-                ->orderBy('nama_karyawan')
-                ->get(['nik', 'nama_karyawan', 'divisi_id', 'departemen_id', 'work_pattern_id']),
+            'selectedEmployee' => $selectedEmployee,
             'typeOptions' => $this->typeOptions(),
+        ]);
+    }
+
+    public function searchEmployees(Request $request)
+    {
+        $term = trim((string) $request->input('q', ''));
+        $page = max((int) $request->input('page', 1), 1);
+        $perPage = 20;
+
+        if (strlen($term) < 2) {
+            return response()->json([
+                'results' => [],
+                'pagination' => ['more' => false],
+            ]);
+        }
+
+        $employees = $this->buildSelectableEmployeeQuery($request)
+            ->where(function ($query) use ($term) {
+                $like = '%' . $term . '%';
+
+                $query->where('nik', 'like', $like)
+                    ->orWhere('nama_karyawan', 'like', $like)
+                    ->orWhereHas('departemen', function ($departemenQuery) use ($like) {
+                        $departemenQuery->where('departemen', 'like', $like);
+                    })
+                    ->orWhereHas('divisi', function ($divisiQuery) use ($like) {
+                        $divisiQuery->where('nama_divisi', 'like', $like);
+                    });
+            })
+            ->orderBy('nama_karyawan')
+            ->offset(($page - 1) * $perPage)
+            ->limit($perPage + 1)
+            ->get();
+
+        $hasMore = $employees->count() > $perPage;
+
+        return response()->json([
+            'results' => $employees
+                ->take($perPage)
+                ->map(fn(Employee $employee) => $this->formatEmployeeSelectOption($employee))
+                ->values(),
+            'pagination' => [
+                'more' => $hasMore,
+            ],
         ]);
     }
 
     public function store(Request $request)
     {
         $validated = $this->validateRequest($request);
-        $employee = $request->user()
-            ->applyEmployeeScope(Employee::query())
+        $employee = $this->buildSelectableEmployeeQuery($request)
             ->where('nik', $validated['nik_karyawan'])
-            ->where('status_resign', 'AKTIF')
-            ->firstOrFail();
+            ->first();
+
+        if (!$employee) {
+            throw ValidationException::withMessages([
+                'nik_karyawan' => 'Karyawan tidak tersedia dalam scope departemen/divisi Anda atau bukan karyawan aktif VDNI/VDNIP.',
+            ]);
+        }
 
         $validated['requested_by_user_id'] = $request->user()->id;
         $validated['required_minutes'] = $this->calculateRequiredMinutes(
@@ -86,12 +143,15 @@ class OvertimeOrderController extends Controller
             )
             ->findOrFail($id);
 
+        $attendanceRecord = Presensi::query()
+            ->where('nik_karyawan', $overtimeOrder->nik_karyawan)
+            ->whereDate('tanggal', $overtimeOrder->overtime_date)
+            ->first();
+
         return view('admin.overtime-orders.show', [
             'overtimeOrder' => $overtimeOrder,
-            'attendanceRecord' => Presensi::query()
-                ->where('nik_karyawan', $overtimeOrder->nik_karyawan)
-                ->whereDate('tanggal', $overtimeOrder->overtime_date)
-                ->first(),
+            'attendanceRecord' => $attendanceRecord,
+            'attendanceOutcome' => app(OvertimeOrderService::class)->evaluateAttendance($overtimeOrder, $attendanceRecord),
         ]);
     }
 
@@ -123,15 +183,23 @@ class OvertimeOrderController extends Controller
 
     private function validateRequest(Request $request): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'nik_karyawan' => 'required|string|exists:employees,nik',
             'overtime_type' => ['required', Rule::in(array_keys($this->typeOptions()))],
             'overtime_date' => 'required|date|after_or_equal:today',
             'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
+            'end_time' => 'required|date_format:H:i',
             'reason' => 'required|string|max:2000',
             'instruction_notes' => 'nullable|string|max:2000',
         ]);
+
+        if ($validated['start_time'] === $validated['end_time']) {
+            throw ValidationException::withMessages([
+                'end_time' => 'Jam selesai lembur tidak boleh sama dengan jam mulai.',
+            ]);
+        }
+
+        return $validated;
     }
 
     private function calculateRequiredMinutes(?string $startTime, ?string $endTime): ?int
@@ -144,7 +212,7 @@ class OvertimeOrderController extends Controller
         $end = strtotime($endTime);
 
         if ($end <= $start) {
-            return null;
+            $end += 24 * 60 * 60;
         }
 
         return (int) round(($end - $start) / 60);
@@ -165,6 +233,43 @@ class OvertimeOrderController extends Controller
             OvertimeOrder::RESPONSE_PENDING => 'Menunggu Respons',
             OvertimeOrder::RESPONSE_ACCEPTED => 'Disetujui Karyawan',
             OvertimeOrder::RESPONSE_REJECTED => 'Ditolak Karyawan',
+        ];
+    }
+
+    private function buildSelectableEmployeeQuery(Request $request)
+    {
+        $query = Employee::query()
+            ->with([
+                'workPattern:id,code',
+                'departemen:id,departemen,perusahaan_id',
+                'departemen.perusahaan:id,kode_perusahaan,nama_perusahaan',
+                'divisi:id,nama_divisi,departemen_id',
+            ])
+            ->where('status_resign', 'AKTIF')
+            ->where(function ($employeeQuery) {
+                $employeeQuery
+                    ->whereIn('area_kerja', self::EMPLOYEE_AREA_CODES)
+                    ->orWhereHas('departemen.perusahaan', function ($companyQuery) {
+                        $companyQuery->whereIn('kode_perusahaan', self::EMPLOYEE_AREA_CODES);
+                    });
+            });
+
+        return $request->user()->applyEmployeeScope($query);
+    }
+
+    private function formatEmployeeSelectOption(Employee $employee): array
+    {
+        $companyCode = optional(optional($employee->departemen)->perusahaan)->kode_perusahaan;
+        $departmentName = optional($employee->departemen)->departemen;
+        $divisionName = optional($employee->divisi)->nama_divisi;
+        $workPatternCode = optional($employee->workPattern)->code;
+        $details = collect([$companyCode, $departmentName, $divisionName, $workPatternCode ? 'Pola ' . $workPatternCode : null])
+            ->filter()
+            ->implode(' | ');
+
+        return [
+            'id' => $employee->nik,
+            'text' => trim($employee->nama_karyawan . ' - ' . $employee->nik . ($details ? ' | ' . $details : '')),
         ];
     }
 }

@@ -12,6 +12,10 @@ class Presensi extends Model
 
     protected $casts = [
         'tanggal' => 'date:Y-m-d',
+        'jam_masuk' => 'datetime',
+        'jam_istirahat' => 'datetime',
+        'jam_kembali_istirahat' => 'datetime',
+        'jam_pulang' => 'datetime',
     ];
 
     public function employee()

@@ -8,6 +8,20 @@
 
 @php
     $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
+    $formatPresensiClock = function ($value, $attendanceDate = null, $empty = '--:--') {
+        if (!$value) {
+            return $empty;
+        }
+
+        $clock = \Carbon\Carbon::parse($value);
+        $suffix = '';
+
+        if ($attendanceDate && $clock->toDateString() > \Carbon\Carbon::parse($attendanceDate)->toDateString()) {
+            $suffix = ' +1';
+        }
+
+        return $clock->format('H:i') . $suffix;
+    };
 @endphp
 
 <div class="container-fluid">
@@ -37,9 +51,17 @@
 
         @if (!empty($activeOvertimeOrder))
         <div class="alert alert-info d-flex flex-column gap-1">
-            <strong>Perintah lembur aktif hari ini: {{ $activeOvertimeOrder->type_label }}</strong>
+            <strong>Perintah lembur aktif tanggal presensi: {{ $activeOvertimeOrder->type_label }}</strong>
             <span>Jadwal: {{ $activeOvertimeOrder->overtime_date->translatedFormat('d M Y') }} | {{ $activeOvertimeOrder->time_range_text }}</span>
-            <span>Karena Anda sudah menyetujui perintah lembur ini, kehadiran hari ini wajib dicatat melalui presensi.</span>
+            <span>Karena Anda sudah menyetujui perintah lembur ini, kehadiran pada tanggal tersebut wajib dicatat melalui presensi.</span>
+        </div>
+        @endif
+
+        @if($isCrossDayAttendance)
+        <div class="alert alert-warning d-flex flex-column gap-1">
+            <strong>Mode presensi lintas hari aktif</strong>
+            <span>Sistem sedang menyelesaikan presensi tanggal {{ formatDateIndonesia($activeAttendanceDate) }} karena shift sebelumnya belum ditutup.</span>
+            <span>Jam pulang setelah tengah malam akan tetap masuk ke tanggal presensi tersebut.</span>
         </div>
         @endif
 
@@ -51,11 +73,15 @@
                     Belum diassign
                 @endif
             </strong>
-            <span>Shift hari ini: {{ $currentShift ? $currentShift->code . ' - ' . $currentShift->name : 'AUTO / mengikuti pola kerja' }}</span>
-            <span>Target jam kerja: {{ optional($currentScheduleSource)->work_time_range_text ?? 'Belum diatur' }} @if($currentScheduleSource) ({{ $currentScheduleSource->expected_work_duration_text }}) @endif</span>
-            <span>Jadwal istirahat: {{ optional($currentScheduleSource)->break_time_range_text ?? 'Tidak diatur' }}</span>
+            <span>Tanggal presensi aktif: {{ formatDateIndonesia($activeAttendanceDate) }}</span>
+            <span>Shift tanggal presensi: {{ $currentShift ? $currentShift->code . ' - ' . $currentShift->name : 'AUTO / mengikuti pola kerja' }}</span>
+            <span>Target jam kerja: {{ $currentScheduleData['work_time_range_text'] ?? 'Belum diatur' }} @if(!empty($currentScheduleData['expected_work_duration_text'])) ({{ $currentScheduleData['expected_work_duration_text'] }}) @endif</span>
+            <span>Jadwal istirahat: {{ $currentScheduleData['break_time_range_text'] ?? 'Tidak diatur' }}</span>
+            @if(!empty($currentScheduleData['uses_sixth_day_schedule']))
+            <span>Tanggal ini memakai jam kerja khusus hari ke-6 pada pola mingguan.</span>
+            @endif
             <span>
-                Status pemenuhan hari ini:
+                Status pemenuhan tanggal presensi:
                 <span class="badge bg-{{ $todayFulfillment['badge_class'] }}">{{ $todayFulfillment['label'] }}</span>
                 <span class="text-muted">{{ $todayFulfillment['description'] }}</span>
             </span>
@@ -71,8 +97,8 @@
             $actionText = 'Ambil selfie terlebih dahulu, tunggu matching berhasil, lalu lanjutkan presensi saat GPS valid.';
 
             if ($statusPresensiHariIni) {
-                $actionTitle = 'Status presensi hari ini';
-                $actionText = 'Hari ini tercatat sebagai ' . $statusPresensiHariIni . '. Presensi jam tidak diperlukan.';
+                $actionTitle = 'Status presensi tanggal aktif';
+                $actionText = 'Tanggal presensi ini tercatat sebagai ' . $statusPresensiHariIni . '. Presensi jam tidak diperlukan.';
             } elseif (!$absensiHariIni || !$absensiHariIni->jam_masuk) {
                 $nextType = 'masuk';
                 $label = 'Absen Masuk';
@@ -99,8 +125,8 @@
                 $label = 'Absen Pulang';
                 $btnClass = 'btn-danger';
                 $btnIcon = 'fas fa-sign-out-alt';
-                $actionTitle = 'Tutup presensi hari ini';
-                $actionText = 'Ambil selfie terakhir hari ini, tunggu matching, lalu lakukan presensi pulang.';
+                $actionTitle = 'Tutup presensi tanggal aktif';
+                $actionText = 'Ambil selfie terakhir, tunggu matching, lalu lakukan presensi pulang.';
             }
 
             $requiresFaceStep = (bool) ($nextType && $faceReferencePath);
@@ -313,25 +339,25 @@
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
                                             <span class="attendance-metric__label">Masuk</span>
-                                            <div class="attendance-metric__time">{{ $absensiHariIni->jam_masuk ?? '--:--' }}</div>
+                                            <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_masuk ?? null, optional($absensiHariIni)->tanggal) }}</div>
                                         </div>
                                     </div>
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
                                             <span class="attendance-metric__label">Istirahat</span>
-                                            <div class="attendance-metric__time">{{ $absensiHariIni->jam_istirahat ?? '--:--' }}</div>
+                                            <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_istirahat ?? null, optional($absensiHariIni)->tanggal) }}</div>
                                         </div>
                                     </div>
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
                                             <span class="attendance-metric__label">Kembali</span>
-                                            <div class="attendance-metric__time">{{ $absensiHariIni->jam_kembali_istirahat ?? '--:--' }}</div>
+                                            <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_kembali_istirahat ?? null, optional($absensiHariIni)->tanggal) }}</div>
                                         </div>
                                     </div>
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
                                             <span class="attendance-metric__label">Pulang</span>
-                                            <div class="attendance-metric__time">{{ $absensiHariIni->jam_pulang ?? '--:--' }}</div>
+                                            <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_pulang ?? null, optional($absensiHariIni)->tanggal) }}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -414,10 +440,10 @@
                             <td>{{ formatDateIndonesia($item->tanggal) }}</td>
                             <td>{{ \App\Models\Presensi::shortStatus($item->status_presensi) ?? '-' }}</td>
                             <td>{{ optional($item->resolved_shift)->code ?? 'AUTO' }}</td>
-                            <td>{{ $item->jam_masuk ?? '-' }}</td>
-                            <td>{{ $item->jam_istirahat ?? '-' }}</td>
-                            <td>{{ $item->jam_kembali_istirahat ?? '-' }}</td>
-                            <td>{{ $item->jam_pulang ?? '-' }}</td>
+                            <td>{{ $formatPresensiClock($item->jam_masuk, $item->tanggal, '-') }}</td>
+                            <td>{{ $formatPresensiClock($item->jam_istirahat, $item->tanggal, '-') }}</td>
+                            <td>{{ $formatPresensiClock($item->jam_kembali_istirahat, $item->tanggal, '-') }}</td>
+                            <td>{{ $formatPresensiClock($item->jam_pulang, $item->tanggal, '-') }}</td>
                             <td>
                                 @if($fulfillment)
                                     <span class="badge bg-{{ $fulfillment['badge_class'] }}">{{ $fulfillment['label'] }}</span>

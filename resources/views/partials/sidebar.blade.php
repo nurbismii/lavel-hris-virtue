@@ -264,7 +264,7 @@
                     </li>
                 @endif
 
-                @if($can('setting_hari_off') || $can('jadwal_kerja') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan'))
+                @if($can('setting_hari_off') || $can('master_tanggal_merah') || $can('jadwal_kerja') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan'))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -276,8 +276,17 @@
                 @if($can('setting_hari_off'))
                     <li class="nav-item {{ request()->routeIs('set-kehadiran.*') ? 'active' : '' }}">
                         <a href="{{ route('set-kehadiran.index') }}">
-                            <i class="fas fa-cog"></i>
+                            <i class="fas fa-cogs"></i>
                             <p>Setting Hari Off</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('master_tanggal_merah'))
+                    <li class="nav-item {{ request()->routeIs('national-holidays.*') ? 'active' : '' }}">
+                        <a href="{{ route('national-holidays.index') }}">
+                            <i class="fas fa-calendar"></i>
+                            <p>Master Tanggal Merah</p>
                         </a>
                     </li>
                 @endif
@@ -285,7 +294,7 @@
                 @if($can('jadwal_kerja'))
                     <li class="nav-item {{ request()->routeIs('work-patterns.*') ? 'active' : '' }}">
                         <a href="{{ route('work-patterns.index') }}">
-                            <i class="fas fa-cog"></i>
+                            <i class="fas fa-spinner"></i>
                             <p>Master Jadwal Kerja</p>
                         </a>
                     </li>
@@ -294,7 +303,7 @@
                 @if($can('master_shift'))
                     <li class="nav-item {{ request()->routeIs('shifts.*') ? 'active' : '' }}">
                         <a href="{{ route('shifts.index') }}">
-                            <i class="fas fa-cogs"></i>
+                            <i class="fas fa-user-clock"></i>
                             <p>Master Shift</p>
                         </a>
                     </li>

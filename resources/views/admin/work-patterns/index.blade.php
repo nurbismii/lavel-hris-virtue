@@ -146,6 +146,9 @@
                                         <div>{{ $workPattern->work_time_range_text }}</div>
                                         <small class="text-muted d-block">Istirahat: {{ $workPattern->break_time_range_text }}</small>
                                         <small class="text-muted d-block">Efektif: {{ $workPattern->expected_work_duration_text }}</small>
+                                        @if($workPattern->hasSixthDaySchedule())
+                                            <small class="text-muted d-block">Hari ke-6: {{ $workPattern->sixth_day_work_time_range_text }} | Istirahat {{ $workPattern->sixth_day_break_time_range_text }} | Efektif {{ $workPattern->sixth_day_expected_work_duration_text }}</small>
+                                        @endif
                                     </td>
                                     <td>{{ $workPattern->national_holiday_rule_label }}</td>
                                     <td>

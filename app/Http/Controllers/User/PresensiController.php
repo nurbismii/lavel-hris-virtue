@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\Presensi;
+use App\Services\Presensi\AttendanceDateResolverService;
 use App\Services\Presensi\AttendanceFulfillmentService;
 use App\Services\Presensi\ShiftAssignmentService;
 use App\Services\Presensi\AttendanceStatusService;
@@ -29,17 +30,22 @@ class PresensiController extends Controller
 
         $user = Auth::user();
         $karyawan = $user->employee;
-        $todayString = Carbon::today()->toDateString();
+        $karyawan->loadMissing('workPattern');
+        $now = Carbon::now();
+        $attendanceDateResolver = app(AttendanceDateResolverService::class);
+        $activeAttendanceContext = $attendanceDateResolver->resolve($karyawan, $now);
+        $activeAttendanceDateString = $activeAttendanceContext['date'];
+        $activeAttendanceDate = Carbon::parse($activeAttendanceDateString);
 
         $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
-        app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $todayString);
+        app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $activeAttendanceDateString);
         $overtimeService = app(OvertimeOrderService::class);
         $workScheduleService = app(WorkScheduleService::class);
         $attendanceFulfillmentService = app(AttendanceFulfillmentService::class);
-        $activeOvertimeOrder = $overtimeService->getAcceptedOrderForDate($user->nik_karyawan, $todayString);
+        $activeOvertimeOrder = $overtimeService->getAcceptedOrderForDate($user->nik_karyawan, $activeAttendanceDateString);
 
         $absensiHariIni = Presensi::where('nik_karyawan', Auth::user()->nik_karyawan)
-            ->whereDate('tanggal', today())
+            ->whereDate('tanggal', $activeAttendanceDateString)
             ->first();
 
         $today = Carbon::today();
@@ -52,12 +58,12 @@ class PresensiController extends Controller
             $end = Carbon::create($today->year, $today->month, 15);
         }
 
-        $karyawan->loadMissing('workPattern');
         $shiftAssignmentService = app(ShiftAssignmentService::class);
         $shiftAssignments = $shiftAssignmentService->getAssignmentsForEmployees([$user->nik_karyawan], $start, $end);
         $shiftAssignmentsByDate = $shiftAssignments->keyBy(fn($assignment) => Carbon::parse($assignment->shift_date)->toDateString());
-        $currentShift = optional($shiftAssignmentsByDate->get($todayString))->shift;
-        $currentScheduleSource = $currentShift ?: $karyawan->workPattern;
+        $currentShift = $activeAttendanceContext['shift'];
+        $currentScheduleSource = $activeAttendanceContext['schedule_source'];
+        $currentScheduleData = $activeAttendanceContext['schedule_data'];
 
         $presensiRecords = Presensi::where('nik_karyawan', $user->nik_karyawan)
             ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
@@ -101,14 +107,14 @@ class PresensiController extends Controller
                 $scheduleSource = $resolvedShift ?: $karyawan->workPattern;
 
                 $row->resolved_shift = $resolvedShift;
-                $row->attendance_fulfillment = $attendanceFulfillmentService->evaluate($row, $scheduleSource);
+                $row->attendance_fulfillment = $attendanceFulfillmentService->evaluate($row, $scheduleSource, $dateString);
 
                 return $row;
             })
             ->sortByDesc(fn($row) => Carbon::parse($row->tanggal)->timestamp)
             ->values();
 
-        $todayFulfillment = $attendanceFulfillmentService->evaluate($absensiHariIni, $currentScheduleSource);
+        $todayFulfillment = $attendanceFulfillmentService->evaluate($absensiHariIni, $currentScheduleSource, $activeAttendanceDateString);
 
         return view('user.presensi.index', [
             'presensi' => $presensiRecords,
@@ -117,10 +123,13 @@ class PresensiController extends Controller
             'cutoffStart' => $start,
             'cutoffEnd' => $end,
             'activeOvertimeOrder' => $activeOvertimeOrder,
+            'activeAttendanceDate' => $activeAttendanceDate,
+            'isCrossDayAttendance' => $activeAttendanceContext['is_cross_day'],
             'todayFulfillment' => $todayFulfillment,
             'workPattern' => $karyawan->workPattern,
             'currentShift' => $currentShift,
             'currentScheduleSource' => $currentScheduleSource,
+            'currentScheduleData' => $currentScheduleData,
         ]);
     }
 
@@ -128,12 +137,25 @@ class PresensiController extends Controller
     {
         $user = Auth::user();
         $karyawan = $user->employee;
-        $today = Carbon::today()->format('Y-m-d');
+        $karyawan->loadMissing('workPattern');
+        $now = Carbon::now();
+        $attendanceContext = app(AttendanceDateResolverService::class)->resolve($karyawan, $now);
+        $attendanceDate = $attendanceContext['date'];
 
-        $statusHariIni = app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $today);
+        if (
+            $type === 'masuk'
+            && $attendanceContext['is_cross_day']
+            && optional($attendanceContext['presensi'])->jam_masuk
+            && !optional($attendanceContext['presensi'])->jam_pulang
+        ) {
+            toast()->warning('Peringatan', 'Selesaikan presensi pulang shift sebelumnya terlebih dahulu.');
+            return back();
+        }
+
+        $statusHariIni = app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $attendanceDate);
 
         if ($statusHariIni) {
-            toast()->warning('Peringatan', 'Presensi hari ini berstatus ' . $statusHariIni . '. Tidak perlu absen jam.');
+            toast()->warning('Peringatan', 'Presensi tanggal ' . formatDateIndonesia($attendanceDate) . ' berstatus ' . $statusHariIni . '. Tidak perlu absen jam.');
             return back();
         }
 
@@ -211,7 +233,7 @@ class PresensiController extends Controller
         }
 
         $lastPresensi = Presensi::where('nik_karyawan', $user->nik_karyawan)
-            ->whereDate('tanggal', '<', $today)
+            ->whereDate('tanggal', '<', $attendanceDate)
             ->latest()
             ->first();
 
@@ -228,38 +250,10 @@ class PresensiController extends Controller
         }
 
         $isSuspicious = $securityScore < 60 ? 'TRUE' : 'FALSE';
-        $selfieFile = $request->hasFile('selfie_capture')
-            ? $request->file('selfie_capture')
-            : $this->makeFaceSelfieFromBase64($request->input('selfie_capture_data'));
-
-        if (!$selfieFile) {
-            toast()->error('Error', 'Selfie kamera tidak valid. Silakan ulangi verifikasi wajah.');
-            return back();
-        }
-
-        $selfiePath = $this->storeFaceSelfie($selfieFile, $user->nik_karyawan, $type);
-
-        $absensi = Presensi::updateOrCreate(
-            [
-                'nik_karyawan' => $user->nik_karyawan,
-                'tanggal' => $today,
-            ],
-            [
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'device_info' => $request->device_info,
-                'security_score' => $securityScore,
-                'is_suspicious' => $isSuspicious,
-                'face_selfie_path' => $selfiePath,
-                'face_verified' => true,
-                'face_verification_distance' => $request->face_distance,
-                'face_verified_at' => now(),
-                'face_verification_method' => 'face-api.js',
-                'face_verification_meta' => $request->face_verification_meta,
-            ]
-        );
-
-        $now = Carbon::now();
+        $absensi = Presensi::firstOrNew([
+            'nik_karyawan' => $user->nik_karyawan,
+            'tanggal' => $attendanceDate,
+        ]);
 
         switch ($type) {
             case 'masuk':
@@ -318,6 +312,27 @@ class PresensiController extends Controller
                 return back();
         }
 
+        $selfieFile = $request->hasFile('selfie_capture')
+            ? $request->file('selfie_capture')
+            : $this->makeFaceSelfieFromBase64($request->input('selfie_capture_data'));
+
+        if (!$selfieFile) {
+            toast()->error('Error', 'Selfie kamera tidak valid. Silakan ulangi verifikasi wajah.');
+            return back();
+        }
+
+        $selfiePath = $this->storeFaceSelfie($selfieFile, $user->nik_karyawan, $type);
+        $absensi->ip_address = $request->ip();
+        $absensi->user_agent = $request->userAgent();
+        $absensi->device_info = $request->device_info;
+        $absensi->security_score = $securityScore;
+        $absensi->is_suspicious = $isSuspicious;
+        $absensi->face_selfie_path = $selfiePath;
+        $absensi->face_verified = true;
+        $absensi->face_verification_distance = $request->face_distance;
+        $absensi->face_verified_at = now();
+        $absensi->face_verification_method = 'face-api.js';
+        $absensi->face_verification_meta = $request->face_verification_meta;
         $absensi->save();
 
         toast()->success('Success', 'Presensi berhasil dicatat.');

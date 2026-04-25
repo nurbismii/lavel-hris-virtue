@@ -22,6 +22,8 @@ class AttendanceSettingController extends Controller
 {
     use ValidatesZipUploads;
 
+    private const MATRIX_EMPLOYEE_LIMIT = 500;
+
     public function index(Request $request)
     {
         $periode = $request->periode ?? now()->format('Y-m');
@@ -89,28 +91,28 @@ class AttendanceSettingController extends Controller
             $selectedDivisiId = null;
         }
 
+        $requiresDivisionFilter = $selectedDepartemenId && !$selectedDivisiId && $divisis->count() > 1;
+        $employeeLimitExceeded = false;
+        $matrixEmployeeLimit = self::MATRIX_EMPLOYEE_LIMIT;
         $employees = collect();
         $offData = collect();
-        $nationalHolidays = collect();
         $nationalHolidaysByDate = collect();
-        $canManageNationalHolidays = $user->hasRole(['Super Admin', 'HR']);
         $isNationalHolidayTableReady = Schema::hasTable('national_holidays');
 
         if ($isNationalHolidayTableReady) {
-            $nationalHolidays = NationalHoliday::query()
+            $nationalHolidaysByDate = NationalHoliday::query()
                 ->whereBetween('holiday_date', [
                     $start->copy()->startOfYear()->toDateString(),
                     $end->copy()->endOfYear()->toDateString(),
                 ])
                 ->orderBy('holiday_date')
-                ->get();
-
-            $nationalHolidaysByDate = $nationalHolidays->keyBy(function ($holiday) {
-                return $holiday->holiday_date->toDateString();
-            });
+                ->get()
+                ->keyBy(function ($holiday) {
+                    return $holiday->holiday_date->toDateString();
+                });
         }
 
-        if ($selectedDepartemenId) {
+        if ($selectedDepartemenId && !$requiresDivisionFilter) {
             $employees = Employee::with(['divisi', 'departemen', 'workPattern'])
                 ->where('departemen_id', $selectedDepartemenId)
                 ->where('status_resign', 'AKTIF')
@@ -122,7 +124,13 @@ class AttendanceSettingController extends Controller
 
             $employees = $employees
                 ->orderBy('nama_karyawan')
+                ->limit($matrixEmployeeLimit + 1)
                 ->get();
+
+            if ($employees->count() > $matrixEmployeeLimit) {
+                $employeeLimitExceeded = true;
+                $employees = $employees->take($matrixEmployeeLimit)->values();
+            }
 
             if ($employees->isNotEmpty()) {
                 $offData = EmployeeAttendanceSetting::whereBetween('tanggal', [
@@ -159,10 +167,10 @@ class AttendanceSettingController extends Controller
             'isDivisionScoped',
             'isDepartmentReadonly',
             'isDivisionReadonly',
-            'nationalHolidays',
             'nationalHolidaysByDate',
-            'canManageNationalHolidays',
-            'isNationalHolidayTableReady'
+            'requiresDivisionFilter',
+            'employeeLimitExceeded',
+            'matrixEmployeeLimit'
         ));
     }
 
@@ -278,51 +286,6 @@ class AttendanceSettingController extends Controller
 
         toast()->success('Success', $message);
         return redirect()->to($redirectUrl);
-    }
-
-    public function storeNationalHoliday(Request $request)
-    {
-        if (!Schema::hasTable('national_holidays')) {
-            toast()->error('Error', 'Tabel tanggal merah nasional belum tersedia. Jalankan migrate terlebih dahulu.');
-            return redirect()->route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
-        }
-
-        $validated = $request->validate([
-            'holiday_date' => 'required|date',
-            'holiday_name' => 'required|string|max:150',
-        ]);
-
-        $holiday = NationalHoliday::firstOrNew([
-            'holiday_date' => $validated['holiday_date'],
-        ]);
-
-        $isNewRecord = !$holiday->exists;
-        $holiday->holiday_name = $validated['holiday_name'];
-        $holiday->updated_by = $request->user()->id;
-
-        if ($isNewRecord) {
-            $holiday->created_by = $request->user()->id;
-        }
-
-        $holiday->save();
-
-        toast()->success(
-            'Success',
-            $isNewRecord
-                ? 'Tanggal merah nasional berhasil ditambahkan.'
-                : 'Tanggal merah nasional berhasil diperbarui.'
-        );
-
-        return redirect()->route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
-    }
-
-    public function destroyNationalHoliday(Request $request, NationalHoliday $nationalHoliday)
-    {
-        $nationalHoliday->delete();
-
-        toast()->success('Success', 'Tanggal merah nasional berhasil dihapus.');
-
-        return redirect()->route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
     }
 
 }

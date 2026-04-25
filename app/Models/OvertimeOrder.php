@@ -85,7 +85,15 @@ class OvertimeOrder extends Model
             return '-';
         }
 
-        return trim(($this->start_time ?: '--:--') . ' - ' . ($this->end_time ?: '--:--'));
+        $overnightLabel = '';
+
+        if ($this->start_time && $this->end_time) {
+            $start = Carbon::parse($this->start_time);
+            $end = Carbon::parse($this->end_time);
+            $overnightLabel = $end->lessThanOrEqualTo($start) ? ' (+1 hari)' : '';
+        }
+
+        return trim($this->formatTime($this->start_time) . ' - ' . $this->formatTime($this->end_time) . $overnightLabel);
     }
 
     public function isPastDate(): bool
@@ -106,5 +114,10 @@ class OvertimeOrder extends Model
             Carbon::parse($startDate)->toDateString(),
             Carbon::parse($endDate)->toDateString(),
         ]);
+    }
+
+    private function formatTime(?string $time): string
+    {
+        return $time ? Carbon::parse($time)->format('H:i') : '--:--';
     }
 }

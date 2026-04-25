@@ -69,6 +69,10 @@ $menus = [
         'label' => 'Setting Hari Off',
         'group' => 'Operasional',
     ],
+    'master_tanggal_merah' => [
+        'label' => 'Master Tanggal Merah',
+        'group' => 'Operasional',
+    ],
     'jadwal_kerja' => [
         'label' => 'Master Jadwal Kerja',
         'group' => 'Operasional',
@@ -162,6 +166,7 @@ return [
             'approval_hod',
             'approval_hr',
             'setting_hari_off',
+            'master_tanggal_merah',
             'jadwal_kerja',
             'master_shift',
             'pengaturan_shift',

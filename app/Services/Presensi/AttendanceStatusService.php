@@ -100,20 +100,18 @@ class AttendanceStatusService
             ->latest('id')
             ->first();
 
-        if (!$cuti) {
-            return null;
-        }
+        if ($cuti) {
+            if ($cuti->tipe === 'CUTI') {
+                return self::STATUS_CUTI_TAHUNAN;
+            }
 
-        if ($cuti->tipe === 'CUTI') {
-            return self::STATUS_CUTI_TAHUNAN;
-        }
+            if ($cuti->tipe === 'PAID') {
+                return self::STATUS_IZIN_BERBAYAR;
+            }
 
-        if ($cuti->tipe === 'PAID') {
-            return self::STATUS_IZIN_BERBAYAR;
-        }
-
-        if ($cuti->tipe === 'UNPAID') {
-            return self::STATUS_IZIN_TIDAK_BERBAYAR;
+            if ($cuti->tipe === 'UNPAID') {
+                return self::STATUS_IZIN_TIDAK_BERBAYAR;
+            }
         }
 
         $acceptedOvertime = app(OvertimeOrderService::class)->getAcceptedOrderForDate($nikKaryawan, $dateString);

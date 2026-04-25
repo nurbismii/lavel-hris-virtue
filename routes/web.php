@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ApiController;
+use App\Http\Controllers\Admin\NationalHolidayController;
 use App\Http\Controllers\Admin\OvertimeOrderController as AdminOvertimeOrderController;
 use App\Http\Controllers\Admin\SettingRoleController;
 use App\Http\Controllers\Admin\ShiftController;
@@ -150,9 +151,17 @@ Route::middleware(['android.redirect'])->group(function () {
             ->except(['show'])
             ->middleware(['menu:master_shift', 'role:Super Admin,HR,HOD,Admin Divisi'])
             ->names('shifts');
+        Route::resource('/master-tanggal-merah', NationalHolidayController::class)
+            ->only(['index', 'store', 'destroy'])
+            ->middleware(['menu:master_tanggal_merah', 'role:Super Admin,HR'])
+            ->parameters(['master-tanggal-merah' => 'nationalHoliday'])
+            ->names('national-holidays');
         Route::post('/master-jadwal-kerja/bulk-assign', [WorkPatternController::class, 'bulkAssign'])
             ->middleware(['menu:jadwal_kerja', 'role:Super Admin,HR,HOD,Admin Divisi'])
             ->name('work-patterns.bulk-assign');
+        Route::get('/perintah-lembur/employees/search', [AdminOvertimeOrderController::class, 'searchEmployees'])
+            ->middleware(['menu:lembur', 'role:Super Admin,HR,HOD,Admin Divisi'])
+            ->name('overtime-orders.employees.search');
         Route::resource('/perintah-lembur', AdminOvertimeOrderController::class)
             ->except(['edit', 'update'])
             ->middleware(['menu:lembur', 'role:Super Admin,HR,HOD,Admin Divisi'])
@@ -166,7 +175,7 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::resource('/data-presensi', 'App\Http\Controllers\Admin\PresensiController')->middleware('menu:data_presensi');
 
         Route::get('/ajax/departemen-by-area', [App\Http\Controllers\Admin\KaryawanController::class, 'departemenByArea'])->middleware('menu:data_karyawan,setting_hari_off')->name('ajax.departemen.by.area');
-        Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->middleware('menu:data_karyawan,setting_hari_off')->name('ajax.divisi.by.departemen');
+        Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->middleware('menu:data_karyawan,setting_hari_off,pengaturan_shift')->name('ajax.divisi.by.departemen');
 
         Route::get('fetch/data-presensi', [PresensiAdminController::class, 'dataPresensi'])->middleware('menu:data_presensi')->name('fetch.data-presensi');
         Route::get('/presensi/export', [PresensiAdminController::class, 'export'])->middleware('menu:data_presensi')->name('presensi.export');
@@ -205,12 +214,6 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/set-kehadiran', [AttendanceSettingController::class, 'index'])->name('set-kehadiran.index');
         Route::post('/set-kehadiran/update', [AttendanceSettingController::class, 'update'])->name('set-kehadiran.update');
         Route::post('/set-kehadiran/bulk-upload-face-reference', [AttendanceSettingController::class, 'bulkUploadFaceReferences'])->name('set-kehadiran.bulk-upload-face-reference');
-        Route::post('/set-kehadiran/national-holidays', [AttendanceSettingController::class, 'storeNationalHoliday'])
-            ->middleware('role:Super Admin,HR')
-            ->name('set-kehadiran.national-holidays.store');
-        Route::delete('/set-kehadiran/national-holidays/{nationalHoliday}', [AttendanceSettingController::class, 'destroyNationalHoliday'])
-            ->middleware('role:Super Admin,HR')
-            ->name('set-kehadiran.national-holidays.destroy');
     });
 
     Route::group(['prefix' => 'admin-divisi', 'middleware' => ['auth', 'menu:pengaturan_shift', 'role:Super Admin,HR,HOD,Admin Divisi']], function () {
