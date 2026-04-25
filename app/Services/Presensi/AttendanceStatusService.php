@@ -15,6 +15,7 @@ class AttendanceStatusService
     public const STATUS_CUTI_ROSTER = 'Cuti Roster';
     public const STATUS_IZIN_BERBAYAR = 'Izin Berbayar';
     public const STATUS_IZIN_TIDAK_BERBAYAR = 'Izin Tidak Berbayar';
+    public const STATUS_LIBUR_NASIONAL = 'Libur Nasional';
     public const STATUS_OFF = 'Off';
 
     public function syncApprovedCuti(Cuti $cuti): void
@@ -125,9 +126,12 @@ class AttendanceStatusService
             ->with('workPattern')
             ->where('nik', $nikKaryawan)
             ->first();
+        $workScheduleService = app(WorkScheduleService::class);
 
-        if ($employee && app(WorkScheduleService::class)->resolveFinalStatus($employee, $dateString) === WorkScheduleService::STATUS_OFF) {
-            return self::STATUS_OFF;
+        if ($employee && $workScheduleService->resolveFinalStatus($employee, $dateString) === WorkScheduleService::STATUS_OFF) {
+            return $workScheduleService->isNationalHolidayDate($dateString)
+                ? self::STATUS_LIBUR_NASIONAL
+                : self::STATUS_OFF;
         }
 
         return null;

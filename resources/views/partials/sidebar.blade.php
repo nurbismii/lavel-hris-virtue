@@ -264,7 +264,7 @@
                     </li>
                 @endif
 
-                @if($can('setting_hari_off') || $can('jadwal_kerja') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan'))
+                @if($can('setting_hari_off') || $can('jadwal_kerja') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan'))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -285,8 +285,26 @@
                 @if($can('jadwal_kerja'))
                     <li class="nav-item {{ request()->routeIs('work-patterns.*') ? 'active' : '' }}">
                         <a href="{{ route('work-patterns.index') }}">
-                            <i class="fas fa-calendar"></i>
+                            <i class="fas fa-cog"></i>
                             <p>Master Jadwal Kerja</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('master_shift'))
+                    <li class="nav-item {{ request()->routeIs('shifts.*') ? 'active' : '' }}">
+                        <a href="{{ route('shifts.index') }}">
+                            <i class="fas fa-cogs"></i>
+                            <p>Master Shift</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('pengaturan_shift'))
+                    <li class="nav-item {{ request()->routeIs('shift-settings.*') ? 'active' : '' }}">
+                        <a href="{{ route('shift-settings.index') }}">
+                            <i class="fas fa-user-clock"></i>
+                            <p>Pengaturan Shift</p>
                         </a>
                     </li>
                 @endif

@@ -73,6 +73,14 @@ $menus = [
         'label' => 'Master Jadwal Kerja',
         'group' => 'Operasional',
     ],
+    'master_shift' => [
+        'label' => 'Master Shift',
+        'group' => 'Operasional',
+    ],
+    'pengaturan_shift' => [
+        'label' => 'Pengaturan Shift',
+        'group' => 'Operasional',
+    ],
     'lembur' => [
         'label' => 'Perintah Lembur',
         'group' => 'Self Service',
@@ -155,6 +163,8 @@ return [
             'approval_hr',
             'setting_hari_off',
             'jadwal_kerja',
+            'master_shift',
+            'pengaturan_shift',
             'lembur',
             'perusahaan',
             'cuti',
@@ -173,6 +183,8 @@ return [
             'approval_hod',
             'setting_hari_off',
             'jadwal_kerja',
+            'master_shift',
+            'pengaturan_shift',
             'lembur',
         ],
         'Manager' => [
@@ -222,6 +234,8 @@ return [
             'presensi',
             'setting_hari_off',
             'jadwal_kerja',
+            'master_shift',
+            'pengaturan_shift',
             'lembur',
         ],
     ],

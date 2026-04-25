@@ -34,7 +34,9 @@ class WorkPatternController extends Controller
     public function create()
     {
         return view('admin.work-patterns.create', [
+            'basisOptions' => WorkPattern::basisOptions(),
             'unitOptions' => WorkPattern::unitOptions(),
+            'weekdayOptions' => WorkPattern::weekdayOptions(),
         ]);
     }
 
@@ -52,7 +54,9 @@ class WorkPatternController extends Controller
     {
         return view('admin.work-patterns.edit', [
             'workPattern' => WorkPattern::findOrFail($id),
+            'basisOptions' => WorkPattern::basisOptions(),
             'unitOptions' => WorkPattern::unitOptions(),
+            'weekdayOptions' => WorkPattern::weekdayOptions(),
         ]);
     }
 
@@ -125,17 +129,55 @@ class WorkPatternController extends Controller
                 Rule::unique('work_patterns', 'code')->ignore($ignoreId),
             ],
             'name' => 'required|string|max:120',
-            'work_duration_value' => 'required|integer|min:1|max:365',
-            'work_duration_unit' => ['required', Rule::in(array_keys(WorkPattern::unitOptions()))],
-            'off_duration_value' => 'required|integer|min:1|max:365',
-            'off_duration_unit' => ['required', Rule::in(array_keys(WorkPattern::unitOptions()))],
+            'pattern_basis' => ['required', Rule::in(array_keys(WorkPattern::basisOptions()))],
+            'work_duration_value' => 'nullable|integer|min:1|max:365',
+            'work_duration_unit' => ['nullable', Rule::in(array_keys(WorkPattern::unitOptions()))],
+            'off_duration_value' => 'nullable|integer|min:0|max:365',
+            'off_duration_unit' => ['nullable', Rule::in(array_keys(WorkPattern::unitOptions()))],
+            'weekly_work_days' => 'nullable|array',
+            'weekly_work_days.*' => ['string', Rule::in(array_keys(WorkPattern::weekdayOptions()))],
             'start_time' => 'nullable|date_format:H:i|required_with:end_time',
             'end_time' => 'nullable|date_format:H:i|required_with:start_time',
             'break_start_time' => 'nullable|date_format:H:i|required_with:break_end_time',
             'break_end_time' => 'nullable|date_format:H:i|required_with:break_start_time',
+            'national_holiday_as_off' => 'nullable|boolean',
             'is_active' => 'nullable|boolean',
             'description' => 'nullable|string|max:2000',
         ]);
+
+        if (($validated['pattern_basis'] ?? WorkPattern::BASIS_CYCLE) === WorkPattern::BASIS_WEEKLY) {
+            $weeklyWorkDays = collect($request->input('weekly_work_days', []))
+                ->filter()
+                ->map(fn($day) => (string) $day)
+                ->unique()
+                ->values()
+                ->all();
+
+            if (empty($weeklyWorkDays)) {
+                throw ValidationException::withMessages([
+                    'weekly_work_days' => 'Pilih minimal satu hari kerja untuk pola mingguan.',
+                ]);
+            }
+
+            $validated['weekly_work_days'] = (new WorkPattern())->normalizeWeeklyWorkDays($weeklyWorkDays);
+            $validated['work_duration_value'] = count($validated['weekly_work_days']);
+            $validated['work_duration_unit'] = WorkPattern::UNIT_DAY;
+            $validated['off_duration_value'] = max(7 - $validated['work_duration_value'], 0);
+            $validated['off_duration_unit'] = WorkPattern::UNIT_DAY;
+        } else {
+            if (
+                empty($validated['work_duration_value'])
+                || empty($validated['work_duration_unit'])
+                || !isset($validated['off_duration_value'])
+                || empty($validated['off_duration_unit'])
+            ) {
+                throw ValidationException::withMessages([
+                    'work_duration_value' => 'Durasi kerja dan durasi off wajib diisi untuk pola siklus.',
+                ]);
+            }
+
+            $validated['weekly_work_days'] = null;
+        }
 
         if (
             (filled($validated['break_start_time'] ?? null) || filled($validated['break_end_time'] ?? null))
@@ -163,6 +205,7 @@ class WorkPatternController extends Controller
         }
 
         $validated['is_active'] = $request->boolean('is_active');
+        $validated['national_holiday_as_off'] = $request->boolean('national_holiday_as_off');
 
         return $validated;
     }

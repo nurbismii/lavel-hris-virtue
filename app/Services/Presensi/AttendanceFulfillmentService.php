@@ -3,16 +3,17 @@
 namespace App\Services\Presensi;
 
 use App\Models\Presensi;
+use App\Models\Shift;
 use App\Models\WorkPattern;
 use Carbon\Carbon;
 
 class AttendanceFulfillmentService
 {
-    public function evaluate(?Presensi $presensi, ?WorkPattern $workPattern): array
+    public function evaluate(?Presensi $presensi, $scheduleSource): array
     {
-        $expectedMinutes = $workPattern ? $workPattern->expected_work_minutes : null;
+        $expectedMinutes = $scheduleSource ? $scheduleSource->expected_work_minutes : null;
 
-        if (!$workPattern || $expectedMinutes === null) {
+        if (!$scheduleSource || $expectedMinutes === null) {
             return [
                 'is_applicable' => false,
                 'is_complete' => false,
@@ -51,7 +52,7 @@ class AttendanceFulfillmentService
             ];
         }
 
-        $actualMinutes = $this->resolveActualWorkMinutes($presensi, $workPattern);
+        $actualMinutes = $this->resolveActualWorkMinutes($presensi, $scheduleSource);
 
         if ($actualMinutes >= $expectedMinutes) {
             return [
@@ -88,7 +89,7 @@ class AttendanceFulfillmentService
         ];
     }
 
-    private function resolveActualWorkMinutes(Presensi $presensi, WorkPattern $workPattern): int
+    private function resolveActualWorkMinutes(Presensi $presensi, $scheduleSource): int
     {
         $start = Carbon::parse($presensi->jam_masuk);
         $end = Carbon::parse($presensi->jam_pulang);
@@ -98,12 +99,12 @@ class AttendanceFulfillmentService
         }
 
         $grossMinutes = $start->diffInMinutes($end);
-        $breakMinutes = $this->resolveBreakMinutes($presensi, $workPattern, $start, $end);
+        $breakMinutes = $this->resolveBreakMinutes($presensi, $scheduleSource, $start, $end);
 
         return max($grossMinutes - $breakMinutes, 0);
     }
 
-    private function resolveBreakMinutes(Presensi $presensi, WorkPattern $workPattern, Carbon $shiftStart, Carbon $shiftEnd): int
+    private function resolveBreakMinutes(Presensi $presensi, $scheduleSource, Carbon $shiftStart, Carbon $shiftEnd): int
     {
         if ($presensi->jam_istirahat && $presensi->jam_kembali_istirahat) {
             $breakStart = Carbon::parse($presensi->jam_istirahat);
@@ -120,7 +121,7 @@ class AttendanceFulfillmentService
             return $this->calculateOverlapMinutes($shiftStart, $shiftEnd, $breakStart, $breakEnd);
         }
 
-        return $workPattern->scheduled_break_minutes;
+        return $scheduleSource->scheduled_break_minutes;
     }
 
     private function calculateOverlapMinutes(Carbon $rangeStart, Carbon $rangeEnd, Carbon $windowStart, Carbon $windowEnd): int

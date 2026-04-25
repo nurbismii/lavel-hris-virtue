@@ -129,6 +129,7 @@
                                 <th>Nama</th>
                                 <th>Siklus</th>
                                 <th>Jam Kerja</th>
+                                <th>Tanggal Merah</th>
                                 <th>Status</th>
                                 <th>Dipakai</th>
                                 <th>Keterangan</th>
@@ -146,6 +147,7 @@
                                         <small class="text-muted d-block">Istirahat: {{ $workPattern->break_time_range_text }}</small>
                                         <small class="text-muted d-block">Efektif: {{ $workPattern->expected_work_duration_text }}</small>
                                     </td>
+                                    <td>{{ $workPattern->national_holiday_rule_label }}</td>
                                     <td>
                                         <span class="badge bg-{{ $workPattern->is_active ? 'success' : 'secondary' }}">
                                             {{ $workPattern->is_active ? 'Aktif' : 'Nonaktif' }}
@@ -168,7 +170,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">Belum ada master jadwal kerja.</td>
+                                    <td colspan="9" class="text-center text-muted py-4">Belum ada master jadwal kerja.</td>
                                 </tr>
                             @endforelse
                         </tbody>

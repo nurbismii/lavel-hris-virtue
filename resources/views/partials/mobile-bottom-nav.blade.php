@@ -57,16 +57,6 @@
             ];
         }
 
-        if (auth()->user()->hasMenuAccess('lembur') && !$canManageOvertimeOrders) {
-            $mobileNavItems[] = [
-                'type' => 'link',
-                'label' => 'Lembur',
-                'route' => route('lembur.index'),
-                'icon' => 'fas fa-business-time',
-                'active' => request()->routeIs('lembur.*'),
-            ];
-        }
-
         $mobileNavItems[] = [
             'type' => 'menu',
             'label' => 'Profile',

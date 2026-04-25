@@ -51,8 +51,9 @@
                     Belum diassign
                 @endif
             </strong>
-            <span>Target jam kerja: {{ optional($workPattern)->work_time_range_text ?? 'Belum diatur' }} @if($workPattern) ({{ $workPattern->expected_work_duration_text }}) @endif</span>
-            <span>Jadwal istirahat: {{ optional($workPattern)->break_time_range_text ?? 'Tidak diatur' }}</span>
+            <span>Shift hari ini: {{ $currentShift ? $currentShift->code . ' - ' . $currentShift->name : 'AUTO / mengikuti pola kerja' }}</span>
+            <span>Target jam kerja: {{ optional($currentScheduleSource)->work_time_range_text ?? 'Belum diatur' }} @if($currentScheduleSource) ({{ $currentScheduleSource->expected_work_duration_text }}) @endif</span>
+            <span>Jadwal istirahat: {{ optional($currentScheduleSource)->break_time_range_text ?? 'Tidak diatur' }}</span>
             <span>
                 Status pemenuhan hari ini:
                 <span class="badge bg-{{ $todayFulfillment['badge_class'] }}">{{ $todayFulfillment['label'] }}</span>
@@ -398,6 +399,7 @@
                         <tr>
                             <th>Tanggal</th>
                             <th>Status</th>
+                            <th>Shift</th>
                             <th>Masuk</th>
                             <th>Istirahat</th>
                             <th>Kembali</th>
@@ -411,6 +413,7 @@
                         <tr>
                             <td>{{ formatDateIndonesia($item->tanggal) }}</td>
                             <td>{{ \App\Models\Presensi::shortStatus($item->status_presensi) ?? '-' }}</td>
+                            <td>{{ optional($item->resolved_shift)->code ?? 'AUTO' }}</td>
                             <td>{{ $item->jam_masuk ?? '-' }}</td>
                             <td>{{ $item->jam_istirahat ?? '-' }}</td>
                             <td>{{ $item->jam_kembali_istirahat ?? '-' }}</td>
@@ -425,7 +428,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-muted">
+                            <td colspan="8" class="text-muted">
                                 Tidak ada data pada periode ini
                             </td>
                         </tr>

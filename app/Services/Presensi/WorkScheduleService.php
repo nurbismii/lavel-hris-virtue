@@ -4,17 +4,22 @@ namespace App\Services\Presensi;
 
 use App\Models\Employee;
 use App\Models\EmployeeAttendanceSetting;
+use App\Models\NationalHoliday;
 use App\Models\OvertimeOrder;
 use App\Models\Presensi;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
 class WorkScheduleService
 {
     public const STATUS_OFF = EmployeeAttendanceSetting::STATUS_OFF;
     public const STATUS_HADIR = EmployeeAttendanceSetting::STATUS_HADIR;
+
+    protected static $hasNationalHolidayTable;
+    protected static $nationalHolidayDateCache = [];
 
     public function buildScheduleMap(Collection $employees, Collection $manualOverrides, $startDate, $endDate): array
     {
@@ -174,7 +179,7 @@ class WorkScheduleService
             $rows[] = new Presensi([
                 'nik_karyawan' => $nikKaryawan,
                 'tanggal' => $dateString,
-                'status_presensi' => 'Off',
+                'status_presensi' => $this->resolveDisplayStatusForOffDate($dateString),
             ]);
         }
 
@@ -230,7 +235,7 @@ class WorkScheduleService
                 }
 
                 $offMap[$employee->nik][$dateString] = [
-                    'status' => Presensi::shortStatus('Off'),
+                    'status' => Presensi::shortStatus($this->resolveDisplayStatusForOffDate($dateString)),
                     'm' => null,
                     'i' => null,
                     'k' => null,
@@ -246,17 +251,27 @@ class WorkScheduleService
     {
         $pattern = $employee->workPattern;
         $startDate = $employee->work_pattern_start_date;
+        $date = Carbon::parse($tanggal)->startOfDay();
+
+        if ($this->shouldTreatNationalHolidayAsOff($pattern) && $this->isNationalHoliday($date)) {
+            return self::STATUS_OFF;
+        }
 
         if (!$pattern || !$startDate) {
             return self::STATUS_HADIR;
         }
 
-        $date = Carbon::parse($tanggal)->startOfDay();
-        $cursor = Carbon::parse($startDate)->startOfDay();
+        $startDate = Carbon::parse($startDate)->startOfDay();
 
-        if ($date->lt($cursor)) {
+        if ($date->lt($startDate)) {
             return self::STATUS_HADIR;
         }
+
+        if ($pattern->isWeeklyPattern()) {
+            return $this->resolveWeeklyStatus($pattern, $date);
+        }
+
+        $cursor = $startDate->copy();
 
         $isWorkSegment = true;
 
@@ -279,6 +294,71 @@ class WorkScheduleService
         }
 
         return self::STATUS_HADIR;
+    }
+
+    public function isNationalHolidayDate($tanggal): bool
+    {
+        return $this->isNationalHoliday(Carbon::parse($tanggal)->startOfDay());
+    }
+
+    protected function isNationalHoliday(Carbon $date): bool
+    {
+        if (!$this->supportsNationalHolidayTable()) {
+            return false;
+        }
+
+        $dateString = $date->toDateString();
+
+        if (!array_key_exists($dateString, static::$nationalHolidayDateCache)) {
+            static::$nationalHolidayDateCache[$dateString] = NationalHoliday::query()
+                ->whereDate('holiday_date', $dateString)
+                ->exists();
+        }
+
+        return static::$nationalHolidayDateCache[$dateString];
+    }
+
+    protected function supportsNationalHolidayTable(): bool
+    {
+        if (static::$hasNationalHolidayTable === null) {
+            static::$hasNationalHolidayTable = Schema::hasTable((new NationalHoliday())->getTable());
+        }
+
+        return static::$hasNationalHolidayTable;
+    }
+
+    protected function resolveDisplayStatusForOffDate($tanggal): string
+    {
+        return $this->isNationalHolidayDate($tanggal)
+            ? AttendanceStatusService::STATUS_LIBUR_NASIONAL
+            : AttendanceStatusService::STATUS_OFF;
+    }
+
+    protected function shouldTreatNationalHolidayAsOff($pattern): bool
+    {
+        if (!$pattern) {
+            return true;
+        }
+
+        return data_get($pattern, 'national_holiday_as_off', true) !== false;
+    }
+
+    private function resolveWeeklyStatus($pattern, Carbon $date): string
+    {
+        $weekdayMap = $pattern::weekdayIndexes();
+        $workingIndexes = collect($pattern->normalizeWeeklyWorkDays())
+            ->map(fn($day) => $weekdayMap[$day] ?? null)
+            ->filter(fn($dayIndex) => $dayIndex !== null)
+            ->values()
+            ->all();
+
+        if (empty($workingIndexes)) {
+            return self::STATUS_HADIR;
+        }
+
+        return in_array($date->dayOfWeek, $workingIndexes, true)
+            ? self::STATUS_HADIR
+            : self::STATUS_OFF;
     }
 
     private function addDuration(Carbon $date, int $value, ?string $unit): Carbon

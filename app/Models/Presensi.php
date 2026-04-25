@@ -24,6 +24,8 @@ class Presensi extends Model
         switch ($status) {
             case 'Alpa':
                 return 'A';
+            case 'Libur Nasional':
+                return 'L';
             case 'Off':
                 return 'OFF';
             case 'Izin Tidak Berbayar':

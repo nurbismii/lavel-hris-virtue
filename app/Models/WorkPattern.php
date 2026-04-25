@@ -13,11 +13,22 @@ class WorkPattern extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'national_holiday_as_off' => 'boolean',
+        'weekly_work_days' => 'array',
     ];
 
+    public const BASIS_CYCLE = 'cycle';
+    public const BASIS_WEEKLY = 'weekly';
     public const UNIT_DAY = 'day';
     public const UNIT_WEEK = 'week';
     public const UNIT_MONTH = 'month';
+    public const WEEKDAY_MONDAY = 'mon';
+    public const WEEKDAY_TUESDAY = 'tue';
+    public const WEEKDAY_WEDNESDAY = 'wed';
+    public const WEEKDAY_THURSDAY = 'thu';
+    public const WEEKDAY_FRIDAY = 'fri';
+    public const WEEKDAY_SATURDAY = 'sat';
+    public const WEEKDAY_SUNDAY = 'sun';
 
     public function employees()
     {
@@ -26,6 +37,18 @@ class WorkPattern extends Model
 
     public function getCycleSummaryAttribute(): string
     {
+        if ($this->isWeeklyPattern()) {
+            $workDaysCount = count($this->weekly_work_days ?: []);
+            $offDaysCount = max(7 - $workDaysCount, 0);
+
+            return sprintf(
+                '%d:%d hari kerja mingguan (%s)',
+                $workDaysCount,
+                $offDaysCount,
+                $this->weekly_work_days_text
+            );
+        }
+
         $workValue = (int) $this->work_duration_value;
         $offValue = (int) $this->off_duration_value;
 
@@ -36,6 +59,21 @@ class WorkPattern extends Model
             $offValue,
             $this->formatUnitLabel($offValue, $this->off_duration_unit)
         );
+    }
+
+    public function getPatternBasisLabelAttribute(): string
+    {
+        return static::basisOptions()[$this->pattern_basis ?: static::BASIS_CYCLE] ?? 'Siklus';
+    }
+
+    public function getWeeklyWorkDaysTextAttribute(): string
+    {
+        $days = collect($this->normalizeWeeklyWorkDays($this->weekly_work_days))
+            ->map(fn(string $day) => static::weekdayOptions()[$day] ?? strtoupper($day))
+            ->values()
+            ->all();
+
+        return empty($days) ? 'Belum diatur' : implode(', ', $days);
     }
 
     public function getWorkTimeRangeTextAttribute(): string
@@ -109,6 +147,13 @@ class WorkPattern extends Model
         return $this->formatMinutes($this->scheduled_break_minutes);
     }
 
+    public function getNationalHolidayRuleLabelAttribute(): string
+    {
+        return ($this->national_holiday_as_off ?? true)
+            ? 'Tanggal merah otomatis off'
+            : 'Tanggal merah tetap masuk';
+    }
+
     public static function unitOptions(): array
     {
         return [
@@ -116,6 +161,58 @@ class WorkPattern extends Model
             self::UNIT_WEEK => 'Minggu',
             self::UNIT_MONTH => 'Bulan',
         ];
+    }
+
+    public static function basisOptions(): array
+    {
+        return [
+            self::BASIS_WEEKLY => 'Hari kerja mingguan',
+            self::BASIS_CYCLE => 'Siklus durasi (harian/mingguan/bulanan)',
+        ];
+    }
+
+    public static function weekdayOptions(): array
+    {
+        return [
+            self::WEEKDAY_MONDAY => 'Senin',
+            self::WEEKDAY_TUESDAY => 'Selasa',
+            self::WEEKDAY_WEDNESDAY => 'Rabu',
+            self::WEEKDAY_THURSDAY => 'Kamis',
+            self::WEEKDAY_FRIDAY => 'Jumat',
+            self::WEEKDAY_SATURDAY => 'Sabtu',
+            self::WEEKDAY_SUNDAY => 'Minggu',
+        ];
+    }
+
+    public static function weekdayIndexes(): array
+    {
+        return [
+            self::WEEKDAY_MONDAY => Carbon::MONDAY,
+            self::WEEKDAY_TUESDAY => Carbon::TUESDAY,
+            self::WEEKDAY_WEDNESDAY => Carbon::WEDNESDAY,
+            self::WEEKDAY_THURSDAY => Carbon::THURSDAY,
+            self::WEEKDAY_FRIDAY => Carbon::FRIDAY,
+            self::WEEKDAY_SATURDAY => Carbon::SATURDAY,
+            self::WEEKDAY_SUNDAY => Carbon::SUNDAY,
+        ];
+    }
+
+    public function isWeeklyPattern(): bool
+    {
+        return ($this->pattern_basis ?: static::BASIS_CYCLE) === static::BASIS_WEEKLY;
+    }
+
+    public function normalizeWeeklyWorkDays($days = null): array
+    {
+        $allowed = array_keys(static::weekdayOptions());
+        $days = collect($days ?? $this->weekly_work_days ?? [])
+            ->filter(fn($day) => in_array($day, $allowed, true))
+            ->unique()
+            ->sortBy(fn($day) => array_search($day, $allowed, true))
+            ->values()
+            ->all();
+
+        return $days;
     }
 
     private function formatUnitLabel(int $value, ?string $unit): string

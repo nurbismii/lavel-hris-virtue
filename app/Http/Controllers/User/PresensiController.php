@@ -7,6 +7,7 @@ use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\Presensi;
 use App\Services\Presensi\AttendanceFulfillmentService;
+use App\Services\Presensi\ShiftAssignmentService;
 use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Presensi\OvertimeOrderService;
 use App\Services\Presensi\WorkScheduleService;
@@ -51,6 +52,13 @@ class PresensiController extends Controller
             $end = Carbon::create($today->year, $today->month, 15);
         }
 
+        $karyawan->loadMissing('workPattern');
+        $shiftAssignmentService = app(ShiftAssignmentService::class);
+        $shiftAssignments = $shiftAssignmentService->getAssignmentsForEmployees([$user->nik_karyawan], $start, $end);
+        $shiftAssignmentsByDate = $shiftAssignments->keyBy(fn($assignment) => Carbon::parse($assignment->shift_date)->toDateString());
+        $currentShift = optional($shiftAssignmentsByDate->get($todayString))->shift;
+        $currentScheduleSource = $currentShift ?: $karyawan->workPattern;
+
         $presensiRecords = Presensi::where('nik_karyawan', $user->nik_karyawan)
             ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
             ->orderBy('tanggal', 'desc')
@@ -67,8 +75,6 @@ class PresensiController extends Controller
             ->pluck('tanggal')
             ->map(fn($tanggal) => Carbon::parse($tanggal)->toDateString())
             ->all();
-
-        $karyawan->loadMissing('workPattern');
 
         $virtualOffRows = collect($workScheduleService->buildVirtualOffRows(
             $user->nik_karyawan,
@@ -89,15 +95,20 @@ class PresensiController extends Controller
             ->keyBy(fn($row) => Carbon::parse($row->tanggal)->toDateString())
             ->merge($virtualOffRows->keyBy(fn($row) => Carbon::parse($row->tanggal)->toDateString()))
             ->merge($virtualAlphaRows->keyBy(fn($row) => Carbon::parse($row->tanggal)->toDateString()))
-            ->map(function ($row) use ($attendanceFulfillmentService, $karyawan) {
-                $row->attendance_fulfillment = $attendanceFulfillmentService->evaluate($row, $karyawan->workPattern);
+            ->map(function ($row) use ($attendanceFulfillmentService, $karyawan, $shiftAssignmentsByDate) {
+                $dateString = Carbon::parse($row->tanggal)->toDateString();
+                $resolvedShift = optional($shiftAssignmentsByDate->get($dateString))->shift;
+                $scheduleSource = $resolvedShift ?: $karyawan->workPattern;
+
+                $row->resolved_shift = $resolvedShift;
+                $row->attendance_fulfillment = $attendanceFulfillmentService->evaluate($row, $scheduleSource);
 
                 return $row;
             })
             ->sortByDesc(fn($row) => Carbon::parse($row->tanggal)->timestamp)
             ->values();
 
-        $todayFulfillment = $attendanceFulfillmentService->evaluate($absensiHariIni, $karyawan->workPattern);
+        $todayFulfillment = $attendanceFulfillmentService->evaluate($absensiHariIni, $currentScheduleSource);
 
         return view('user.presensi.index', [
             'presensi' => $presensiRecords,
@@ -108,6 +119,8 @@ class PresensiController extends Controller
             'activeOvertimeOrder' => $activeOvertimeOrder,
             'todayFulfillment' => $todayFulfillment,
             'workPattern' => $karyawan->workPattern,
+            'currentShift' => $currentShift,
+            'currentScheduleSource' => $currentScheduleSource,
         ]);
     }
 

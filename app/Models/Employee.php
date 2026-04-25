@@ -65,6 +65,11 @@ class Employee extends Model
         return $this->belongsTo(WorkPattern::class, 'work_pattern_id');
     }
 
+    public function shiftAssignments()
+    {
+        return $this->hasMany(EmployeeShiftAssignment::class, 'employee_id', 'nik');
+    }
+
     public function overtimeOrders()
     {
         return $this->hasMany(OvertimeOrder::class, 'nik_karyawan', 'nik');

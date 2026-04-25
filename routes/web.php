@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ApiController;
 use App\Http\Controllers\Admin\OvertimeOrderController as AdminOvertimeOrderController;
 use App\Http\Controllers\Admin\SettingRoleController;
+use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\SlipGajiController;
 use App\Http\Controllers\Admin\WorkPatternController;
 use App\Http\Controllers\Approval\CutiApprovalController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\User\OvertimeOrderController as UserOvertimeOrderContro
 use App\Http\Controllers\User\PresensiController;
 use App\Http\Controllers\Admin\PresensiController as PresensiAdminController;
 use App\Http\Controllers\AdminDivisi\AttendanceSettingController;
+use App\Http\Controllers\AdminDivisi\ShiftSettingController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -144,6 +146,10 @@ Route::middleware(['android.redirect'])->group(function () {
             ->except(['show'])
             ->middleware(['menu:jadwal_kerja', 'role:Super Admin,HR,HOD,Admin Divisi'])
             ->names('work-patterns');
+        Route::resource('/master-shift', ShiftController::class)
+            ->except(['show'])
+            ->middleware(['menu:master_shift', 'role:Super Admin,HR,HOD,Admin Divisi'])
+            ->names('shifts');
         Route::post('/master-jadwal-kerja/bulk-assign', [WorkPatternController::class, 'bulkAssign'])
             ->middleware(['menu:jadwal_kerja', 'role:Super Admin,HR,HOD,Admin Divisi'])
             ->name('work-patterns.bulk-assign');
@@ -205,6 +211,11 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::delete('/set-kehadiran/national-holidays/{nationalHoliday}', [AttendanceSettingController::class, 'destroyNationalHoliday'])
             ->middleware('role:Super Admin,HR')
             ->name('set-kehadiran.national-holidays.destroy');
+    });
+
+    Route::group(['prefix' => 'admin-divisi', 'middleware' => ['auth', 'menu:pengaturan_shift', 'role:Super Admin,HR,HOD,Admin Divisi']], function () {
+        Route::get('/set-shift', [ShiftSettingController::class, 'index'])->name('shift-settings.index');
+        Route::post('/set-shift/update', [ShiftSettingController::class, 'update'])->name('shift-settings.update');
     });
 });
 

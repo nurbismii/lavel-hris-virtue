@@ -177,24 +177,40 @@ class AttendanceSettingController extends Controller
             ], 400);
         }
 
-        $scopedEmployees = Auth::user()
-            ->applyEmployeeScope(Employee::query()->with('workPattern'))
-            ->get()
-            ->keyBy('nik');
-
-        $allowedEmployeeIds = $scopedEmployees
-            ->keys()
+        $requestedEmployeeIds = collect($rows)
+            ->pluck('employee_id')
+            ->filter()
+            ->map(fn($employeeId) => (string) $employeeId)
+            ->unique()
+            ->values()
             ->all();
 
+        if (empty($requestedEmployeeIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada karyawan yang dikirim untuk diperbarui.'
+            ], 400);
+        }
+
         try {
-            DB::transaction(function () use ($rows, $allowedEmployeeIds, $scopedEmployees) {
+            $scopedEmployees = Auth::user()
+                ->applyEmployeeScope(
+                    Employee::query()
+                        ->select('nik', 'work_pattern_id', 'work_pattern_start_date')
+                        ->whereIn('nik', $requestedEmployeeIds)
+                        ->with('workPattern')
+                )
+                ->get()
+                ->keyBy('nik');
+
+            DB::transaction(function () use ($rows, $scopedEmployees) {
                 $scheduleService = app(WorkScheduleService::class);
 
                 foreach ($rows as $row) {
                     $employeeId = isset($row['employee_id']) ? (string) $row['employee_id'] : null;
                     $tanggal = $row['tanggal'] ?? null;
 
-                    if (!$employeeId || !$tanggal || !in_array($employeeId, $allowedEmployeeIds, true)) {
+                    if (!$employeeId || !$tanggal || !$scopedEmployees->has($employeeId)) {
                         continue;
                     }
 
