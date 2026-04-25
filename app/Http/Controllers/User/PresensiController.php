@@ -148,15 +148,13 @@ class PresensiController extends Controller
             && optional($attendanceContext['presensi'])->jam_masuk
             && !optional($attendanceContext['presensi'])->jam_pulang
         ) {
-            toast()->warning('Peringatan', 'Selesaikan presensi pulang shift sebelumnya terlebih dahulu.');
-            return back();
+            return $this->failPresensi('Selesaikan presensi pulang shift sebelumnya terlebih dahulu.', 'warning');
         }
 
         $statusHariIni = app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $attendanceDate);
 
         if ($statusHariIni) {
-            toast()->warning('Peringatan', 'Presensi tanggal ' . formatDateIndonesia($attendanceDate) . ' berstatus ' . $statusHariIni . '. Tidak perlu absen jam.');
-            return back();
+            return $this->failPresensi('Presensi tanggal ' . formatDateIndonesia($attendanceDate) . ' berstatus ' . $statusHariIni . '. Tidak perlu absen jam.', 'warning');
         }
 
         $request->validate([
@@ -171,26 +169,36 @@ class PresensiController extends Controller
             'face_distance' => 'required|numeric|min:0|max:2',
             'face_detection_count' => 'required|integer|min:1|max:5',
             'face_verification_meta' => 'nullable|string|max:5000',
+        ], [
+            'lat_user.required' => 'Lokasi GPS belum terbaca. Aktifkan lokasi lalu coba lagi.',
+            'long_user.required' => 'Lokasi GPS belum terbaca. Aktifkan lokasi lalu coba lagi.',
+            'accuracy.required' => 'Akurasi GPS belum terbaca. Tunggu sampai indikator GPS valid.',
+            'selfie_capture.image' => 'File selfie harus berupa gambar.',
+            'selfie_capture.max' => 'Ukuran selfie terlalu besar. Ambil ulang selfie lalu coba lagi.',
+            'selfie_capture_data.required_without' => 'Selfie wajib diambil sebelum presensi.',
+            'selfie_capture_data.max' => 'Ukuran selfie terlalu besar. Ambil ulang selfie lalu coba lagi.',
+            'face_verified.required' => 'Verifikasi wajah belum selesai.',
+            'face_verified.boolean' => 'Status verifikasi wajah tidak valid.',
+            'face_distance.required' => 'Jarak kecocokan wajah belum terbaca. Ambil ulang selfie.',
+            'face_detection_count.required' => 'Jumlah wajah pada selfie belum terbaca. Ambil ulang selfie.',
         ]);
 
         $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
 
         if (!$lokasi) {
-            toast()->error('Error', 'Lokasi presensi belum diatur');
-            return back();
+            return $this->failPresensi('Lokasi presensi belum diatur.');
         }
 
         if (empty($karyawan->face_reference_path)) {
-            toast()->error('Error', 'Foto referensi wajah belum didaftarkan oleh admin.');
-            return back();
+            return $this->failPresensi('Foto referensi wajah belum didaftarkan oleh admin.');
         }
 
         if ($request->accuracy < 5 || $request->accuracy > 60) {
-            return back()->with('error', 'GPS tidak valid.');
+            return $this->failPresensi('GPS tidak valid. Tunggu akurasi lokasi membaik lalu coba lagi.');
         }
 
         if ($request->speed > 50) {
-            return back()->with('error', 'Pergerakan tidak wajar.');
+            return $this->failPresensi('Pergerakan tidak wajar. Presensi ditolak untuk keamanan lokasi.');
         }
 
         $distance = $this->calculateDistance(
@@ -201,25 +209,21 @@ class PresensiController extends Controller
         );
 
         if ($distance > $lokasi->radius) {
-            toast()->success('Error', 'Anda berada di luar radius presensi!');
-            return back();
+            return $this->failPresensi('Anda berada di luar radius presensi!');
         }
 
         $faceVerified = filter_var($request->face_verified, FILTER_VALIDATE_BOOLEAN);
 
         if (!$faceVerified) {
-            toast()->error('Error', 'Verifikasi wajah gagal. Silakan ambil selfie lagi.');
-            return back();
+            return $this->failPresensi('Verifikasi wajah gagal. Silakan ambil selfie lagi.');
         }
 
         if ((int) $request->face_detection_count !== 1) {
-            toast()->error('Error', 'Selfie harus memuat tepat satu wajah.');
-            return back();
+            return $this->failPresensi('Selfie harus memuat tepat satu wajah.');
         }
 
         if ((float) $request->face_distance > self::FACE_DISTANCE_THRESHOLD) {
-            toast()->error('Error', 'Wajah tidak cocok dengan foto referensi.');
-            return back();
+            return $this->failPresensi('Wajah tidak cocok dengan foto referensi.');
         }
 
         $securityScore = 100;
@@ -258,8 +262,7 @@ class PresensiController extends Controller
         switch ($type) {
             case 'masuk':
                 if ($absensi->jam_masuk) {
-                    toast()->error('Error', 'Anda sudah absen masuk.');
-                    return back();
+                    return $this->failPresensi('Anda sudah absen masuk.');
                 }
 
                 $absensi->jam_masuk = $now;
@@ -267,13 +270,11 @@ class PresensiController extends Controller
 
             case 'istirahat':
                 if (!$absensi->jam_masuk) {
-                    toast()->error('Error', 'Silakan absen masuk dulu.');
-                    return back();
+                    return $this->failPresensi('Silakan absen masuk dulu.');
                 }
 
                 if ($absensi->jam_istirahat) {
-                    toast()->error('Error', 'Kamu sudah absen istirahat.');
-                    return back();
+                    return $this->failPresensi('Kamu sudah absen istirahat.');
                 }
 
                 $absensi->jam_istirahat = $now;
@@ -281,13 +282,11 @@ class PresensiController extends Controller
 
             case 'kembali':
                 if (!$absensi->jam_istirahat) {
-                    toast()->error('Error', 'Silakan mulai istirahat dulu.');
-                    return back();
+                    return $this->failPresensi('Silakan mulai istirahat dulu.');
                 }
 
                 if ($absensi->jam_kembali_istirahat) {
-                    toast()->error('Error', 'Kamu sudah kembali dari istirahat');
-                    return back();
+                    return $this->failPresensi('Kamu sudah kembali dari istirahat.');
                 }
 
                 $absensi->jam_kembali_istirahat = $now;
@@ -295,21 +294,18 @@ class PresensiController extends Controller
 
             case 'pulang':
                 if (!$absensi->jam_kembali_istirahat) {
-                    toast()->error('Error', 'Silakan kembali dari istirahat dulu');
-                    return back();
+                    return $this->failPresensi('Silakan kembali dari istirahat dulu.');
                 }
 
                 if ($absensi->jam_pulang) {
-                    toast()->error('Error', 'Kamu sudah presensi pulang');
-                    return back();
+                    return $this->failPresensi('Kamu sudah presensi pulang.');
                 }
 
                 $absensi->jam_pulang = $now;
                 break;
 
             default:
-                toast()->error('Error', 'Tipe presensi tidak valid');
-                return back();
+                return $this->failPresensi('Tipe presensi tidak valid.');
         }
 
         $selfieFile = $request->hasFile('selfie_capture')
@@ -317,8 +313,7 @@ class PresensiController extends Controller
             : $this->makeFaceSelfieFromBase64($request->input('selfie_capture_data'));
 
         if (!$selfieFile) {
-            toast()->error('Error', 'Selfie kamera tidak valid. Silakan ulangi verifikasi wajah.');
-            return back();
+            return $this->failPresensi('Selfie kamera tidak valid. Silakan ulangi verifikasi wajah.');
         }
 
         $selfiePath = $this->storeFaceSelfie($selfieFile, $user->nik_karyawan, $type);
@@ -337,6 +332,17 @@ class PresensiController extends Controller
 
         toast()->success('Success', 'Presensi berhasil dicatat.');
         return back();
+    }
+
+    private function failPresensi(string $message, string $level = 'error')
+    {
+        if ($level === 'warning') {
+            toast()->warning('Peringatan', $message);
+        } else {
+            toast()->error('Error', $message);
+        }
+
+        return back()->with('error', $message);
     }
 
     public function logGps(Request $request)

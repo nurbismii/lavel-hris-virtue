@@ -49,6 +49,23 @@
         </div>
         @endif
 
+        @if ($errors->any())
+        <div class="alert alert-danger">
+            <strong>Presensi belum berhasil dikirim.</strong>
+            <ul class="mb-0 ps-3">
+                @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+
+        @if (session('error'))
+        <div class="alert alert-danger">
+            {{ session('error') }}
+        </div>
+        @endif
+
         @if (!empty($activeOvertimeOrder))
         <div class="alert alert-info d-flex flex-column gap-1">
             <strong>Perintah lembur aktif tanggal presensi: {{ $activeOvertimeOrder->type_label }}</strong>
@@ -496,8 +513,12 @@
     const cameraValidationDelayMs = 900;
     const liveDetectionIntervalMs = 320;
     const faceDistanceThreshold = 0.5;
+    const selfieMaxCaptureWidth = 720;
+    const selfieJpegQuality = 0.82;
     const faceModelPath = @json(asset('vendor/face-api/weights'));
     const faceReferencePath = @json($faceReferencePath ? asset($faceReferencePath) : null);
+    const attendanceSubmitBaseUrl = @json(url('/absen'));
+    const gpsLogUrl = @json(url('/api/gps-log'));
 
     function isLikelyAndroidWebView() {
         const userAgent = navigator.userAgent || '';
@@ -1064,23 +1085,21 @@
             throw new Error('Kamera belum siap untuk menyimpan selfie.');
         }
 
+        const captureScale = Math.min(1, selfieMaxCaptureWidth / video.videoWidth);
         const captureCanvas = document.createElement('canvas');
-        captureCanvas.width = video.videoWidth;
-        captureCanvas.height = video.videoHeight;
+        captureCanvas.width = Math.round(video.videoWidth * captureScale);
+        captureCanvas.height = Math.round(video.videoHeight * captureScale);
         captureCanvas.getContext('2d').drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
 
-        const dataUrl = captureCanvas.toDataURL('image/jpeg', 0.92);
         const captureBlob = await new Promise(function(resolve) {
-            captureCanvas.toBlob(resolve, 'image/jpeg', 0.92);
+            captureCanvas.toBlob(resolve, 'image/jpeg', selfieJpegQuality);
         });
 
         if (!captureBlob) {
             throw new Error('Selfie tidak berhasil disimpan dari kamera.');
         }
 
-        if (captureDataInput) {
-            captureDataInput.value = dataUrl;
-        }
+        let fileAttached = false;
 
         if (selfieInput && window.DataTransfer) {
             try {
@@ -1091,9 +1110,18 @@
                 transfer.items.add(file);
                 selfieInput.dataset.skipNextChange = '1';
                 selfieInput.files = transfer.files;
+                fileAttached = true;
+
+                if (captureDataInput) {
+                    captureDataInput.value = '';
+                }
             } catch (error) {
                 // Hidden input base64 tetap menjadi fallback utama bila browser menolak assignment file.
             }
+        }
+
+        if (!fileAttached && captureDataInput) {
+            captureDataInput.value = captureCanvas.toDataURL('image/jpeg', selfieJpegQuality);
         }
 
         clearSelfiePreview();
@@ -1791,7 +1819,7 @@
                         return;
                     }
 
-                    fetch("/api/gps-log", {
+                    fetch(gpsLogUrl, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -1848,10 +1876,28 @@
                     return;
                 }
 
+                if (this.dataset.submitting === '1') {
+                    return;
+                }
+
                 let type = this.dataset.type;
                 let form = document.getElementById("formAbsen");
-                form.action = `/absen/${type}`;
-                form.submit();
+
+                this.dataset.submitting = '1';
+                document.querySelectorAll(".btn-absen").forEach(button => {
+                    button.disabled = true;
+                });
+
+                Swal.fire({
+                    title: 'Mengirim presensi...',
+                    text: 'Mohon tunggu, selfie dan lokasi sedang dikirim.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                form.action = `${attendanceSubmitBaseUrl}/${type}`;
+                window.setTimeout(() => form.submit(), 50);
             });
         });
     });
