@@ -174,8 +174,8 @@ Route::middleware(['android.redirect'])->group(function () {
 
         Route::resource('/data-presensi', 'App\Http\Controllers\Admin\PresensiController')->middleware('menu:data_presensi');
 
-        Route::get('/ajax/departemen-by-area', [App\Http\Controllers\Admin\KaryawanController::class, 'departemenByArea'])->middleware('menu:data_karyawan,setting_hari_off')->name('ajax.departemen.by.area');
-        Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->middleware('menu:data_karyawan,setting_hari_off,pengaturan_shift')->name('ajax.divisi.by.departemen');
+        Route::get('/ajax/departemen-by-area', [App\Http\Controllers\Admin\KaryawanController::class, 'departemenByArea'])->middleware('menu:data_karyawan,setting_hari_off,data_presensi')->name('ajax.departemen.by.area');
+        Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->middleware('menu:data_karyawan,setting_hari_off,pengaturan_shift,data_presensi')->name('ajax.divisi.by.departemen');
 
         Route::get('fetch/data-presensi', [PresensiAdminController::class, 'dataPresensi'])->middleware('menu:data_presensi')->name('fetch.data-presensi');
         Route::get('/presensi/export', [PresensiAdminController::class, 'export'])->middleware('menu:data_presensi')->name('presensi.export');

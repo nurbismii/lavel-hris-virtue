@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\Departemen;
 use App\Models\Divisi;
+use App\Models\NationalHoliday;
 use App\Models\Perusahaan;
 use App\Models\Presensi;
 use App\Services\Presensi\OvertimeOrderService;
@@ -55,10 +56,30 @@ class PresensiController extends Controller
 
         [$start, $end] = $this->generateCutoff($request->cutoff_month);
 
-        $period = CarbonPeriod::create($start, $end);
+        $dates = collect(CarbonPeriod::create($start, $end)->toArray());
+        $nationalHolidaysByDate = NationalHoliday::query()
+            ->whereBetween('holiday_date', [$start->toDateString(), $end->toDateString()])
+            ->get()
+            ->keyBy(fn($holiday) => $holiday->holiday_date->toDateString());
 
-        $tanggalHeaders = collect($period)
+        $tanggalHeaders = $dates
             ->map(fn($date) => $date->format('Y-m-d'))
+            ->toArray();
+
+        $tanggalMeta = $dates
+            ->mapWithKeys(function ($date) use ($nationalHolidaysByDate) {
+                $dateString = $date->format('Y-m-d');
+                $holiday = $nationalHolidaysByDate->get($dateString);
+
+                return [
+                    $dateString => [
+                        'day' => $date->translatedFormat('D'),
+                        'is_sunday' => $date->isSunday(),
+                        'is_national_holiday' => filled($holiday),
+                        'holiday_name' => $holiday->holiday_name ?? null,
+                    ],
+                ];
+            })
             ->toArray();
 
         $baseQuery = Employee::query()
@@ -94,10 +115,10 @@ class PresensiController extends Controller
 
             $presensiMap[$p->nik_karyawan][$tgl] = [
                 'status' => $p->status_presensi ? Presensi::shortStatus($p->status_presensi) : null,
-                'm' => $p->status_presensi ? null : ($p->jam_masuk ? Carbon::parse($p->jam_masuk)->format('H:i') : null),
-                'i' => $p->status_presensi ? null : ($p->jam_istirahat ? Carbon::parse($p->jam_istirahat)->format('H:i') : null),
-                'k' => $p->status_presensi ? null : ($p->jam_kembali_istirahat ? Carbon::parse($p->jam_kembali_istirahat)->format('H:i') : null),
-                'p' => $p->status_presensi ? null : ($p->jam_pulang ? Carbon::parse($p->jam_pulang)->format('H:i') : null),
+                'm' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_masuk, $tgl),
+                'i' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
+                'k' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
+                'p' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_pulang, $tgl),
             ];
         }
 
@@ -135,7 +156,8 @@ class PresensiController extends Controller
             })
 
             ->with([
-                'tanggalHeaders' => $tanggalHeaders
+                'tanggalHeaders' => $tanggalHeaders,
+                'tanggalMeta' => $tanggalMeta,
             ])
 
             ->make(true);
@@ -149,9 +171,9 @@ class PresensiController extends Controller
 
         [$start, $end] = $this->generateCutoff($request->cutoff_month);
 
-        $period = CarbonPeriod::create($start, $end);
+        $dates = collect(CarbonPeriod::create($start, $end)->toArray());
 
-        $tanggalHeaders = collect($period)
+        $tanggalHeaders = $dates
             ->map(fn($date) => $date->format('Y-m-d'))
             ->toArray();
 
@@ -183,10 +205,10 @@ class PresensiController extends Controller
 
             $presensiMap[$p->nik_karyawan][$tgl] = [
                 'status' => $p->status_presensi ? Presensi::shortStatus($p->status_presensi) : '',
-                'm' => $p->status_presensi ? '' : ($p->jam_masuk ? Carbon::parse($p->jam_masuk)->format('H:i') : ''),
-                'i' => $p->status_presensi ? '' : ($p->jam_istirahat ? Carbon::parse($p->jam_istirahat)->format('H:i') : ''),
-                'k' => $p->status_presensi ? '' : ($p->jam_kembali_istirahat ? Carbon::parse($p->jam_kembali_istirahat)->format('H:i') : ''),
-                'p' => $p->status_presensi ? '' : ($p->jam_pulang ? Carbon::parse($p->jam_pulang)->format('H:i') : ''),
+                'm' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_masuk, $tgl),
+                'i' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
+                'k' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
+                'p' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_pulang, $tgl),
             ];
         }
 
@@ -260,5 +282,17 @@ class PresensiController extends Controller
 
             fclose($handle);
         }, 'Presensi_' . now()->format('Ymd_His') . '.csv');
+    }
+
+    private function formatAttendanceClock(?string $value, string $attendanceDate): ?string
+    {
+        if (!$value) {
+            return null;
+        }
+
+        $clock = Carbon::parse($value);
+        $suffix = $clock->toDateString() > Carbon::parse($attendanceDate)->toDateString() ? ' +1' : '';
+
+        return $clock->format('H:i') . $suffix;
     }
 }

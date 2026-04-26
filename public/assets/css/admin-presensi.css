@@ -1,0 +1,373 @@
+.presensi-page {
+    --presensi-nik-width: 96px;
+    --presensi-name-width: 190px;
+    --presensi-cell-width: 72px;
+}
+
+.presensi-filter {
+    padding: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.presensi-legend {
+    row-gap: 8px;
+}
+
+.presensi-status-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 18px;
+    margin-right: 4px;
+    padding: 0 6px;
+    color: #0f172a;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.presensi-status-pill--ct {
+    color: #1d4ed8;
+    background: #dbeafe;
+    border-color: #93c5fd;
+}
+
+.presensi-status-pill--cr {
+    color: #047857;
+    background: #d1fae5;
+    border-color: #86efac;
+}
+
+.presensi-status-pill--ip {
+    color: #7c2d12;
+    background: #ffedd5;
+    border-color: #fdba74;
+}
+
+.presensi-status-pill--iu {
+    color: #7f1d1d;
+    background: #fee2e2;
+    border-color: #fca5a5;
+}
+
+.presensi-empty-hint {
+    margin-bottom: 10px;
+}
+
+.presensi-table-shell {
+    min-height: 360px;
+    overflow: visible;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+}
+
+.presensi-card .dataTables_wrapper {
+    padding: 10px;
+}
+
+.presensi-card .dataTables_length,
+.presensi-card .dataTables_filter,
+.presensi-card .dataTables_info,
+.presensi-card .dataTables_paginate {
+    color: #475569;
+    font-size: 12px;
+}
+
+.presensi-card .dataTables_length,
+.presensi-card .dataTables_filter {
+    margin-bottom: 8px;
+}
+
+.presensi-card .dataTables_filter {
+    text-align: right;
+}
+
+.presensi-card .dataTables_length select,
+.presensi-card .dataTables_filter input {
+    min-height: 30px;
+    padding: 3px 8px;
+    border-color: #dbe3ee;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+.presensi-card .dataTables_filter input {
+    width: 190px;
+    max-width: 100%;
+    margin-left: 6px;
+}
+
+.presensi-card .dataTables_scroll {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.presensi-card .dataTables_scrollHead {
+    background: #eef2f7;
+}
+
+.presensi-card .dataTables_scrollBody {
+    max-height: calc(100vh - 350px) !important;
+}
+
+.presensi-card .dataTables_scrollBody thead,
+.presensi-card .dataTables_scrollBody thead tr,
+.presensi-card .dataTables_scrollBody thead th {
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    line-height: 0 !important;
+    visibility: hidden !important;
+}
+
+.presensi-card .dataTables_scrollBody thead th::before,
+.presensi-card .dataTables_scrollBody thead th::after {
+    display: none !important;
+    opacity: 0 !important;
+}
+
+.presensi-card table.dataTable thead .sorting::before,
+.presensi-card table.dataTable thead .sorting::after,
+.presensi-card table.dataTable thead .sorting_asc::before,
+.presensi-card table.dataTable thead .sorting_asc::after,
+.presensi-card table.dataTable thead .sorting_desc::before,
+.presensi-card table.dataTable thead .sorting_desc::after {
+    display: none !important;
+}
+
+.presensi-data-table {
+    width: max-content !important;
+    min-width: 100%;
+    border-collapse: separate !important;
+    border-spacing: 0;
+    font-size: 11px;
+}
+
+.presensi-data-table thead th {
+    padding: 5px 6px;
+    color: #334155;
+    background: #eef2f7;
+    border-color: #dbe3ee !important;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.presensi-data-table tbody td {
+    padding: 4px 6px;
+    border-color: #e5e7eb !important;
+    background: #ffffff;
+    vertical-align: middle;
+}
+
+.presensi-data-table tbody tr:nth-child(even) td {
+    background-color: #fbfdff;
+}
+
+.presensi-data-table tbody tr:hover td {
+    background-color: #f1f5f9;
+}
+
+.presensi-sticky-col {
+    position: sticky !important;
+    z-index: 4;
+    background-color: #ffffff !important;
+    box-shadow: 1px 0 0 #dbe3ee;
+}
+
+thead .presensi-sticky-col {
+    z-index: 7;
+    background-color: #eef2f7 !important;
+}
+
+.presensi-data-table tbody tr:nth-child(even) .presensi-sticky-col {
+    background-color: #fbfdff !important;
+}
+
+.presensi-data-table tbody tr:hover .presensi-sticky-col {
+    background-color: #f1f5f9 !important;
+}
+
+.presensi-sticky-nik {
+    left: 0;
+    width: var(--presensi-nik-width);
+    min-width: var(--presensi-nik-width);
+    max-width: var(--presensi-nik-width);
+}
+
+.presensi-sticky-name {
+    left: var(--presensi-nik-width);
+    width: var(--presensi-name-width);
+    min-width: var(--presensi-name-width);
+    max-width: var(--presensi-name-width);
+}
+
+.presensi-employee-cell {
+    min-width: 0;
+}
+
+.presensi-employee-cell strong,
+.presensi-employee-cell span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.presensi-employee-cell strong {
+    color: #0f172a;
+    font-size: 11px;
+    line-height: 1.25;
+}
+
+.presensi-employee-cell span {
+    color: #64748b;
+    font-size: 10px;
+    line-height: 1.2;
+}
+
+.presensi-date-head,
+.presensi-date-cell {
+    width: var(--presensi-cell-width);
+    min-width: var(--presensi-cell-width);
+    max-width: var(--presensi-cell-width);
+    text-align: center;
+}
+
+.presensi-date-head small {
+    display: block;
+    color: #64748b;
+    font-size: 9px;
+    line-height: 1.1;
+}
+
+.presensi-date-head.is-sunday,
+.presensi-date-cell.is-sunday {
+    color: #991b1b;
+    background: #fff1f2 !important;
+}
+
+.presensi-date-head.is-national-holiday,
+.presensi-date-cell.is-national-holiday {
+    color: #7f1d1d;
+    background: #fee2e2 !important;
+}
+
+.presensi-date-head.is-national-holiday small,
+.presensi-date-head.is-sunday small {
+    color: #991b1b;
+}
+
+.presensi-time-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px 5px;
+    min-width: 66px;
+    text-align: left;
+}
+
+.presensi-time-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    color: #334155;
+    font-size: 9px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+.presensi-time-label {
+    color: #94a3b8;
+    font-size: 8px;
+    font-weight: 800;
+}
+
+.presensi-empty-cell {
+    color: #cbd5e1;
+    font-weight: 700;
+}
+
+.presensi-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 22px;
+    padding: 0 7px;
+    color: #334155;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.presensi-status-badge.is-ct {
+    color: #1d4ed8;
+    background: #dbeafe;
+    border-color: #93c5fd;
+}
+
+.presensi-status-badge.is-cr {
+    color: #047857;
+    background: #d1fae5;
+    border-color: #86efac;
+}
+
+.presensi-status-badge.is-ip {
+    color: #7c2d12;
+    background: #ffedd5;
+    border-color: #fdba74;
+}
+
+.presensi-status-badge.is-iu,
+.presensi-status-badge.is-a {
+    color: #7f1d1d;
+    background: #fee2e2;
+    border-color: #fca5a5;
+}
+
+.presensi-status-badge.is-off {
+    color: #475569;
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.presensi-status-badge.is-l {
+    color: #7f1d1d;
+    background: #fecaca;
+    border-color: #ef4444;
+}
+
+.presensi-card .paginate_button {
+    border-radius: 6px !important;
+}
+
+@media (max-width: 991.98px) {
+    .presensi-page {
+        --presensi-nik-width: 92px;
+        --presensi-name-width: 190px;
+        --presensi-cell-width: 78px;
+    }
+
+    .presensi-card .dataTables_scrollBody {
+        max-height: calc(100vh - 330px) !important;
+    }
+
+    .presensi-card .dataTables_filter {
+        text-align: left;
+    }
+}

@@ -9,6 +9,8 @@ use Carbon\Carbon;
 
 class AttendanceFulfillmentService
 {
+    private const LATE_TOLERANCE_MINUTES = 10;
+
     public function evaluate(?Presensi $presensi, $scheduleSource, $date = null): array
     {
         $scheduleData = $this->resolveScheduleData($scheduleSource, $date ?: optional($presensi)->tanggal);
@@ -62,7 +64,7 @@ class AttendanceFulfillmentService
                 'badge_class' => 'success',
                 'label' => 'Terpenuhi',
                 'description' => sprintf(
-                    'Durasi hadir %s dari target %s.',
+                    'Durasi kerja terhitung %s dari target %s.',
                     $this->formatMinutes($actualMinutes),
                     $this->formatMinutes($expectedMinutes)
                 ),
@@ -80,7 +82,7 @@ class AttendanceFulfillmentService
             'badge_class' => 'danger',
             'label' => 'Kurang ' . $this->formatMinutes($shortage),
             'description' => sprintf(
-                'Durasi hadir %s dari target %s.',
+                'Durasi kerja terhitung %s dari target %s.',
                 $this->formatMinutes($actualMinutes),
                 $this->formatMinutes($expectedMinutes)
             ),
@@ -107,6 +109,10 @@ class AttendanceFulfillmentService
         }
 
         return [
+            'start_time' => $scheduleSource->start_time,
+            'end_time' => $scheduleSource->end_time,
+            'break_start_time' => $scheduleSource->break_start_time,
+            'break_end_time' => $scheduleSource->break_end_time,
             'expected_work_minutes' => $scheduleSource->expected_work_minutes,
             'scheduled_break_minutes' => $scheduleSource->scheduled_break_minutes,
             'work_time_range_text' => $scheduleSource->work_time_range_text,
@@ -117,37 +123,136 @@ class AttendanceFulfillmentService
 
     private function resolveActualWorkMinutes(Presensi $presensi, array $scheduleData): int
     {
-        $start = Carbon::parse($presensi->jam_masuk);
-        $end = Carbon::parse($presensi->jam_pulang);
+        $attendanceDate = Carbon::parse($presensi->tanggal ?: $presensi->jam_masuk)->toDateString();
+        $actualStart = $this->parseActualDateTime($presensi->jam_masuk, $attendanceDate);
+        $actualEnd = $this->parseActualDateTime($presensi->jam_pulang, $attendanceDate, $actualStart);
+
+        if (!$this->hasScheduledWorkRange($scheduleData)) {
+            return $this->resolveFallbackActualWorkMinutes($presensi, $scheduleData, $attendanceDate, $actualStart, $actualEnd);
+        }
+
+        [$scheduledStart, $scheduledEnd] = $this->buildScheduledWorkRange($scheduleData, $attendanceDate);
+
+        if (!$this->hasScheduledBreakRange($scheduleData)) {
+            return $this->calculateOverlapMinutes($scheduledStart, $scheduledEnd, $actualStart, $actualEnd);
+        }
+
+        [$scheduledBreakStart, $scheduledBreakEnd] = $this->buildScheduledBreakRange($scheduleData, $scheduledStart);
+
+        if ($presensi->jam_istirahat && $presensi->jam_kembali_istirahat) {
+            $actualBreakStart = $this->parseActualDateTime($presensi->jam_istirahat, $attendanceDate, $actualStart);
+            $actualBreakEnd = $this->parseActualDateTime($presensi->jam_kembali_istirahat, $attendanceDate, $actualBreakStart);
+            $effectiveActualStart = $this->applyLateTolerance($actualStart, $scheduledStart);
+            $effectiveActualBreakEnd = $this->applyLateTolerance($actualBreakEnd, $scheduledBreakEnd);
+
+            return $this->calculateOverlapMinutes($scheduledStart, $scheduledBreakStart, $effectiveActualStart, $actualBreakStart)
+                + $this->calculateOverlapMinutes($scheduledBreakEnd, $scheduledEnd, $effectiveActualBreakEnd, $actualEnd);
+        }
+
+        $effectiveActualStart = $this->applyLateTolerance($actualStart, $scheduledStart);
+        $grossScheduledPresence = $this->calculateOverlapMinutes($scheduledStart, $scheduledEnd, $actualStart, $actualEnd);
+        $scheduledBreakOverlap = $this->calculateOverlapMinutes($actualStart, $actualEnd, $scheduledBreakStart, $scheduledBreakEnd);
+
+        if ($effectiveActualStart->equalTo($actualStart)) {
+            return max($grossScheduledPresence - $scheduledBreakOverlap, 0);
+        }
+
+        $toleratedPresence = $this->calculateOverlapMinutes($scheduledStart, $scheduledEnd, $effectiveActualStart, $actualEnd);
+        $toleratedBreakOverlap = $this->calculateOverlapMinutes($effectiveActualStart, $actualEnd, $scheduledBreakStart, $scheduledBreakEnd);
+
+        return max($toleratedPresence - $toleratedBreakOverlap, 0);
+    }
+
+    private function resolveFallbackActualWorkMinutes(Presensi $presensi, array $scheduleData, string $attendanceDate, Carbon $actualStart, Carbon $actualEnd): int
+    {
+        $grossMinutes = $actualStart->diffInMinutes($actualEnd);
+
+        if ($presensi->jam_istirahat && $presensi->jam_kembali_istirahat) {
+            $breakStart = $this->parseActualDateTime($presensi->jam_istirahat, $attendanceDate, $actualStart);
+            $breakEnd = $this->parseActualDateTime($presensi->jam_kembali_istirahat, $attendanceDate, $breakStart);
+
+            return max($grossMinutes - $this->calculateOverlapMinutes($actualStart, $actualEnd, $breakStart, $breakEnd), 0);
+        }
+
+        return max($grossMinutes - ($scheduleData['scheduled_break_minutes'] ?? 0), 0);
+    }
+
+    private function hasScheduledWorkRange(array $scheduleData): bool
+    {
+        return filled($scheduleData['start_time'] ?? null) && filled($scheduleData['end_time'] ?? null);
+    }
+
+    private function hasScheduledBreakRange(array $scheduleData): bool
+    {
+        return filled($scheduleData['break_start_time'] ?? null) && filled($scheduleData['break_end_time'] ?? null);
+    }
+
+    private function buildScheduledWorkRange(array $scheduleData, string $attendanceDate): array
+    {
+        $start = Carbon::createFromFormat('Y-m-d H:i:s', $attendanceDate . ' ' . $this->normalizeTime($scheduleData['start_time']));
+        $end = Carbon::createFromFormat('Y-m-d H:i:s', $attendanceDate . ' ' . $this->normalizeTime($scheduleData['end_time']));
 
         if ($end->lessThanOrEqualTo($start)) {
             $end->addDay();
         }
 
-        $grossMinutes = $start->diffInMinutes($end);
-        $breakMinutes = $this->resolveBreakMinutes($presensi, $scheduleData, $start, $end);
-
-        return max($grossMinutes - $breakMinutes, 0);
+        return [$start, $end];
     }
 
-    private function resolveBreakMinutes(Presensi $presensi, array $scheduleData, Carbon $shiftStart, Carbon $shiftEnd): int
+    private function buildScheduledBreakRange(array $scheduleData, Carbon $scheduledStart): array
     {
-        if ($presensi->jam_istirahat && $presensi->jam_kembali_istirahat) {
-            $breakStart = Carbon::parse($presensi->jam_istirahat);
-            $breakEnd = Carbon::parse($presensi->jam_kembali_istirahat);
+        $breakStart = Carbon::createFromFormat('Y-m-d H:i:s', $scheduledStart->format('Y-m-d') . ' ' . $this->normalizeTime($scheduleData['break_start_time']));
+        $breakEnd = Carbon::createFromFormat('Y-m-d H:i:s', $scheduledStart->format('Y-m-d') . ' ' . $this->normalizeTime($scheduleData['break_end_time']));
 
-            if ($breakStart->lessThan($shiftStart)) {
-                $breakStart->addDay();
-            }
-
-            if ($breakEnd->lessThanOrEqualTo($breakStart)) {
-                $breakEnd->addDay();
-            }
-
-            return $this->calculateOverlapMinutes($shiftStart, $shiftEnd, $breakStart, $breakEnd);
+        if ($breakStart->lessThan($scheduledStart)) {
+            $breakStart->addDay();
         }
 
-        return $scheduleData['scheduled_break_minutes'] ?? 0;
+        if ($breakEnd->lessThanOrEqualTo($breakStart)) {
+            $breakEnd->addDay();
+        }
+
+        return [$breakStart, $breakEnd];
+    }
+
+    private function parseActualDateTime($value, string $attendanceDate, ?Carbon $notBefore = null): Carbon
+    {
+        $text = trim((string) $value);
+
+        if (preg_match('/^\d{2}:\d{2}(:\d{2})?$/', $text)) {
+            $dateTime = Carbon::createFromFormat('Y-m-d H:i:s', $attendanceDate . ' ' . $this->normalizeTime($text));
+        } else {
+            $dateTime = Carbon::parse($value);
+        }
+
+        while ($notBefore && $dateTime->lessThan($notBefore)) {
+            $dateTime->addDay();
+        }
+
+        return $dateTime;
+    }
+
+    private function applyLateTolerance(Carbon $actualTime, Carbon $scheduledTime): Carbon
+    {
+        if (
+            $actualTime->greaterThan($scheduledTime)
+            && $scheduledTime->diffInMinutes($actualTime) <= self::LATE_TOLERANCE_MINUTES
+        ) {
+            return $scheduledTime->copy();
+        }
+
+        return $actualTime->copy();
+    }
+
+    private function normalizeTime(?string $time): string
+    {
+        $time = trim((string) $time);
+
+        if (strlen($time) === 5) {
+            return $time . ':00';
+        }
+
+        return $time;
     }
 
     private function calculateOverlapMinutes(Carbon $rangeStart, Carbon $rangeEnd, Carbon $windowStart, Carbon $windowEnd): int
