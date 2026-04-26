@@ -2,6 +2,7 @@
 
 namespace App\Services\Recruitment;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -40,16 +41,30 @@ class RecruitmentDocumentClient
             throw new RuntimeException('Konfigurasi API recruitment belum lengkap.');
         }
 
-        $response = Http::baseUrl($baseUrl)
-            ->acceptJson()
-            ->withToken($token)
-            ->timeout((int) config('services.recruitment.timeout', 10))
-            ->post('/api/internal/candidate-documents', [
-                'no_ktp' => $noKtp,
-            ]);
+        try {
+            $response = Http::baseUrl($baseUrl)
+                ->acceptJson()
+                ->withToken($token)
+                ->timeout((int) config('services.recruitment.timeout', 10))
+                ->post('/api/internal/candidate-documents', [
+                    'no_ktp' => $noKtp,
+                ]);
+        } catch (ConnectionException $exception) {
+            throw new RuntimeException('API recruitment tidak bisa dihubungi. Periksa URL, DNS, SSL, atau koneksi server.', 0, $exception);
+        }
+
+        $status = $response->status();
+
+        if (in_array($status, [401, 403], true)) {
+            throw new RuntimeException('API recruitment menolak Bearer token HRIS. Periksa RECRUITMENT_API_TOKEN di HRIS dan INTERNAL_API_TOKEN di recruitment. Status: ' . $status);
+        }
+
+        if ($status === 404) {
+            throw new RuntimeException('Endpoint dokumen recruitment tidak ditemukan. Periksa RECRUITMENT_API_URL dan route /api/internal/candidate-documents. Status: 404');
+        }
 
         if ($response->failed()) {
-            throw new RuntimeException('API recruitment gagal merespons. Status: ' . $response->status());
+            throw new RuntimeException('API recruitment gagal merespons. Status: ' . $status);
         }
 
         $payload = $response->json() ?: [];

@@ -277,13 +277,19 @@ class KaryawanController extends Controller
         } catch (Throwable $exception) {
             report($exception);
 
+            $message = 'Dokumen recruitment belum bisa diambil. Periksa konfigurasi atau koneksi API recruitment.';
+
+            if ((bool) config('app.debug')) {
+                $message .= ' Detail: ' . $exception->getMessage();
+            }
+
             return response()->json([
                 'found' => false,
                 'employee' => [
                     'nik' => $employee->nik,
                     'name' => $employee->nama_karyawan,
                 ],
-                'message' => 'Dokumen recruitment belum bisa diambil. Periksa konfigurasi atau koneksi API recruitment.',
+                'message' => $message,
                 'documents' => [],
             ], 502);
         }
