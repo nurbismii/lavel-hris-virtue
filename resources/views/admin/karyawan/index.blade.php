@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @push('styles')
+<link rel="stylesheet" href="{{ versioned_asset('assets/css/admin-karyawan-index.css') }}">
 <style>
     .table-scroll-wrapper {
         overflow-x: auto;
@@ -146,6 +147,7 @@
                                     <th>Divisi</th>
                                     <th>Posisi</th>
                                     <th>Status</th>
+                                    <th>Dokumen</th>
                                     <th>Aksi</th>
                                 </tr>
                             </thead>
@@ -479,6 +481,11 @@
             },
             {
                 data: 'status_resign'
+            },
+            {
+                data: 'dokumen',
+                orderable: false,
+                searchable: false
             },
             {
                 data: 'aksi',

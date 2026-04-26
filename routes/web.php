@@ -118,6 +118,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::post('/karyawan/bulk-upload-documents', [App\Http\Controllers\Admin\KaryawanController::class, 'bulkUploadDocuments'])
             ->middleware('menu:data_karyawan')
             ->name('karyawan.bulk-upload-documents');
+        Route::get('/karyawan/{nik}/documents/{type}/download', [App\Http\Controllers\Admin\KaryawanController::class, 'downloadDocument'])
+            ->middleware('menu:data_karyawan')
+            ->name('karyawan.documents.download');
         Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController')->middleware('menu:data_karyawan');
 
         Route::resource('/user', 'App\Http\Controllers\Admin\UserController')->middleware('menu:data_user');

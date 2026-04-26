@@ -14,11 +14,21 @@ use App\Models\Employee;
 use App\Models\Perusahaan;
 use App\Models\WorkPattern;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Facades\Excel;
 
 class KaryawanController extends Controller
 {
     use ValidatesZipUploads;
+
+    private const DOCUMENT_DOWNLOAD_TYPES = [
+        'photo' => ['column' => 'photo_path', 'label' => 'FOTO'],
+        'ktp' => ['column' => 'ktp_path', 'label' => 'KTP'],
+        'kk' => ['column' => 'kk_path', 'label' => 'KK'],
+        'sim' => ['column' => 'sim_path', 'label' => 'SIM'],
+        'sio' => ['column' => 'sio_path', 'label' => 'SIO'],
+        'face_reference' => ['column' => 'face_reference_path', 'label' => 'FACE REF'],
+    ];
 
     public function index(Request $request)
     {
@@ -217,6 +227,35 @@ class KaryawanController extends Controller
         return redirect()->route('karyawan.index');
     }
 
+    public function downloadDocument(Request $request, string $nik, string $type)
+    {
+        abort_unless(isset(self::DOCUMENT_DOWNLOAD_TYPES[$type]), 404);
+
+        $documentConfig = self::DOCUMENT_DOWNLOAD_TYPES[$type];
+        $column = $documentConfig['column'];
+        $employee = $request->user()
+            ->applyEmployeeScope(Employee::query())
+            ->select('nik', 'nama_karyawan', $column)
+            ->where('nik', $nik)
+            ->firstOrFail();
+        $relativePath = $employee->{$column};
+
+        abort_if(blank($relativePath), 404, 'Dokumen belum tersedia.');
+
+        $normalizedPath = str_replace('\\', '/', ltrim($relativePath, '/'));
+
+        abort_if(str_contains($normalizedPath, '..'), 404);
+
+        $absolutePath = public_path($normalizedPath);
+
+        abort_unless(File::isFile($absolutePath), 404, 'File dokumen tidak ditemukan.');
+
+        $extension = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION));
+        $downloadName = $this->buildDocumentDownloadName($employee, $documentConfig['label'], $extension);
+
+        return response()->download($absolutePath, $downloadName);
+    }
+
     public function destroy($nik)
     {
         abort_unless(auth()->user()->canAccessAllEmployees(), 403, 'Akses tidak diizinkan.');
@@ -257,5 +296,23 @@ class KaryawanController extends Controller
         return $query
             ->orderBy('nama_divisi')
             ->get(['id', 'nama_divisi']);
+    }
+
+    private function buildDocumentDownloadName(Employee $employee, string $documentLabel, ?string $extension): string
+    {
+        $nik = $this->normalizeDownloadNamePart($employee->nik);
+        $name = $this->normalizeDownloadNamePart($employee->nama_karyawan ?: 'KARYAWAN');
+        $filename = trim("{$nik} {$name} - {$documentLabel}");
+
+        return $extension ? "{$filename}.{$extension}" : $filename;
+    }
+
+    private function normalizeDownloadNamePart($value): string
+    {
+        $value = strtoupper((string) $value);
+        $value = preg_replace('/[\\\\\/:*?"<>|]+/', ' ', $value) ?: '';
+        $value = preg_replace('/\s+/', ' ', $value) ?: '';
+
+        return trim($value);
     }
 }
