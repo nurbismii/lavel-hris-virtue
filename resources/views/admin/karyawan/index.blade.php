@@ -159,6 +159,29 @@
     </div>
 </div>
 
+<div class="modal fade" id="modalDocumentPreview" tabindex="-1" aria-labelledby="modalDocumentPreviewLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content document-preview-modal">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalDocumentPreviewLabel">Preview Dokumen</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="document-preview-frame-wrap">
+                    <iframe id="documentPreviewFrame" class="document-preview-frame" title="Preview dokumen karyawan"></iframe>
+                </div>
+                <div class="document-preview-help">
+                    Jika preview tidak tampil, gunakan tombol download untuk membuka file langsung.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <a href="#" id="documentPreviewDownload" class="btn btn-primary">Download</a>
+            </div>
+        </div>
+    </div>
+</div>
+
 @if($canManageMasterData)
 <div class="modal fade" id="modalBulkDocuments" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalBulkDocumentsLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -558,6 +581,42 @@
     $('#filter_departemen').on('change', function() {
         $('#filter_divisi').prop('disabled', !this.value);
     });
+
+    const documentPreviewModalEl = document.getElementById('modalDocumentPreview');
+    const documentPreviewFrame = document.getElementById('documentPreviewFrame');
+    const documentPreviewTitle = document.getElementById('modalDocumentPreviewLabel');
+    const documentPreviewDownload = document.getElementById('documentPreviewDownload');
+    const documentPreviewModal = documentPreviewModalEl ? new bootstrap.Modal(documentPreviewModalEl) : null;
+
+    $(document).on('click', '.js-document-preview', function(event) {
+        event.preventDefault();
+
+        if (!documentPreviewModal || !documentPreviewFrame || !documentPreviewDownload || !documentPreviewTitle) {
+            window.open(this.href, '_blank');
+            return;
+        }
+
+        const previewUrl = this.dataset.previewUrl || this.href;
+        const downloadUrl = this.dataset.downloadUrl || this.href;
+        const documentLabel = this.dataset.documentLabel || this.textContent.trim() || 'Dokumen';
+
+        documentPreviewTitle.textContent = `Preview ${documentLabel}`;
+        documentPreviewDownload.href = downloadUrl;
+        documentPreviewFrame.src = 'about:blank';
+        documentPreviewModal.show();
+
+        window.setTimeout(function() {
+            documentPreviewFrame.src = previewUrl;
+        }, 80);
+    });
+
+    if (documentPreviewModalEl && documentPreviewFrame) {
+        documentPreviewModalEl.addEventListener('hidden.bs.modal', function() {
+            documentPreviewFrame.src = 'about:blank';
+            documentPreviewDownload.href = '#';
+            documentPreviewTitle.textContent = 'Preview Dokumen';
+        });
+    }
 
     $(document).on('click', '.btn-delete', function() {
         let id = $(this).data('id');

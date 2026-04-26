@@ -108,9 +108,15 @@ class KaryawanService
                     );
                 }
 
+                $previewUrl = route('karyawan.documents.preview', ['nik' => $employee->nik, 'type' => $type]);
+                $downloadUrl = route('karyawan.documents.download', ['nik' => $employee->nik, 'type' => $type]);
+
                 return sprintf(
-                    '<a href="%s" class="document-link document-link--ready" title="Download %s">%s</a>',
-                    e(route('karyawan.documents.download', ['nik' => $employee->nik, 'type' => $type])),
+                    '<a href="%s" class="document-link document-link--ready js-document-preview" title="Preview %s" data-preview-url="%s" data-download-url="%s" data-document-label="%s">%s</a>',
+                    e($previewUrl),
+                    e($label),
+                    e($previewUrl),
+                    e($downloadUrl),
                     e($label),
                     e($label)
                 );

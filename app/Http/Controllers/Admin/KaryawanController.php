@@ -16,6 +16,7 @@ use App\Models\WorkPattern;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\HeaderUtils;
 
 class KaryawanController extends Controller
 {
@@ -229,31 +230,24 @@ class KaryawanController extends Controller
 
     public function downloadDocument(Request $request, string $nik, string $type)
     {
-        abort_unless(isset(self::DOCUMENT_DOWNLOAD_TYPES[$type]), 404);
+        $document = $this->resolveEmployeeDocument($request, $nik, $type);
 
-        $documentConfig = self::DOCUMENT_DOWNLOAD_TYPES[$type];
-        $column = $documentConfig['column'];
-        $employee = $request->user()
-            ->applyEmployeeScope(Employee::query())
-            ->select('nik', 'nama_karyawan', $column)
-            ->where('nik', $nik)
-            ->firstOrFail();
-        $relativePath = $employee->{$column};
+        return response()->download($document['absolute_path'], $document['download_name']);
+    }
 
-        abort_if(blank($relativePath), 404, 'Dokumen belum tersedia.');
+    public function previewDocument(Request $request, string $nik, string $type)
+    {
+        $document = $this->resolveEmployeeDocument($request, $nik, $type);
 
-        $normalizedPath = str_replace('\\', '/', ltrim($relativePath, '/'));
-
-        abort_if(str_contains($normalizedPath, '..'), 404);
-
-        $absolutePath = public_path($normalizedPath);
-
-        abort_unless(File::isFile($absolutePath), 404, 'File dokumen tidak ditemukan.');
-
-        $extension = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION));
-        $downloadName = $this->buildDocumentDownloadName($employee, $documentConfig['label'], $extension);
-
-        return response()->download($absolutePath, $downloadName);
+        return response()->file($document['absolute_path'], [
+            'Content-Type' => $document['mime_type'],
+            'Content-Disposition' => HeaderUtils::makeDisposition(
+                HeaderUtils::DISPOSITION_INLINE,
+                $document['download_name'],
+                $document['download_name_fallback']
+            ),
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function destroy($nik)
@@ -305,6 +299,48 @@ class KaryawanController extends Controller
         $filename = trim("{$nik} {$name} - {$documentLabel}");
 
         return $extension ? "{$filename}.{$extension}" : $filename;
+    }
+
+    private function resolveEmployeeDocument(Request $request, string $nik, string $type): array
+    {
+        abort_unless(isset(self::DOCUMENT_DOWNLOAD_TYPES[$type]), 404);
+
+        $documentConfig = self::DOCUMENT_DOWNLOAD_TYPES[$type];
+        $column = $documentConfig['column'];
+        $employee = $request->user()
+            ->applyEmployeeScope(Employee::query())
+            ->select('nik', 'nama_karyawan', $column)
+            ->where('nik', $nik)
+            ->firstOrFail();
+        $relativePath = $employee->{$column};
+
+        abort_if(blank($relativePath), 404, 'Dokumen belum tersedia.');
+
+        $normalizedPath = str_replace('\\', '/', ltrim($relativePath, '/'));
+
+        abort_if(str_contains($normalizedPath, '..'), 404);
+
+        $absolutePath = public_path($normalizedPath);
+
+        abort_unless(File::isFile($absolutePath), 404, 'File dokumen tidak ditemukan.');
+
+        $extension = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION));
+        $downloadName = $this->buildDocumentDownloadName($employee, $documentConfig['label'], $extension);
+
+        return [
+            'absolute_path' => $absolutePath,
+            'download_name' => $downloadName,
+            'download_name_fallback' => $this->buildAsciiFilenameFallback($downloadName),
+            'mime_type' => File::mimeType($absolutePath) ?: 'application/octet-stream',
+        ];
+    }
+
+    private function buildAsciiFilenameFallback(string $filename): string
+    {
+        $fallback = preg_replace('/[^A-Za-z0-9 ._\-()]/', '', $filename) ?: '';
+        $fallback = trim($fallback);
+
+        return $fallback !== '' ? $fallback : 'document';
     }
 
     private function normalizeDownloadNamePart($value): string
