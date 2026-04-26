@@ -139,11 +139,11 @@ class KaryawanService
     private function renderRecruitmentDocumentButton(Employee $employee): string
     {
         if (blank($employee->no_ktp)) {
-            return '<span class="document-link document-link--missing" title="No KTP belum tersedia">Recruitment</span>';
+            return '<span class="document-link document-link--missing" title="No KTP belum tersedia">V-Hire</span>';
         }
 
         return sprintf(
-            '<button type="button" class="document-link document-link--recruitment js-recruitment-documents" data-url="%s" data-employee-name="%s" data-no-ktp="%s">Recruitment</button>',
+            '<button type="button" class="document-link document-link--recruitment js-recruitment-documents" data-url="%s" data-employee-name="%s" data-no-ktp="%s">V-Hire</button>',
             e(route('karyawan.recruitment-documents', ['nik' => $employee->nik])),
             e($employee->nama_karyawan),
             e($employee->no_ktp)

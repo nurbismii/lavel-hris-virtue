@@ -137,10 +137,6 @@
                             </div>
                         </div>
 
-                        <div class="alert alert-light border small py-2 mb-3">
-                            Kolom dokumen menampilkan preview Foto, KTP, KK, SIM, SIO, Face Ref, serta dokumen dari Recruitment berdasarkan No KTP jika tersedia. Download tetap memakai format nama <code>NIK NAMA - JENIS DOKUMEN</code>.
-                        </div>
-
                         <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                             <thead>
                                 <tr>
