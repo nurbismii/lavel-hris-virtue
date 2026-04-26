@@ -169,6 +169,7 @@
             <div class="modal-body">
                 <div class="document-preview-frame-wrap">
                     <iframe id="documentPreviewFrame" class="document-preview-frame" title="Preview dokumen karyawan"></iframe>
+                    <img id="documentPreviewImage" class="document-preview-image d-none" alt="Preview dokumen karyawan">
                 </div>
                 <div class="document-preview-help">
                     Jika preview tidak tampil, gunakan tombol download untuk membuka file langsung.
@@ -584,14 +585,24 @@
 
     const documentPreviewModalEl = document.getElementById('modalDocumentPreview');
     const documentPreviewFrame = document.getElementById('documentPreviewFrame');
+    const documentPreviewImage = document.getElementById('documentPreviewImage');
     const documentPreviewTitle = document.getElementById('modalDocumentPreviewLabel');
     const documentPreviewDownload = document.getElementById('documentPreviewDownload');
     const documentPreviewModal = documentPreviewModalEl ? new bootstrap.Modal(documentPreviewModalEl) : null;
 
+    function isPreviewImage(url) {
+        try {
+            const pathname = new URL(url, window.location.origin).pathname.toLowerCase();
+            return /\.(jpg|jpeg|png|webp)$/i.test(pathname);
+        } catch (error) {
+            return false;
+        }
+    }
+
     $(document).on('click', '.js-document-preview', function(event) {
         event.preventDefault();
 
-        if (!documentPreviewModal || !documentPreviewFrame || !documentPreviewDownload || !documentPreviewTitle) {
+        if (!documentPreviewModal || !documentPreviewFrame || !documentPreviewImage || !documentPreviewDownload || !documentPreviewTitle) {
             window.open(this.href, '_blank');
             return;
         }
@@ -603,16 +614,29 @@
         documentPreviewTitle.textContent = `Preview ${documentLabel}`;
         documentPreviewDownload.href = downloadUrl;
         documentPreviewFrame.src = 'about:blank';
+        documentPreviewFrame.classList.add('d-none');
+        documentPreviewImage.src = '';
+        documentPreviewImage.classList.add('d-none');
         documentPreviewModal.show();
 
         window.setTimeout(function() {
+            if (isPreviewImage(downloadUrl)) {
+                documentPreviewImage.src = previewUrl;
+                documentPreviewImage.classList.remove('d-none');
+                return;
+            }
+
+            documentPreviewFrame.classList.remove('d-none');
             documentPreviewFrame.src = previewUrl;
         }, 80);
     });
 
-    if (documentPreviewModalEl && documentPreviewFrame) {
+    if (documentPreviewModalEl && documentPreviewFrame && documentPreviewImage) {
         documentPreviewModalEl.addEventListener('hidden.bs.modal', function() {
             documentPreviewFrame.src = 'about:blank';
+            documentPreviewFrame.classList.remove('d-none');
+            documentPreviewImage.src = '';
+            documentPreviewImage.classList.add('d-none');
             documentPreviewDownload.href = '#';
             documentPreviewTitle.textContent = 'Preview Dokumen';
         });
