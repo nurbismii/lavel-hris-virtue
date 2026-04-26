@@ -28,6 +28,7 @@ class KaryawanService
             'divisi_id',
             'status_resign',
             'posisi',
+            'no_ktp',
             'photo_path',
             'ktp_path',
             'kk_path',
@@ -99,6 +100,7 @@ class KaryawanService
                 $label = $config['label'];
                 $column = $config['column'];
                 $isAvailable = filled($employee->{$column});
+                $mime = $this->guessDocumentMime($employee->{$column});
 
                 if (!$isAvailable) {
                     return sprintf(
@@ -112,23 +114,54 @@ class KaryawanService
                 $downloadUrl = route('karyawan.documents.download', ['nik' => $employee->nik, 'type' => $type]);
 
                 return sprintf(
-                    '<a href="%s" class="document-link document-link--ready js-document-preview" title="Preview %s" data-preview-url="%s" data-download-url="%s" data-document-label="%s">%s</a>',
+                    '<a href="%s" class="document-link document-link--ready js-document-preview" title="Preview %s" data-preview-url="%s" data-download-url="%s" data-document-label="%s" data-document-mime="%s">%s</a>',
                     e($previewUrl),
                     e($label),
                     e($previewUrl),
                     e($downloadUrl),
                     e($label),
+                    e($mime),
                     e($label)
                 );
             })
             ->implode('');
 
         return sprintf(
-            '<div class="document-summary"><span class="document-summary__count %s">%d/%d</span><div class="document-summary__links">%s</div></div>',
+            '<div class="document-summary"><span class="document-summary__count %s">%d/%d</span><div class="document-summary__links">%s%s</div></div>',
             $summaryClass,
             $completed,
             $total,
-            $links
+            $links,
+            $this->renderRecruitmentDocumentButton($employee)
         );
+    }
+
+    private function renderRecruitmentDocumentButton(Employee $employee): string
+    {
+        if (blank($employee->no_ktp)) {
+            return '<span class="document-link document-link--missing" title="No KTP belum tersedia">Recruitment</span>';
+        }
+
+        return sprintf(
+            '<button type="button" class="document-link document-link--recruitment js-recruitment-documents" data-url="%s" data-employee-name="%s" data-no-ktp="%s">Recruitment</button>',
+            e(route('karyawan.recruitment-documents', ['nik' => $employee->nik])),
+            e($employee->nama_karyawan),
+            e($employee->no_ktp)
+        );
+    }
+
+    private function guessDocumentMime(?string $path): string
+    {
+        $extension = strtolower(pathinfo((string) $path, PATHINFO_EXTENSION));
+
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            return 'image/' . ($extension === 'jpg' ? 'jpeg' : $extension);
+        }
+
+        if ($extension === 'pdf') {
+            return 'application/pdf';
+        }
+
+        return '';
     }
 }

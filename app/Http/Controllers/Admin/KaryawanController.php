@@ -13,10 +13,12 @@ use App\Models\Divisi;
 use App\Models\Employee;
 use App\Models\Perusahaan;
 use App\Models\WorkPattern;
+use App\Services\Recruitment\RecruitmentDocumentClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\HeaderUtils;
+use Throwable;
 
 class KaryawanController extends Controller
 {
@@ -247,6 +249,54 @@ class KaryawanController extends Controller
                 $document['download_name_fallback']
             ),
             'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function recruitmentDocuments(Request $request, string $nik, RecruitmentDocumentClient $client)
+    {
+        $employee = $request->user()
+            ->applyEmployeeScope(Employee::query())
+            ->select('nik', 'nama_karyawan', 'no_ktp')
+            ->where('nik', $nik)
+            ->firstOrFail();
+
+        if (blank($employee->no_ktp)) {
+            return response()->json([
+                'found' => false,
+                'employee' => [
+                    'nik' => $employee->nik,
+                    'name' => $employee->nama_karyawan,
+                ],
+                'message' => 'Nomor KTP karyawan belum tersedia.',
+                'documents' => [],
+            ]);
+        }
+
+        try {
+            $payload = $client->lookupByNoKtp($employee->no_ktp);
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'found' => false,
+                'employee' => [
+                    'nik' => $employee->nik,
+                    'name' => $employee->nama_karyawan,
+                ],
+                'message' => 'Dokumen recruitment belum bisa diambil. Periksa konfigurasi atau koneksi API recruitment.',
+                'documents' => [],
+            ], 502);
+        }
+
+        return response()->json([
+            'found' => (bool) ($payload['found'] ?? false),
+            'employee' => [
+                'nik' => $employee->nik,
+                'name' => $employee->nama_karyawan,
+                'no_ktp' => $employee->no_ktp,
+            ],
+            'candidate' => $payload['candidate'] ?? null,
+            'documents' => $payload['documents'] ?? [],
         ]);
     }
 

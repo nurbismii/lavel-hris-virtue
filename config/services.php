@@ -34,4 +34,11 @@ return [
         'api_key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
+    'recruitment' => [
+        'base_url' => env('RECRUITMENT_API_URL'),
+        'token' => env('RECRUITMENT_API_TOKEN'),
+        'timeout' => env('RECRUITMENT_API_TIMEOUT', 10),
+        'cache_ttl' => env('RECRUITMENT_DOCUMENT_CACHE_TTL', 3),
+    ],
+
 ];

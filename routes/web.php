@@ -124,6 +124,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/karyawan/{nik}/documents/{type}/download', [App\Http\Controllers\Admin\KaryawanController::class, 'downloadDocument'])
             ->middleware('menu:data_karyawan')
             ->name('karyawan.documents.download');
+        Route::get('/karyawan/{nik}/recruitment-documents', [App\Http\Controllers\Admin\KaryawanController::class, 'recruitmentDocuments'])
+            ->middleware('menu:data_karyawan')
+            ->name('karyawan.recruitment-documents');
         Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController')->middleware('menu:data_karyawan');
 
         Route::resource('/user', 'App\Http\Controllers\Admin\UserController')->middleware('menu:data_user');

@@ -137,6 +137,10 @@
                             </div>
                         </div>
 
+                        <div class="alert alert-light border small py-2 mb-3">
+                            Kolom dokumen menampilkan preview Foto, KTP, KK, SIM, SIO, Face Ref, serta dokumen dari Recruitment berdasarkan No KTP jika tersedia. Download tetap memakai format nama <code>NIK NAMA - JENIS DOKUMEN</code>.
+                        </div>
+
                         <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                             <thead>
                                 <tr>
@@ -154,6 +158,31 @@
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalRecruitmentDocuments" tabindex="-1" aria-labelledby="modalRecruitmentDocumentsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content recruitment-documents-modal">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="modalRecruitmentDocumentsLabel">Dokumen Recruitment</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="recruitmentDocumentsLoading" class="recruitment-documents-state">
+                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                    Mengambil dokumen dari recruitment...
+                </div>
+                <div id="recruitmentDocumentsError" class="alert alert-warning d-none mb-0"></div>
+                <div id="recruitmentDocumentsEmpty" class="alert alert-light border d-none mb-0">
+                    Dokumen recruitment tidak ditemukan untuk No KTP karyawan ini.
+                </div>
+                <div id="recruitmentDocumentsList" class="recruitment-documents-list d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
             </div>
         </div>
     </div>
@@ -589,8 +618,19 @@
     const documentPreviewTitle = document.getElementById('modalDocumentPreviewLabel');
     const documentPreviewDownload = document.getElementById('documentPreviewDownload');
     const documentPreviewModal = documentPreviewModalEl ? new bootstrap.Modal(documentPreviewModalEl) : null;
+    const recruitmentDocumentsModalEl = document.getElementById('modalRecruitmentDocuments');
+    const recruitmentDocumentsModal = recruitmentDocumentsModalEl ? new bootstrap.Modal(recruitmentDocumentsModalEl) : null;
+    const recruitmentDocumentsTitle = document.getElementById('modalRecruitmentDocumentsLabel');
+    const recruitmentDocumentsLoading = document.getElementById('recruitmentDocumentsLoading');
+    const recruitmentDocumentsError = document.getElementById('recruitmentDocumentsError');
+    const recruitmentDocumentsEmpty = document.getElementById('recruitmentDocumentsEmpty');
+    const recruitmentDocumentsList = document.getElementById('recruitmentDocumentsList');
 
-    function isPreviewImage(url) {
+    function isPreviewImage(url, mime = '') {
+        if (mime.toLowerCase().startsWith('image/')) {
+            return true;
+        }
+
         try {
             const pathname = new URL(url, window.location.origin).pathname.toLowerCase();
             return /\.(jpg|jpeg|png|webp)$/i.test(pathname);
@@ -599,17 +639,126 @@
         }
     }
 
-    $(document).on('click', '.js-document-preview', function(event) {
+    function resetRecruitmentDocumentsModal() {
+        recruitmentDocumentsLoading.classList.remove('d-none');
+        recruitmentDocumentsError.classList.add('d-none');
+        recruitmentDocumentsEmpty.classList.add('d-none');
+        recruitmentDocumentsList.classList.add('d-none');
+        recruitmentDocumentsError.textContent = '';
+        recruitmentDocumentsList.innerHTML = '';
+    }
+
+    function renderRecruitmentDocuments(documents) {
+        recruitmentDocumentsLoading.classList.add('d-none');
+        recruitmentDocumentsList.innerHTML = '';
+
+        if (!documents.length) {
+            recruitmentDocumentsEmpty.classList.remove('d-none');
+            return;
+        }
+
+        documents.forEach(function(documentItem) {
+            const previewUrl = documentItem.preview_url || documentItem.download_url || '';
+            const downloadUrl = documentItem.download_url || documentItem.preview_url || '';
+
+            if (!previewUrl && !downloadUrl) {
+                return;
+            }
+
+            const button = document.createElement('button');
+            const label = documentItem.label || documentItem.type || 'Dokumen';
+            button.type = 'button';
+            button.className = 'recruitment-document-item js-external-document-preview';
+            button.dataset.previewUrl = previewUrl;
+            button.dataset.downloadUrl = downloadUrl;
+            button.dataset.documentLabel = label;
+            button.dataset.documentMime = documentItem.mime || '';
+
+            const title = document.createElement('span');
+            title.className = 'recruitment-document-item__title';
+            title.textContent = label;
+
+            const meta = document.createElement('span');
+            meta.className = 'recruitment-document-item__meta';
+            meta.textContent = documentItem.expires_at
+                ? `Link berlaku sampai ${documentItem.expires_at}`
+                : 'Klik untuk preview';
+
+            button.appendChild(title);
+            button.appendChild(meta);
+            recruitmentDocumentsList.appendChild(button);
+        });
+
+        if (!recruitmentDocumentsList.children.length) {
+            recruitmentDocumentsEmpty.classList.remove('d-none');
+            return;
+        }
+
+        recruitmentDocumentsList.classList.remove('d-none');
+    }
+
+    $(document).on('click', '.js-recruitment-documents', function(event) {
+        event.preventDefault();
+
+        if (!recruitmentDocumentsModal || !recruitmentDocumentsTitle || !recruitmentDocumentsLoading || !recruitmentDocumentsError || !recruitmentDocumentsEmpty || !recruitmentDocumentsList) {
+            return;
+        }
+
+        const url = this.dataset.url;
+        const employeeName = this.dataset.employeeName || 'Karyawan';
+        const noKtp = this.dataset.noKtp || '-';
+
+        recruitmentDocumentsTitle.textContent = `Dokumen Recruitment - ${employeeName}`;
+        resetRecruitmentDocumentsModal();
+        recruitmentDocumentsModal.show();
+
+        fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Request dokumen recruitment gagal.');
+                }
+
+                return response.json();
+            })
+            .then(function(payload) {
+                recruitmentDocumentsLoading.classList.add('d-none');
+
+                if (!payload.found) {
+                    recruitmentDocumentsEmpty.textContent = payload.message || `Dokumen recruitment tidak ditemukan untuk No KTP ${noKtp}.`;
+                    recruitmentDocumentsEmpty.classList.remove('d-none');
+                    return;
+                }
+
+                renderRecruitmentDocuments(payload.documents || []);
+            })
+            .catch(function(error) {
+                recruitmentDocumentsLoading.classList.add('d-none');
+                recruitmentDocumentsError.textContent = error.message || 'Dokumen recruitment gagal dimuat.';
+                recruitmentDocumentsError.classList.remove('d-none');
+            });
+    });
+
+    $(document).on('click', '.js-document-preview, .js-external-document-preview', function(event) {
         event.preventDefault();
 
         if (!documentPreviewModal || !documentPreviewFrame || !documentPreviewImage || !documentPreviewDownload || !documentPreviewTitle) {
-            window.open(this.href, '_blank');
+            window.open(this.dataset.previewUrl || this.href, '_blank');
             return;
         }
 
         const previewUrl = this.dataset.previewUrl || this.href;
         const downloadUrl = this.dataset.downloadUrl || this.href;
         const documentLabel = this.dataset.documentLabel || this.textContent.trim() || 'Dokumen';
+        const documentMime = this.dataset.documentMime || '';
+
+        if (this.classList.contains('js-external-document-preview') && recruitmentDocumentsModalEl && recruitmentDocumentsModalEl.classList.contains('show')) {
+            recruitmentDocumentsModal.hide();
+        }
 
         documentPreviewTitle.textContent = `Preview ${documentLabel}`;
         documentPreviewDownload.href = downloadUrl;
@@ -620,7 +769,7 @@
         documentPreviewModal.show();
 
         window.setTimeout(function() {
-            if (isPreviewImage(downloadUrl)) {
+            if (isPreviewImage(downloadUrl, documentMime)) {
                 documentPreviewImage.src = previewUrl;
                 documentPreviewImage.classList.remove('d-none');
                 return;
