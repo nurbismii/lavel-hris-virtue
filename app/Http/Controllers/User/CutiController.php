@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Cuti\CutiRequest;
 use App\Models\Cuti;
 use App\Models\Employee;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CutiController extends Controller
@@ -43,7 +43,7 @@ class CutiController extends Controller
         return redirect()->route('cuti.index');
     }
 
-    public function store(Request $request)
+    public function store(CutiRequest $request)
     {
         $result = app()->make(\App\Services\Cuti\CutiService::class)
             ->storeCuti($request);
@@ -70,7 +70,7 @@ class CutiController extends Controller
         return view('user.cuti.edit', compact('cuti', 'karyawan'));
     }
 
-    public function update(Request $request, $id)
+    public function update(CutiRequest $request, $id)
     {
         $cuti = $this->findUserCuti($id);
 
@@ -79,7 +79,7 @@ class CutiController extends Controller
             return redirect()->route('cuti.index');
         }
 
-        $result = app()->make(\App\Services\Cuti\CutiService::class)->updateCuti($request, $cuti->id);
+        $result = app()->make(\App\Services\Cuti\CutiService::class)->updateCuti($request, $cuti);
 
         if (!$result['status']) {
             toast()->warning('Warning', $result['message']);

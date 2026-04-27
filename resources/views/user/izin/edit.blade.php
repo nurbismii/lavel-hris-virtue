@@ -122,7 +122,7 @@
                         @if($izin->foto && $izin->foto !== '-')
                         <small class="d-block mt-2">
                             Bukti saat ini:
-                            <a href="{{ asset($izin->foto) }}" target="_blank">Lihat file</a>
+                            <a href="{{ route('izin.proof', $izin->id) }}" target="_blank">Lihat file</a>
                         </small>
                         @endif
                     </div>

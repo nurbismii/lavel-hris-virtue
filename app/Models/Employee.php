@@ -22,7 +22,7 @@ class Employee extends Model
 
     public function getDocumentPhotoUrlAttribute(): ?string
     {
-        return filled($this->photo_path) ? asset($this->photo_path) : null;
+        return filled($this->photo_path) ? route('employee.photo', ['nik' => $this->nik]) : null;
     }
 
     public function departemen()

@@ -61,7 +61,7 @@
                                 <td>{!! $row->status_hrd_label !!}</td>
                                 <td>
                                     @if($row->foto)
-                                    <a href="{{ asset($row->foto) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                    <a href="{{ route('izin.proof', $row->id) }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-eye"></i>
                                     </a>
                                     @else

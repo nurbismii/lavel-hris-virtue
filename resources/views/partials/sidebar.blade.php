@@ -8,9 +8,9 @@
 <div class="sidebar" data-background-color="white">
     <div class="sidebar-logo">
         <div class="logo-header" data-background-color="white">
-            <a href="{{ $homeUrl }}" class="logo">
-                <img src="{{ asset('assets/img/kaiadmin/favicon-1.png')}}" alt="navbar brand" class="navbar-brand" height="80" />
-                <div class="text-decoration-none logo-industrial logo-industrial--sidebar">V-People</div>
+            <a href="{{ $homeUrl }}" class="logo app-brand app-brand--sidebar text-decoration-none" aria-label="V-People">
+                <img src="{{ asset('assets/img/kaiadmin/favicon-1.png')}}" alt="" class="navbar-brand app-brand__icon" height="80" />
+                <span class="app-brand__text">V-People</span>
             </a>
             <div class="nav-toggle">
                 <button class="btn btn-toggle toggle-sidebar">

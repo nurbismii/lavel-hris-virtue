@@ -24,7 +24,7 @@
                 </small>
             </div>
 
-            <a href="{{ route('izin.index') }}" class="btn btn-sm btn-secondary">
+            <a href="{{ route('izin.index') }}" class="btn btn-sm btn-light">
                 <i class="fas fa-long-arrow-alt-left me-1"></i> Kembali
             </a>
         </div>

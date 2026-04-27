@@ -16,6 +16,8 @@ class Presensi extends Model
         'jam_istirahat' => 'datetime',
         'jam_kembali_istirahat' => 'datetime',
         'jam_pulang' => 'datetime',
+        'face_verified' => 'boolean',
+        'face_verified_at' => 'datetime',
     ];
 
     public function employee()

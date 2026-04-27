@@ -51,6 +51,9 @@ Route::middleware(['android.redirect'])->group(function () {
     });
 
     Route::middleware('auth')->group(function () {
+        Route::get('/employee-photo/{nik}', [App\Http\Controllers\Admin\KaryawanController::class, 'photo'])
+            ->name('employee.photo');
+
         Route::get('/email/verify', function () {
             return view('auth.verify-email');
         })->name('verification.notice');
@@ -84,9 +87,18 @@ Route::middleware(['android.redirect'])->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('menu:dashboard_karyawan')->name('dashboard.karyawan');
         Route::resource('/cuti', 'App\Http\Controllers\User\CutiController')->middleware('menu:cuti');
+        Route::get('/presensi/face-reference', [PresensiController::class, 'faceReference'])
+            ->middleware('menu:presensi')
+            ->name('presensi.face-reference');
         Route::resource('/presensi', 'App\Http\Controllers\User\PresensiController')->except('store')->middleware('menu:presensi');
-        Route::post('/absen/{type}', [PresensiController::class, 'store'])->middleware(['auth', 'menu:presensi']);
+        Route::post('/absen/{type}', [PresensiController::class, 'store'])->middleware(['auth', 'menu:presensi', 'throttle:presensi']);
+        Route::get('/izin/{izin}/bukti', [App\Http\Controllers\User\IzinController::class, 'proof'])
+            ->middleware('menu:izin')
+            ->name('izin.proof');
         Route::resource('/izin', 'App\Http\Controllers\User\IzinController')->middleware('menu:izin');
+        Route::get('/roster/{roster}/attachment', [App\Http\Controllers\User\RosterController::class, 'attachment'])
+            ->middleware('menu:roster')
+            ->name('roster.attachment');
         Route::resource('/roster', 'App\Http\Controllers\User\RosterController')->middleware('menu:roster');
         Route::resource('/slipgaji', 'App\Http\Controllers\User\SlipgajiController')->middleware('menu:slip_gaji_user');
         Route::get('/lembur', [UserOvertimeOrderController::class, 'index'])->middleware('menu:lembur')->name('lembur.index');
@@ -198,24 +210,26 @@ Route::middleware(['android.redirect'])->group(function () {
     Route::group(['prefix' => 'approval', 'middleware' => ['auth']], function () {
 
         Route::get('/hod/cuti', [CutiApprovalController::class, 'hodIndex'])->middleware('menu:approval_hod')->name('approval.cuti.hod');
-        Route::post('/hod/cuti{id}', [CutiApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.cuti.hod.process');
+        Route::post('/hod/cuti/{id}', [CutiApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.cuti.hod.process');
 
         Route::get('/hrd/cuti', [CutiApprovalController::class, 'hrdIndex'])->middleware('menu:approval_hr')->name('approval.cuti.hrd');
-        Route::post('/hrd/cuti{id}', [CutiApprovalController::class, 'hrdProcess'])->middleware('menu:approval_hr')->name('approval.cuti.hrd.process');
+        Route::post('/hrd/cuti/{id}', [CutiApprovalController::class, 'hrdProcess'])->middleware('menu:approval_hr')->name('approval.cuti.hrd.process');
 
         Route::get('/hod/cuti-roster', [RosterApprovalController::class, 'hodIndex'])->middleware('menu:approval_hod')->name('approval.roster.hod');
         Route::post('/hod/cuti-roster/{id}', [RosterApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.roster.hod.process');
         Route::get('/hod/show/cuti-roster/{id}', [RosterApprovalController::class, 'hodShow'])->middleware('menu:approval_hod')->name('approval.roster.hod.show');
+        Route::get('/hod/cuti-roster/{id}/attachment', [RosterApprovalController::class, 'hodAttachment'])->middleware('menu:approval_hod')->name('approval.roster.hod.attachment');
 
         Route::get('/hrd/cuti-roster', [RosterApprovalController::class, 'hrdIndex'])->middleware('menu:approval_hr')->name('approval.roster.hrd');
         Route::get('/hrd/show/cuti-roster/{id}', [RosterApprovalController::class, 'hrdShow'])->middleware('menu:approval_hr')->name('approval.roster.hrd.show');
+        Route::get('/hrd/cuti-roster/{id}/attachment', [RosterApprovalController::class, 'hrdAttachment'])->middleware('menu:approval_hr')->name('approval.roster.hrd.attachment');
         Route::post('/hrd/cuti-roster/{id}', [RosterApprovalController::class, 'hrdProcess'])->middleware('menu:approval_hr')->name('approval.roster.hrd.process');
 
         Route::get('/hod/izin', [IzinApprovalController::class, 'hodIndex'])->middleware('menu:approval_hod')->name('approval.izin.hod');
-        Route::post('/hod/izin{id}', [IzinApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.izin.hod.process');
+        Route::post('/hod/izin/{id}', [IzinApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.izin.hod.process');
 
         Route::get('/hrd/izin', [IzinApprovalController::class, 'hrdIndex'])->middleware('menu:approval_hr')->name('approval.izin.hrd');
-        Route::post('/hrd/izin{id}', [IzinApprovalController::class, 'hrdProcess'])->middleware('menu:approval_hr')->name('approval.izin.hrd.process');
+        Route::post('/hrd/izin/{id}', [IzinApprovalController::class, 'hrdProcess'])->middleware('menu:approval_hr')->name('approval.izin.hrd.process');
     });
 
     Route::group(['prefix' => 'admin-divisi', 'middleware' => ['auth', 'menu:setting_hari_off']], function () {
@@ -231,17 +245,22 @@ Route::middleware(['android.redirect'])->group(function () {
     });
 });
 
-Route::group(['prefix' => 'wilayah'], function () {
-    Route::get('/distribusi/export', [App\Http\Controllers\Admin\WilayahController::class, 'export'])->name('distribusi.export');
-    Route::get('/distribusi/export-excel', [App\Http\Controllers\Admin\WilayahController::class, 'exportExcel'])->name('distribusi.export-excel');
-    Route::resource('/distribusi', 'App\Http\Controllers\Admin\WilayahController');
-    Route::get('/provinces', [App\Http\Controllers\Admin\WilayahController::class, 'provinsi'])->name('wilayah.provinces');
-    Route::get('/kabupatens/{provinceId}', [App\Http\Controllers\Admin\WilayahController::class, 'kabupaten'])->name('wilayah.kabupatens');
-    Route::get('/kecamatans/{kabupatenId}', [App\Http\Controllers\Admin\WilayahController::class, 'kecamatan'])->name('wilayah.kecamatans');
-    Route::get('/kelurahans/{kecamatanId}', [App\Http\Controllers\Admin\WilayahController::class, 'kelurahan'])->name('wilayah.kelurahans');
+Route::group(['prefix' => 'wilayah', 'middleware' => ['auth']], function () {
+    Route::middleware('menu:distribusi_wilayah')->group(function () {
+        Route::get('/distribusi/export', [App\Http\Controllers\Admin\WilayahController::class, 'export'])->name('distribusi.export');
+        Route::get('/distribusi/export-excel', [App\Http\Controllers\Admin\WilayahController::class, 'exportExcel'])->name('distribusi.export-excel');
+        Route::resource('/distribusi', 'App\Http\Controllers\Admin\WilayahController');
+    });
+
+    Route::middleware('menu:data_karyawan,distribusi_wilayah')->group(function () {
+        Route::get('/provinces', [App\Http\Controllers\Admin\WilayahController::class, 'provinsi'])->name('wilayah.provinces');
+        Route::get('/kabupatens/{provinceId}', [App\Http\Controllers\Admin\WilayahController::class, 'kabupaten'])->name('wilayah.kabupatens');
+        Route::get('/kecamatans/{kabupatenId}', [App\Http\Controllers\Admin\WilayahController::class, 'kecamatan'])->name('wilayah.kecamatans');
+        Route::get('/kelurahans/{kecamatanId}', [App\Http\Controllers\Admin\WilayahController::class, 'kelurahan'])->name('wilayah.kelurahans');
+    });
 });
 
 Route::group(['prefix' => 'api/'], function () {
     route::get('/airports', [ApiController::class, 'getAirport']);
-    Route::post('/gps-log', [PresensiController::class, 'logGps'])->middleware('auth');
+    Route::post('/gps-log', [PresensiController::class, 'logGps'])->middleware(['auth', 'menu:presensi', 'throttle:gps-log']);
 });

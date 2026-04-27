@@ -7,6 +7,48 @@
     padding-left: 3px;
 }
 
+.logo-header .app-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+    color: #0f172a;
+}
+
+.logo-header .app-brand:hover,
+.logo-header .app-brand:focus {
+    color: #0f172a;
+}
+
+.app-brand__icon.navbar-brand {
+    width: 48px;
+    height: 48px;
+    margin-right: 0;
+    padding: 0;
+    object-fit: contain;
+    flex: 0 0 auto;
+}
+
+.app-brand__text {
+    display: inline-block;
+    min-width: 0;
+    color: #0f172a;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+.app-brand--header .app-brand__icon.navbar-brand {
+    width: 38px;
+    height: 38px;
+}
+
+.app-brand--header .app-brand__text {
+    font-size: 16px;
+}
+
 .btn:not(.btn-lg):not(.btn-xs) {
     font-size: 11px;
     padding: 7px 13px;
@@ -61,11 +103,21 @@
         display: inline-flex;
         align-items: center;
         justify-content: flex-start;
+        gap: 0.45rem;
         min-height: 58px;
         position: relative;
         left: auto;
         transform: none;
         margin-right: auto;
+    }
+
+    .main-header-logo .app-brand__icon.navbar-brand {
+        width: 34px;
+        height: 34px;
+    }
+
+    .main-header-logo .app-brand__text {
+        font-size: 14px;
     }
 
     .logo-industrial--header {
@@ -316,6 +368,15 @@
 
         .main-header-logo .logo {
             min-height: 54px;
+        }
+
+        .main-header-logo .app-brand__icon.navbar-brand {
+            width: 32px;
+            height: 32px;
+        }
+
+        .main-header-logo .app-brand__text {
+            font-size: 13px;
         }
 
         .logo-industrial--header {

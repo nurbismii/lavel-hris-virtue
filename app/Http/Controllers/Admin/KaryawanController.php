@@ -16,6 +16,7 @@ use App\Models\WorkPattern;
 use App\Services\Recruitment\RecruitmentDocumentClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Throwable;
@@ -25,12 +26,12 @@ class KaryawanController extends Controller
     use ValidatesZipUploads;
 
     private const DOCUMENT_DOWNLOAD_TYPES = [
-        'photo' => ['column' => 'photo_path', 'label' => 'FOTO'],
-        'ktp' => ['column' => 'ktp_path', 'label' => 'KTP'],
-        'kk' => ['column' => 'kk_path', 'label' => 'KK'],
-        'sim' => ['column' => 'sim_path', 'label' => 'SIM'],
-        'sio' => ['column' => 'sio_path', 'label' => 'SIO'],
-        'face_reference' => ['column' => 'face_reference_path', 'label' => 'FACE REF'],
+        'photo' => ['column' => 'photo_path', 'label' => 'FOTO', 'directory' => 'employee-documents/%s/photo/'],
+        'ktp' => ['column' => 'ktp_path', 'label' => 'KTP', 'directory' => 'employee-documents/%s/ktp/'],
+        'kk' => ['column' => 'kk_path', 'label' => 'KK', 'directory' => 'employee-documents/%s/kk/'],
+        'sim' => ['column' => 'sim_path', 'label' => 'SIM', 'directory' => 'employee-documents/%s/sim/'],
+        'sio' => ['column' => 'sio_path', 'label' => 'SIO', 'directory' => 'employee-documents/%s/sio/'],
+        'face_reference' => ['column' => 'face_reference_path', 'label' => 'FACE REF', 'directory' => 'face-reference/%s/'],
     ];
 
     public function index(Request $request)
@@ -252,6 +253,11 @@ class KaryawanController extends Controller
         ]);
     }
 
+    public function photo(Request $request, string $nik)
+    {
+        return $this->previewDocument($request, $nik, 'photo');
+    }
+
     public function recruitmentDocuments(Request $request, string $nik, RecruitmentDocumentClient $client)
     {
         $employee = $request->user()
@@ -373,8 +379,12 @@ class KaryawanController extends Controller
         abort_if(blank($relativePath), 404, 'Dokumen belum tersedia.');
 
         $normalizedPath = str_replace('\\', '/', ltrim($relativePath, '/'));
+        $expectedDirectory = sprintf($documentConfig['directory'], $employee->nik);
 
-        abort_if(str_contains($normalizedPath, '..'), 404);
+        abort_if(
+            str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, $expectedDirectory),
+            404
+        );
 
         $absolutePath = public_path($normalizedPath);
 

@@ -24,6 +24,10 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    private const DEFAULT_MAX_ENTRY_BYTES = 15728640; // 15MB per extracted file
+    private const DEFAULT_MAX_TOTAL_UNCOMPRESSED_BYTES = 1073741824; // 1GB per ZIP
+    private const DEFAULT_MAX_VALID_ENTRIES = 6000;
+
     public $tries = 1;
     public $timeout = 300;
     public $failOnTimeout = true;
@@ -99,13 +103,49 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $tempDirectory = storage_path('app/temp/employee-media-imports/' . Str::uuid());
         $allowedExtensions = $mediaService->getAllowedExtensions($this->mediaType);
         $column = $mediaService->getColumnForType($this->mediaType);
+        $maxEntryBytes = $this->maxEntryBytes();
         $startIndex = max(0, $this->offset);
         $chunkSize = max(1, (int) env('EMPLOYEE_MEDIA_ZIP_CHUNK_SIZE', 5));
         $zipEntriesCount = max(0, (int) $zip->numFiles);
         $summary['total_entries'] = max(0, (int) ($summary['total_entries'] ?? 0));
+        $summary['total_uncompressed_bytes'] = max(0, (int) ($summary['total_uncompressed_bytes'] ?? 0));
 
         if ($summary['total_entries'] === 0) {
-            $summary['total_entries'] = $this->countValidZipEntries($zip);
+            $zipSummary = $this->summarizeValidZipEntries($zip);
+            $summary['total_entries'] = $zipSummary['entries'];
+            $summary['total_uncompressed_bytes'] = $zipSummary['bytes'];
+        }
+
+        if (
+            $summary['total_entries'] > $this->maxValidEntries()
+            || $summary['total_uncompressed_bytes'] > $this->maxTotalUncompressedBytes()
+        ) {
+            $zip->close();
+            $storage->delete($this->zipPath);
+
+            $summary['status'] = 'failed';
+            $summary['skipped_count'] = $summary['total_entries'];
+            $summary['items'] = [[
+                'status' => 'skip',
+                'file' => basename($this->zipPath),
+                'message' => 'ZIP ditolak karena jumlah file atau total ukuran hasil ekstrak melebihi batas keamanan.',
+            ]];
+            $summary['updated_at'] = now()->toIso8601String();
+            $summary['finished_at'] = now()->toIso8601String();
+            $this->persistSummary($summary);
+
+            Log::warning('Employee ZIP media import rejected oversized ZIP payload.', [
+                'media_type' => $this->mediaType,
+                'uploader_id' => $this->uploaderId,
+                'zip_path' => $this->zipPath,
+                'import_id' => $this->importId,
+                'total_entries' => $summary['total_entries'],
+                'total_uncompressed_bytes' => $summary['total_uncompressed_bytes'],
+            ]);
+
+            $this->notifyResult($uploader, $this->toPublicSummary($summary), true);
+
+            return;
         }
 
         $summary['status'] = 'processing';
@@ -138,6 +178,21 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 
                 $basename = pathinfo($entryName, PATHINFO_BASENAME);
                 $extension = strtolower(pathinfo($basename, PATHINFO_EXTENSION));
+                $entrySize = $this->zipEntrySize($zip, $index);
+
+                if ($entrySize <= 0) {
+                    $summary['skipped_count']++;
+                    $this->rememberItem($summary, 'skip', $basename, 'File di dalam ZIP kosong atau ukurannya tidak terbaca.');
+                    $this->persistSummary($summary);
+                    continue;
+                }
+
+                if ($entrySize > $maxEntryBytes) {
+                    $summary['skipped_count']++;
+                    $this->rememberItem($summary, 'skip', $basename, 'Ukuran file di dalam ZIP melebihi batas keamanan per file.');
+                    $this->persistSummary($summary);
+                    continue;
+                }
 
                 if (!in_array($extension, $allowedExtensions, true)) {
                     $summary['skipped_count']++;
@@ -173,7 +228,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                     continue;
                 }
 
-                $temporaryFile = $this->extractZipEntryToTemporaryFile($zip, $entryName, $tempDirectory, $extension);
+                $temporaryFile = $this->extractZipEntryToTemporaryFile($zip, $entryName, $tempDirectory, $extension, $maxEntryBytes);
 
                 if (!$temporaryFile) {
                     $summary['skipped_count']++;
@@ -328,7 +383,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         return true;
     }
 
-    protected function extractZipEntryToTemporaryFile(ZipArchive $zip, string $entryName, string $directory, string $extension): ?string
+    protected function extractZipEntryToTemporaryFile(ZipArchive $zip, string $entryName, string $directory, string $extension, int $maxBytes): ?string
     {
         $stream = $zip->getStream($entryName);
 
@@ -344,9 +399,17 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             return null;
         }
 
-        stream_copy_to_stream($stream, $output);
+        $bytesCopied = stream_copy_to_stream($stream, $output, $maxBytes + 1);
         fclose($stream);
         fclose($output);
+
+        if ($bytesCopied === false || $bytesCopied > $maxBytes) {
+            if (File::exists($temporaryFile)) {
+                File::delete($temporaryFile);
+            }
+
+            return null;
+        }
 
         return $temporaryFile;
     }
@@ -437,6 +500,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             'success_count' => 0,
             'skipped_count' => 0,
             'total_entries' => 0,
+            'total_uncompressed_bytes' => 0,
             'items' => [],
             'processed_niks' => [],
             'created_at' => now()->toIso8601String(),
@@ -454,17 +518,47 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $this->persistSummary($this->defaultSummary());
     }
 
-    protected function countValidZipEntries(ZipArchive $zip): int
+    protected function summarizeValidZipEntries(ZipArchive $zip): array
     {
-        $count = 0;
+        $summary = [
+            'entries' => 0,
+            'bytes' => 0,
+        ];
 
         for ($index = 0; $index < $zip->numFiles; $index++) {
             if ($this->isValidZipEntry($zip->getNameIndex($index))) {
-                $count++;
+                $summary['entries']++;
+                $summary['bytes'] += max(0, $this->zipEntrySize($zip, $index));
             }
         }
 
-        return $count;
+        return $summary;
+    }
+
+    protected function zipEntrySize(ZipArchive $zip, int $index): int
+    {
+        $stats = $zip->statIndex($index);
+
+        if (!is_array($stats) || !isset($stats['size'])) {
+            return 0;
+        }
+
+        return max(0, (int) $stats['size']);
+    }
+
+    protected function maxEntryBytes(): int
+    {
+        return max(1024, (int) env('EMPLOYEE_MEDIA_ZIP_MAX_ENTRY_BYTES', self::DEFAULT_MAX_ENTRY_BYTES));
+    }
+
+    protected function maxTotalUncompressedBytes(): int
+    {
+        return max($this->maxEntryBytes(), (int) env('EMPLOYEE_MEDIA_ZIP_MAX_TOTAL_UNCOMPRESSED_BYTES', self::DEFAULT_MAX_TOTAL_UNCOMPRESSED_BYTES));
+    }
+
+    protected function maxValidEntries(): int
+    {
+        return max(1, (int) env('EMPLOYEE_MEDIA_ZIP_MAX_VALID_ENTRIES', self::DEFAULT_MAX_VALID_ENTRIES));
     }
 
     protected function importStorage()

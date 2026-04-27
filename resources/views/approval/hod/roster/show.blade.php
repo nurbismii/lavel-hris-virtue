@@ -5,7 +5,7 @@ $periode = optional($roster->periodeKerjaRoster);
 $employee = $roster->employee;
 $division = optional(optional($employee)->divisi);
 $department = optional($division->departemen);
-$attachmentUrl = $roster->file ? asset('cuti-roster/' . $roster->nik_karyawan . '/' . $roster->file) : null;
+$attachmentUrl = $roster->file ? route('approval.roster.hod.attachment', $roster->id) : null;
 
 $weeks = [
 ['label' => 'Minggu ke-1', 'status' => 'satu', 'date' => 'tanggal_satu'],

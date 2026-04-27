@@ -8,6 +8,7 @@
 
 @php
     $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
+    $faceReferenceUrl = $faceReferencePath ? route('presensi.face-reference') : null;
     $formatPresensiClock = function ($value, $attendanceDate = null, $empty = '--:--') {
         if (!$value) {
             return $empty;
@@ -77,32 +78,8 @@
         @if($isCrossDayAttendance)
         <div class="alert alert-warning d-flex flex-column gap-1">
             <strong>Mode presensi lintas hari aktif</strong>
-            <span>Sistem sedang menyelesaikan presensi tanggal {{ formatDateIndonesia($activeAttendanceDate) }} karena shift sebelumnya belum ditutup.</span>
-            <span>Jam pulang setelah tengah malam akan tetap masuk ke tanggal presensi tersebut.</span>
         </div>
         @endif
-
-        <div class="alert alert-light border d-flex flex-column gap-1">
-            <strong>Pola kerja aktif:
-                @if($workPattern)
-                    {{ $workPattern->code }} - {{ $workPattern->name }}
-                @else
-                    Belum diassign
-                @endif
-            </strong>
-            <span>Tanggal presensi aktif: {{ formatDateIndonesia($activeAttendanceDate) }}</span>
-            <span>Shift tanggal presensi: {{ $currentShift ? $currentShift->code . ' - ' . $currentShift->name : 'AUTO / mengikuti pola kerja' }}</span>
-            <span>Target jam kerja: {{ $currentScheduleData['work_time_range_text'] ?? 'Belum diatur' }} @if(!empty($currentScheduleData['expected_work_duration_text'])) ({{ $currentScheduleData['expected_work_duration_text'] }}) @endif</span>
-            <span>Jadwal istirahat: {{ $currentScheduleData['break_time_range_text'] ?? 'Tidak diatur' }}</span>
-            @if(!empty($currentScheduleData['uses_sixth_day_schedule']))
-            <span>Tanggal ini memakai jam kerja khusus hari ke-6 pada pola mingguan.</span>
-            @endif
-            <span>
-                Status pemenuhan tanggal presensi:
-                <span class="badge bg-{{ $todayFulfillment['badge_class'] }}">{{ $todayFulfillment['label'] }}</span>
-                <span class="text-muted">{{ $todayFulfillment['description'] }}</span>
-            </span>
-        </div>
 
         @php
             $statusPresensiHariIni = $absensiHariIni->status_presensi ?? null;
@@ -190,7 +167,7 @@
 
                             <img
                                 id="referenceFaceImage"
-                                src="{{ asset($faceReferencePath) }}"
+                                src="{{ $faceReferenceUrl }}"
                                 alt="Foto referensi wajah"
                                 class="sr-reference-image">
 
@@ -272,8 +249,6 @@
                                                 <i class="fas fa-redo-alt me-2"></i>
                                                 Aktifkan Ulang Kamera
                                             </button>
-                                            <button type="button" id="manualSelfieButton" class="btn btn-outline-secondary btn-sm">
-                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -293,10 +268,6 @@
                                 id="selfie_capture_data"
                                 name="selfie_capture_data"
                                 form="formAbsen">
-
-                            <div id="faceVerificationAlert" class="alert alert-secondary mt-3 mb-0">
-                                Kamera sedang disiapkan untuk verifikasi wajah.
-                            </div>
                         </div>
                     </section>
                     @endif
@@ -416,6 +387,8 @@
                     <input type="hidden" name="face_distance" id="face_distance" value="">
                     <input type="hidden" name="face_detection_count" id="face_detection_count" value="0">
                     <input type="hidden" name="face_verification_meta" id="face_verification_meta" value="">
+                    <input type="hidden" name="attendance_challenge_id" id="attendance_challenge_id" value="{{ $attendanceChallenge['id'] ?? '' }}">
+                    <input type="hidden" name="attendance_challenge_token" id="attendance_challenge_token" value="{{ $attendanceChallenge['token'] ?? '' }}">
                 </form>
             </div>
         </div>
@@ -503,6 +476,8 @@
     let faceVerificationPassed = false;
     let referenceFaceDescriptor = null;
     let positionHistory = [];
+    let gpsEvidenceReady = false;
+    let gpsLogInFlight = false;
     let cameraStream = null;
     let cameraDetectionIntervalId = null;
     let cameraValidationStartedAt = null;
@@ -516,9 +491,38 @@
     const selfieMaxCaptureWidth = 720;
     const selfieJpegQuality = 0.82;
     const faceModelPath = @json(asset('vendor/face-api/weights'));
-    const faceReferencePath = @json($faceReferencePath ? asset($faceReferencePath) : null);
+    const faceReferencePath = @json($faceReferenceUrl);
+    const attendanceChallenge = @json($attendanceChallenge);
+    const manualSelfieEnabled = false;
     const attendanceSubmitBaseUrl = @json(url('/absen'));
     const gpsLogUrl = @json(url('/api/gps-log'));
+
+    function attendanceChallengeExpiresAt() {
+        if (!attendanceChallenge || !attendanceChallenge.expires_at) {
+            return 0;
+        }
+
+        return Date.parse(attendanceChallenge.expires_at) || 0;
+    }
+
+    function attendanceChallengeElapsedMs() {
+        if (!attendanceChallenge || !attendanceChallenge.issued_at) {
+            return 0;
+        }
+
+        const issuedAt = Date.parse(attendanceChallenge.issued_at) || Date.now();
+
+        return Math.max(Date.now() - issuedAt, 0);
+    }
+
+    function isAttendanceChallengeReady() {
+        return Boolean(
+            attendanceChallenge &&
+            attendanceChallenge.id &&
+            attendanceChallenge.token &&
+            attendanceChallengeExpiresAt() > Date.now() + 5000
+        );
+    }
 
     function isLikelyAndroidWebView() {
         const userAgent = navigator.userAgent || '';
@@ -534,6 +538,12 @@
         const manualButtonIcon = manualButton ? manualButton.querySelector('i') : null;
 
         if (!manualButton) {
+            return;
+        }
+
+        if (!manualSelfieEnabled) {
+            manualButton.classList.add('d-none');
+            manualButton.disabled = true;
             return;
         }
 
@@ -697,7 +707,7 @@
 
     function updateAttendanceButtonState() {
         document.querySelectorAll(".btn-absen").forEach(button => {
-            button.disabled = !(gpsReady && faceVerificationPassed);
+            button.disabled = !(gpsReady && gpsEvidenceReady && faceVerificationPassed);
         });
     }
 
@@ -1038,6 +1048,8 @@
             detection_count: detectionCount,
             reference: 'employee_face_reference',
             source: payload.source,
+            challenge_id: attendanceChallenge ? attendanceChallenge.id : null,
+            challenge_elapsed_ms: attendanceChallengeElapsedMs(),
             detection_score: payload.detectionScore ?? null,
             roll_angle: payload.rollAngle ?? null,
             frame_state: payload.frameState ?? null,
@@ -1401,18 +1413,23 @@
             return;
         }
 
+        if (!isAttendanceChallengeReady()) {
+            updateLiveFrameFeedback('red', 'Sesi keamanan presensi belum siap atau sudah kedaluwarsa. Muat ulang halaman lalu coba lagi.', 0);
+            return;
+        }
+
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             emphasizeManualCameraFallback(true);
             updateLiveFrameFeedback('red', isWebView ?
-                'WebView ini belum membuka dukungan kamera live. Gunakan tombol kamera fallback.' :
-                'Browser ini belum mendukung kamera live. Gunakan upload manual.', 0);
+                'WebView ini belum membuka dukungan kamera live. Presensi aman membutuhkan kamera live dari aplikasi.' :
+                'Browser ini belum mendukung kamera live. Presensi aman membutuhkan kamera live.', 0);
             return;
         }
 
         if (!window.isSecureContext && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
             emphasizeManualCameraFallback(true);
             updateLiveFrameFeedback('red', isWebView ?
-                'Halaman WebView belum berjalan di HTTPS, jadi kamera live diblokir. Gunakan kamera fallback atau pindah ke HTTPS.' :
+                'Halaman WebView belum berjalan di HTTPS, jadi kamera live diblokir. Presensi aman membutuhkan HTTPS.' :
                 'Kamera live membutuhkan HTTPS agar bisa aktif otomatis.', 0);
             return;
         }
@@ -1523,6 +1540,11 @@
         const attendanceStepHint = document.getElementById('attendanceStepHint');
         const wizardAttendanceContent = document.getElementById('wizardAttendanceContent');
 
+        if (manualSelfieButton && !manualSelfieEnabled) {
+            manualSelfieButton.classList.add('d-none');
+            manualSelfieButton.disabled = true;
+        }
+
         const refreshMapViewport = function() {
             if (!map || !window.google || !window.google.maps) {
                 return;
@@ -1614,7 +1636,7 @@
             });
         }
 
-        if (manualSelfieButton && selfieInput) {
+        if (manualSelfieButton && selfieInput && manualSelfieEnabled) {
             manualSelfieButton.addEventListener('click', function() {
                 selfieInput.click();
             });
@@ -1663,8 +1685,9 @@
             let accuracy = position.coords.accuracy;
             let now = Date.now();
 
-            if (accuracy > 75) {
+            if (accuracy > 60) {
                 gpsReady = false;
+                gpsEvidenceReady = false;
                 stableStartTime = null;
                 updateAttendanceButtonState();
 
@@ -1683,6 +1706,7 @@
 
                 if (speed > 50) {
                     gpsReady = false;
+                    gpsEvidenceReady = false;
                     stableStartTime = null;
                     updateAttendanceButtonState();
 
@@ -1731,6 +1755,7 @@
                     " meter (Di luar radius)</span>";
 
                 gpsReady = false;
+                gpsEvidenceReady = false;
                 stableStartTime = null;
                 updateAttendanceButtonState();
                 return;
@@ -1740,6 +1765,7 @@
 
             if (!naturalCheck.status) {
                 gpsReady = false;
+                gpsEvidenceReady = false;
                 stableStartTime = null;
                 updateAttendanceButtonState();
 
@@ -1751,6 +1777,7 @@
 
             if (position.coords.mocked === true) {
                 gpsReady = false;
+                gpsEvidenceReady = false;
                 stableStartTime = null;
                 updateAttendanceButtonState();
 
@@ -1766,6 +1793,7 @@
 
             if (now - stableStartTime < gpsValidationDelayMs) {
                 gpsReady = false;
+                gpsEvidenceReady = false;
                 updateAttendanceButtonState();
 
                 document.getElementById("distanceInfo").innerHTML =
@@ -1801,23 +1829,24 @@
             document.getElementById("device_info").value = JSON.stringify(deviceInfo);
 
             if (gpsReady) {
-                if (!window.lastLat) {
-                    window.lastLat = latUser;
-                    window.lastLong = longUser;
-                    window.lastLogTime = Date.now();
-                    return;
-                }
+                const isFirstGpsEvidence = !window.lastLogTime;
+                const previousLogTime = window.lastLogTime || 0;
+                const previousLat = window.lastLat;
+                const previousLong = window.lastLong;
+                const shouldSendGpsEvidence = isFirstGpsEvidence || (Date.now() - previousLogTime >= 5000);
 
-                if (Date.now() - window.lastLogTime >= 5000) {
-                    const distance = calculateDistance(window.lastLat, window.lastLong, latUser, longUser);
+                if (shouldSendGpsEvidence && !gpsLogInFlight) {
+                    const distance = isFirstGpsEvidence ? null : calculateDistance(previousLat, previousLong, latUser, longUser);
 
-                    if (distance < 3 && Date.now() - window.lastLogTime < 60000) {
+                    if (!isFirstGpsEvidence && distance < 3 && Date.now() - previousLogTime < 60000) {
                         return;
                     }
 
-                    if (accuracy > 75) {
+                    if (accuracy > 60) {
                         return;
                     }
+
+                    gpsLogInFlight = true;
 
                     fetch(gpsLogUrl, {
                         method: "POST",
@@ -1831,7 +1860,16 @@
                             accuracy: accuracy,
                             speed: speed ?? 0,
                         })
-                    }).catch(err => console.log("GPS Log Error:", err));
+                    }).then(function(response) {
+                        gpsEvidenceReady = response.ok;
+                        updateAttendanceButtonState();
+                    }).catch(function(err) {
+                        gpsEvidenceReady = false;
+                        updateAttendanceButtonState();
+                        console.log("GPS Log Error:", err);
+                    }).finally(function() {
+                        gpsLogInFlight = false;
+                    });
 
                     window.lastLat = latUser;
                     window.lastLong = longUser;
@@ -1871,7 +1909,16 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'Matching wajah belum selesai',
-                        text: 'Arahkan wajah ke frame sampai indikator hijau muncul, atau gunakan upload manual.'
+                        text: 'Arahkan wajah ke frame sampai indikator hijau muncul.'
+                    });
+                    return;
+                }
+
+                if (!isAttendanceChallengeReady()) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Sesi presensi kedaluwarsa',
+                        text: 'Muat ulang halaman untuk mengambil sesi keamanan baru sebelum presensi.'
                     });
                     return;
                 }

@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Roster\RosterRequest;
 use App\Models\PeriodeKerjaRoster;
 use App\Models\Roster;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class RosterController extends Controller
 {
@@ -30,17 +32,27 @@ class RosterController extends Controller
         return redirect()->route('roster.index');
     }
 
+    public function attachment($id)
+    {
+        $roster = $this->findUserRoster($id);
+
+        return $this->serveRosterAttachment($roster);
+    }
+
     public function create()
     {
         return view('user.roster.create');
     }
 
-    public function store(Request $request)
+    public function store(RosterRequest $request)
     {
+        $validated = $request->validated();
+
         DB::beginTransaction();
 
         $statusPengajuanHod = 0;
         $statusPengajuanHrd = 0;
+        $nikKaryawan = Auth::user()->nik_karyawan;
 
         try {
 
@@ -56,12 +68,12 @@ class RosterController extends Controller
             if ($request->hasFile('berkas_cuti')) {
 
                 $upload = $request->file('berkas_cuti');
-                $file_name = $request->nik_karyawan . '-' . time() . '.' . $upload->getClientOriginalExtension();
+                $file_name = 'roster_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(8)) . '.' . strtolower($upload->getClientOriginalExtension());
 
-                $path = public_path('cuti-roster/' . $request->nik_karyawan);
+                $path = public_path('cuti-roster/' . $nikKaryawan);
 
-                if (!file_exists($path)) {
-                    mkdir($path, 0777, true);
+                if (!File::exists($path)) {
+                    File::makeDirectory($path, 0755, true);
                 }
 
                 $upload->move($path, $file_name);
@@ -69,9 +81,9 @@ class RosterController extends Controller
 
             $roster = Roster::create([
                 'nomor_surat' => $nomor_surat,
-                'nik_karyawan' => $request->nik_karyawan,
-                'email' => $request->email,
-                'no_telp' => $request->no_telp,
+                'nik_karyawan' => $nikKaryawan,
+                'email' => $validated['email'],
+                'no_telp' => $validated['no_telp'],
                 'tanggal_pengajuan' => now(),
 
                 // CUTI
@@ -157,8 +169,10 @@ class RosterController extends Controller
         return view('user.roster.edit', compact('roster'));
     }
 
-    public function update(Request $request, $id)
+    public function update(RosterRequest $request, $id)
     {
+        $validated = $request->validated();
+
         $roster = $this->findUserRoster($id);
 
         if (!$this->canManageRoster($roster)) {
@@ -167,6 +181,7 @@ class RosterController extends Controller
         }
 
         DB::beginTransaction();
+        $nikKaryawan = Auth::user()->nik_karyawan;
 
         try {
 
@@ -175,17 +190,17 @@ class RosterController extends Controller
             if ($request->hasFile('berkas_cuti')) {
 
                 $upload = $request->file('berkas_cuti');
-                $file_name = $request->nik_karyawan . '-' . time() . '.' . $upload->getClientOriginalExtension();
+                $file_name = 'roster_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(8)) . '.' . strtolower($upload->getClientOriginalExtension());
 
-                $path = public_path('cuti-roster/' . $request->nik_karyawan);
+                $path = public_path('cuti-roster/' . $nikKaryawan);
 
-                if (!file_exists($path)) {
-                    mkdir($path, 0777, true);
+                if (!File::exists($path)) {
+                    File::makeDirectory($path, 0755, true);
                 }
 
                 // Hapus file lama jika ada
-                if ($roster->file && file_exists($path . '/' . $roster->file)) {
-                    unlink($path . '/' . $roster->file);
+                if ($roster->file && File::isFile($path . DIRECTORY_SEPARATOR . $roster->file)) {
+                    File::delete($path . DIRECTORY_SEPARATOR . $roster->file);
                 }
 
                 $upload->move($path, $file_name);
@@ -193,9 +208,9 @@ class RosterController extends Controller
 
             $roster->update([
 
-                'nik_karyawan' => $request->nik_karyawan,
-                'email' => $request->email,
-                'no_telp' => $request->no_telp,
+                'nik_karyawan' => $nikKaryawan,
+                'email' => $validated['email'],
+                'no_telp' => $validated['no_telp'],
 
                 // CUTI
                 'tgl_mulai_cuti' => $request->tgl_mulai_cuti_roster,
@@ -278,8 +293,8 @@ class RosterController extends Controller
 
         if ($roster->file) {
             $file_path = public_path('cuti-roster/' . $roster->nik_karyawan . '/' . $roster->file);
-            if (file_exists($file_path)) {
-                unlink($file_path);
+            if (File::isFile($file_path)) {
+                File::delete($file_path);
             }
         }
 
@@ -299,5 +314,21 @@ class RosterController extends Controller
     private function canManageRoster(Roster $roster): bool
     {
         return (int) $roster->status_pengajuan === 0 && (int) $roster->status_pengajuan_hrd === 0;
+    }
+
+    private function serveRosterAttachment(Roster $roster)
+    {
+        abort_if(blank($roster->file), 404, 'Lampiran roster belum tersedia.');
+
+        $filename = basename($roster->file);
+        $absolutePath = public_path('cuti-roster/' . $roster->nik_karyawan . '/' . $filename);
+
+        abort_unless(File::isFile($absolutePath), 404, 'Lampiran roster tidak ditemukan.');
+
+        return response()->file($absolutePath, [
+            'Content-Type' => File::mimeType($absolutePath) ?: 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

@@ -41,8 +41,9 @@
                 <div class="main-header-logo">
                     <!-- Logo Header -->
                     <div class="logo-header" data-background-color="white">
-                        <a href="{{ $appHomeUrl }}" class="logo text-decoration-none">
-                            <span class="logo-industrial logo-industrial--header">PT VDNI - HRIS</span>
+                        <a href="{{ $appHomeUrl }}" class="logo app-brand app-brand--header text-decoration-none" aria-label="V-People">
+                            <img src="{{ versioned_asset('assets/img/kaiadmin/favicon-1.png') }}" alt="" class="navbar-brand app-brand__icon" />
+                            <span class="app-brand__text">V-People</span>
                         </a>
                         <div class="nav-toggle">
                             <button class="btn btn-toggle toggle-sidebar">

@@ -41,180 +41,180 @@ $accessibleMenus = $currentUser->hasRole('Super Admin')
 : $currentUser->resolveMenuPermissions();
 $totalAccessibleMenuCount = count(array_unique(array_filter($accessibleMenus)));
 $menuCatalog = [
-    'dashboard_admin' => [
-        'route_name' => 'home',
-        'icon' => 'fas fa-chart-line',
-        'tone' => 'primary',
-        'description' => 'Pantau ringkasan utama dan statistik operasional.',
-    ],
-    'dashboard_karyawan' => [
-        'route_name' => 'dashboard.karyawan',
-        'icon' => 'fas fa-home',
-        'tone' => 'primary',
-        'description' => 'Kembali ke dashboard utama karyawan.',
-    ],
-    'data_karyawan' => [
-        'route_name' => 'karyawan.index',
-        'icon' => 'fas fa-users',
-        'tone' => 'emerald',
-        'description' => 'Kelola dan lihat data karyawan sesuai akses Anda.',
-    ],
-    'data_user' => [
-        'route_name' => 'user.index',
-        'icon' => 'fas fa-user-friends',
-        'tone' => 'slate',
-        'description' => 'Atur akun pengguna dan hak akses login.',
-    ],
-    'slip_gaji_admin' => [
-        'route_name' => 'slip-gaji.index',
-        'icon' => 'fas fa-file-invoice-dollar',
-        'tone' => 'emerald',
-        'description' => 'Lihat dan kelola slip gaji karyawan.',
-    ],
-    'resign' => [
-        'route_name' => 'resign.index',
-        'icon' => 'fas fa-user-minus',
-        'tone' => 'rose',
-        'description' => 'Pantau proses pengajuan resign dan statusnya.',
-    ],
-    'surat_peringatan' => [
-        'route_name' => 'surat-peringatan.index',
-        'icon' => 'fas fa-file-alt',
-        'tone' => 'amber',
-        'description' => 'Kelola surat peringatan yang tercatat di sistem.',
-    ],
-    'data_presensi' => [
-        'route_name' => 'data-presensi.index',
-        'icon' => 'fas fa-clipboard-list',
-        'tone' => 'sky',
-        'description' => 'Review rekap dan histori presensi.',
-    ],
-    'distribusi_wilayah' => [
-        'route_name' => 'distribusi.index',
-        'icon' => 'fas fa-map',
-        'tone' => 'violet',
-        'description' => 'Atur data distribusi wilayah perusahaan.',
-    ],
-    'slip_gaji_user' => [
-        'route_name' => 'slipgaji.index',
-        'icon' => 'fas fa-wallet',
-        'tone' => 'emerald',
-        'description' => 'Lihat slip gaji dan riwayat penghasilan Anda.',
-    ],
-    'cuti' => [
-        'route_name' => 'cuti.index',
-        'icon' => 'fas fa-umbrella-beach',
-        'tone' => 'amber',
-        'description' => 'Ajukan cuti dan cek histori cuti tahunan.',
-    ],
-    'roster' => [
-        'route_name' => 'roster.index',
-        'icon' => 'fas fa-plane-departure',
-        'tone' => 'teal',
-        'description' => 'Kelola pengajuan roster dan status persetujuan.',
-    ],
-    'izin' => [
-        'route_name' => 'izin.index',
-        'icon' => 'fas fa-file-signature',
-        'tone' => 'rose',
-        'description' => 'Kelola izin berbayar maupun tidak berbayar.',
-    ],
-    'presensi' => [
-        'route_name' => 'presensi.index',
-        'icon' => 'fas fa-map-marker-alt',
-        'tone' => 'primary',
-        'description' => 'Lakukan presensi dan lihat catatan kehadiran.',
-    ],
-    'approval_hod' => [
-        'route_name' => 'approval.cuti.hod',
-        'icon' => 'fas fa-user-check',
-        'tone' => 'violet',
-        'description' => 'Buka antrean approval pada level HOD.',
-    ],
-    'approval_hr' => [
-        'route_name' => 'approval.cuti.hrd',
-        'icon' => 'fas fa-clipboard-check',
-        'tone' => 'slate',
-        'description' => 'Buka antrean approval pada level HR.',
-    ],
-    'setting_hari_off' => [
-        'route_name' => 'set-kehadiran.index',
-        'icon' => 'fas fa-calendar-alt',
-        'tone' => 'sky',
-        'description' => 'Atur hari off sesuai unit yang ditangani.',
-    ],
-    'jadwal_kerja' => [
-        'route_name' => 'work-patterns.index',
-        'icon' => 'fas fa-calendar-week',
-        'tone' => 'sky',
-        'description' => 'Kelola master pola kerja dan jadwal kerja.',
-    ],
-    'lembur' => [
-        'route' => $overtimeRoute,
-        'icon' => 'fas fa-business-time',
-        'tone' => 'violet',
-        'description' => $canManageOvertimeOrders
-            ? 'Buat dan pantau perintah lembur karyawan.'
-            : 'Lihat dan respons perintah lembur yang ditujukan ke Anda.',
-    ],
-    'perusahaan' => [
-        'route_name' => 'perusahaan.index',
-        'icon' => 'fas fa-building',
-        'tone' => 'sky',
-        'description' => 'Kelola struktur perusahaan, departemen, dan divisi.',
-    ],
-    'setting_lokasi_presensi' => [
-        'route_name' => 'setting-lokasi-presensi.index',
-        'icon' => 'fas fa-map-marked-alt',
-        'tone' => 'primary',
-        'description' => 'Atur titik lokasi presensi untuk divisi terkait.',
-    ],
-    'setting_role' => [
-        'route_name' => 'setting-role.index',
-        'icon' => 'fas fa-user-shield',
-        'tone' => 'slate',
-        'description' => 'Kelola role dan permission menu pengguna.',
-    ],
-    'exit_portal' => [
-        'route_name' => 'search-by-security.index',
-        'icon' => 'fas fa-door-open',
-        'tone' => 'rose',
-        'description' => 'Akses portal pencarian keamanan dan log terkait.',
-    ],
+'dashboard_admin' => [
+'route_name' => 'home',
+'icon' => 'fas fa-chart-line',
+'tone' => 'primary',
+'description' => 'Pantau ringkasan utama dan statistik operasional.',
+],
+'dashboard_karyawan' => [
+'route_name' => 'dashboard.karyawan',
+'icon' => 'fas fa-home',
+'tone' => 'primary',
+'description' => 'Kembali ke dashboard utama karyawan.',
+],
+'data_karyawan' => [
+'route_name' => 'karyawan.index',
+'icon' => 'fas fa-users',
+'tone' => 'emerald',
+'description' => 'Kelola dan lihat data karyawan sesuai akses Anda.',
+],
+'data_user' => [
+'route_name' => 'user.index',
+'icon' => 'fas fa-user-friends',
+'tone' => 'slate',
+'description' => 'Atur akun pengguna dan hak akses login.',
+],
+'slip_gaji_admin' => [
+'route_name' => 'slip-gaji.index',
+'icon' => 'fas fa-file-invoice-dollar',
+'tone' => 'emerald',
+'description' => 'Lihat dan kelola slip gaji karyawan.',
+],
+'resign' => [
+'route_name' => 'resign.index',
+'icon' => 'fas fa-user-minus',
+'tone' => 'rose',
+'description' => 'Pantau proses pengajuan resign dan statusnya.',
+],
+'surat_peringatan' => [
+'route_name' => 'surat-peringatan.index',
+'icon' => 'fas fa-file-alt',
+'tone' => 'amber',
+'description' => 'Kelola surat peringatan yang tercatat di sistem.',
+],
+'data_presensi' => [
+'route_name' => 'data-presensi.index',
+'icon' => 'fas fa-clipboard-list',
+'tone' => 'sky',
+'description' => 'Review rekap dan histori presensi.',
+],
+'distribusi_wilayah' => [
+'route_name' => 'distribusi.index',
+'icon' => 'fas fa-map',
+'tone' => 'violet',
+'description' => 'Atur data distribusi wilayah perusahaan.',
+],
+'slip_gaji_user' => [
+'route_name' => 'slipgaji.index',
+'icon' => 'fas fa-wallet',
+'tone' => 'emerald',
+'description' => 'Lihat slip gaji dan riwayat penghasilan Anda.',
+],
+'cuti' => [
+'route_name' => 'cuti.index',
+'icon' => 'fas fa-umbrella-beach',
+'tone' => 'amber',
+'description' => 'Ajukan cuti dan cek histori cuti tahunan.',
+],
+'roster' => [
+'route_name' => 'roster.index',
+'icon' => 'fas fa-plane-departure',
+'tone' => 'teal',
+'description' => 'Kelola pengajuan roster dan status persetujuan.',
+],
+'izin' => [
+'route_name' => 'izin.index',
+'icon' => 'fas fa-file-signature',
+'tone' => 'rose',
+'description' => 'Kelola izin berbayar maupun tidak berbayar.',
+],
+'presensi' => [
+'route_name' => 'presensi.index',
+'icon' => 'fas fa-map-marker-alt',
+'tone' => 'primary',
+'description' => 'Lakukan presensi dan lihat catatan kehadiran.',
+],
+'approval_hod' => [
+'route_name' => 'approval.cuti.hod',
+'icon' => 'fas fa-user-check',
+'tone' => 'violet',
+'description' => 'Buka antrean approval pada level HOD.',
+],
+'approval_hr' => [
+'route_name' => 'approval.cuti.hrd',
+'icon' => 'fas fa-clipboard-check',
+'tone' => 'slate',
+'description' => 'Buka antrean approval pada level HR.',
+],
+'setting_hari_off' => [
+'route_name' => 'set-kehadiran.index',
+'icon' => 'fas fa-calendar-alt',
+'tone' => 'sky',
+'description' => 'Atur hari off sesuai unit yang ditangani.',
+],
+'jadwal_kerja' => [
+'route_name' => 'work-patterns.index',
+'icon' => 'fas fa-calendar-week',
+'tone' => 'sky',
+'description' => 'Kelola master pola kerja dan jadwal kerja.',
+],
+'lembur' => [
+'route' => $overtimeRoute,
+'icon' => 'fas fa-clock',
+'tone' => 'violet',
+'description' => $canManageOvertimeOrders
+? 'Buat dan pantau perintah lembur karyawan.'
+: 'Lihat dan respons perintah lembur yang ditujukan ke Anda.',
+],
+'perusahaan' => [
+'route_name' => 'perusahaan.index',
+'icon' => 'fas fa-building',
+'tone' => 'sky',
+'description' => 'Kelola struktur perusahaan, departemen, dan divisi.',
+],
+'setting_lokasi_presensi' => [
+'route_name' => 'setting-lokasi-presensi.index',
+'icon' => 'fas fa-map-marked-alt',
+'tone' => 'primary',
+'description' => 'Atur titik lokasi presensi untuk divisi terkait.',
+],
+'setting_role' => [
+'route_name' => 'setting-role.index',
+'icon' => 'fas fa-user-shield',
+'tone' => 'slate',
+'description' => 'Kelola role dan permission menu pengguna.',
+],
+'exit_portal' => [
+'route_name' => 'search-by-security.index',
+'icon' => 'fas fa-door-open',
+'tone' => 'rose',
+'description' => 'Akses portal pencarian keamanan dan log terkait.',
+],
 ];
 $allAccessibleMenuItems = collect($accessibleMenus)
-    ->filter()
-    ->unique()
-    ->map(function ($menuKey) use ($menuCatalog) {
-        $menuConfig = config('access.menus.' . $menuKey);
-        $menuMeta = $menuCatalog[$menuKey] ?? null;
+->filter()
+->unique()
+->map(function ($menuKey) use ($menuCatalog) {
+$menuConfig = config('access.menus.' . $menuKey);
+$menuMeta = $menuCatalog[$menuKey] ?? null;
 
-        if (!$menuConfig || !$menuMeta) {
-            return null;
-        }
+if (!$menuConfig || !$menuMeta) {
+return null;
+}
 
-        if (!empty($menuMeta['route'] ?? null)) {
-            $route = $menuMeta['route'];
-        } else {
-            if (empty($menuMeta['route_name']) || !\Illuminate\Support\Facades\Route::has($menuMeta['route_name'])) {
-                return null;
-            }
+if (!empty($menuMeta['route'] ?? null)) {
+$route = $menuMeta['route'];
+} else {
+if (empty($menuMeta['route_name']) || !\Illuminate\Support\Facades\Route::has($menuMeta['route_name'])) {
+return null;
+}
 
-            $route = route($menuMeta['route_name']);
-        }
+$route = route($menuMeta['route_name']);
+}
 
-        return [
-            'key' => $menuKey,
-            'group' => $menuConfig['group'] ?? 'Lainnya',
-            'label' => $menuConfig['label'] ?? $menuKey,
-            'route' => $route,
-            'icon' => $menuMeta['icon'] ?? 'fas fa-link',
-            'tone' => $menuMeta['tone'] ?? 'primary',
-            'description' => $menuMeta['description'] ?? 'Akses menu sesuai permission akun Anda.',
-        ];
-    })
-    ->filter()
-    ->groupBy('group');
+return [
+'key' => $menuKey,
+'group' => $menuConfig['group'] ?? 'Lainnya',
+'label' => $menuConfig['label'] ?? $menuKey,
+'route' => $route,
+'icon' => $menuMeta['icon'] ?? 'fas fa-link',
+'tone' => $menuMeta['tone'] ?? 'primary',
+'description' => $menuMeta['description'] ?? 'Akses menu sesuai permission akun Anda.',
+];
+})
+->filter()
+->groupBy('group');
 $hour = now()->hour;
 if ($hour < 11) {
     $greeting='Selamat pagi' ;
@@ -294,10 +294,10 @@ if ($hour < 11) {
     'menu' => 'lembur',
     'label' => 'Perintah Lembur',
     'description' => $canManageOvertimeOrders
-        ? 'Buat dan monitor perintah lembur dari HOD/Admin Divisi.'
-        : 'Buka dan respons perintah lembur yang ditujukan kepada Anda.',
+    ? 'Buat dan monitor perintah lembur dari HOD/Admin Divisi.'
+    : 'Buka dan respons perintah lembur yang ditujukan kepada Anda.',
     'route' => $overtimeRoute,
-    'icon' => 'fas fa-business-time',
+    'icon' => 'fas fa-clock',
     'tone' => 'violet',
     ],
     [
@@ -311,8 +311,8 @@ if ($hour < 11) {
     ])->filter(function ($action) use ($currentUser) {
     return blank($action['menu']) || $currentUser->hasMenuAccess($action['menu']);
     })->values();
-$quickActionLimit = 6;
-$visibleQuickActions = $quickActions->take($quickActionLimit);
+    $quickActionLimit = 8;
+    $visibleQuickActions = $quickActions->take($quickActionLimit);
     @endphp
 
     <div class="container-fluid employee-dashboard px-3">
@@ -323,9 +323,9 @@ $visibleQuickActions = $quickActions->take($quickActionLimit);
                         <div class="hero-user">
                             <div class="hero-avatar{{ $employeePhotoUrl ? ' hero-avatar--photo' : '' }}">
                                 @if($employeePhotoUrl)
-                                    <img src="{{ $employeePhotoUrl }}" alt="{{ $displayName }}">
+                                <img src="{{ $employeePhotoUrl }}" alt="{{ $displayName }}">
                                 @else
-                                    {{ $displayInitials }}
+                                {{ $displayInitials }}
                                 @endif
                             </div>
 
@@ -340,7 +340,7 @@ $visibleQuickActions = $quickActions->take($quickActionLimit);
                                         <i class="fas fa-bell"></i>
                                         <span class="hero-mobile-notif__label">Notif</span>
                                         @if($dashboardUnreadNotifications > 0)
-                                            <span class="hero-mobile-notif__badge">{{ $dashboardUnreadNotifications }}</span>
+                                        <span class="hero-mobile-notif__badge">{{ $dashboardUnreadNotifications }}</span>
                                         @endif
                                     </a>
                                 </div>
@@ -350,63 +350,65 @@ $visibleQuickActions = $quickActions->take($quickActionLimit);
 
                                 <div class="chip-row">
                                     <span class="dashboard-chip">
-                                        <i class="fas fa-user-shield"></i>
-                                        {{ $currentUser->display_role_name }}
+                                        <i class="fas fa-user-clock"></i>
+                                        {{ $attendanceSummary['shift_label'] }}
                                     </span>
                                     <span class="dashboard-chip">
-                                        <i class="fas fa-sitemap"></i>
-                                        {{ $divisionName }}
-                                    </span>
-                                    <span class="dashboard-chip">
-                                        <i class="fas fa-building"></i>
-                                        {{ $departmentName }}
+                                        <i class="fas fa-clock"></i>
+                                        {{ $attendanceSummary['work_time_range'] }}
                                     </span>
                                 </div>
                             </div>
                         </div>
-
-                        <div class="hero-actions">
-                            <a href="{{ route('pengaturan-akun.index') }}" class="hero-button hero-button--light">
-                                <span class="hero-button__icon">
-                                    <i class="fas fa-user-circle"></i>
-                                </span>
-                                <span class="hero-button__label">
-                                    Profil Saya
-                                    <i class="fas fa-arrow-right hero-button__arrow"></i>
-                                </span>
-                            </a>
-                            <a href="{{ route('update.akun') }}" class="hero-button hero-button--ghost">
-                                <span class="hero-button__icon">
-                                    <i class="fas fa-lock"></i>
-                                </span>
-                                <span class="hero-button__label">
-                                    Pengaturan Akun
-                                    <i class="fas fa-arrow-right hero-button__arrow"></i>
-                                </span>
-                            </a>
-                        </div>
-                    </div>
-
-                    <div class="hero-stats">
-                        <div class="hero-stat">
-                            <small>Status Akun</small>
-                            <strong>{{ $statusText }}</strong>
-                        </div>
-                        <div class="hero-stat">
-                            <small>Sisa Cuti</small>
-                            <strong>{{ $sisaCuti }}</strong>
-                        </div>
-                        <div class="hero-stat">
-                            <small>Verifikasi Email</small>
-                            <strong>{{ $verificationText }}</strong>
-                        </div>
-                        <div class="hero-stat">
-                            <small>Total Akses</small>
-                            <strong>{{ $totalAccessibleMenuCount }}</strong>
-                        </div>
                     </div>
                 </div>
             </div>
+
+            @if($attendanceSummary)
+            <div
+                class="dashboard-card attendance-overview mb-3"
+                data-dashboard-clock
+                data-server-time="{{ $attendanceSummary['server_now_iso'] }}">
+                <div class="attendance-overview__main">
+                    <div class="attendance-live-panel">
+                        <span class="attendance-live-panel__label">
+                            <i class="fas fa-clock"></i>
+                            Waktu Realtime
+                        </span>
+                        <strong id="dashboardRealtimeClock" class="attendance-live-panel__clock">
+                            {{ now()->format('H:i:s') }}
+                        </strong>
+                        <small id="dashboardRealtimeDate" class="attendance-live-panel__date">
+                            {{ now()->translatedFormat('l, d M Y') }} WITA
+                        </small>
+                    </div>
+                </div>
+
+                <div class="attendance-times-grid">
+                    @foreach($attendanceSummary['times'] as $timeItem)
+                    <div class="attendance-time-item {{ $timeItem['filled'] ? 'is-done' : '' }} {{ $timeItem['active'] ? 'is-active' : '' }}">
+                        <span class="attendance-time-item__icon">
+                            <i class="{{ $timeItem['icon'] }}"></i>
+                        </span>
+                        <span>
+                            <small>{{ $timeItem['label'] }}</small>
+                            <strong>{{ $timeItem['time'] }}</strong>
+                        </span>
+                    </div>
+                    @endforeach
+                </div>
+
+                @if($currentUser->hasMenuAccess('presensi'))
+                <div class="attendance-overview__footer">
+                    <a href="{{ route('presensi.index') }}" class="attendance-action-button">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Buka Presensi
+                        <i class="fas fa-arrow-right"></i>
+                    </a>
+                </div>
+                @endif
+            </div>
+            @endif
 
             <div class="dashboard-card mb-3">
                 <div class="section-header">
@@ -503,36 +505,6 @@ $visibleQuickActions = $quickActions->take($quickActionLimit);
             @endif
 
             <div class="dashboard-info-grid">
-                <div class="dashboard-card mb-3 mb-lg-0">
-                    <div class="section-header">
-                        <div>
-                            <h2 class="section-title">Profil Kerja</h2>
-                            <p class="section-subtitle">
-                                Ringkasan identitas kerja yang membantu memastikan akun ini terhubung ke unit dan data yang tepat.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="detail-grid">
-                        <div class="detail-item">
-                            <small>NIK Karyawan</small>
-                            <strong>{{ $employee->nik ?? ($currentUser->nik_karyawan ?? '-') }}</strong>
-                        </div>
-                        <div class="detail-item">
-                            <small>Posisi</small>
-                            <strong>{{ $positionName }}</strong>
-                        </div>
-                        <div class="detail-item">
-                            <small>Divisi</small>
-                            <strong>{{ $divisionName }}</strong>
-                        </div>
-                        <div class="detail-item">
-                            <small>Departemen</small>
-                            <strong>{{ $departmentName }}</strong>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="dashboard-card">
                     <div class="section-header">
                         <div>
@@ -587,3 +559,50 @@ $visibleQuickActions = $quickActions->take($quickActionLimit);
         </div>
     </div>
     @endsection
+
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const clockRoot = document.querySelector('[data-dashboard-clock]');
+
+            if (!clockRoot) {
+                return;
+            }
+
+            const clockElement = document.getElementById('dashboardRealtimeClock');
+            const dateElement = document.getElementById('dashboardRealtimeDate');
+            const serverTime = Date.parse(clockRoot.dataset.serverTime || '');
+            const baseTime = Number.isNaN(serverTime) ? Date.now() : serverTime;
+            const startedAt = Date.now();
+            const clockFormatter = new Intl.DateTimeFormat('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+                timeZone: 'Asia/Makassar'
+            });
+            const dateFormatter = new Intl.DateTimeFormat('id-ID', {
+                weekday: 'long',
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                timeZone: 'Asia/Makassar'
+            });
+
+            const renderClock = function() {
+                const current = new Date(baseTime + (Date.now() - startedAt));
+
+                if (clockElement) {
+                    clockElement.textContent = clockFormatter.format(current).replace(/\./g, ':');
+                }
+
+                if (dateElement) {
+                    dateElement.textContent = dateFormatter.format(current) + ' WITA';
+                }
+            };
+
+            renderClock();
+            window.setInterval(renderClock, 1000);
+        });
+    </script>
+    @endpush

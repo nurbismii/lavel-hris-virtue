@@ -5,6 +5,10 @@
 
     RewriteEngine On
 
+    # Sensitive HR uploads must be served through authenticated Laravel routes.
+    RewriteRule ^(employee-documents|face-reference|cuti-roster|presensi-selfie)(/|$) - [F,L]
+    RewriteRule ^izin/[^/]+/[^/]+\.(jpe?g|png|webp|pdf)$ - [F,L,NC]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

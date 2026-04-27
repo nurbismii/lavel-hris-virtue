@@ -248,7 +248,7 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                                         <label class="form-label fw-semibold">Upload Berkas Baru</label>
                                         <input type="file" name="berkas_cuti" class="form-control">
                                         @if($roster->file)
-                                        <a href="{{ asset('cuti-roster/' . $roster->nik_karyawan . '/' . $roster->file) }}" target="_blank" class="btn btn-sm btn-outline-primary mt-3">
+                                        <a href="{{ route('roster.attachment', $roster->id) }}" target="_blank" class="btn btn-sm btn-outline-primary mt-3">
                                             Lihat File Lama
                                         </a>
                                         @endif

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Izin\IzinRequest;
 use App\Models\Cuti;
-use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class IzinController extends Controller
 {
@@ -36,6 +38,15 @@ class IzinController extends Controller
         return redirect()->route('izin.index');
     }
 
+    public function proof($id)
+    {
+        $izin = $this->findUserIzin($id);
+
+        abort_if(blank($izin->foto) || $izin->foto === '-', 404, 'Bukti izin belum tersedia.');
+
+        return $this->serveStoredIzinProof($izin->foto);
+    }
+
     public function edit($id)
     {
         $izin = $this->findUserIzin($id);
@@ -48,28 +59,15 @@ class IzinController extends Controller
         return view('user.izin.edit', compact('izin'));
     }
 
-    public function store(Request $request)
+    public function store(IzinRequest $request)
     {
         $STATUS_HOD = 0;
         $STATUS_HR = 0;
         $STATUS_PEMOHON = 1;
 
-        $request->validate([
-            'tipe' => 'required|in:PAID,UNPAID',
-            'tanggal_mulai' => 'required|date',
-            'tanggal_berakhir' => 'required|date|after_or_equal:tanggal_mulai',
-            'keterangan' => 'nullable|string',
-            'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
-
-        if ($request->tipe == 'PAID') {
-            $request->validate([
-                'tipe_izin' => 'required'
-            ]);
-        }
-
-        $tanggalMulai = Carbon::parse($request->tanggal_mulai);
-        $tanggalBerakhir = Carbon::parse($request->tanggal_berakhir);
+        $data = $request->validated();
+        $tanggalMulai = Carbon::parse($data['tanggal_mulai']);
+        $tanggalBerakhir = Carbon::parse($data['tanggal_berakhir']);
 
         $jumlahHari = $tanggalMulai->diffInDays($tanggalBerakhir) + 1;
 
@@ -79,10 +77,10 @@ class IzinController extends Controller
             'nik_karyawan' => Auth::user()->nik_karyawan,
             'tanggal' => now(),
             'jumlah' => $jumlahHari,
-            'tanggal_mulai' => $request->tanggal_mulai,
-            'tanggal_berakhir' => $request->tanggal_berakhir,
-            'keterangan' => $request->keterangan,
-            'tipe' => $request->tipe,
+            'tanggal_mulai' => $tanggalMulai->toDateString(),
+            'tanggal_berakhir' => $tanggalBerakhir->toDateString(),
+            'keterangan' => $data['keterangan'] ?? null,
+            'tipe' => $data['tipe'],
             'status_pemohon' => $STATUS_PEMOHON, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
             'status_hod' => $STATUS_HOD, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
             'status_hrd' => $STATUS_HR, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
@@ -93,7 +91,7 @@ class IzinController extends Controller
         return redirect()->route('izin.index');
     }
 
-    public function update(Request $request, $id)
+    public function update(IzinRequest $request, $id)
     {
         $izin = $this->findUserIzin($id);
 
@@ -102,25 +100,18 @@ class IzinController extends Controller
             return redirect()->route('izin.index');
         }
 
-        $request->validate([
-            'tipe' => 'required|in:PAID,UNPAID',
-            'tanggal_mulai' => 'required|date',
-            'tanggal_berakhir' => 'required|date|after_or_equal:tanggal_mulai',
-            'keterangan' => 'nullable|string',
-            'foto' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-        ]);
-
-        $tanggalMulai = Carbon::parse($request->tanggal_mulai);
-        $tanggalBerakhir = Carbon::parse($request->tanggal_berakhir);
+        $data = $request->validated();
+        $tanggalMulai = Carbon::parse($data['tanggal_mulai']);
+        $tanggalBerakhir = Carbon::parse($data['tanggal_berakhir']);
         $jumlahHari = $tanggalMulai->diffInDays($tanggalBerakhir) + 1;
         $fotoPath = $this->storeFotoIzin($request, Auth::user()->nik_karyawan, $izin->foto);
 
         $izin->update([
             'jumlah' => $jumlahHari,
-            'tanggal_mulai' => $request->tanggal_mulai,
-            'tanggal_berakhir' => $request->tanggal_berakhir,
-            'keterangan' => $request->keterangan,
-            'tipe' => $request->tipe,
+            'tanggal_mulai' => $tanggalMulai->toDateString(),
+            'tanggal_berakhir' => $tanggalBerakhir->toDateString(),
+            'keterangan' => $data['keterangan'] ?? null,
+            'tipe' => $data['tipe'],
             'foto' => $fotoPath,
         ]);
 
@@ -156,7 +147,7 @@ class IzinController extends Controller
         return (int) $izin->status_hod === 0 && (int) $izin->status_hrd === 0;
     }
 
-    private function storeFotoIzin(Request $request, string $nik, ?string $existingPath = null): string
+    private function storeFotoIzin(IzinRequest $request, string $nik, ?string $existingPath = null): string
     {
         if (!$request->hasFile('foto')) {
             return $existingPath ?: '-';
@@ -166,12 +157,13 @@ class IzinController extends Controller
 
         $destinationPath = public_path('izin/' . $nik);
 
-        if (!file_exists($destinationPath)) {
-            mkdir($destinationPath, 0777, true);
+        if (!File::exists($destinationPath)) {
+            File::makeDirectory($destinationPath, 0755, true);
         }
 
         $file = $request->file('foto');
-        $filename = time() . '_' . $file->getClientOriginalName();
+        $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
+        $filename = 'izin_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(8)) . '.' . $extension;
         $file->move($destinationPath, $filename);
 
         return 'izin/' . $nik . '/' . $filename;
@@ -183,10 +175,33 @@ class IzinController extends Controller
             return;
         }
 
-        $fullPath = public_path($path);
+        $normalizedPath = str_replace('\\', '/', ltrim($path, '/'));
 
-        if (file_exists($fullPath)) {
-            unlink($fullPath);
+        if (str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, 'izin/')) {
+            return;
         }
+
+        $fullPath = public_path($normalizedPath);
+
+        if (File::isFile($fullPath)) {
+            File::delete($fullPath);
+        }
+    }
+
+    private function serveStoredIzinProof(string $path)
+    {
+        $normalizedPath = str_replace('\\', '/', ltrim($path, '/'));
+
+        abort_if(str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, 'izin/'), 404);
+
+        $absolutePath = public_path($normalizedPath);
+
+        abort_unless(File::isFile($absolutePath), 404, 'Bukti izin tidak ditemukan.');
+
+        return response()->file($absolutePath, [
+            'Content-Type' => File::mimeType($absolutePath) ?: 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="' . basename($normalizedPath) . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 }

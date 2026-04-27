@@ -3,8 +3,9 @@
 namespace App\Services\Cuti;
 
 use App\Models\Cuti;
-use App\Models\User;
+use App\Models\Employee;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class CutiService
 {
@@ -14,73 +15,122 @@ class CutiService
         $STATUS_HOD = 0;
         $STATUS_HR = 0;
 
-        $jumlahHari = Carbon::parse($request->tanggal_mulai)
-            ->diffInDays(Carbon::parse($request->tanggal_berakhir)) + 1;
+        $data = $request->validated();
+        $user = $request->user();
 
-        $existing = Cuti::where('nik_karyawan', $request->nik_karyawan)
-            ->whereDate('tanggal', now())
-            ->where('status_hod', 0)
-            ->exists();
+        return DB::transaction(function () use ($data, $user, $STATUS_PEMOHON, $STATUS_HOD, $STATUS_HR) {
+            $employee = Employee::query()
+                ->where('nik', $user->nik_karyawan)
+                ->lockForUpdate()
+                ->first();
 
-        if ($existing) {
+            if (!$employee) {
+                return [
+                    'status' => false,
+                    'message' => 'Data karyawan tidak ditemukan.'
+                ];
+            }
+
+            $startDate = Carbon::parse($data['tanggal_mulai'])->toDateString();
+            $endDate = Carbon::parse($data['tanggal_berakhir'])->toDateString();
+            $jumlahHari = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
+
+            if ($this->hasActiveOverlap($employee->nik, $startDate, $endDate)) {
+                return [
+                    'status' => false,
+                    'message' => 'Rentang cuti tersebut sudah memiliki pengajuan yang masih aktif atau disetujui.'
+                ];
+            }
+
+            if ($jumlahHari > (int) $employee->sisa_cuti) {
+                return [
+                    'status' => false,
+                    'message' => 'Sisa cuti tidak cukup'
+                ];
+            }
+
+            Cuti::create([
+                'nik_karyawan' => $employee->nik,
+                'tanggal' => now()->toDateString(),
+                'tanggal_mulai' => $startDate,
+                'tanggal_berakhir' => $endDate,
+                'jumlah' => $jumlahHari,
+                'status_pemohon' => $STATUS_PEMOHON,
+                'status_hod' => $STATUS_HOD,
+                'status_hrd' => $STATUS_HR,
+                'tipe' => 'CUTI',
+                'keterangan' => $data['keterangan'] ?? null,
+                'created_at' => now()
+            ]);
+
             return [
-                'status' => false,
-                'message' => 'Pengajuan kamu sudah tersedia dan masih menunggu persetujuan'
+                'status' => true,
+                'message' => 'Pengajuan cuti berhasil dibuat'
             ];
-        }
-
-        if ($jumlahHari > $request->sisa_cuti) {
-            return [
-                'status' => false,
-                'message' => 'Sisa cuti tidak cukup'
-            ];
-        }
-
-        Cuti::create([
-            'nik_karyawan' => $request->nik_karyawan,
-            'tanggal' => $request->tanggal,
-            'tanggal_mulai' => $request->tanggal_mulai,
-            'tanggal_berakhir' => $request->tanggal_berakhir,
-            'jumlah' => $jumlahHari,
-            'status_pemohon' => $STATUS_PEMOHON,
-            'status_hod' => $STATUS_HOD,
-            'status_hrd' => $STATUS_HR,
-            'tipe' => 'CUTI',
-            'keterangan' => $request->keterangan,
-            'created_at' => now()
-        ]);
-
-        return [
-            'status' => true,
-            'message' => 'Pengajuan cuti berhasil dibuat'
-        ];
+        });
     }
 
-    public function updateCuti($request, $id)
+    public function updateCuti($request, Cuti $cuti)
     {
+        $data = $request->validated();
 
-        $jumlahHari = Carbon::parse($request->tanggal_mulai)
-            ->diffInDays(Carbon::parse($request->tanggal_berakhir)) + 1;
+        return DB::transaction(function () use ($data, $cuti) {
+            $employee = Employee::query()
+                ->where('nik', $cuti->nik_karyawan)
+                ->lockForUpdate()
+                ->first();
 
-        if ($jumlahHari > $request->sisa_cuti) {
+            if (!$employee) {
+                return [
+                    'status' => false,
+                    'message' => 'Data karyawan tidak ditemukan.'
+                ];
+            }
+
+            $startDate = Carbon::parse($data['tanggal_mulai'])->toDateString();
+            $endDate = Carbon::parse($data['tanggal_berakhir'])->toDateString();
+            $jumlahHari = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
+
+            if ($this->hasActiveOverlap($employee->nik, $startDate, $endDate, $cuti->id)) {
+                return [
+                    'status' => false,
+                    'message' => 'Rentang cuti tersebut sudah memiliki pengajuan yang masih aktif atau disetujui.'
+                ];
+            }
+
+            if ($jumlahHari > (int) $employee->sisa_cuti) {
+                return [
+                    'status' => false,
+                    'message' => 'Sisa cuti tidak cukup'
+                ];
+            }
+
+            $cuti->update([
+                'tanggal_mulai' => $startDate,
+                'tanggal_berakhir' => $endDate,
+                'jumlah' => $jumlahHari,
+                'tipe' => 'CUTI',
+                'keterangan' => $data['keterangan'] ?? null,
+                'updated_at' => now()
+            ]);
+
             return [
-                'status' => false,
-                'message' => 'Sisa cuti tidak cukup'
+                'status' => true,
+                'message' => 'Pengajuan cuti berhasil diperbarui'
             ];
-        }
+        });
+    }
 
-        Cuti::where('id', $id)->update([
-            'tanggal_mulai' => $request->tanggal_mulai,
-            'tanggal_berakhir' => $request->tanggal_berakhir,
-            'jumlah' => $jumlahHari,
-            'tipe' => 'CUTI',
-            'keterangan' => $request->keterangan,
-            'updated_at' => now()
-        ]);
-
-        return [
-            'status' => true,
-            'message' => 'Pengajuan cuti berhasil diperbarui'
-        ];
+    private function hasActiveOverlap(string $nikKaryawan, string $startDate, string $endDate, ?int $ignoreId = null): bool
+    {
+        return Cuti::query()
+            ->where('nik_karyawan', $nikKaryawan)
+            ->where('tipe', 'CUTI')
+            ->when($ignoreId, fn($query) => $query->where('id', '!=', $ignoreId))
+            ->whereDate('tanggal_mulai', '<=', $endDate)
+            ->whereDate('tanggal_berakhir', '>=', $startDate)
+            ->where(fn($query) => $query->whereNull('status_hod')->orWhere('status_hod', '!=', 2))
+            ->where(fn($query) => $query->whereNull('status_hrd')->orWhere('status_hrd', '!=', 2))
+            ->exists();
     }
 }

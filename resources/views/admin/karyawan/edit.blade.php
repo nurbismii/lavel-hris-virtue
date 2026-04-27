@@ -9,6 +9,7 @@
 $documentFields = collect([
 [
 'label' => 'Foto Karyawan',
+'type' => 'photo',
 'input' => 'photo_file',
 'path' => $employee->photo_path,
 'accept' => 'image/png,image/jpeg,image/webp',
@@ -16,6 +17,7 @@ $documentFields = collect([
 ],
 [
 'label' => 'KTP',
+'type' => 'ktp',
 'input' => 'ktp_file',
 'path' => $employee->ktp_path,
 'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
@@ -23,6 +25,7 @@ $documentFields = collect([
 ],
 [
 'label' => 'KK',
+'type' => 'kk',
 'input' => 'kk_file',
 'path' => $employee->kk_path,
 'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
@@ -30,6 +33,7 @@ $documentFields = collect([
 ],
 [
 'label' => 'SIM',
+'type' => 'sim',
 'input' => 'sim_file',
 'path' => $employee->sim_path,
 'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
@@ -37,19 +41,21 @@ $documentFields = collect([
 ],
 [
 'label' => 'SIO',
+'type' => 'sio',
 'input' => 'sio_file',
 'path' => $employee->sio_path,
 'accept' => 'image/png,image/jpeg,image/webp,application/pdf',
 'help' => 'Menerima gambar atau PDF.',
 ],
-])->map(function ($document) {
+])->map(function ($document) use ($employee) {
 $path = $document['path'] ?? null;
 $extension = $path ? strtolower(pathinfo($path, PATHINFO_EXTENSION)) : null;
 $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true);
 $isPdf = $extension === 'pdf';
 
 return array_merge($document, [
-'url' => $path ? asset($path) : null,
+'url' => $path ? route('karyawan.documents.preview', ['nik' => $employee->nik, 'type' => $document['type']]) : null,
+'download_url' => $path ? route('karyawan.documents.download', ['nik' => $employee->nik, 'type' => $document['type']]) : null,
 'file_name' => $path ? basename($path) : null,
 'is_image' => $isImage,
 'is_pdf' => $isPdf,
@@ -351,7 +357,7 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                                     <div class="employee-document-row__grid">
                                                         <div class="employee-document-row__preview">
                                                             @if($employee->face_reference_path)
-                                                            <img src="{{ asset($employee->face_reference_path) }}" alt="Foto referensi wajah" loading="lazy">
+                                                            <img src="{{ route('karyawan.documents.preview', ['nik' => $employee->nik, 'type' => 'face_reference']) }}" alt="Foto referensi wajah" loading="lazy">
                                                             @else
                                                             <div class="employee-document-row__placeholder">
                                                                 <i class="fas fa-camera"></i>
@@ -371,10 +377,10 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                                             </div>
                                                             @if($employee->face_reference_path)
                                                             <div class="employee-document-row__actions">
-                                                                <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ asset($employee->face_reference_path) }}" data-file-type="image" data-file-label="Foto Referensi Wajah" data-file-name="{{ basename($employee->face_reference_path) }}">
+                                                                <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ route('karyawan.documents.preview', ['nik' => $employee->nik, 'type' => 'face_reference']) }}" data-file-type="image" data-file-label="Foto Referensi Wajah" data-file-name="{{ basename($employee->face_reference_path) }}">
                                                                     Lihat
                                                                 </button>
-                                                                <a href="{{ asset($employee->face_reference_path) }}" download class="btn btn-sm btn-primary">
+                                                                <a href="{{ route('karyawan.documents.download', ['nik' => $employee->nik, 'type' => 'face_reference']) }}" download class="btn btn-sm btn-primary">
                                                                     Unduh
                                                                 </a>
                                                             </div>
@@ -439,7 +445,7 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                                                 <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ $document['url'] }}" data-file-type="{{ $document['is_pdf'] ? 'pdf' : 'image' }}" data-file-label="{{ $document['label'] }}" data-file-name="{{ $document['file_name'] }}">
                                                                     Lihat
                                                                 </button>
-                                                                <a href="{{ $document['url'] }}" download class="btn btn-sm btn-primary">
+                                                                <a href="{{ $document['download_url'] }}" download class="btn btn-sm btn-primary">
                                                                     Unduh
                                                                 </a>
                                                             </div>

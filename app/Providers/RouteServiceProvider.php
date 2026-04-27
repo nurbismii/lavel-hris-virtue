@@ -48,5 +48,13 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60);
         });
+
+        RateLimiter::for('presensi', function (Request $request) {
+            return Limit::perMinute(8)->by(optional($request->user())->id ?: $request->ip());
+        });
+
+        RateLimiter::for('gps-log', function (Request $request) {
+            return Limit::perMinute(30)->by(optional($request->user())->id ?: $request->ip());
+        });
     }
 }

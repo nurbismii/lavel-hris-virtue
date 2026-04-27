@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Presensi\PresensiRequest;
 use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\Presensi;
+use App\Services\Presensi\AttendanceSecurityService;
 use App\Services\Presensi\AttendanceDateResolverService;
 use App\Services\Presensi\AttendanceFulfillmentService;
 use App\Services\Presensi\ShiftAssignmentService;
@@ -16,7 +18,10 @@ use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+use Throwable;
 
 class PresensiController extends Controller
 {
@@ -47,6 +52,14 @@ class PresensiController extends Controller
         $absensiHariIni = Presensi::where('nik_karyawan', Auth::user()->nik_karyawan)
             ->whereDate('tanggal', $activeAttendanceDateString)
             ->first();
+        $statusPresensiHariIni = optional($absensiHariIni)->status_presensi;
+        $nextAttendanceType = $this->resolveNextAttendanceType($absensiHariIni, $statusPresensiHariIni);
+        $attendanceChallenge = null;
+
+        if ($lokasi && filled($karyawan->face_reference_path) && $nextAttendanceType) {
+            $attendanceChallenge = app(AttendanceSecurityService::class)
+                ->issueChallenge($user, request(), $activeAttendanceDateString, $nextAttendanceType);
+        }
 
         $today = Carbon::today();
 
@@ -130,10 +143,12 @@ class PresensiController extends Controller
             'currentShift' => $currentShift,
             'currentScheduleSource' => $currentScheduleSource,
             'currentScheduleData' => $currentScheduleData,
+            'nextAttendanceType' => $nextAttendanceType,
+            'attendanceChallenge' => $attendanceChallenge,
         ]);
     }
 
-    public function store(Request $request, $type)
+    public function store(PresensiRequest $request, $type, AttendanceSecurityService $securityService)
     {
         $user = Auth::user();
         $karyawan = $user->employee;
@@ -157,31 +172,7 @@ class PresensiController extends Controller
             return $this->failPresensi('Presensi tanggal ' . formatDateIndonesia($attendanceDate) . ' berstatus ' . $statusHariIni . '. Tidak perlu absen jam.', 'warning');
         }
 
-        $request->validate([
-            'lat_user' => 'required|numeric',
-            'long_user' => 'required|numeric',
-            'accuracy' => 'required|numeric',
-            'speed' => 'nullable|numeric',
-            'device_info' => 'nullable|string',
-            'selfie_capture' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:4096',
-            'selfie_capture_data' => 'nullable|string|max:7000000|required_without:selfie_capture',
-            'face_verified' => 'required|boolean',
-            'face_distance' => 'required|numeric|min:0|max:2',
-            'face_detection_count' => 'required|integer|min:1|max:5',
-            'face_verification_meta' => 'nullable|string|max:5000',
-        ], [
-            'lat_user.required' => 'Lokasi GPS belum terbaca. Aktifkan lokasi lalu coba lagi.',
-            'long_user.required' => 'Lokasi GPS belum terbaca. Aktifkan lokasi lalu coba lagi.',
-            'accuracy.required' => 'Akurasi GPS belum terbaca. Tunggu sampai indikator GPS valid.',
-            'selfie_capture.image' => 'File selfie harus berupa gambar.',
-            'selfie_capture.max' => 'Ukuran selfie terlalu besar. Ambil ulang selfie lalu coba lagi.',
-            'selfie_capture_data.required_without' => 'Selfie wajib diambil sebelum presensi.',
-            'selfie_capture_data.max' => 'Ukuran selfie terlalu besar. Ambil ulang selfie lalu coba lagi.',
-            'face_verified.required' => 'Verifikasi wajah belum selesai.',
-            'face_verified.boolean' => 'Status verifikasi wajah tidak valid.',
-            'face_distance.required' => 'Jarak kecocokan wajah belum terbaca. Ambil ulang selfie.',
-            'face_detection_count.required' => 'Jumlah wajah pada selfie belum terbaca. Ambil ulang selfie.',
-        ]);
+        $request->validated();
 
         $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
 
@@ -212,23 +203,25 @@ class PresensiController extends Controller
             return $this->failPresensi('Anda berada di luar radius presensi!');
         }
 
-        $faceVerified = filter_var($request->face_verified, FILTER_VALIDATE_BOOLEAN);
+        $securityService->validateRecentGpsEvidence($request, $user, $lokasi);
 
-        if (!$faceVerified) {
-            return $this->failPresensi('Verifikasi wajah gagal. Silakan ambil selfie lagi.');
+        $challenge = $securityService->consumeChallenge($request, $user, $attendanceDate, $type);
+        $faceResult = $securityService->validateFacePayload($request, $challenge);
+
+        $selfieFile = $request->hasFile('selfie_capture')
+            ? $request->file('selfie_capture')
+            : $this->makeFaceSelfieFromBase64($request->input('selfie_capture_data'));
+
+        if (!$selfieFile) {
+            return $this->failPresensi('Selfie kamera tidak valid. Silakan ulangi verifikasi wajah.');
         }
 
-        if ((int) $request->face_detection_count !== 1) {
-            return $this->failPresensi('Selfie harus memuat tepat satu wajah.');
-        }
-
-        if ((float) $request->face_distance > self::FACE_DISTANCE_THRESHOLD) {
-            return $this->failPresensi('Wajah tidak cocok dengan foto referensi.');
-        }
+        $selfieAudit = $securityService->validateSelfieImage($selfieFile, $user, $karyawan->face_reference_path);
+        $storedFaceMeta = $securityService->buildStoredMeta($request, $challenge, $faceResult, $selfieAudit);
 
         $securityScore = 100;
 
-        if ($request->accuracy > 75) {
+        if ($request->accuracy > 40) {
             $securityScore -= 20;
         }
 
@@ -254,81 +247,107 @@ class PresensiController extends Controller
         }
 
         $isSuspicious = $securityScore < 60 ? 'TRUE' : 'FALSE';
-        $absensi = Presensi::firstOrNew([
-            'nik_karyawan' => $user->nik_karyawan,
-            'tanggal' => $attendanceDate,
-        ]);
+        $selfiePath = null;
 
-        switch ($type) {
-            case 'masuk':
-                if ($absensi->jam_masuk) {
-                    return $this->failPresensi('Anda sudah absen masuk.');
+        try {
+            DB::transaction(function () use (
+                $request,
+                $type,
+                $user,
+                $now,
+                $attendanceDate,
+                $selfieFile,
+                $selfieAudit,
+                $storedFaceMeta,
+                $challenge,
+                $securityScore,
+                $isSuspicious,
+                &$selfiePath
+            ) {
+                $absensi = Presensi::where('nik_karyawan', $user->nik_karyawan)
+                    ->whereDate('tanggal', $attendanceDate)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$absensi) {
+                    $absensi = new Presensi([
+                        'nik_karyawan' => $user->nik_karyawan,
+                        'tanggal' => $attendanceDate,
+                    ]);
                 }
 
-                $absensi->jam_masuk = $now;
-                break;
+                switch ($type) {
+                    case 'masuk':
+                        if ($absensi->jam_masuk) {
+                            $this->failPresensiValidation('Anda sudah absen masuk.');
+                        }
 
-            case 'istirahat':
-                if (!$absensi->jam_masuk) {
-                    return $this->failPresensi('Silakan absen masuk dulu.');
+                        $absensi->jam_masuk = $now;
+                        break;
+
+                    case 'istirahat':
+                        if (!$absensi->jam_masuk) {
+                            $this->failPresensiValidation('Silakan absen masuk dulu.');
+                        }
+
+                        if ($absensi->jam_istirahat) {
+                            $this->failPresensiValidation('Kamu sudah absen istirahat.');
+                        }
+
+                        $absensi->jam_istirahat = $now;
+                        break;
+
+                    case 'kembali':
+                        if (!$absensi->jam_istirahat) {
+                            $this->failPresensiValidation('Silakan mulai istirahat dulu.');
+                        }
+
+                        if ($absensi->jam_kembali_istirahat) {
+                            $this->failPresensiValidation('Kamu sudah kembali dari istirahat.');
+                        }
+
+                        $absensi->jam_kembali_istirahat = $now;
+                        break;
+
+                    case 'pulang':
+                        if (!$absensi->jam_kembali_istirahat) {
+                            $this->failPresensiValidation('Silakan kembali dari istirahat dulu.');
+                        }
+
+                        if ($absensi->jam_pulang) {
+                            $this->failPresensiValidation('Kamu sudah presensi pulang.');
+                        }
+
+                        $absensi->jam_pulang = $now;
+                        break;
+
+                    default:
+                        $this->failPresensiValidation('Tipe presensi tidak valid.');
                 }
 
-                if ($absensi->jam_istirahat) {
-                    return $this->failPresensi('Kamu sudah absen istirahat.');
-                }
+                $selfiePath = $this->storeFaceSelfie($selfieFile, $user->nik_karyawan, $type);
+                $absensi->ip_address = $request->ip();
+                $absensi->user_agent = $request->userAgent();
+                $absensi->device_info = $request->device_info;
+                $absensi->security_score = $securityScore;
+                $absensi->is_suspicious = $isSuspicious;
+                $absensi->face_selfie_path = $selfiePath;
+                $absensi->face_selfie_hash = $selfieAudit['hash'];
+                $absensi->face_verified = true;
+                $absensi->face_verification_distance = $request->face_distance;
+                $absensi->face_verified_at = now();
+                $absensi->face_verification_method = 'face-api.js-live-challenge';
+                $absensi->face_verification_meta = $storedFaceMeta;
+                $absensi->presensi_challenge_id = $challenge['id'];
+                $absensi->save();
+            });
+        } catch (Throwable $exception) {
+            if ($selfiePath) {
+                $this->deleteStoredSelfie($selfiePath);
+            }
 
-                $absensi->jam_istirahat = $now;
-                break;
-
-            case 'kembali':
-                if (!$absensi->jam_istirahat) {
-                    return $this->failPresensi('Silakan mulai istirahat dulu.');
-                }
-
-                if ($absensi->jam_kembali_istirahat) {
-                    return $this->failPresensi('Kamu sudah kembali dari istirahat.');
-                }
-
-                $absensi->jam_kembali_istirahat = $now;
-                break;
-
-            case 'pulang':
-                if (!$absensi->jam_kembali_istirahat) {
-                    return $this->failPresensi('Silakan kembali dari istirahat dulu.');
-                }
-
-                if ($absensi->jam_pulang) {
-                    return $this->failPresensi('Kamu sudah presensi pulang.');
-                }
-
-                $absensi->jam_pulang = $now;
-                break;
-
-            default:
-                return $this->failPresensi('Tipe presensi tidak valid.');
+            throw $exception;
         }
-
-        $selfieFile = $request->hasFile('selfie_capture')
-            ? $request->file('selfie_capture')
-            : $this->makeFaceSelfieFromBase64($request->input('selfie_capture_data'));
-
-        if (!$selfieFile) {
-            return $this->failPresensi('Selfie kamera tidak valid. Silakan ulangi verifikasi wajah.');
-        }
-
-        $selfiePath = $this->storeFaceSelfie($selfieFile, $user->nik_karyawan, $type);
-        $absensi->ip_address = $request->ip();
-        $absensi->user_agent = $request->userAgent();
-        $absensi->device_info = $request->device_info;
-        $absensi->security_score = $securityScore;
-        $absensi->is_suspicious = $isSuspicious;
-        $absensi->face_selfie_path = $selfiePath;
-        $absensi->face_verified = true;
-        $absensi->face_verification_distance = $request->face_distance;
-        $absensi->face_verified_at = now();
-        $absensi->face_verification_method = 'face-api.js';
-        $absensi->face_verification_meta = $request->face_verification_meta;
-        $absensi->save();
 
         toast()->success('Success', 'Presensi berhasil dicatat.');
         return back();
@@ -345,13 +364,45 @@ class PresensiController extends Controller
         return back()->with('error', $message);
     }
 
+    private function failPresensiValidation(string $message): void
+    {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'presensi' => $message,
+        ]);
+    }
+
+    private function resolveNextAttendanceType(?Presensi $absensi, ?string $statusPresensi): ?string
+    {
+        if ($statusPresensi) {
+            return null;
+        }
+
+        if (!$absensi || !$absensi->jam_masuk) {
+            return 'masuk';
+        }
+
+        if (!$absensi->jam_istirahat) {
+            return 'istirahat';
+        }
+
+        if (!$absensi->jam_kembali_istirahat) {
+            return 'kembali';
+        }
+
+        if (!$absensi->jam_pulang) {
+            return 'pulang';
+        }
+
+        return null;
+    }
+
     public function logGps(Request $request)
     {
         $request->validate([
             'lat' => 'required|numeric',
             'long' => 'required|numeric',
-            'accuracy' => 'nullable|numeric',
-            'speed' => 'nullable|numeric',
+            'accuracy' => 'required|numeric|min:0|max:60',
+            'speed' => 'nullable|numeric|min:0|max:80',
         ]);
 
         $user = auth()->user();
@@ -369,6 +420,32 @@ class PresensiController extends Controller
         ]);
 
         return response()->json(['status' => 'ok']);
+    }
+
+    public function faceReference(Request $request)
+    {
+        $employee = $request->user()->employee;
+        $relativePath = optional($employee)->face_reference_path;
+
+        abort_if(blank($relativePath), 404, 'Foto referensi wajah belum tersedia.');
+
+        $normalizedPath = str_replace('\\', '/', ltrim($relativePath, '/'));
+        $expectedDirectory = 'face-reference/' . $request->user()->nik_karyawan . '/';
+
+        abort_if(
+            str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, $expectedDirectory),
+            404
+        );
+
+        $absolutePath = public_path($normalizedPath);
+
+        abort_unless(File::isFile($absolutePath), 404, 'Foto referensi wajah tidak ditemukan.');
+
+        return response()->file($absolutePath, [
+            'Content-Type' => File::mimeType($absolutePath) ?: 'image/jpeg',
+            'Content-Disposition' => 'inline; filename="face-reference"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
@@ -397,10 +474,26 @@ class PresensiController extends Controller
             File::makeDirectory($directory, 0755, true);
         }
 
-        $filename = $type . '_' . now()->format('His') . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg');
+        $filename = $type . '_' . now()->format('His') . '_' . Str::lower(Str::random(12)) . '.' . $extension;
         $file->move($directory, $filename);
 
         return 'presensi-selfie/' . $nik . '/' . $datePath . '/' . $filename;
+    }
+
+    private function deleteStoredSelfie(string $path): void
+    {
+        $normalizedPath = str_replace('\\', '/', ltrim($path, '/'));
+
+        if (str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, 'presensi-selfie/')) {
+            return;
+        }
+
+        $absolutePath = public_path($normalizedPath);
+
+        if (File::isFile($absolutePath)) {
+            File::delete($absolutePath);
+        }
     }
 
     private function makeFaceSelfieFromBase64(?string $base64Image): ?UploadedFile
