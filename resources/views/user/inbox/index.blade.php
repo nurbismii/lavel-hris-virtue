@@ -8,11 +8,11 @@
 
 @section('content')
 @php
-    $currentUser = auth()->user();
-    $homeUrl = $currentUser ? route($currentUser->preferredHomeRouteName()) : url('/');
-    $totalNotifications = $currentUser ? $currentUser->notifications()->count() : 0;
-    $unreadNotifications = $currentUser ? $currentUser->unreadNotifications()->count() : 0;
-    $readNotifications = max($totalNotifications - $unreadNotifications, 0);
+$currentUser = auth()->user();
+$homeUrl = $currentUser ? route($currentUser->preferredHomeRouteName()) : url('/');
+$totalNotifications = $currentUser ? $currentUser->notifications()->count() : 0;
+$unreadNotifications = $currentUser ? $currentUser->unreadNotifications()->count() : 0;
+$readNotifications = max($totalNotifications - $unreadNotifications, 0);
 @endphp
 
 <div class="container-fluid inbox-page px-3">
@@ -32,13 +32,13 @@
 
                     <div class="inbox-hero__actions">
                         @if($unreadNotifications > 0)
-                            <form action="{{ route('notif.readAll') }}" method="POST" class="m-0">
-                                @csrf
-                                <button type="submit" class="inbox-button inbox-button--ghost">
-                                    <i class="fas fa-check-double"></i>
-                                    Baca semua
-                                </button>
-                            </form>
+                        <form action="{{ route('notif.readAll') }}" method="POST" class="m-0">
+                            @csrf
+                            <button type="submit" class="inbox-button inbox-button--ghost">
+                                <i class="fas fa-check-double"></i>
+                                Baca semua
+                            </button>
+                        </form>
                         @endif
 
                         <a href="{{ $homeUrl }}" class="inbox-button inbox-button--light">
@@ -72,88 +72,91 @@
             <div class="inbox-card__head">
                 <div>
                     <h2 class="inbox-card__title">Daftar Notifikasi</h2>
-                    <p class="inbox-card__subtitle">
-                        Ketuk salah satu kartu untuk membuka detail atau langsung menuju halaman terkait.
-                    </p>
                 </div>
 
                 <span class="inbox-card__pill">
                     <i class="fas fa-list-ul"></i>
-                    {{ $notifications->count() }} item di halaman ini
+
+                    @if($notifications->total() > 0)
+                    {{ $notifications->firstItem() }} - {{ $notifications->lastItem() }}
+                    dari {{ $notifications->total() }} item
+                    @else
+                    0 item
+                    @endif
                 </span>
             </div>
 
             <div class="inbox-list">
                 @forelse($notifications as $notif)
-                    @php
-                        $title = $notif->data['judul'] ?? 'Notifikasi';
-                        $message = $notif->data['pesan'] ?? 'Belum ada detail pesan.';
-                        $targetUrl = $notif->data['url'] ?? route('kotak-masuk.index');
-                        $isUnread = is_null($notif->read_at);
-                    @endphp
+                @php
+                $title = $notif->data['judul'] ?? 'Notifikasi';
+                $message = $notif->data['pesan'] ?? 'Belum ada detail pesan.';
+                $targetUrl = $notif->data['url'] ?? route('kotak-masuk.index');
+                $isUnread = is_null($notif->read_at);
+                @endphp
 
-                    <article class="inbox-item {{ $isUnread ? 'is-unread' : '' }}">
-                        <div class="inbox-item__icon">
-                            <i class="fas fa-bell"></i>
-                        </div>
-
-                        <div class="inbox-item__body">
-                            <div class="inbox-item__head">
-                                <h3 class="inbox-item__title">{{ $title }}</h3>
-
-                                @if($isUnread)
-                                    <span class="inbox-item__badge">
-                                        <i class="fas fa-circle"></i>
-                                        Baru
-                                    </span>
-                                @endif
-                            </div>
-
-                            <p class="inbox-item__message">{{ $message }}</p>
-
-                            <div class="inbox-item__footer">
-                                <span class="inbox-item__time">
-                                    <i class="far fa-clock"></i>
-                                    {{ $notif->created_at->diffForHumans() }}
-                                </span>
-                                <span class="inbox-item__hint">
-                                    <i class="fas fa-arrow-up-right-from-square"></i>
-                                    Buka detail
-                                </span>
-                            </div>
-                        </div>
-
-                        <div class="inbox-item__chevron">
-                            <i class="fas fa-chevron-right"></i>
-                        </div>
-
-                        <a
-                            href="{{ $targetUrl }}"
-                            class="stretched-link"
-                            aria-label="Buka notifikasi {{ $title }}"
-                            onclick="event.preventDefault(); document.getElementById('mark-{{ $notif->id }}').submit();">
-                        </a>
-
-                        <form id="mark-{{ $notif->id }}" action="{{ route('notif.baca', $notif->id) }}" method="GET" class="d-none"></form>
-                    </article>
-                @empty
-                    <div class="inbox-empty">
-                        <div class="inbox-empty__icon">
-                            <i class="fas fa-bell-slash"></i>
-                        </div>
-                        <h5>Belum ada notifikasi</h5>
-                        <p>
-                            Saat ada update baru dari approval, pengajuan, atau informasi perusahaan,
-                            notifikasinya akan muncul di halaman ini.
-                        </p>
+                <article class="inbox-item {{ $isUnread ? 'is-unread' : '' }}">
+                    <div class="inbox-item__icon">
+                        <i class="fas fa-bell"></i>
                     </div>
+
+                    <div class="inbox-item__body">
+                        <div class="inbox-item__head">
+                            <h3 class="inbox-item__title">{{ $title }}</h3>
+
+                            @if($isUnread)
+                            <span class="inbox-item__badge">
+                                <i class="fas fa-circle"></i>
+                                Baru
+                            </span>
+                            @endif
+                        </div>
+
+                        <p class="inbox-item__message">{{ $message }}</p>
+
+                        <div class="inbox-item__footer">
+                            <span class="inbox-item__time">
+                                <i class="far fa-clock"></i>
+                                {{ $notif->created_at->diffForHumans() }}
+                            </span>
+                            <span class="inbox-item__hint">
+                                <i class="fas fa-arrow-up-right-from-square"></i>
+                                Buka detail
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="inbox-item__chevron">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+
+                    <a
+                        href="{{ $targetUrl }}"
+                        class="stretched-link"
+                        aria-label="Buka notifikasi {{ $title }}"
+                        onclick="event.preventDefault(); document.getElementById('mark-{{ $notif->id }}').submit();">
+                    </a>
+
+                    <form id="mark-{{ $notif->id }}" action="{{ route('notif.baca', $notif->id) }}" method="GET" class="d-none"></form>
+                </article>
+                @empty
+                <div class="inbox-empty">
+                    <div class="inbox-empty__icon">
+                        <i class="fas fa-bell-slash"></i>
+                    </div>
+                    <h5>Belum ada notifikasi</h5>
+                    <p>
+                        Saat ada update baru dari approval, pengajuan, atau informasi perusahaan,
+                        notifikasinya akan muncul di halaman ini.
+                    </p>
+                </div>
                 @endforelse
             </div>
 
             @if($notifications->hasPages())
-                <div class="inbox-pagination">
-                    {{ $notifications->links() }}
-                </div>
+            <div class="inbox-pagination">
+                {{ $notifications->onEachSide(1)->links('pagination::bootstrap-4') }}
+            </div>
             @endif
         </section>
     </div>
