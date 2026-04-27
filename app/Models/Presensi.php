@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Presensi extends Model
 {
+    public const STATUS_ABSEN_VERIFIED = 'verified';
+    public const STATUS_ABSEN_PENDING_REVIEW = 'pending_review';
+    public const STATUS_ABSEN_REJECTED = 'rejected';
+
     protected $table = 'absensis';
 
     protected $guarded = [];
@@ -44,6 +48,34 @@ class Presensi extends Model
                 return 'CR';
             default:
                 return $status;
+        }
+    }
+
+    public static function statusAbsenLabel(?string $status): string
+    {
+        switch ($status) {
+            case self::STATUS_ABSEN_VERIFIED:
+                return 'Terverifikasi';
+            case self::STATUS_ABSEN_PENDING_REVIEW:
+                return 'Review';
+            case self::STATUS_ABSEN_REJECTED:
+                return 'Ditolak';
+            default:
+                return 'Belum diverifikasi';
+        }
+    }
+
+    public static function statusAbsenBadgeClass(?string $status): string
+    {
+        switch ($status) {
+            case self::STATUS_ABSEN_VERIFIED:
+                return 'bg-success';
+            case self::STATUS_ABSEN_PENDING_REVIEW:
+                return 'bg-warning text-dark';
+            case self::STATUS_ABSEN_REJECTED:
+                return 'bg-danger';
+            default:
+                return 'bg-secondary';
         }
     }
 }

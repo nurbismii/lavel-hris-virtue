@@ -263,7 +263,13 @@ class AttendanceSecurityService
         }
     }
 
-    public function buildStoredMeta(Request $request, array $challenge, array $faceResult, array $selfieAudit): string
+    public function buildStoredMeta(
+        Request $request,
+        array $challenge,
+        array $faceResult,
+        array $selfieAudit,
+        ?array $serverVerification = null
+    ): string
     {
         $meta = $faceResult['meta'];
         $meta['server_validation'] = [
@@ -281,6 +287,18 @@ class AttendanceSecurityService
             'ip_hash' => hash('sha256', (string) $request->ip()),
             'user_agent_hash' => $this->hashUserAgent($request),
         ];
+
+        if ($serverVerification !== null) {
+            $meta['server_face_verification'] = [
+                'status' => $serverVerification['status'] ?? null,
+                'passed' => (bool) ($serverVerification['passed'] ?? false),
+                'method' => $serverVerification['method'] ?? null,
+                'message' => $serverVerification['message'] ?? null,
+                'provider' => $serverVerification['provider'] ?? null,
+                'passive_liveness' => $serverVerification['passive_liveness'] ?? null,
+                'validated_at' => now()->toIso8601String(),
+            ];
+        }
 
         return json_encode($meta);
     }

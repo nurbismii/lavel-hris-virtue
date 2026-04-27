@@ -99,6 +99,8 @@
             <span><span class="presensi-status-pill presensi-status-pill--cr">CR</span> Cuti Roster</span>
             <span><span class="presensi-status-pill presensi-status-pill--ip">I/P</span> Izin Berbayar</span>
             <span><span class="presensi-status-pill presensi-status-pill--iu">I/U</span> Izin Tidak Berbayar</span>
+            <span><span class="presensi-verification-chip is-verified">SV</span> Server verified</span>
+            <span><span class="presensi-verification-chip is-review">RV</span> Review</span>
         </div>
 
         <div class="alert alert-light border small presensi-empty-hint" id="presensiHint">

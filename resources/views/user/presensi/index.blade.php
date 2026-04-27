@@ -415,6 +415,7 @@
                         <tr>
                             <th>Tanggal</th>
                             <th>Status</th>
+                            <th>Verifikasi</th>
                             <th>Shift</th>
                             <th>Masuk</th>
                             <th>Istirahat</th>
@@ -429,6 +430,11 @@
                         <tr>
                             <td>{{ formatDateIndonesia($item->tanggal) }}</td>
                             <td>{{ \App\Models\Presensi::shortStatus($item->status_presensi) ?? '-' }}</td>
+                            <td>
+                                <span class="badge {{ \App\Models\Presensi::statusAbsenBadgeClass($item->status_absen ?? null) }}">
+                                    {{ \App\Models\Presensi::statusAbsenLabel($item->status_absen ?? null) }}
+                                </span>
+                            </td>
                             <td>{{ optional($item->resolved_shift)->code ?? 'AUTO' }}</td>
                             <td>{{ $formatPresensiClock($item->jam_masuk, $item->tanggal, '-') }}</td>
                             <td>{{ $formatPresensiClock($item->jam_istirahat, $item->tanggal, '-') }}</td>

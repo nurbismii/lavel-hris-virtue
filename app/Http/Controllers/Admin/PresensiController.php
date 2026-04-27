@@ -119,6 +119,7 @@ class PresensiController extends Controller
                 'i' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
                 'k' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
                 'p' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_pulang, $tgl),
+                'verification' => $p->status_absen ?? null,
             ];
         }
 
@@ -209,6 +210,7 @@ class PresensiController extends Controller
                 'i' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
                 'k' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
                 'p' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_pulang, $tgl),
+                'verification' => $p->status_absen ?? null,
             ];
         }
 

@@ -10,6 +10,7 @@ use App\Models\Presensi;
 use App\Services\Presensi\AttendanceSecurityService;
 use App\Services\Presensi\AttendanceDateResolverService;
 use App\Services\Presensi\AttendanceFulfillmentService;
+use App\Services\Presensi\ServerSideFaceVerificationService;
 use App\Services\Presensi\ShiftAssignmentService;
 use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Presensi\OvertimeOrderService;
@@ -148,8 +149,12 @@ class PresensiController extends Controller
         ]);
     }
 
-    public function store(PresensiRequest $request, $type, AttendanceSecurityService $securityService)
-    {
+    public function store(
+        PresensiRequest $request,
+        $type,
+        AttendanceSecurityService $securityService,
+        ServerSideFaceVerificationService $serverFaceVerificationService
+    ) {
         $user = Auth::user();
         $karyawan = $user->employee;
         $karyawan->loadMissing('workPattern');
@@ -217,7 +222,27 @@ class PresensiController extends Controller
         }
 
         $selfieAudit = $securityService->validateSelfieImage($selfieFile, $user, $karyawan->face_reference_path);
-        $storedFaceMeta = $securityService->buildStoredMeta($request, $challenge, $faceResult, $selfieAudit);
+        $serverVerification = $serverFaceVerificationService->verify(
+            $selfieFile,
+            $user,
+            $karyawan->face_reference_path,
+            $request,
+            $challenge,
+            $faceResult,
+            $selfieAudit
+        );
+
+        if (($serverVerification['status'] ?? null) === Presensi::STATUS_ABSEN_REJECTED) {
+            return $this->failPresensi($serverVerification['message'] ?? 'Server-side liveness atau face verification ditolak.');
+        }
+
+        $storedFaceMeta = $securityService->buildStoredMeta(
+            $request,
+            $challenge,
+            $faceResult,
+            $selfieAudit,
+            $serverVerification
+        );
 
         $securityScore = 100;
 
@@ -227,6 +252,10 @@ class PresensiController extends Controller
 
         if ($request->speed && $request->speed > 40) {
             $securityScore -= 30;
+        }
+
+        if (($serverVerification['status'] ?? null) === Presensi::STATUS_ABSEN_PENDING_REVIEW) {
+            $securityScore -= 35;
         }
 
         $lastPresensi = Presensi::where('nik_karyawan', $user->nik_karyawan)
@@ -260,6 +289,7 @@ class PresensiController extends Controller
                 $selfieAudit,
                 $storedFaceMeta,
                 $challenge,
+                $serverVerification,
                 $securityScore,
                 $isSuspicious,
                 &$selfiePath
@@ -331,12 +361,14 @@ class PresensiController extends Controller
                 $absensi->device_info = $request->device_info;
                 $absensi->security_score = $securityScore;
                 $absensi->is_suspicious = $isSuspicious;
+                $absensi->status_absen = $serverVerification['status'] ?? Presensi::STATUS_ABSEN_PENDING_REVIEW;
                 $absensi->face_selfie_path = $selfiePath;
                 $absensi->face_selfie_hash = $selfieAudit['hash'];
-                $absensi->face_verified = true;
-                $absensi->face_verification_distance = $request->face_distance;
-                $absensi->face_verified_at = now();
-                $absensi->face_verification_method = 'face-api.js-live-challenge';
+                $serverVerified = ($serverVerification['status'] ?? null) === Presensi::STATUS_ABSEN_VERIFIED;
+                $absensi->face_verified = $serverVerified;
+                $absensi->face_verification_distance = $this->verificationDistance($serverVerification, $request->face_distance);
+                $absensi->face_verified_at = $serverVerified ? now() : null;
+                $absensi->face_verification_method = $serverVerification['method'] ?? 'server-side-passive-review';
                 $absensi->face_verification_meta = $storedFaceMeta;
                 $absensi->presensi_challenge_id = $challenge['id'];
                 $absensi->save();
@@ -349,7 +381,12 @@ class PresensiController extends Controller
             throw $exception;
         }
 
-        toast()->success('Success', 'Presensi berhasil dicatat.');
+        if (($serverVerification['status'] ?? null) === Presensi::STATUS_ABSEN_PENDING_REVIEW) {
+            toast()->warning('Menunggu Review', 'Presensi dicatat, tetapi perlu review server-side face verification.');
+        } else {
+            toast()->success('Success', 'Presensi berhasil dicatat dan terverifikasi server.');
+        }
+
         return back();
     }
 
@@ -369,6 +406,17 @@ class PresensiController extends Controller
         throw \Illuminate\Validation\ValidationException::withMessages([
             'presensi' => $message,
         ]);
+    }
+
+    private function verificationDistance(array $serverVerification, $clientDistance)
+    {
+        $provider = $serverVerification['provider'] ?? null;
+
+        if (is_array($provider) && isset($provider['distance']) && is_numeric($provider['distance'])) {
+            return $provider['distance'];
+        }
+
+        return $clientDistance;
     }
 
     private function resolveNextAttendanceType(?Presensi $absensi, ?string $statusPresensi): ?string

@@ -178,6 +178,8 @@
             return `<span class="presensi-status-badge ${statusClass(status)}">${status}</span>`;
         }
 
+        const verification = renderVerificationMarker(data.verification);
+
         return `
             <div class="presensi-time-grid">
                 <span class="presensi-time-item"><span class="presensi-time-label">M</span>${escapeHtml(formatTime(data.m))}</span>
@@ -185,7 +187,35 @@
                 <span class="presensi-time-item"><span class="presensi-time-label">K</span>${escapeHtml(formatTime(data.k))}</span>
                 <span class="presensi-time-item"><span class="presensi-time-label">P</span>${escapeHtml(formatTime(data.p))}</span>
             </div>
+            ${verification}
         `;
+    }
+
+    function renderVerificationMarker(status) {
+        const map = {
+            verified: {
+                className: 'is-verified',
+                label: 'Server verified',
+                icon: 'SV',
+            },
+            pending_review: {
+                className: 'is-review',
+                label: 'Menunggu review server',
+                icon: 'RV',
+            },
+            rejected: {
+                className: 'is-rejected',
+                label: 'Ditolak verifier',
+                icon: 'RJ',
+            },
+        };
+        const item = map[String(status || '')];
+
+        if (!item) {
+            return '';
+        }
+
+        return `<span class="presensi-verification-chip ${item.className}" title="${escapeHtml(item.label)}">${item.icon}</span>`;
     }
 
     function buildColumns(response) {

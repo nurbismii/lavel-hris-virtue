@@ -1,0 +1,389 @@
+<?php
+
+namespace App\Services\Presensi;
+
+use App\Models\Presensi;
+use App\Models\User;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+
+class ServerSideFaceVerificationService
+{
+    private const PASSIVE_MIN_SCORE = 70;
+
+    public function verify(
+        UploadedFile $selfieFile,
+        User $user,
+        string $referencePath,
+        Request $request,
+        array $challenge,
+        array $faceResult,
+        array $selfieAudit
+    ): array {
+        $reference = $this->resolveReferenceImage($referencePath, (string) $user->nik_karyawan);
+        $passive = $this->runPassiveLivenessChecks($selfieFile->getRealPath(), $selfieAudit);
+        $provider = $this->runProviderVerification(
+            $selfieFile,
+            $reference,
+            $user,
+            $request,
+            $challenge,
+            $faceResult,
+            $selfieAudit,
+            $passive
+        );
+
+        return $this->buildDecision($passive, $provider);
+    }
+
+    private function buildDecision(array $passive, ?array $provider): array
+    {
+        $failClosed = (bool) config('services.presensi_face.fail_closed', false);
+
+        if ($provider) {
+            $providerPassed = (bool) ($provider['liveness_passed'] ?? false)
+                && (bool) ($provider['face_matched'] ?? false);
+
+            if ($providerPassed) {
+                return [
+                    'status' => Presensi::STATUS_ABSEN_VERIFIED,
+                    'passed' => true,
+                    'method' => 'server-side-provider',
+                    'message' => 'Server-side liveness dan face verification berhasil.',
+                    'provider' => $provider,
+                    'passive_liveness' => $passive,
+                ];
+            }
+
+            return [
+                'status' => Presensi::STATUS_ABSEN_REJECTED,
+                'passed' => false,
+                'method' => 'server-side-provider',
+                'message' => $provider['message'] ?? 'Server menolak liveness atau kecocokan wajah.',
+                'provider' => $provider,
+                'passive_liveness' => $passive,
+            ];
+        }
+
+        if ($failClosed) {
+            return [
+                'status' => Presensi::STATUS_ABSEN_REJECTED,
+                'passed' => false,
+                'method' => 'server-side-provider-unavailable',
+                'message' => 'Server-side face verification belum tersedia. Presensi ditolak sesuai mode fail-closed.',
+                'provider' => null,
+                'passive_liveness' => $passive,
+            ];
+        }
+
+        return [
+            'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
+            'passed' => false,
+            'method' => 'server-side-passive-review',
+            'message' => 'Presensi masuk antrean review karena provider server-side belum tersedia.',
+            'provider' => null,
+            'passive_liveness' => $passive,
+        ];
+    }
+
+    private function runProviderVerification(
+        UploadedFile $selfieFile,
+        array $reference,
+        User $user,
+        Request $request,
+        array $challenge,
+        array $faceResult,
+        array $selfieAudit,
+        array $passive
+    ): ?array {
+        $endpoint = trim((string) config('services.presensi_face.endpoint'));
+
+        if ($endpoint === '') {
+            return null;
+        }
+
+        if (empty($reference['valid']) || empty($reference['absolute_path'])) {
+            return [
+                'liveness_passed' => false,
+                'face_matched' => false,
+                'message' => 'Foto referensi wajah tidak valid untuk verifikasi server-side.',
+            ];
+        }
+
+        $selfieHandle = null;
+        $referenceHandle = null;
+
+        try {
+            $selfieHandle = fopen($selfieFile->getRealPath(), 'r');
+            $referenceHandle = fopen($reference['absolute_path'], 'r');
+
+            if (!$selfieHandle || !$referenceHandle) {
+                return [
+                    'liveness_passed' => false,
+                    'face_matched' => false,
+                    'message' => 'File selfie atau referensi tidak dapat dibaca oleh server verifier.',
+                ];
+            }
+
+            $response = (new Client([
+                'timeout' => (float) config('services.presensi_face.timeout', 8),
+                'connect_timeout' => (float) config('services.presensi_face.connect_timeout', 2),
+                'http_errors' => false,
+            ]))->post($endpoint, [
+                'headers' => $this->providerHeaders(),
+                'multipart' => [
+                    [
+                        'name' => 'selfie',
+                        'contents' => $selfieHandle,
+                        'filename' => 'selfie-' . $user->nik_karyawan . '.jpg',
+                    ],
+                    [
+                        'name' => 'reference',
+                        'contents' => $referenceHandle,
+                        'filename' => 'reference-' . $user->nik_karyawan . '.jpg',
+                    ],
+                    [
+                        'name' => 'payload',
+                        'contents' => json_encode([
+                            'nik_karyawan' => (string) $user->nik_karyawan,
+                            'challenge_id' => $challenge['id'] ?? null,
+                            'challenge_issued_at' => $challenge['issued_at'] ?? null,
+                            'client_face_distance' => $faceResult['distance'] ?? null,
+                            'client_detection_score' => $faceResult['detection_score'] ?? null,
+                            'selfie_sha256' => $selfieAudit['hash'] ?? null,
+                            'reference_sha256' => $reference['hash'] ?? null,
+                            'passive_liveness' => $passive,
+                            'ip_hash' => hash('sha256', (string) $request->ip()),
+                            'user_agent_hash' => hash('sha256', (string) $request->userAgent()),
+                        ]),
+                    ],
+                ],
+            ]);
+
+            if ($response->getStatusCode() >= 500) {
+                return null;
+            }
+
+            $payload = json_decode((string) $response->getBody(), true);
+
+            if (!is_array($payload)) {
+                return null;
+            }
+
+            return $this->normalizeProviderPayload($payload, $response->getStatusCode());
+        } catch (GuzzleException $exception) {
+            return null;
+        } finally {
+            if (is_resource($selfieHandle)) {
+                fclose($selfieHandle);
+            }
+
+            if (is_resource($referenceHandle)) {
+                fclose($referenceHandle);
+            }
+        }
+    }
+
+    private function normalizeProviderPayload(array $payload, int $httpStatus): array
+    {
+        $minConfidence = (float) config('services.presensi_face.min_confidence', 0.78);
+        $minLiveness = (float) config('services.presensi_face.min_liveness_score', 0.78);
+        $confidence = isset($payload['confidence']) ? (float) $payload['confidence'] : null;
+        $livenessScore = isset($payload['liveness_score']) ? (float) $payload['liveness_score'] : null;
+        $faceMatched = (bool) ($payload['face_matched'] ?? false);
+        $livenessPassed = (bool) ($payload['liveness_passed'] ?? false);
+
+        if ($confidence !== null && $confidence < $minConfidence) {
+            $faceMatched = false;
+        }
+
+        if ($livenessScore !== null && $livenessScore < $minLiveness) {
+            $livenessPassed = false;
+        }
+
+        return [
+            'http_status' => $httpStatus,
+            'provider' => $payload['provider'] ?? 'external',
+            'liveness_passed' => $httpStatus >= 200 && $httpStatus < 300 && $livenessPassed,
+            'face_matched' => $httpStatus >= 200 && $httpStatus < 300 && $faceMatched,
+            'confidence' => $confidence,
+            'liveness_score' => $livenessScore,
+            'distance' => $payload['distance'] ?? null,
+            'message' => $payload['message'] ?? null,
+        ];
+    }
+
+    private function providerHeaders(): array
+    {
+        $headers = [
+            'Accept' => 'application/json',
+        ];
+
+        $token = trim((string) config('services.presensi_face.token'));
+
+        if ($token !== '') {
+            $headers['Authorization'] = 'Bearer ' . $token;
+        }
+
+        return $headers;
+    }
+
+    private function resolveReferenceImage(string $referencePath, string $nikKaryawan): array
+    {
+        $normalizedPath = str_replace('\\', '/', ltrim($referencePath, '/'));
+        $expectedDirectory = 'face-reference/' . $nikKaryawan . '/';
+
+        if (str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, $expectedDirectory)) {
+            return [
+                'absolute_path' => null,
+                'hash' => null,
+                'valid' => false,
+            ];
+        }
+
+        $absolutePath = public_path($normalizedPath);
+
+        return [
+            'absolute_path' => $absolutePath,
+            'hash' => File::isFile($absolutePath) ? hash_file('sha256', $absolutePath) : null,
+            'valid' => File::isFile($absolutePath),
+        ];
+    }
+
+    private function runPassiveLivenessChecks(?string $path, array $selfieAudit): array
+    {
+        $reasons = [];
+        $score = 100;
+
+        if (!$path || !File::isFile($path)) {
+            return [
+                'passed' => false,
+                'score' => 0,
+                'reasons' => ['selfie_file_missing'],
+            ];
+        }
+
+        if (!extension_loaded('gd')) {
+            return [
+                'passed' => false,
+                'score' => 0,
+                'reasons' => ['gd_extension_missing'],
+            ];
+        }
+
+        $stats = $this->imageStats($path, $selfieAudit['mime_type'] ?? null);
+
+        if (!$stats) {
+            return [
+                'passed' => false,
+                'score' => 0,
+                'reasons' => ['image_decode_failed'],
+            ];
+        }
+
+        if ($stats['brightness'] < 35 || $stats['brightness'] > 225) {
+            $score -= 25;
+            $reasons[] = 'brightness_out_of_range';
+        }
+
+        if ($stats['variance'] < 180) {
+            $score -= 25;
+            $reasons[] = 'low_texture_variance';
+        }
+
+        if ($stats['edge_score'] < 9) {
+            $score -= 25;
+            $reasons[] = 'low_edge_detail';
+        }
+
+        if ($stats['sample_count'] < 100) {
+            $score -= 20;
+            $reasons[] = 'insufficient_image_samples';
+        }
+
+        return [
+            'passed' => $score >= self::PASSIVE_MIN_SCORE,
+            'score' => max(0, $score),
+            'reasons' => $reasons,
+            'stats' => $stats,
+        ];
+    }
+
+    private function imageStats(string $path, ?string $mimeType): ?array
+    {
+        $image = $this->createImageResource($path, $mimeType);
+
+        if (!$image) {
+            return null;
+        }
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $stepX = max(1, (int) floor($width / 32));
+        $stepY = max(1, (int) floor($height / 32));
+        $sum = 0;
+        $sumSquare = 0;
+        $edgeSum = 0;
+        $sampleCount = 0;
+        $previousLum = null;
+
+        for ($y = 0; $y < $height; $y += $stepY) {
+            for ($x = 0; $x < $width; $x += $stepX) {
+                $rgb = imagecolorat($image, $x, $y);
+                $r = ($rgb >> 16) & 0xFF;
+                $g = ($rgb >> 8) & 0xFF;
+                $b = $rgb & 0xFF;
+                $lum = (0.2126 * $r) + (0.7152 * $g) + (0.0722 * $b);
+
+                $sum += $lum;
+                $sumSquare += $lum * $lum;
+
+                if ($previousLum !== null) {
+                    $edgeSum += abs($lum - $previousLum);
+                }
+
+                $previousLum = $lum;
+                $sampleCount++;
+            }
+        }
+
+        imagedestroy($image);
+
+        if ($sampleCount === 0) {
+            return null;
+        }
+
+        $mean = $sum / $sampleCount;
+        $variance = ($sumSquare / $sampleCount) - ($mean * $mean);
+
+        return [
+            'width' => $width,
+            'height' => $height,
+            'brightness' => round($mean, 2),
+            'variance' => round(max(0, $variance), 2),
+            'edge_score' => round($edgeSum / max(1, $sampleCount - 1), 2),
+            'sample_count' => $sampleCount,
+        ];
+    }
+
+    private function createImageResource(string $path, ?string $mimeType)
+    {
+        if ($mimeType === 'image/jpeg') {
+            return @imagecreatefromjpeg($path);
+        }
+
+        if ($mimeType === 'image/png') {
+            return @imagecreatefrompng($path);
+        }
+
+        if ($mimeType === 'image/webp' && function_exists('imagecreatefromwebp')) {
+            return @imagecreatefromwebp($path);
+        }
+
+        return null;
+    }
+}
