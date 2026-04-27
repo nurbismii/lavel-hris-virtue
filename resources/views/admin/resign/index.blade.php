@@ -170,19 +170,23 @@
             },
             {
                 data: 'tanggal_keluar',
-                name: 'resign.tanggal_keluar'
+                name: 'resign.tanggal_keluar',
+                searchable: false
             },
             {
                 data: 'tipe',
-                name: 'resign.tipe'
+                name: 'resign.tipe',
+                searchable: false
             },
             {
                 data: 'periode_awal',
-                name: 'resign.periode_awal'
+                name: 'resign.periode_awal',
+                searchable: false
             },
             {
                 data: 'periode_akhir',
-                name: 'resign.periode_akhir'
+                name: 'resign.periode_akhir',
+                searchable: false
             },
             {
                 data: 'aksi',
