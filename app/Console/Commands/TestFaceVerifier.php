@@ -12,57 +12,37 @@ class TestFaceVerifier extends Command
 
     public function handle()
     {
-        $url = env('PRESENSI_FACE_VERIFICATION_URL', 'https://face-verifier.vdnisite.com/verify');
-        $token = env('PRESENSI_FACE_VERIFICATION_TOKEN');
+        $url = config('services.presensi_face.endpoint');
+        $token = trim((string) config('services.presensi_face.token'));
+        $timeout = (int) config('services.presensi_face.timeout', 60);
 
-        $referencePath = public_path('/face-reference/230337694/reference_20260412132109.jpeg');
-        $selfiePath = public_path('/face-reference/230337694/reference_20260412132109.jpeg');
-
-        $this->info('URL: ' . $url);
+        $this->info('URL: ' . ($url ?: 'KOSONG'));
         $this->info('Token: ' . ($token ? 'ADA' : 'KOSONG'));
-        $this->info('Reference exists: ' . (file_exists($referencePath) ? 'YES' : 'NO'));
-        $this->info('Selfie exists: ' . (file_exists($selfiePath) ? 'YES' : 'NO'));
+        $this->info('Token Length: ' . strlen($token));
+
+        if (!$url) {
+            $this->error('PRESENSI_FACE_VERIFICATION_URL belum terbaca.');
+            return 1;
+        }
 
         if (!$token) {
-            $this->error('Token kosong.');
+            $this->error('PRESENSI_FACE_VERIFICATION_TOKEN belum terbaca.');
             return 1;
         }
 
-        if (!file_exists($referencePath) || !file_exists($selfiePath)) {
-            $this->error('File foto tidak ditemukan.');
-            return 1;
-        }
+        $this->line('');
+        $this->info('Testing token tanpa upload file...');
 
-        try {
-            $response = Http::timeout(120)
-                ->withHeaders([
-                    'X-Verify-Token' => $token,
-                ])
-                ->attach(
-                    'reference_image',
-                    file_get_contents($referencePath),
-                    basename($referencePath)
-                )
-                ->attach(
-                    'selfie_image',
-                    file_get_contents($selfiePath),
-                    basename($selfiePath)
-                )
-                ->post($url, [
-                    'absensi_id' => 70,
-                    'nik_karyawan' => '230337694',
-                    'tanggal' => now()->toDateString(),
-                    'presensi_challenge_id' => 'test-laravel',
-                ]);
+        $tokenTest = Http::timeout($timeout)
+            ->withHeaders([
+                'X-Verify-Token' => $token,
+            ])
+            ->post($url);
 
-            $this->info('HTTP Status: ' . $response->status());
-            $this->line('Body:');
-            $this->line($response->body());
+        $this->info('HTTP Status: ' . $tokenTest->status());
+        $this->line('Body:');
+        $this->line($tokenTest->body());
 
-            return 0;
-        } catch (\Throwable $e) {
-            $this->error('Error: ' . $e->getMessage());
-            return 1;
-        }
+        return 0;
     }
 }
