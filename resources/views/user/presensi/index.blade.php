@@ -161,10 +161,6 @@ return $clock->format('H:i') . $suffix;
                                     <span class="section-caption">Verifikasi Wajah</span>
                                 </div>
 
-                                <div id="blinkStatus" class="small text-muted mb-2">
-                                    Arahkan wajah ke kamera, lalu kedipkan mata sekali.
-                                </div>
-
                                 <div id="faceStatusBadge" class="face-status-chip bg-light text-muted">
                                     Menyiapkan model verifikasi...
                                 </div>
@@ -2242,7 +2238,7 @@ return;
                         setBlinkResult(
                             false,
                             avgEAR,
-                            'Kedipan terbaca. Buka mata kembali... EAR: ' + avgEAR.toFixed(3)
+                            'Kedipan terbaca. Buka mata kembali'
                         );
                     }
 
@@ -2271,8 +2267,7 @@ return;
                     setBlinkResult(
                         false,
                         avgEAR,
-                        'Buka mata kembali. EAR: ' + avgEAR.toFixed(3) +
-                        ' | target buka ≥ ' + reopenThreshold.toFixed(3)
+                        'Buka mata kembali'
                     );
                 }
             } catch (error) {
