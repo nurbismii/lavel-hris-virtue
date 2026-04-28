@@ -2026,10 +2026,10 @@ return;
 
     const BLINK_SAMPLE_INTERVAL_MS = 70;
     const BLINK_BASELINE_FRAMES = 3;
-    const BLINK_DROP_RATIO = 0.92;
+    const BLINK_DROP_RATIO = 0.94;
     const BLINK_REOPEN_RATIO = 0.72;
     const BLINK_MIN_CLOSED_FRAMES = 1;
-    const BLINK_MIN_DROP_ABSOLUTE = 0.010;
+    const BLINK_MIN_DROP_ABSOLUTE = 0.008;
 
     let blinkOpenSamples = [];
     let blinkOpenBaseline = null;
