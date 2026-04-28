@@ -137,12 +137,12 @@ class ServerSideFaceVerificationService
                 'headers' => $this->providerHeaders(),
                 'multipart' => [
                     [
-                        'name' => 'selfie',
+                        'name' => 'selfie_image',
                         'contents' => $selfieHandle,
                         'filename' => 'selfie-' . $user->nik_karyawan . '.jpg',
                     ],
                     [
-                        'name' => 'reference',
+                        'name' => 'reference_image',
                         'contents' => $referenceHandle,
                         'filename' => 'reference-' . $user->nik_karyawan . '.jpg',
                     ],
@@ -190,30 +190,41 @@ class ServerSideFaceVerificationService
 
     private function normalizeProviderPayload(array $payload, int $httpStatus): array
     {
-        $minConfidence = (float) config('services.presensi_face.min_confidence', 0.78);
-        $minLiveness = (float) config('services.presensi_face.min_liveness_score', 0.78);
-        $confidence = isset($payload['confidence']) ? (float) $payload['confidence'] : null;
-        $livenessScore = isset($payload['liveness_score']) ? (float) $payload['liveness_score'] : null;
-        $faceMatched = (bool) ($payload['face_matched'] ?? false);
-        $livenessPassed = (bool) ($payload['liveness_passed'] ?? false);
+        $status = $payload['status'] ?? null;
 
-        if ($confidence !== null && $confidence < $minConfidence) {
-            $faceMatched = false;
-        }
+        $verified = (bool) ($payload['verified'] ?? false);
 
-        if ($livenessScore !== null && $livenessScore < $minLiveness) {
-            $livenessPassed = false;
-        }
+        $score = isset($payload['score'])
+            ? (float) $payload['score']
+            : (isset($payload['confidence']) ? (float) $payload['confidence'] : null);
+
+        $distance = $payload['distance'] ?? null;
+        $threshold = $payload['threshold'] ?? null;
+
+        $faceMatched = $httpStatus >= 200
+            && $httpStatus < 300
+            && ($verified || $status === 'verified');
+
+        $livenessPassed = $httpStatus >= 200
+            && $httpStatus < 300
+            && (
+                (bool) ($payload['liveness_passed'] ?? false)
+                || $status === 'verified'
+            );
 
         return [
             'http_status' => $httpStatus,
-            'provider' => $payload['provider'] ?? 'external',
-            'liveness_passed' => $httpStatus >= 200 && $httpStatus < 300 && $livenessPassed,
-            'face_matched' => $httpStatus >= 200 && $httpStatus < 300 && $faceMatched,
-            'confidence' => $confidence,
-            'liveness_score' => $livenessScore,
-            'distance' => $payload['distance'] ?? null,
+            'provider' => $payload['provider'] ?? ($payload['method'] ?? 'deepface'),
+            'liveness_passed' => $livenessPassed,
+            'face_matched' => $faceMatched,
+            'confidence' => $score,
+            'liveness_score' => $payload['liveness_score'] ?? null,
+            'distance' => $distance,
+            'threshold' => $threshold,
+            'status' => $status,
+            'verified' => $verified,
             'message' => $payload['message'] ?? null,
+            'raw' => $payload,
         ];
     }
 
@@ -226,7 +237,7 @@ class ServerSideFaceVerificationService
         $token = trim((string) config('services.presensi_face.token'));
 
         if ($token !== '') {
-            $headers['Authorization'] = 'Bearer ' . $token;
+            $headers['X-Verify-Token'] = $token;
         }
 
         return $headers;
@@ -235,9 +246,22 @@ class ServerSideFaceVerificationService
     private function resolveReferenceImage(string $referencePath, string $nikKaryawan): array
     {
         $normalizedPath = str_replace('\\', '/', ltrim($referencePath, '/'));
-        $expectedDirectory = 'face-reference/' . $nikKaryawan . '/';
 
-        if (str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, $expectedDirectory)) {
+        $allowedDirectories = [
+            'face-reference/' . $nikKaryawan . '/',
+            'assets/face-reference/' . $nikKaryawan . '/',
+        ];
+
+        $isAllowed = false;
+
+        foreach ($allowedDirectories as $directory) {
+            if (Str::startsWith($normalizedPath, $directory)) {
+                $isAllowed = true;
+                break;
+            }
+        }
+
+        if (str_contains($normalizedPath, '..') || !$isAllowed) {
             return [
                 'absolute_path' => null,
                 'hash' => null,
