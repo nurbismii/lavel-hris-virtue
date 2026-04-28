@@ -160,10 +160,6 @@ return $clock->format('H:i') . $suffix;
                                 <div>
                                     <span class="section-caption">Verifikasi Wajah</span>
                                 </div>
-                                <div class="alert alert-info py-2">
-                                    <strong>Liveness Check:</strong>
-                                    {{ $faceChallenge['label'] ?? 'Kedipkan mata sekali' }}
-                                </div>
 
                                 <div id="blinkStatus" class="small text-muted mb-2">
                                     Arahkan wajah ke kamera, lalu kedipkan mata sekali.
@@ -2011,10 +2007,11 @@ return $clock->format('H:i') . $suffix;
     let openFrameCount = 0;
 
     const BLINK_SAMPLE_INTERVAL_MS = 90;
-    const BLINK_BASELINE_FRAMES = 6;
-    const BLINK_DROP_RATIO = 0.72;
-    const BLINK_REOPEN_RATIO = 0.88;
+    const BLINK_BASELINE_FRAMES = 4;
+    const BLINK_DROP_RATIO = 0.90;
+    const BLINK_REOPEN_RATIO = 0.70;
     const BLINK_MIN_CLOSED_FRAMES = 1;
+    const BLINK_MIN_DROP_ABSOLUTE = 0.015;
 
     let blinkOpenSamples = [];
     let blinkOpenBaseline = null;
@@ -2151,8 +2148,18 @@ return $clock->format('H:i') . $suffix;
                     return;
                 }
 
-                const closedThreshold = Math.max(0.11, blinkOpenBaseline * BLINK_DROP_RATIO);
-                const reopenThreshold = blinkOpenBaseline * BLINK_REOPEN_RATIO;
+                const closedThreshold = Math.max(
+                    0.10,
+                    Math.min(
+                        blinkOpenBaseline * BLINK_DROP_RATIO,
+                        blinkOpenBaseline - BLINK_MIN_DROP_ABSOLUTE
+                    )
+                );
+
+                const reopenThreshold = Math.max(
+                    closedThreshold + 0.015,
+                    blinkOpenBaseline * BLINK_REOPEN_RATIO
+                );
 
                 /*
                 * Tahap 2:
@@ -2197,8 +2204,7 @@ return $clock->format('H:i') . $suffix;
                     setBlinkResult(
                         false,
                         avgEAR,
-                        'Kedipkan mata sekali. EAR: ' + avgEAR.toFixed(3) +
-                        ' | target turun ≤ ' + closedThreshold.toFixed(3)
+                        'Kedipkan mata sekali.'
                     );
                 } else {
                     setBlinkResult(
