@@ -1,28 +1,28 @@
 @extends('layouts.app')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css') }}">
+<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css') }}">
 @endpush
 
 @section('content')
 
 @php
-    $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
-    $faceReferenceUrl = $faceReferencePath ? route('presensi.face-reference') : null;
-    $formatPresensiClock = function ($value, $attendanceDate = null, $empty = '--:--') {
-        if (!$value) {
-            return $empty;
-        }
+$faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
+$faceReferenceUrl = $faceReferencePath ? route('presensi.face-reference') : null;
+$formatPresensiClock = function ($value, $attendanceDate = null, $empty = '--:--') {
+if (!$value) {
+return $empty;
+}
 
-        $clock = \Carbon\Carbon::parse($value);
-        $suffix = '';
+$clock = \Carbon\Carbon::parse($value);
+$suffix = '';
 
-        if ($attendanceDate && $clock->toDateString() > \Carbon\Carbon::parse($attendanceDate)->toDateString()) {
-            $suffix = ' +1';
-        }
+if ($attendanceDate && $clock->toDateString() > \Carbon\Carbon::parse($attendanceDate)->toDateString()) {
+$suffix = ' +1';
+}
 
-        return $clock->format('H:i') . $suffix;
-    };
+return $clock->format('H:i') . $suffix;
+};
 @endphp
 
 <div class="container-fluid">
@@ -82,48 +82,48 @@
         @endif
 
         @php
-            $statusPresensiHariIni = $absensiHariIni->status_presensi ?? null;
-            $nextType = null;
-            $label = '';
-            $btnClass = 'btn-primary';
-            $btnIcon = 'fas fa-arrow-right';
-            $actionTitle = 'Siap untuk langkah berikutnya';
-            $actionText = 'Ambil selfie terlebih dahulu, tunggu matching berhasil, lalu lanjutkan presensi saat GPS valid.';
+        $statusPresensiHariIni = $absensiHariIni->status_presensi ?? null;
+        $nextType = null;
+        $label = '';
+        $btnClass = 'btn-primary';
+        $btnIcon = 'fas fa-arrow-right';
+        $actionTitle = 'Siap untuk langkah berikutnya';
+        $actionText = 'Ambil selfie terlebih dahulu, tunggu matching berhasil, lalu lanjutkan presensi saat GPS valid.';
 
-            if ($statusPresensiHariIni) {
-                $actionTitle = 'Status presensi tanggal aktif';
-                $actionText = 'Tanggal presensi ini tercatat sebagai ' . $statusPresensiHariIni . '. Presensi jam tidak diperlukan.';
-            } elseif (!$absensiHariIni || !$absensiHariIni->jam_masuk) {
-                $nextType = 'masuk';
-                $label = 'Absen Masuk';
-                $btnClass = 'btn-primary';
-                $btnIcon = 'fas fa-sign-in-alt';
-                $actionTitle = 'Absen masuk tersedia';
-                $actionText = 'Ambil selfie dulu, pastikan matching berhasil, lalu sistem akan mengizinkan presensi masuk.';
-            } elseif (!$absensiHariIni->jam_istirahat) {
-                $nextType = 'istirahat';
-                $label = 'Mulai Istirahat';
-                $btnClass = 'btn-warning';
-                $btnIcon = 'fas fa-mug-hot';
-                $actionTitle = 'Mulai waktu istirahat';
-                $actionText = 'Lanjutkan ke presensi istirahat setelah selfie cocok dan lokasi kamu tetap valid.';
-            } elseif (!$absensiHariIni->jam_kembali_istirahat) {
-                $nextType = 'kembali';
-                $label = 'Kembali Istirahat';
-                $btnClass = 'btn-info';
-                $btnIcon = 'fas fa-undo-alt';
-                $actionTitle = 'Kembali dari istirahat';
-                $actionText = 'Sistem akan membuka tombol kembali setelah selfie terverifikasi dan GPS tetap sesuai.';
-            } elseif (!$absensiHariIni->jam_pulang) {
-                $nextType = 'pulang';
-                $label = 'Absen Pulang';
-                $btnClass = 'btn-danger';
-                $btnIcon = 'fas fa-sign-out-alt';
-                $actionTitle = 'Tutup presensi tanggal aktif';
-                $actionText = 'Ambil selfie terakhir, tunggu matching, lalu lakukan presensi pulang.';
-            }
+        if ($statusPresensiHariIni) {
+        $actionTitle = 'Status presensi tanggal aktif';
+        $actionText = 'Tanggal presensi ini tercatat sebagai ' . $statusPresensiHariIni . '. Presensi jam tidak diperlukan.';
+        } elseif (!$absensiHariIni || !$absensiHariIni->jam_masuk) {
+        $nextType = 'masuk';
+        $label = 'Absen Masuk';
+        $btnClass = 'btn-primary';
+        $btnIcon = 'fas fa-sign-in-alt';
+        $actionTitle = 'Absen masuk tersedia';
+        $actionText = 'Ambil selfie dulu, pastikan matching berhasil, lalu sistem akan mengizinkan presensi masuk.';
+        } elseif (!$absensiHariIni->jam_istirahat) {
+        $nextType = 'istirahat';
+        $label = 'Mulai Istirahat';
+        $btnClass = 'btn-warning';
+        $btnIcon = 'fas fa-mug-hot';
+        $actionTitle = 'Mulai waktu istirahat';
+        $actionText = 'Lanjutkan ke presensi istirahat setelah selfie cocok dan lokasi kamu tetap valid.';
+        } elseif (!$absensiHariIni->jam_kembali_istirahat) {
+        $nextType = 'kembali';
+        $label = 'Kembali Istirahat';
+        $btnClass = 'btn-info';
+        $btnIcon = 'fas fa-undo-alt';
+        $actionTitle = 'Kembali dari istirahat';
+        $actionText = 'Sistem akan membuka tombol kembali setelah selfie terverifikasi dan GPS tetap sesuai.';
+        } elseif (!$absensiHariIni->jam_pulang) {
+        $nextType = 'pulang';
+        $label = 'Absen Pulang';
+        $btnClass = 'btn-danger';
+        $btnIcon = 'fas fa-sign-out-alt';
+        $actionTitle = 'Tutup presensi tanggal aktif';
+        $actionText = 'Ambil selfie terakhir, tunggu matching, lalu lakukan presensi pulang.';
+        }
 
-            $requiresFaceStep = (bool) ($nextType && $faceReferencePath);
+        $requiresFaceStep = (bool) ($nextType && $faceReferencePath);
         @endphp
 
         <div class="attendance-card">
@@ -160,6 +160,15 @@
                                 <div>
                                     <span class="section-caption">Verifikasi Wajah</span>
                                 </div>
+                                <div class="alert alert-info py-2">
+                                    <strong>Liveness Check:</strong>
+                                    {{ $faceChallenge['label'] ?? 'Kedipkan mata sekali' }}
+                                </div>
+
+                                <div id="blinkStatus" class="small text-muted mb-2">
+                                    Arahkan wajah ke kamera, lalu kedipkan mata sekali.
+                                </div>
+
                                 <div id="faceStatusBadge" class="face-status-chip bg-light text-muted">
                                     Menyiapkan model verifikasi...
                                 </div>
@@ -389,6 +398,14 @@
                     <input type="hidden" name="face_verification_meta" id="face_verification_meta" value="">
                     <input type="hidden" name="attendance_challenge_id" id="attendance_challenge_id" value="{{ $attendanceChallenge['id'] ?? '' }}">
                     <input type="hidden" name="attendance_challenge_token" id="attendance_challenge_token" value="{{ $attendanceChallenge['token'] ?? '' }}">
+
+                    <input type="hidden" name="presensi_challenge_id" id="presensi_challenge_id" value="{{ $faceChallenge['id'] ?? '' }}">
+                    <input type="hidden" name="presensi_challenge_action" id="presensi_challenge_action" value="{{ $faceChallenge['action'] ?? '' }}">
+
+                    <input type="hidden" name="face_liveness_passed" id="face_liveness_passed" value="0">
+                    <input type="hidden" name="face_liveness_type" id="face_liveness_type" value="blink">
+                    <input type="hidden" name="face_liveness_score" id="face_liveness_score">
+                    <input type="hidden" name="face_liveness_message" id="face_liveness_message">
                 </form>
             </div>
         </div>
@@ -415,13 +432,11 @@
                         <tr>
                             <th>Tanggal</th>
                             <th>Status</th>
-                            <th>Verifikasi</th>
                             <th>Shift</th>
                             <th>Masuk</th>
                             <th>Istirahat</th>
                             <th>Kembali</th>
                             <th>Pulang</th>
-                            <th>Pemenuhan</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -430,23 +445,11 @@
                         <tr>
                             <td>{{ formatDateIndonesia($item->tanggal) }}</td>
                             <td>{{ \App\Models\Presensi::shortStatus($item->status_presensi) ?? '-' }}</td>
-                            <td>
-                                <span class="badge {{ \App\Models\Presensi::statusAbsenBadgeClass($item->status_absen ?? null) }}">
-                                    {{ \App\Models\Presensi::statusAbsenLabel($item->status_absen ?? null) }}
-                                </span>
-                            </td>
                             <td>{{ optional($item->resolved_shift)->code ?? 'AUTO' }}</td>
                             <td>{{ $formatPresensiClock($item->jam_masuk, $item->tanggal, '-') }}</td>
                             <td>{{ $formatPresensiClock($item->jam_istirahat, $item->tanggal, '-') }}</td>
                             <td>{{ $formatPresensiClock($item->jam_kembali_istirahat, $item->tanggal, '-') }}</td>
                             <td>{{ $formatPresensiClock($item->jam_pulang, $item->tanggal, '-') }}</td>
-                            <td>
-                                @if($fulfillment)
-                                    <span class="badge bg-{{ $fulfillment['badge_class'] }}">{{ $fulfillment['label'] }}</span>
-                                @else
-                                    -
-                                @endif
-                            </td>
                         </tr>
                         @empty
                         <tr>
@@ -490,6 +493,9 @@
     let cameraPreviewUrl = null;
     let cameraIsProcessing = false;
     let cameraVerificationLocked = false;
+    let blinkLivenessPassed = false;
+    let blinkLivenessScore = null;
+    let blinkLivenessMessage = '';
     const gpsValidationDelayMs = 2500;
     const cameraValidationDelayMs = 900;
     const liveDetectionIntervalMs = 320;
@@ -692,12 +698,22 @@
         faceVerificationPassed = false;
         cameraValidationStartedAt = null;
         cameraVerificationLocked = false;
+
+        blinkLivenessPassed = false;
+        blinkLivenessScore = null;
+        blinkLivenessMessage = '';
+
         document.getElementById('face_verified').value = '0';
         document.getElementById('face_distance').value = '';
         document.getElementById('face_detection_count').value = '0';
         document.getElementById('face_verification_meta').value = '';
+
         const captureDataInput = document.getElementById('selfie_capture_data');
         const selfieInput = document.getElementById('selfie_capture');
+
+        const blinkPassedInput = document.getElementById('face_liveness_passed');
+        const blinkScoreInput = document.getElementById('face_liveness_score');
+        const blinkMessageInput = document.getElementById('face_liveness_message');
 
         if (captureDataInput) {
             captureDataInput.value = '';
@@ -708,12 +724,24 @@
             delete selfieInput.dataset.skipNextChange;
         }
 
+        if (blinkPassedInput) {
+            blinkPassedInput.value = '0';
+        }
+
+        if (blinkScoreInput) {
+            blinkScoreInput.value = '';
+        }
+
+        if (blinkMessageInput) {
+            blinkMessageInput.value = '';
+        }
+
         updateAttendanceButtonState();
     }
 
     function updateAttendanceButtonState() {
         document.querySelectorAll(".btn-absen").forEach(button => {
-            button.disabled = !(gpsReady && gpsEvidenceReady && faceVerificationPassed);
+            button.disabled = !(gpsReady && gpsEvidenceReady && faceVerificationPassed && blinkLivenessPassed);
         });
     }
 
@@ -806,6 +834,11 @@
         const overlay = document.getElementById('selfieOverlay');
         const preview = document.getElementById('selfiePreview');
         const placeholder = document.getElementById('selfiePlaceholder');
+
+        if (mode !== 'live' && blinkInterval) {
+            clearInterval(blinkInterval);
+            blinkInterval = null;
+        }
 
         if (video) {
             video.classList.toggle('d-none', mode !== 'live');
@@ -1059,6 +1092,15 @@
             detection_score: payload.detectionScore ?? null,
             roll_angle: payload.rollAngle ?? null,
             frame_state: payload.frameState ?? null,
+            client_liveness: {
+                type: 'blink',
+                passed: blinkLivenessPassed,
+                score: blinkLivenessScore,
+                message: blinkLivenessMessage,
+                challenge_id: attendanceChallenge ? attendanceChallenge.id : null,
+                challenge_action: attendanceChallenge ? attendanceChallenge.action : null,
+                checked_at_client: new Date().toISOString()
+            },
             verified_at_client: new Date().toISOString()
         });
     }
@@ -1354,6 +1396,23 @@
             return;
         }
 
+        if (!blinkLivenessPassed) {
+            cameraValidationStartedAt = null;
+
+            drawLiveCameraOverlay({
+                state: 'yellow',
+                boxes: [faceBox]
+            });
+
+            updateLiveFrameFeedback(
+                'yellow',
+                blinkLivenessMessage || 'Wajah cocok. Sekarang kedipkan mata sekali untuk liveness.',
+                0
+            );
+
+            return;
+        }
+
         if (!cameraValidationStartedAt) {
             cameraValidationStartedAt = Date.now();
         }
@@ -1464,7 +1523,10 @@
 
             video.srcObject = cameraStream;
             await video.play();
+
             setSelfieSurfaceMode('live');
+            startBlinkLiveness(video);
+
             syncLiveCameraOverlaySize();
             drawLiveCameraOverlay({
                 state: 'neutral'
@@ -1529,9 +1591,10 @@
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        let latOffice = {{$lokasi->lat}};
-        let longOffice = {{$lokasi->long}};
-        let radius = {{$lokasi->radius}};
+        let latOffice = {{ $lokasi->lat }};
+        let longOffice = {{ $lokasi->long }};
+        let radius = {{ $lokasi->radius }};
+        
         let lastLat = null;
         let lastLong = null;
         let lastTime = null;
@@ -1598,9 +1661,9 @@
 
             if (attendanceStepHint) {
                 attendanceStepHint.classList.toggle('is-success', attendanceUnlocked);
-                attendanceStepHint.innerHTML = attendanceUnlocked
-                    ? "<i class='fas fa-check-circle'></i> Tahap presensi sudah terbuka. Pastikan GPS stabil lalu lanjutkan presensi."
-                    : "<i class='fas fa-lock'></i> Selesaikan selfie dan tunggu matching berhasil untuk membuka tahap presensi.";
+                attendanceStepHint.innerHTML = attendanceUnlocked ?
+                    "<i class='fas fa-check-circle'></i> Tahap presensi sudah terbuka. Pastikan GPS stabil lalu lanjutkan presensi." :
+                    "<i class='fas fa-lock'></i> Selesaikan selfie dan tunggu matching berhasil untuk membuka tahap presensi.";
             }
 
             if (wizardAttendanceContent) {
@@ -1954,6 +2017,149 @@
             });
         });
     });
+</script>
+
+<script>
+    let blinkInterval = null;
+    let blinkDetected = false;
+    let eyeWasOpen = false;
+    let closedFrameCount = 0;
+    let openFrameCount = 0;
+
+    const EAR_OPEN_THRESHOLD = 0.26;
+    const EAR_CLOSED_THRESHOLD = 0.20;
+    const MIN_CLOSED_FRAMES = 2;
+
+    function distance(pointA, pointB) {
+        const dx = pointA.x - pointB.x;
+        const dy = pointA.y - pointB.y;
+        return Math.sqrt((dx * dx) + (dy * dy));
+    }
+
+    /**
+     * EAR = (vertical1 + vertical2) / (2 * horizontal)
+     * Untuk 6 titik mata dari face-api.js:
+     * 0 = corner kiri
+     * 3 = corner kanan
+     * 1,2 = atas
+     * 5,4 = bawah
+     */
+    function calculateEAR(eye) {
+        const vertical1 = distance(eye[1], eye[5]);
+        const vertical2 = distance(eye[2], eye[4]);
+        const horizontal = distance(eye[0], eye[3]);
+
+        if (horizontal === 0) {
+            return 0;
+        }
+
+        return (vertical1 + vertical2) / (2.0 * horizontal);
+    }
+
+    function setBlinkResult(passed, score, message) {
+        blinkLivenessPassed = passed;
+        blinkLivenessScore = score;
+        blinkLivenessMessage = message;
+
+        const passedInput = document.getElementById('face_liveness_passed');
+        const scoreInput = document.getElementById('face_liveness_score');
+        const messageInput = document.getElementById('face_liveness_message');
+        const status = document.getElementById('blinkStatus');
+
+        if (passedInput) {
+            passedInput.value = passed ? '1' : '0';
+        }
+
+        if (scoreInput) {
+            scoreInput.value = score !== null ? Number(score).toFixed(4) : '';
+        }
+
+        if (messageInput) {
+            messageInput.value = message;
+        }
+
+        if (status) {
+            status.className = passed ? 'small text-success mb-2' : 'small text-warning mb-2';
+            status.innerText = message;
+        }
+
+        updateAttendanceButtonState();
+    }
+
+    async function startBlinkLiveness(videoElement) {
+        if (blinkInterval) {
+            clearInterval(blinkInterval);
+        }
+
+        blinkDetected = false;
+        eyeWasOpen = false;
+        closedFrameCount = 0;
+        openFrameCount = 0;
+
+        setBlinkResult(false, null, 'Arahkan wajah ke kamera, lalu kedipkan mata sekali.');
+
+        blinkInterval = setInterval(async () => {
+            try {
+                if (!videoElement || videoElement.readyState < 2) {
+                    setBlinkResult(false, null, 'Kamera belum siap.');
+                    return;
+                }
+
+                const detection = await faceapi
+                    .detectSingleFace(
+                        videoElement,
+                        new faceapi.TinyFaceDetectorOptions({
+                            inputSize: 224,
+                            scoreThreshold: 0.5
+                        })
+                    )
+                    .withFaceLandmarks(true);
+
+                if (!detection) {
+                    setBlinkResult(false, null, 'Wajah belum terdeteksi.');
+                    return;
+                }
+
+                const landmarks = detection.landmarks;
+                const leftEye = landmarks.getLeftEye();
+                const rightEye = landmarks.getRightEye();
+
+                const leftEAR = calculateEAR(leftEye);
+                const rightEAR = calculateEAR(rightEye);
+                const avgEAR = (leftEAR + rightEAR) / 2;
+
+                if (avgEAR >= EAR_OPEN_THRESHOLD) {
+                    openFrameCount++;
+                    closedFrameCount = 0;
+
+                    if (openFrameCount >= 2) {
+                        eyeWasOpen = true;
+                    }
+
+                    if (!blinkDetected) {
+                        setBlinkResult(false, avgEAR, 'Mata terdeteksi terbuka. Silakan kedipkan mata.');
+                    }
+
+                    return;
+                }
+
+                if (eyeWasOpen && avgEAR <= EAR_CLOSED_THRESHOLD) {
+                    closedFrameCount++;
+
+                    if (closedFrameCount >= MIN_CLOSED_FRAMES) {
+                        blinkDetected = true;
+                        setBlinkResult(true, avgEAR, 'Liveness berhasil. Kedipan mata terdeteksi.');
+                        clearInterval(blinkInterval);
+                        return;
+                    }
+                }
+
+                setBlinkResult(false, avgEAR, 'Kedipkan mata sekali. EAR: ' + avgEAR.toFixed(3));
+            } catch (error) {
+                setBlinkResult(false, null, 'Gagal membaca kedipan mata.');
+            }
+        }, 150);
+    }
 </script>
 @endif
 
