@@ -2026,13 +2026,14 @@ return;
     let eyeWasOpen = false;
     let closedFrameCount = 0;
     let openFrameCount = 0;
+    let blinkIsProcessing = false;
 
-    const BLINK_SAMPLE_INTERVAL_MS = 90;
-    const BLINK_BASELINE_FRAMES = 4;
-    const BLINK_DROP_RATIO = 0.90;
-    const BLINK_REOPEN_RATIO = 0.70;
+    const BLINK_SAMPLE_INTERVAL_MS = 70;
+    const BLINK_BASELINE_FRAMES = 3;
+    const BLINK_DROP_RATIO = 0.94;
+    const BLINK_REOPEN_RATIO = 0.72;
     const BLINK_MIN_CLOSED_FRAMES = 1;
-    const BLINK_MIN_DROP_ABSOLUTE = 0.015;
+    const BLINK_MIN_DROP_ABSOLUTE = 0.008;
 
     let blinkOpenSamples = [];
     let blinkOpenBaseline = null;
@@ -2044,15 +2045,7 @@ return;
         const dy = pointA.y - pointB.y;
         return Math.sqrt((dx * dx) + (dy * dy));
     }
-
-    /**
-     * EAR = (vertical1 + vertical2) / (2 * horizontal)
-     * Untuk 6 titik mata dari face-api.js:
-     * 0 = corner kiri
-     * 3 = corner kanan
-     * 1,2 = atas
-     * 5,4 = bawah
-     */
+    
     function calculateEAR(eye) {
         const vertical1 = distance(eye[1], eye[5]);
         const vertical2 = distance(eye[2], eye[4]);
@@ -2153,9 +2146,16 @@ return;
         blinkOpenSamples = [];
         blinkOpenBaseline = null;
 
-        setBlinkResult(false, null, 'Hadap lurus ke kamera, lalu kedipkan mata sekali.');
+        setBlinkResult(false, null, 'Hadap lurus ke kamera, lalu kedipkan mata.');
 
         blinkInterval = setInterval(async () => {
+            
+            if (blinkIsProcessing) {
+                return;
+            }
+
+            blinkIsProcessing = true;
+            
             try {
                 if (!videoElement || videoElement.readyState < 2) {
                     setBlinkResult(false, null, 'Kamera belum siap.');
@@ -2166,8 +2166,8 @@ return;
                     .detectSingleFace(
                         videoElement,
                         new faceapi.TinyFaceDetectorOptions({
-                            inputSize: 224,
-                            scoreThreshold: 0.45
+                            inputSize: 160,
+                            scoreThreshold: 0.35
                         })
                     )
                     .withFaceLandmarks(true);
@@ -2218,7 +2218,7 @@ return;
                 }
 
                 const closedThreshold = Math.max(
-                    0.10,
+                    0.08,
                     Math.min(
                         blinkOpenBaseline * BLINK_DROP_RATIO,
                         blinkOpenBaseline - BLINK_MIN_DROP_ABSOLUTE
@@ -2226,7 +2226,7 @@ return;
                 );
 
                 const reopenThreshold = Math.max(
-                    closedThreshold + 0.015,
+                    closedThreshold + 0.008,
                     blinkOpenBaseline * BLINK_REOPEN_RATIO
                 );
 
@@ -2249,11 +2249,6 @@ return;
                     return;
                 }
 
-                /*
-                * Tahap 3:
-                * Deteksi mata terbuka kembali.
-                * Ini lebih aman daripada langsung lolos saat mata tertutup.
-                */
                 if (blinkClosedDetected && avgEAR >= reopenThreshold) {
                     blinkReopenedDetected = true;
                     blinkDetected = true;
@@ -2282,6 +2277,8 @@ return;
                 }
             } catch (error) {
                 setBlinkResult(false, null, 'Gagal membaca kedipan mata.');
+            } finally {
+                blinkIsProcessing = false;
             }
         }, BLINK_SAMPLE_INTERVAL_MS);
     }
