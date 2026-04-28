@@ -235,23 +235,7 @@ return $clock->format('H:i') . $suffix;
                                     </div>
 
                                     <div class="camera-stage__footer">
-                                        <div class="camera-stage__status">
-                                            <div class="camera-stage__status-card">
-                                                <div class="camera-stage__status-head">
-                                                    <span id="cameraFrameBadge" class="camera-frame-chip is-neutral">Menyiapkan</span>
-                                                    <span id="cameraProgressText" class="camera-progress-text">Menunggu kamera aktif</span>
-                                                </div>
-                                                <strong id="cameraFrameMessage" class="camera-stage__message">
-                                                    Menunggu izin kamera dan model verifikasi wajah.
-                                                </strong>
-                                                <div class="camera-hold-meter">
-                                                    <div id="cameraHoldBar" class="camera-hold-meter__bar"></div>
-                                                </div>
-                                                <small id="cameraAssistText" class="camera-stage__microcopy">
-                                                    Saat validasi singkat selesai dan bingkai hijau muncul, selfie akan tersimpan otomatis tanpa perlu menekan tombol.
-                                                </small>
-                                            </div>
-                                        </div>
+                                        
 
                                         <div class="camera-action-group">
                                             <button type="button" id="retryCameraButton" class="btn btn-outline-primary btn-sm">
@@ -1531,7 +1515,7 @@ return $clock->format('H:i') . $suffix;
             drawLiveCameraOverlay({
                 state: 'neutral'
             });
-            updateLiveFrameFeedback('neutral', 'Kamera aktif. Arahkan wajah ke tengah frame.', 0);
+            updateLiveFrameFeedback('neutral', 'Kamera aktif. Hadap lurus ke kamera, lalu kedipkan mata sekali.', 0);
             beginLiveCameraVerification();
         } catch (error) {
             setSelfieSurfaceMode('placeholder');
@@ -1594,7 +1578,7 @@ return $clock->format('H:i') . $suffix;
         let latOffice = {{ $lokasi->lat }};
         let longOffice = {{ $lokasi->long }};
         let radius = {{ $lokasi->radius }};
-        
+
         let lastLat = null;
         let lastLong = null;
         let lastTime = null;
@@ -2026,9 +2010,16 @@ return $clock->format('H:i') . $suffix;
     let closedFrameCount = 0;
     let openFrameCount = 0;
 
-    const EAR_OPEN_THRESHOLD = 0.26;
-    const EAR_CLOSED_THRESHOLD = 0.20;
-    const MIN_CLOSED_FRAMES = 2;
+    const BLINK_SAMPLE_INTERVAL_MS = 90;
+    const BLINK_BASELINE_FRAMES = 6;
+    const BLINK_DROP_RATIO = 0.72;
+    const BLINK_REOPEN_RATIO = 0.88;
+    const BLINK_MIN_CLOSED_FRAMES = 1;
+
+    let blinkOpenSamples = [];
+    let blinkOpenBaseline = null;
+    let blinkClosedDetected = false;
+    let blinkReopenedDetected = false;
 
     function distance(pointA, pointB) {
         const dx = pointA.x - pointB.x;
@@ -2092,11 +2083,15 @@ return $clock->format('H:i') . $suffix;
         }
 
         blinkDetected = false;
+        blinkClosedDetected = false;
+        blinkReopenedDetected = false;
         eyeWasOpen = false;
         closedFrameCount = 0;
         openFrameCount = 0;
+        blinkOpenSamples = [];
+        blinkOpenBaseline = null;
 
-        setBlinkResult(false, null, 'Arahkan wajah ke kamera, lalu kedipkan mata sekali.');
+        setBlinkResult(false, null, 'Hadap lurus ke kamera, lalu kedipkan mata sekali.');
 
         blinkInterval = setInterval(async () => {
             try {
@@ -2110,7 +2105,7 @@ return $clock->format('H:i') . $suffix;
                         videoElement,
                         new faceapi.TinyFaceDetectorOptions({
                             inputSize: 224,
-                            scoreThreshold: 0.5
+                            scoreThreshold: 0.45
                         })
                     )
                     .withFaceLandmarks(true);
@@ -2128,37 +2123,95 @@ return $clock->format('H:i') . $suffix;
                 const rightEAR = calculateEAR(rightEye);
                 const avgEAR = (leftEAR + rightEAR) / 2;
 
-                if (avgEAR >= EAR_OPEN_THRESHOLD) {
-                    openFrameCount++;
-                    closedFrameCount = 0;
+                /*
+                * Tahap 1:
+                * Ambil baseline mata terbuka dari user.
+                * Ini membuat sistem tidak tergantung angka mati seperti 0.26.
+                */
+                if (!blinkOpenBaseline) {
+                    blinkOpenSamples.push(avgEAR);
 
-                    if (openFrameCount >= 2) {
-                        eyeWasOpen = true;
+                    if (blinkOpenSamples.length < BLINK_BASELINE_FRAMES) {
+                        setBlinkResult(
+                            false,
+                            avgEAR,
+                            'Hadap lurus. Membaca mata terbuka... EAR: ' + avgEAR.toFixed(3)
+                        );
+                        return;
                     }
 
-                    if (!blinkDetected) {
-                        setBlinkResult(false, avgEAR, 'Mata terdeteksi terbuka. Silakan kedipkan mata.');
+                    blinkOpenBaseline = blinkOpenSamples.reduce((sum, value) => sum + value, 0) / blinkOpenSamples.length;
+                    eyeWasOpen = true;
+
+                    setBlinkResult(
+                        false,
+                        avgEAR,
+                        'Baseline mata terbuka tersimpan. Sekarang kedipkan mata sekali.'
+                    );
+                    return;
+                }
+
+                const closedThreshold = Math.max(0.11, blinkOpenBaseline * BLINK_DROP_RATIO);
+                const reopenThreshold = blinkOpenBaseline * BLINK_REOPEN_RATIO;
+
+                /*
+                * Tahap 2:
+                * Deteksi mata menutup.
+                */
+                if (!blinkClosedDetected && avgEAR <= closedThreshold) {
+                    closedFrameCount++;
+
+                    if (closedFrameCount >= BLINK_MIN_CLOSED_FRAMES) {
+                        blinkClosedDetected = true;
+                        setBlinkResult(
+                            false,
+                            avgEAR,
+                            'Kedipan terbaca. Buka mata kembali... EAR: ' + avgEAR.toFixed(3)
+                        );
                     }
 
                     return;
                 }
 
-                if (eyeWasOpen && avgEAR <= EAR_CLOSED_THRESHOLD) {
-                    closedFrameCount++;
+                /*
+                * Tahap 3:
+                * Deteksi mata terbuka kembali.
+                * Ini lebih aman daripada langsung lolos saat mata tertutup.
+                */
+                if (blinkClosedDetected && avgEAR >= reopenThreshold) {
+                    blinkReopenedDetected = true;
+                    blinkDetected = true;
 
-                    if (closedFrameCount >= MIN_CLOSED_FRAMES) {
-                        blinkDetected = true;
-                        setBlinkResult(true, avgEAR, 'Liveness berhasil. Kedipan mata terdeteksi.');
-                        clearInterval(blinkInterval);
-                        return;
-                    }
+                    setBlinkResult(
+                        true,
+                        avgEAR,
+                        'Liveness berhasil. Kedipan mata terdeteksi.'
+                    );
+
+                    clearInterval(blinkInterval);
+                    blinkInterval = null;
+                    return;
                 }
 
-                setBlinkResult(false, avgEAR, 'Kedipkan mata sekali. EAR: ' + avgEAR.toFixed(3));
+                if (!blinkClosedDetected) {
+                    setBlinkResult(
+                        false,
+                        avgEAR,
+                        'Kedipkan mata sekali. EAR: ' + avgEAR.toFixed(3) +
+                        ' | target turun ≤ ' + closedThreshold.toFixed(3)
+                    );
+                } else {
+                    setBlinkResult(
+                        false,
+                        avgEAR,
+                        'Buka mata kembali. EAR: ' + avgEAR.toFixed(3) +
+                        ' | target buka ≥ ' + reopenThreshold.toFixed(3)
+                    );
+                }
             } catch (error) {
                 setBlinkResult(false, null, 'Gagal membaca kedipan mata.');
             }
-        }, 150);
+        }, BLINK_SAMPLE_INTERVAL_MS);
     }
 </script>
 @endif
