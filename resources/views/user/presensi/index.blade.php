@@ -476,6 +476,10 @@ return $clock->format('H:i') . $suffix;
     let blinkLivenessPassed = false;
     let blinkLivenessScore = null;
     let blinkLivenessMessage = '';
+    let faceMatchedReady = false;
+    let latestFaceMatchCapturePayload = null;
+    let livenessCaptureInProgress = false;
+
     const gpsValidationDelayMs = 2500;
     const cameraValidationDelayMs = 900;
     const liveDetectionIntervalMs = 320;
@@ -505,6 +509,11 @@ return $clock->format('H:i') . $suffix;
         const issuedAt = Date.parse(attendanceChallenge.issued_at) || Date.now();
 
         return Math.max(Date.now() - issuedAt, 0);
+    }
+
+    function resetFaceMatchedReady() {
+        faceMatchedReady = false;
+        latestFaceMatchCapturePayload = null;
     }
 
     function isAttendanceChallengeReady() {
@@ -678,6 +687,9 @@ return $clock->format('H:i') . $suffix;
         faceVerificationPassed = false;
         cameraValidationStartedAt = null;
         cameraVerificationLocked = false;
+
+        resetFaceMatchedReady();
+        livenessCaptureInProgress = false;
 
         blinkLivenessPassed = false;
         blinkLivenessScore = null;
@@ -1376,22 +1388,27 @@ return $clock->format('H:i') . $suffix;
             return;
         }
 
-        if (!blinkLivenessPassed) {
-            cameraValidationStartedAt = null;
+        faceMatchedReady = true;
+        latestFaceMatchCapturePayload = {
+            distance,
+            detectionScore,
+            rollAngle
+        };
 
-            drawLiveCameraOverlay({
-                state: 'yellow',
-                boxes: [faceBox]
-            });
+        cameraValidationStartedAt = null;
 
-            updateLiveFrameFeedback(
-                'yellow',
-                blinkLivenessMessage || 'Wajah cocok. Sekarang kedipkan mata sekali untuk liveness.',
-                0
-            );
+        drawLiveCameraOverlay({
+            state: 'yellow',
+            boxes: [faceBox]
+        });
 
-            return;
-        }
+        updateLiveFrameFeedback(
+            'yellow',
+            'Wajah sudah cocok. Kedipkan mata sekali untuk mengambil selfie.',
+            0
+        );
+
+return;
 
         if (!cameraValidationStartedAt) {
             cameraValidationStartedAt = Date.now();
@@ -1511,7 +1528,11 @@ return $clock->format('H:i') . $suffix;
             drawLiveCameraOverlay({
                 state: 'neutral'
             });
-            updateLiveFrameFeedback('neutral', 'Kamera aktif. Hadap lurus ke kamera, lalu kedipkan mata sekali.', 0);
+            updateLiveFrameFeedback(
+                'neutral',
+                'Kamera aktif. Hadap lurus ke kamera. Setelah wajah cocok, kedipkan mata untuk mengambil selfie.',
+                0
+            );
             beginLiveCameraVerification();
         } catch (error) {
             setSelfieSurfaceMode('placeholder');
@@ -2074,6 +2095,50 @@ return $clock->format('H:i') . $suffix;
         updateAttendanceButtonState();
     }
 
+    async function captureSelfieFromBlink(score, message) {
+        if (livenessCaptureInProgress || cameraVerificationLocked) {
+            return;
+        }
+
+        if (!faceMatchedReady || !latestFaceMatchCapturePayload) {
+            setBlinkResult(false, score, 'Wajah harus cocok terlebih dahulu sebelum selfie diambil.');
+            return;
+        }
+
+        livenessCaptureInProgress = true;
+        blinkLivenessPassed = true;
+        blinkLivenessScore = score;
+        blinkLivenessMessage = message || 'Kedipan mata terdeteksi.';
+
+        setBlinkResult(true, score, blinkLivenessMessage);
+
+        if (blinkInterval) {
+            clearInterval(blinkInterval);
+            blinkInterval = null;
+        }
+
+        cameraVerificationLocked = true;
+        cameraValidationStartedAt = null;
+
+        updateLiveFrameFeedback(
+            'green',
+            'Kedipan terdeteksi. Selfie sedang diambil otomatis.',
+            1
+        );
+
+        try {
+            await captureLiveSelfie(latestFaceMatchCapturePayload);
+        } catch (error) {
+            cameraVerificationLocked = false;
+            livenessCaptureInProgress = false;
+            updateLiveFrameFeedback(
+                'red',
+                error.message || 'Gagal mengambil selfie dari liveness.',
+                0
+            );
+        }
+    }
+
     async function startBlinkLiveness(videoElement) {
         if (blinkInterval) {
             clearInterval(blinkInterval);
@@ -2120,11 +2185,15 @@ return $clock->format('H:i') . $suffix;
                 const rightEAR = calculateEAR(rightEye);
                 const avgEAR = (leftEAR + rightEAR) / 2;
 
-                /*
-                * Tahap 1:
-                * Ambil baseline mata terbuka dari user.
-                * Ini membuat sistem tidak tergantung angka mati seperti 0.26.
-                */
+                if (!faceMatchedReady || !latestFaceMatchCapturePayload) {
+                    setBlinkResult(
+                        false,
+                        avgEAR,
+                        'Tunggu wajah cocok terlebih dahulu. Setelah cocok, kedipkan mata untuk mengambil selfie.'
+                    );
+                    return;
+                }
+
                 if (!blinkOpenBaseline) {
                     blinkOpenSamples.push(avgEAR);
 
@@ -2189,14 +2258,11 @@ return $clock->format('H:i') . $suffix;
                     blinkReopenedDetected = true;
                     blinkDetected = true;
 
-                    setBlinkResult(
-                        true,
+                    await captureSelfieFromBlink(
                         avgEAR,
                         'Liveness berhasil. Kedipan mata terdeteksi.'
                     );
 
-                    clearInterval(blinkInterval);
-                    blinkInterval = null;
                     return;
                 }
 
