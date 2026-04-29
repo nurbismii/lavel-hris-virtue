@@ -491,6 +491,8 @@ return $clock->format('H:i') . $suffix;
     const faceDistanceThreshold = 0.5;
     const selfieMaxCaptureWidth = 720;
     const selfieJpegQuality = 0.82;
+    const livenessEvidenceMaxWidth = 480;
+    const livenessEvidenceJpegQuality = 0.76;
     const faceModelPath = @json(asset('vendor/face-api/weights'));
     const faceReferencePath = @json($faceReferenceUrl);
     const attendanceChallenge = @json($attendanceChallenge);
@@ -2170,8 +2172,7 @@ return $clock->format('H:i') . $suffix;
 
         lastLivenessCapturedAtMs = capturedAtMs;
 
-        const maxWidth = 220;
-        const scale = Math.min(1, maxWidth / videoElement.videoWidth);
+        const scale = Math.min(1, livenessEvidenceMaxWidth / videoElement.videoWidth);
         const canvas = document.createElement('canvas');
         canvas.width = Math.round(videoElement.videoWidth * scale);
         canvas.height = Math.round(videoElement.videoHeight * scale);
@@ -2181,7 +2182,7 @@ return $clock->format('H:i') . $suffix;
             label,
             captured_at_ms: capturedAtMs,
             captured_at_client: new Date().toISOString(),
-            image: canvas.toDataURL('image/jpeg', 0.62),
+            image: canvas.toDataURL('image/jpeg', livenessEvidenceJpegQuality),
             ear: extra.ear ?? null,
             yaw: extra.yaw ?? null
         };
