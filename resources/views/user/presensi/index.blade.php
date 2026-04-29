@@ -382,6 +382,9 @@ return $clock->format('H:i') . $suffix;
                     <input type="hidden" name="face_liveness_type" id="face_liveness_type" value="blink">
                     <input type="hidden" name="face_liveness_score" id="face_liveness_score">
                     <input type="hidden" name="face_liveness_message" id="face_liveness_message">
+
+                    <input type="hidden" name="screen_spoof_score" id="screen_spoof_score" value="">
+                    <input type="hidden" name="screen_spoof_reason" id="screen_spoof_reason" value="">
                 </form>
             </div>
         </div>
@@ -1128,6 +1131,13 @@ return $clock->format('H:i') . $suffix;
         const selfieInput = document.getElementById('selfie_capture');
         const captureDataInput = document.getElementById('selfie_capture_data');
         const selfiePreview = document.getElementById('selfiePreview');
+
+        document.getElementById('screen_spoof_score').value = spoofCheck.score;
+        document.getElementById('screen_spoof_reason').value = JSON.stringify(spoofCheck);
+
+        if (spoofCheck.score >= 60) {
+            throw new Error('Selfie terindikasi berasal dari layar/foto. Gunakan wajah langsung di depan kamera.');
+        }
 
         if (!video || !video.videoWidth || !video.videoHeight) {
             throw new Error('Kamera belum siap untuk menyimpan selfie.');
@@ -2025,11 +2035,11 @@ return;
     let blinkIsProcessing = false;
 
     const BLINK_SAMPLE_INTERVAL_MS = 70;
-    const BLINK_BASELINE_FRAMES = 3;
-    const BLINK_DROP_RATIO = 0.94;
-    const BLINK_REOPEN_RATIO = 0.72;
+    const BLINK_BASELINE_FRAMES = 4;
+    const BLINK_DROP_RATIO = 0.84;
+    const BLINK_REOPEN_RATIO = 0.78;
     const BLINK_MIN_CLOSED_FRAMES = 1;
-    const BLINK_MIN_DROP_ABSOLUTE = 0.008;
+    const BLINK_MIN_DROP_ABSOLUTE = 0.020;
 
     let blinkOpenSamples = [];
     let blinkOpenBaseline = null;
@@ -2276,6 +2286,69 @@ return;
                 blinkIsProcessing = false;
             }
         }, BLINK_SAMPLE_INTERVAL_MS);
+    }
+
+    function analyzeScreenSpoofFromCanvas(canvas) {
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        const imageData = ctx.getImageData(0, 0, width, height).data;
+
+        let sampleCount = 0;
+        let brightnessSum = 0;
+        let brightnessSquareSum = 0;
+        let overBrightCount = 0;
+
+        for (let y = 0; y < height; y += 12) {
+            for (let x = 0; x < width; x += 12) {
+                const index = (y * width + x) * 4;
+                const r = imageData[index];
+                const g = imageData[index + 1];
+                const b = imageData[index + 2];
+
+                const brightness = (0.2126 * r) + (0.7152 * g) + (0.0722 * b);
+
+                brightnessSum += brightness;
+                brightnessSquareSum += brightness * brightness;
+
+                if (brightness > 235) {
+                    overBrightCount++;
+                }
+
+                sampleCount++;
+            }
+        }
+
+        const mean = brightnessSum / sampleCount;
+        const variance = (brightnessSquareSum / sampleCount) - (mean * mean);
+        const overBrightRatio = overBrightCount / sampleCount;
+
+        let score = 0;
+        let reasons = [];
+
+        if (overBrightRatio > 0.08) {
+            score += 35;
+            reasons.push('high_screen_glare');
+        }
+
+        if (variance < 250) {
+            score += 30;
+            reasons.push('low_texture_variance');
+        }
+
+        if (mean > 190) {
+            score += 20;
+            reasons.push('too_bright');
+        }
+
+        return {
+            score,
+            reasons,
+            mean: Number(mean.toFixed(2)),
+            variance: Number(variance.toFixed(2)),
+            overBrightRatio: Number(overBrightRatio.toFixed(4))
+        };
     }
 </script>
 @endif
