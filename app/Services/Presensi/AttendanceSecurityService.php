@@ -46,7 +46,7 @@ class AttendanceSecurityService
             'expires_at' => $issuedAt->copy()->addSeconds($this->challengeTtlSeconds())->toIso8601String(),
             'min_capture_delay_ms' => $this->minCaptureDelayMs(),
             'liveness_action' => self::LIVENESS_ACTION_TURN_LEFT_RIGHT,
-            'liveness_label' => 'Hadap tengah, putar kiri, lalu putar kanan',
+            'liveness_label' => 'Hadap tengah, hadap kiri, lalu hadap kanan',
         ];
 
         Cache::put($this->challengeCacheKey($token), $payload, $this->challengeTtlSeconds());
@@ -182,7 +182,7 @@ class AttendanceSecurityService
         $evidence = json_decode((string) $request->input('face_liveness_evidence'), true);
 
         if (!$passed || !($client['passed'] ?? false)) {
-            $this->fail('Liveness belum valid. Ikuti instruksi putar wajah langsung di depan kamera.');
+            $this->fail('Liveness belum valid. Ikuti instruksi hadap wajah langsung di depan kamera.');
         }
 
         if (!hash_equals($challengeId, (string) $request->input('presensi_challenge_id'))) {

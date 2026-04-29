@@ -1168,7 +1168,7 @@ return $clock->format('H:i') . $suffix;
         }
 
         if (!hasRequiredLivenessEvidence()) {
-            throw new Error('Bukti liveness belum lengkap. Ulangi verifikasi dan ikuti instruksi putar wajah.');
+            throw new Error('Bukti liveness belum lengkap. Ulangi verifikasi dan ikuti instruksi hadap wajah.');
         }
 
         const captureScale = Math.min(1, selfieMaxCaptureWidth / video.videoWidth);
@@ -1572,7 +1572,7 @@ return $clock->format('H:i') . $suffix;
             });
             updateLiveFrameFeedback(
                 'neutral',
-                'Kamera aktif. Hadap lurus ke kamera. Setelah wajah cocok, ikuti instruksi putar wajah.',
+                'Kamera aktif. Hadap lurus ke kamera. Setelah wajah cocok, ikuti instruksi hadap wajah.',
                 0
             );
             beginLiveCameraVerification();
@@ -2330,7 +2330,7 @@ return $clock->format('H:i') . $suffix;
                     setBlinkResult(
                         false,
                         turnMetric.absYaw,
-                        'Tunggu wajah cocok terlebih dahulu. Setelah cocok, ikuti instruksi putar wajah.'
+                        'Tunggu wajah cocok terlebih dahulu. Setelah cocok, ikuti instruks hadap wajah.'
                     );
                     return;
                 }
@@ -2365,7 +2365,7 @@ return $clock->format('H:i') . $suffix;
                     setBlinkResult(
                         false,
                         turnMetric.absYaw,
-                        'Frame tengah tersimpan. Putar wajah ke kiri.'
+                        'Frame tengah tersimpan. Hadap wajah ke kiri.'
                     );
                     return;
                 }
@@ -2375,7 +2375,7 @@ return $clock->format('H:i') . $suffix;
                         setBlinkResult(
                             false,
                             turnMetric.absYaw,
-                            'Putar wajah ke kiri sampai gerakan terbaca.'
+                            'Hadap wajah ke kiri sampai gerakan terbaca.'
                         );
                         return;
                     }
@@ -2389,7 +2389,7 @@ return $clock->format('H:i') . $suffix;
                     setBlinkResult(
                         false,
                         turnMetric.absYaw,
-                        'Frame kiri tersimpan. Sekarang putar wajah ke kanan.'
+                        'Frame kiri tersimpan. Sekarang hadap wajah ke kanan.'
                     );
                     return;
                 }
@@ -2403,7 +2403,7 @@ return $clock->format('H:i') . $suffix;
                         setBlinkResult(
                             false,
                             turnMetric.absYaw,
-                            'Putar wajah ke arah berlawanan sampai gerakan terbaca.'
+                            'Hadap wajah ke arah berlawanan sampai gerakan terbaca.'
                         );
                         return;
                     }

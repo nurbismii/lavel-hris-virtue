@@ -61,7 +61,7 @@ class PresensiRequest extends FormRequest
             'attendance_challenge_token.size' => 'Sesi keamanan presensi tidak valid. Muat ulang halaman lalu coba lagi.',
             'attendance_challenge_id.required' => 'Sesi keamanan presensi belum siap. Muat ulang halaman lalu coba lagi.',
             'attendance_challenge_id.uuid' => 'Sesi keamanan presensi tidak valid. Muat ulang halaman lalu coba lagi.',
-            'face_liveness_passed.required' => 'Liveness belum selesai. Ikuti instruksi putar wajah pada kamera.',
+            'face_liveness_passed.required' => 'Liveness belum selesai. Ikuti instruksi gerak wajah pada kamera.',
             'face_liveness_passed.boolean' => 'Status liveness tidak valid.',
             'face_liveness_evidence.required' => 'Bukti liveness belum lengkap. Ulangi verifikasi kamera.',
             'face_liveness_evidence.json' => 'Bukti liveness tidak valid. Ulangi verifikasi kamera.',
