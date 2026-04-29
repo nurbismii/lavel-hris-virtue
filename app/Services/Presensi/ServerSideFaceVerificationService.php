@@ -45,6 +45,17 @@ class ServerSideFaceVerificationService
         $failClosed = (bool) config('services.presensi_face.fail_closed', false);
 
         if ($provider) {
+            if (($provider['status'] ?? null) === Presensi::STATUS_ABSEN_PENDING_REVIEW) {
+                return [
+                    'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
+                    'passed' => false,
+                    'method' => 'server-side-provider-review',
+                    'message' => $provider['message'] ?? 'Server-side face verification membutuhkan review manual.',
+                    'provider' => $provider,
+                    'passive_liveness' => $passive,
+                ];
+            }
+
             $providerPassed = (bool) ($provider['liveness_passed'] ?? false)
                 && (bool) ($provider['face_matched'] ?? false);
 
@@ -143,6 +154,7 @@ class ServerSideFaceVerificationService
             $absensiId = Presensi::where('nik_karyawan', $user->nik_karyawan)
                 ->whereDate('tanggal', $attendanceDate)
                 ->value('id');
+            $providerScreenSpoofScore = $this->providerScreenSpoofScore($request);
 
             $multipart = [
                 [
@@ -177,7 +189,7 @@ class ServerSideFaceVerificationService
                 ],
                 [
                     'name' => 'screen_spoof_score',
-                    'contents' => (string) $request->input('screen_spoof_score', 0),
+                    'contents' => (string) $providerScreenSpoofScore,
                 ],
                 [
                     'name' => 'payload',
@@ -195,6 +207,8 @@ class ServerSideFaceVerificationService
                         'liveness_evidence_summary' => $this->summarizeLivenessEvidence($livenessEvidence),
                         'client_face_distance' => $faceResult['distance'] ?? null,
                         'client_detection_score' => $faceResult['detection_score'] ?? null,
+                        'screen_spoof_score' => $providerScreenSpoofScore,
+                        'client_screen_spoof_score_raw' => (float) $request->input('screen_spoof_score', 0),
                         'selfie_sha256' => $selfieAudit['hash'] ?? null,
                         'reference_sha256' => $reference['hash'] ?? null,
                         'passive_liveness' => $passive,
@@ -217,23 +231,25 @@ class ServerSideFaceVerificationService
                 'multipart' => $multipart,
             ]);
 
-            \Log::info('FACE PROVIDER RESPONSE', [
-                'status' => $response->getStatusCode(),
-            ]);
+            $body = (string) $response->getBody();
+            $payload = json_decode($body, true);
 
-            if ($response->getStatusCode() >= 500) {
-                \Log::error('FACE PROVIDER SERVER ERROR', [
+            if (!is_array($payload)) {
+                \Log::warning('FACE PROVIDER NON JSON RESPONSE', [
                     'status' => $response->getStatusCode(),
+                    'body_preview' => Str::limit($body, 500),
                 ]);
 
                 return null;
             }
 
-            $payload = json_decode((string) $response->getBody(), true);
-
-            if (!is_array($payload)) {
-                return null;
-            }
+            \Log::info('FACE PROVIDER RESPONSE', [
+                'status' => $response->getStatusCode(),
+                'provider_status' => $payload['status'] ?? null,
+                'verified' => $payload['verified'] ?? null,
+                'message' => $payload['message'] ?? null,
+                'error' => Str::limit((string) data_get($payload, 'extra.error', ''), 300),
+            ]);
 
             return $this->normalizeProviderPayload($payload, $response->getStatusCode());
         } catch (GuzzleException $exception) {
@@ -393,6 +409,17 @@ class ServerSideFaceVerificationService
         }
 
         return $headers;
+    }
+
+    private function providerScreenSpoofScore(Request $request): float
+    {
+        $score = (float) $request->input('screen_spoof_score', 0);
+
+        if ($score > 1) {
+            $score = $score / 100;
+        }
+
+        return round(max(0, min(1, $score)), 4);
     }
 
     private function resolveReferenceImage(string $referencePath, string $nikKaryawan): array
