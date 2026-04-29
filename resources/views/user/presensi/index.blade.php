@@ -376,10 +376,10 @@ return $clock->format('H:i') . $suffix;
                     <input type="hidden" name="attendance_challenge_token" id="attendance_challenge_token" value="{{ $attendanceChallenge['token'] ?? '' }}">
 
                     <input type="hidden" name="presensi_challenge_id" id="presensi_challenge_id" value="{{ $attendanceChallenge['id'] ?? '' }}">
-                    <input type="hidden" name="presensi_challenge_action" id="presensi_challenge_action" value="{{ $attendanceChallenge['liveness_action'] ?? 'blink' }}">
+                    <input type="hidden" name="presensi_challenge_action" id="presensi_challenge_action" value="{{ $attendanceChallenge['liveness_action'] ?? 'turn_left_right' }}">
 
                     <input type="hidden" name="face_liveness_passed" id="face_liveness_passed" value="0">
-                    <input type="hidden" name="face_liveness_type" id="face_liveness_type" value="{{ $attendanceChallenge['liveness_action'] ?? 'blink' }}">
+                    <input type="hidden" name="face_liveness_type" id="face_liveness_type" value="{{ $attendanceChallenge['liveness_action'] ?? 'turn_left_right' }}">
                     <input type="hidden" name="face_liveness_score" id="face_liveness_score">
                     <input type="hidden" name="face_liveness_message" id="face_liveness_message">
                     <input type="hidden" name="face_liveness_evidence" id="face_liveness_evidence">
@@ -494,7 +494,7 @@ return $clock->format('H:i') . $suffix;
     const faceModelPath = @json(asset('vendor/face-api/weights'));
     const faceReferencePath = @json($faceReferenceUrl);
     const attendanceChallenge = @json($attendanceChallenge);
-    const livenessAction = attendanceChallenge && attendanceChallenge.liveness_action ? attendanceChallenge.liveness_action : 'blink';
+    const livenessAction = attendanceChallenge && attendanceChallenge.liveness_action ? attendanceChallenge.liveness_action : 'turn_left_right';
     const manualSelfieEnabled = false;
     const attendanceSubmitBaseUrl = @json(url('/absen'));
     const gpsLogUrl = @json(url('/api/gps-log'));
@@ -1117,7 +1117,8 @@ return $clock->format('H:i') . $suffix;
                     return {
                         label: frame.label,
                         captured_at_ms: frame.captured_at_ms,
-                        ear: frame.ear ?? null
+                        ear: frame.ear ?? null,
+                        yaw: frame.yaw ?? null
                     };
                 }),
                 checked_at_client: new Date().toISOString()
@@ -1167,7 +1168,7 @@ return $clock->format('H:i') . $suffix;
         }
 
         if (!hasRequiredLivenessEvidence()) {
-            throw new Error('Bukti liveness belum lengkap. Ulangi verifikasi dan ikuti instruksi kedip.');
+            throw new Error('Bukti liveness belum lengkap. Ulangi verifikasi dan ikuti instruksi putar wajah.');
         }
 
         const captureScale = Math.min(1, selfieMaxCaptureWidth / video.videoWidth);
@@ -1445,11 +1446,11 @@ return $clock->format('H:i') . $suffix;
 
         updateLiveFrameFeedback(
             'green',
-            'Wajah sudah cocok. Kedipkan mata sekali untuk mengambil selfie.',
+            'Wajah sudah cocok. Ikuti instruksi hadap tengah, kiri, lalu kanan.',
             0
         );
 
-return;
+        return;
 
         if (!cameraValidationStartedAt) {
             cameraValidationStartedAt = Date.now();
@@ -1563,7 +1564,7 @@ return;
             await video.play();
 
             setSelfieSurfaceMode('live');
-            startBlinkLiveness(video);
+            startTurnLiveness(video);
 
             syncLiveCameraOverlaySize();
             drawLiveCameraOverlay({
@@ -1571,7 +1572,7 @@ return;
             });
             updateLiveFrameFeedback(
                 'neutral',
-                'Kamera aktif. Hadap lurus ke kamera. Setelah wajah cocok, kedipkan mata untuk mengambil selfie.',
+                'Kamera aktif. Hadap lurus ke kamera. Setelah wajah cocok, ikuti instruksi putar wajah.',
                 0
             );
             beginLiveCameraVerification();
@@ -2063,28 +2064,72 @@ return;
 
 <script>
     let blinkInterval = null;
-    let blinkDetected = false;
-    let eyeWasOpen = false;
-    let closedFrameCount = 0;
-    let openFrameCount = 0;
     let blinkIsProcessing = false;
 
-    const BLINK_SAMPLE_INTERVAL_MS = 70;
-    const BLINK_BASELINE_FRAMES = 3;
-    const BLINK_DROP_RATIO = 0.94;
-    const BLINK_REOPEN_RATIO = 0.72;
-    const BLINK_MIN_CLOSED_FRAMES = 1;
-    const BLINK_MIN_DROP_ABSOLUTE = 0.008;
+    const TURN_SAMPLE_INTERVAL_MS = 140;
+    const TURN_CENTER_FRAMES = 3;
+    const TURN_CENTER_MAX_YAW = 0.035;
+    const TURN_MIN_YAW = 0.07;
 
-    let blinkOpenSamples = [];
-    let blinkOpenBaseline = null;
-    let blinkClosedDetected = false;
-    let blinkReopenedDetected = false;
+    let turnStage = 'center';
+    let turnCenterSamples = [];
+    let turnLeftYaw = null;
 
     function distance(pointA, pointB) {
         const dx = pointA.x - pointB.x;
         const dy = pointA.y - pointB.y;
         return Math.sqrt((dx * dx) + (dy * dy));
+    }
+
+    function averagePoint(points) {
+        if (!Array.isArray(points) || points.length === 0) {
+            return null;
+        }
+
+        const total = points.reduce(function(accumulator, point) {
+            return {
+                x: accumulator.x + point.x,
+                y: accumulator.y + point.y
+            };
+        }, {
+            x: 0,
+            y: 0
+        });
+
+        return {
+            x: total.x / points.length,
+            y: total.y / points.length
+        };
+    }
+
+    function calculateHeadTurnMetric(landmarks) {
+        const nose = landmarks.getNose();
+        const leftEye = landmarks.getLeftEye();
+        const rightEye = landmarks.getRightEye();
+        const jaw = landmarks.getJawOutline();
+
+        const noseTip = nose[3] || nose[Math.floor(nose.length / 2)];
+        const leftEyeCenter = averagePoint(leftEye);
+        const rightEyeCenter = averagePoint(rightEye);
+
+        if (!noseTip || !leftEyeCenter || !rightEyeCenter) {
+            return null;
+        }
+
+        const eyeCenter = {
+            x: (leftEyeCenter.x + rightEyeCenter.x) / 2,
+            y: (leftEyeCenter.y + rightEyeCenter.y) / 2
+        };
+        const eyeDistance = distance(leftEyeCenter, rightEyeCenter);
+        const faceWidth = jaw && jaw.length >= 17 ?
+            Math.max(distance(jaw[0], jaw[16]), eyeDistance * 2, 1) :
+            Math.max(eyeDistance * 2, 1);
+        const yaw = (noseTip.x - eyeCenter.x) / faceWidth;
+
+        return {
+            yaw: Number(yaw.toFixed(4)),
+            absYaw: Number(Math.abs(yaw).toFixed(4))
+        };
     }
     
     function calculateEAR(eye) {
@@ -2137,7 +2182,8 @@ return;
             captured_at_ms: capturedAtMs,
             captured_at_client: new Date().toISOString(),
             image: canvas.toDataURL('image/jpeg', 0.62),
-            ear: extra.ear ?? null
+            ear: extra.ear ?? null,
+            yaw: extra.yaw ?? null
         };
 
         livenessEvidence.frames = (livenessEvidence.frames || []).filter(function(item) {
@@ -2152,7 +2198,7 @@ return;
             return frame.label;
         });
 
-        return ['baseline_open', 'blink_closed', 'blink_reopened'].every(function(label) {
+        return ['center', 'turn_left', 'turn_right'].every(function(label) {
             return labels.includes(label);
         });
     }
@@ -2187,7 +2233,7 @@ return;
         updateAttendanceButtonState();
     }
 
-    async function captureSelfieFromBlink(score, message) {
+    async function captureSelfieFromTurn(score, message) {
         if (livenessCaptureInProgress || cameraVerificationLocked) {
             return;
         }
@@ -2200,7 +2246,7 @@ return;
         livenessCaptureInProgress = true;
         blinkLivenessPassed = true;
         blinkLivenessScore = score;
-        blinkLivenessMessage = message || 'Kedipan mata terdeteksi.';
+        blinkLivenessMessage = message || 'Gerakan wajah terdeteksi.';
 
         setBlinkResult(true, score, blinkLivenessMessage);
 
@@ -2214,7 +2260,7 @@ return;
 
         updateLiveFrameFeedback(
             'green',
-            'Kedipan terdeteksi. Selfie sedang diambil otomatis.',
+            'Gerakan wajah terdeteksi. Selfie sedang diambil otomatis.',
             1
         );
 
@@ -2231,22 +2277,17 @@ return;
         }
     }
 
-    async function startBlinkLiveness(videoElement) {
+    async function startTurnLiveness(videoElement) {
         if (blinkInterval) {
             clearInterval(blinkInterval);
         }
 
-        blinkDetected = false;
-        blinkClosedDetected = false;
-        blinkReopenedDetected = false;
-        eyeWasOpen = false;
-        closedFrameCount = 0;
-        openFrameCount = 0;
-        blinkOpenSamples = [];
-        blinkOpenBaseline = null;
+        turnStage = 'center';
+        turnCenterSamples = [];
+        turnLeftYaw = null;
         resetLivenessEvidence();
 
-        setBlinkResult(false, null, 'Hadap lurus ke kamera, lalu kedipkan mata.');
+        setBlinkResult(false, null, 'Hadap lurus ke kamera sampai frame tengah tersimpan.');
 
         blinkInterval = setInterval(async () => {
             
@@ -2278,117 +2319,116 @@ return;
                 }
 
                 const landmarks = detection.landmarks;
-                const leftEye = landmarks.getLeftEye();
-                const rightEye = landmarks.getRightEye();
+                const turnMetric = calculateHeadTurnMetric(landmarks);
 
-                const leftEAR = calculateEAR(leftEye);
-                const rightEAR = calculateEAR(rightEye);
-                const avgEAR = (leftEAR + rightEAR) / 2;
+                if (!turnMetric) {
+                    setBlinkResult(false, null, 'Gagal membaca posisi wajah. Hadap kamera dengan pencahayaan cukup.');
+                    return;
+                }
 
                 if (!faceMatchedReady || !latestFaceMatchCapturePayload) {
                     setBlinkResult(
                         false,
-                        avgEAR,
-                        'Tunggu wajah cocok terlebih dahulu. Setelah cocok, kedipkan mata untuk mengambil selfie.'
+                        turnMetric.absYaw,
+                        'Tunggu wajah cocok terlebih dahulu. Setelah cocok, ikuti instruksi putar wajah.'
                     );
                     return;
                 }
 
-                if (!blinkOpenBaseline) {
-                    blinkOpenSamples.push(avgEAR);
-
-                    if (blinkOpenSamples.length < BLINK_BASELINE_FRAMES) {
+                if (turnStage === 'center') {
+                    if (turnMetric.absYaw > TURN_CENTER_MAX_YAW) {
+                        turnCenterSamples = [];
                         setBlinkResult(
                             false,
-                            avgEAR,
-                            'Hadap lurus. Membaca mata terbuka... EAR: ' + avgEAR.toFixed(3)
+                            turnMetric.absYaw,
+                            'Hadap lurus ke kamera untuk menyimpan frame tengah.'
                         );
                         return;
                     }
 
-                    blinkOpenBaseline = blinkOpenSamples.reduce((sum, value) => sum + value, 0) / blinkOpenSamples.length;
-                    eyeWasOpen = true;
-                    captureLivenessEvidenceFrame('baseline_open', videoElement, {
-                        ear: avgEAR
-                    });
+                    turnCenterSamples.push(turnMetric.yaw);
 
-                    setBlinkResult(
-                        false,
-                        avgEAR,
-                        'Baseline mata terbuka tersimpan. Sekarang kedipkan mata sekali.'
-                    );
-                    return;
-                }
-
-                const closedThreshold = Math.max(
-                    0.08,
-                    Math.min(
-                        blinkOpenBaseline * BLINK_DROP_RATIO,
-                        blinkOpenBaseline - BLINK_MIN_DROP_ABSOLUTE
-                    )
-                );
-
-                const reopenThreshold = Math.max(
-                    closedThreshold + 0.008,
-                    blinkOpenBaseline * BLINK_REOPEN_RATIO
-                );
-
-                /*
-                * Tahap 2:
-                * Deteksi mata menutup.
-                */
-                if (!blinkClosedDetected && avgEAR <= closedThreshold) {
-                    closedFrameCount++;
-
-                    if (closedFrameCount >= BLINK_MIN_CLOSED_FRAMES) {
-                        blinkClosedDetected = true;
-                        captureLivenessEvidenceFrame('blink_closed', videoElement, {
-                            ear: avgEAR
-                        });
+                    if (turnCenterSamples.length < TURN_CENTER_FRAMES) {
                         setBlinkResult(
                             false,
-                            avgEAR,
-                            'Kedipan terbaca. Buka mata kembali'
+                            turnMetric.absYaw,
+                            'Tahan wajah di tengah...'
                         );
+                        return;
                     }
 
+                    captureLivenessEvidenceFrame('center', videoElement, {
+                        yaw: turnMetric.yaw
+                    });
+                    turnStage = 'turn_left';
+
+                    setBlinkResult(
+                        false,
+                        turnMetric.absYaw,
+                        'Frame tengah tersimpan. Putar wajah ke kiri.'
+                    );
                     return;
                 }
 
-                if (blinkClosedDetected && avgEAR >= reopenThreshold) {
-                    blinkReopenedDetected = true;
-                    blinkDetected = true;
-                    captureLivenessEvidenceFrame('blink_reopened', videoElement, {
-                        ear: avgEAR
+                if (turnStage === 'turn_left') {
+                    if (turnMetric.absYaw < TURN_MIN_YAW) {
+                        setBlinkResult(
+                            false,
+                            turnMetric.absYaw,
+                            'Putar wajah ke kiri sampai gerakan terbaca.'
+                        );
+                        return;
+                    }
+
+                    turnLeftYaw = turnMetric.yaw;
+                    captureLivenessEvidenceFrame('turn_left', videoElement, {
+                        yaw: turnMetric.yaw
+                    });
+                    turnStage = 'turn_right';
+
+                    setBlinkResult(
+                        false,
+                        turnMetric.absYaw,
+                        'Frame kiri tersimpan. Sekarang putar wajah ke kanan.'
+                    );
+                    return;
+                }
+
+                if (turnStage === 'turn_right') {
+                    const oppositeDirection = turnLeftYaw === null
+                        ? turnMetric.absYaw >= TURN_MIN_YAW
+                        : (turnLeftYaw < 0 ? turnMetric.yaw >= TURN_MIN_YAW : turnMetric.yaw <= -TURN_MIN_YAW);
+
+                    if (!oppositeDirection) {
+                        setBlinkResult(
+                            false,
+                            turnMetric.absYaw,
+                            'Putar wajah ke arah berlawanan sampai gerakan terbaca.'
+                        );
+                        return;
+                    }
+
+                    captureLivenessEvidenceFrame('turn_right', videoElement, {
+                        yaw: turnMetric.yaw
                     });
 
-                    await captureSelfieFromBlink(
-                        avgEAR,
-                        'Liveness berhasil. Kedipan mata terdeteksi.'
-                    );
+                    const score = Math.min(1, Math.max(
+                        Math.abs(turnLeftYaw || 0),
+                        turnMetric.absYaw
+                    ) / TURN_MIN_YAW);
 
+                    await captureSelfieFromTurn(
+                        score,
+                        'Liveness berhasil. Gerakan wajah kiri dan kanan terdeteksi.'
+                    );
                     return;
                 }
-
-                if (!blinkClosedDetected) {
-                    setBlinkResult(
-                        false,
-                        avgEAR,
-                        'Kedipkan mata sekali.'
-                    );
-                } else {
-                    setBlinkResult(
-                        false,
-                        avgEAR,
-                        'Buka mata kembali'
-                    );
-                }
             } catch (error) {
-                setBlinkResult(false, null, 'Gagal membaca kedipan mata.');
+                setBlinkResult(false, null, 'Gagal membaca gerakan wajah.');
             } finally {
                 blinkIsProcessing = false;
             }
-        }, BLINK_SAMPLE_INTERVAL_MS);
+        }, TURN_SAMPLE_INTERVAL_MS);
     }
 
     function analyzeScreenSpoofFromCanvas(canvas) {

@@ -142,19 +142,25 @@ class ServerSideFaceVerificationService
                 ];
             }
 
-            \Log::info('FACE PROVIDER REQUEST', [
-                'endpoint' => $endpoint,
-                'token_exists' => !empty(config('services.presensi_face.token')),
-                'reference_valid' => $reference['valid'] ?? false,
-                'reference_path' => $reference['absolute_path'] ?? null,
-                'selfie_path' => $selfieFile->getRealPath(),
-            ]);
-
             $attendanceDate = (string) ($challenge['attendance_date'] ?? now()->toDateString());
             $absensiId = Presensi::where('nik_karyawan', $user->nik_karyawan)
                 ->whereDate('tanggal', $attendanceDate)
                 ->value('id');
             $providerScreenSpoofScore = $this->providerScreenSpoofScore($request);
+            $livenessEvidenceParts = $this->buildLivenessEvidenceParts($livenessEvidence, (string) $user->nik_karyawan);
+
+            \Log::info('FACE PROVIDER REQUEST', [
+                'endpoint' => $endpoint,
+                'token_exists' => !empty(config('services.presensi_face.token')),
+                'reference_valid' => $reference['valid'] ?? false,
+                'selfie_valid' => File::isFile((string) $selfieFile->getRealPath()),
+                'liveness_action' => (string) ($challenge['liveness_action'] ?? 'turn_left_right'),
+                'liveness_fields' => array_values(array_map(fn ($part) => $part['name'] ?? null, $livenessEvidenceParts)),
+                'reference_path' => $reference['absolute_path'] ?? null,
+                'selfie_path' => $selfieFile->getRealPath(),
+                'presensi_challenge_id' => $challenge['id'] ?? null,
+                'screen_spoof_score' => $providerScreenSpoofScore,
+            ]);
 
             $multipart = [
                 [
@@ -185,7 +191,7 @@ class ServerSideFaceVerificationService
                 ],
                 [
                     'name' => 'liveness_action',
-                    'contents' => (string) ($challenge['liveness_action'] ?? 'blink'),
+                    'contents' => (string) ($challenge['liveness_action'] ?? 'turn_left_right'),
                 ],
                 [
                     'name' => 'screen_spoof_score',
@@ -200,7 +206,7 @@ class ServerSideFaceVerificationService
                         'challenge_id' => $challenge['id'] ?? null,
                         'challenge_issued_at' => $challenge['issued_at'] ?? null,
                         'liveness_challenge' => [
-                            'action' => $challenge['liveness_action'] ?? 'blink',
+                            'action' => $challenge['liveness_action'] ?? 'turn_left_right',
                             'label' => $challenge['liveness_label'] ?? null,
                         ],
                         'client_liveness' => $faceResult['liveness'] ?? null,
@@ -218,7 +224,7 @@ class ServerSideFaceVerificationService
                 ],
             ];
 
-            foreach ($this->buildLivenessEvidenceParts($livenessEvidence, (string) $user->nik_karyawan) as $part) {
+            foreach ($livenessEvidenceParts as $part) {
                 $multipart[] = $part;
             }
 
@@ -247,7 +253,15 @@ class ServerSideFaceVerificationService
                 'status' => $response->getStatusCode(),
                 'provider_status' => $payload['status'] ?? null,
                 'verified' => $payload['verified'] ?? null,
+                'face_matched' => $payload['face_matched'] ?? null,
+                'active_liveness_passed' => $payload['active_liveness_passed'] ?? null,
+                'challenge_passed' => $payload['challenge_passed'] ?? null,
+                'screen_attack_detected' => $payload['screen_attack_detected'] ?? null,
+                'confidence' => $payload['confidence'] ?? null,
+                'liveness_score' => $payload['liveness_score'] ?? null,
                 'message' => $payload['message'] ?? null,
+                'liveness_message' => data_get($payload, 'extra.liveness.message'),
+                'liveness_details' => data_get($payload, 'extra.liveness.details'),
                 'error' => Str::limit((string) data_get($payload, 'extra.error', ''), 300),
             ]);
 
@@ -341,6 +355,7 @@ class ServerSideFaceVerificationService
                         'label' => $frame['label'] ?? null,
                         'captured_at_ms' => $frame['captured_at_ms'] ?? null,
                         'ear' => $frame['ear'] ?? null,
+                        'yaw' => $frame['yaw'] ?? null,
                     ];
                 })
                 ->values()
@@ -351,12 +366,16 @@ class ServerSideFaceVerificationService
     private function buildLivenessEvidenceParts(array $evidence, string $nikKaryawan): array
     {
         $parts = [];
-        $allowedLabels = ['baseline_open', 'blink_closed', 'blink_reopened'];
+        $fieldNames = [
+            'center' => 'liveness_center_image',
+            'turn_left' => 'liveness_turn_left_image',
+            'turn_right' => 'liveness_turn_right_image',
+        ];
 
         foreach (($evidence['frames'] ?? []) as $frame) {
             $label = (string) ($frame['label'] ?? '');
 
-            if (!in_array($label, $allowedLabels, true)) {
+            if (!array_key_exists($label, $fieldNames)) {
                 continue;
             }
 
@@ -366,16 +385,14 @@ class ServerSideFaceVerificationService
                 continue;
             }
 
-            foreach ([$label . '_image', 'liveness_' . $label . '_image'] as $fieldName) {
-                $parts[] = [
-                    'name' => $fieldName,
-                    'contents' => $binary,
-                    'filename' => 'liveness-' . $nikKaryawan . '-' . $label . '.jpg',
-                    'headers' => [
-                        'Content-Type' => 'image/jpeg',
-                    ],
-                ];
-            }
+            $parts[] = [
+                'name' => $fieldNames[$label],
+                'contents' => $binary,
+                'filename' => 'liveness-' . $nikKaryawan . '-' . $label . '.jpg',
+                'headers' => [
+                    'Content-Type' => 'image/jpeg',
+                ],
+            ];
         }
 
         return $parts;

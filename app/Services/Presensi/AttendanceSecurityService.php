@@ -28,7 +28,7 @@ class AttendanceSecurityService
     private const MAX_SELFIE_DIMENSION = 2000;
     private const GPS_EVIDENCE_WINDOW_SECONDS = 120;
     private const MAX_SCREEN_SPOOF_SCORE = 45;
-    private const LIVENESS_ACTION_BLINK = 'blink';
+    private const LIVENESS_ACTION_TURN_LEFT_RIGHT = 'turn_left_right';
 
     public function issueChallenge(User $user, Request $request, string $attendanceDate, ?string $type = null): array
     {
@@ -45,8 +45,8 @@ class AttendanceSecurityService
             'issued_at' => $issuedAt->toIso8601String(),
             'expires_at' => $issuedAt->copy()->addSeconds($this->challengeTtlSeconds())->toIso8601String(),
             'min_capture_delay_ms' => $this->minCaptureDelayMs(),
-            'liveness_action' => self::LIVENESS_ACTION_BLINK,
-            'liveness_label' => 'Kedipkan mata sekali',
+            'liveness_action' => self::LIVENESS_ACTION_TURN_LEFT_RIGHT,
+            'liveness_label' => 'Hadap tengah, putar kiri, lalu putar kanan',
         ];
 
         Cache::put($this->challengeCacheKey($token), $payload, $this->challengeTtlSeconds());
@@ -59,7 +59,7 @@ class AttendanceSecurityService
             'min_capture_delay_ms' => $payload['min_capture_delay_ms'],
             'liveness_action' => $payload['liveness_action'],
             'liveness_label' => $payload['liveness_label'],
-            'liveness_required_frames' => ['baseline_open', 'blink_closed', 'blink_reopened'],
+            'liveness_required_frames' => ['center', 'turn_left', 'turn_right'],
         ];
     }
 
@@ -174,7 +174,7 @@ class AttendanceSecurityService
     private function validateLivenessPayload(Request $request, array $meta, array $challenge): array
     {
         $challengeId = (string) ($challenge['id'] ?? '');
-        $expectedAction = (string) ($challenge['liveness_action'] ?? self::LIVENESS_ACTION_BLINK);
+        $expectedAction = (string) ($challenge['liveness_action'] ?? self::LIVENESS_ACTION_TURN_LEFT_RIGHT);
         $client = is_array($meta['client_liveness'] ?? null) ? $meta['client_liveness'] : [];
         $passed = filter_var($request->input('face_liveness_passed'), FILTER_VALIDATE_BOOLEAN);
         $score = (float) $request->input('face_liveness_score');
@@ -182,7 +182,7 @@ class AttendanceSecurityService
         $evidence = json_decode((string) $request->input('face_liveness_evidence'), true);
 
         if (!$passed || !($client['passed'] ?? false)) {
-            $this->fail('Liveness belum valid. Kedipkan mata langsung di depan kamera.');
+            $this->fail('Liveness belum valid. Ikuti instruksi putar wajah langsung di depan kamera.');
         }
 
         if (!hash_equals($challengeId, (string) $request->input('presensi_challenge_id'))) {
@@ -213,7 +213,7 @@ class AttendanceSecurityService
         }
 
         $frames = collect($evidence['frames'])->keyBy(fn($frame) => (string) ($frame['label'] ?? ''));
-        $requiredFrames = ['baseline_open', 'blink_closed', 'blink_reopened'];
+        $requiredFrames = ['center', 'turn_left', 'turn_right'];
 
         foreach ($requiredFrames as $frameLabel) {
             $frame = $frames->get($frameLabel);
@@ -227,11 +227,11 @@ class AttendanceSecurityService
             }
         }
 
-        $openAt = $this->livenessFrameTimestamp($frames->get('baseline_open'));
-        $closedAt = $this->livenessFrameTimestamp($frames->get('blink_closed'));
-        $reopenedAt = $this->livenessFrameTimestamp($frames->get('blink_reopened'));
+        $centerAt = $this->livenessFrameTimestamp($frames->get('center'));
+        $turnLeftAt = $this->livenessFrameTimestamp($frames->get('turn_left'));
+        $turnRightAt = $this->livenessFrameTimestamp($frames->get('turn_right'));
 
-        if ($openAt <= 0 || $closedAt <= $openAt || $reopenedAt <= $closedAt || ($reopenedAt - $openAt) > 10000) {
+        if ($centerAt <= 0 || $turnLeftAt <= $centerAt || $turnRightAt <= $turnLeftAt || ($turnRightAt - $centerAt) > 15000) {
             $this->fail('Urutan liveness tidak valid. Ulangi verifikasi kamera.');
         }
 
@@ -243,7 +243,7 @@ class AttendanceSecurityService
             'message' => (string) $request->input('face_liveness_message'),
             'evidence_summary' => [
                 'frames' => $requiredFrames,
-                'duration_ms' => $reopenedAt - $openAt,
+                'duration_ms' => $turnRightAt - $centerAt,
             ],
         ];
     }

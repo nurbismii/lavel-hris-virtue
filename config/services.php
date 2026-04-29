@@ -44,8 +44,8 @@ return [
     'presensi_face' => [
         'endpoint' => env('PRESENSI_FACE_VERIFICATION_URL'),
         'token' => env('PRESENSI_FACE_VERIFICATION_TOKEN'),
-        'timeout' => env('PRESENSI_FACE_VERIFICATION_TIMEOUT', 8),
-        'connect_timeout' => env('PRESENSI_FACE_VERIFICATION_CONNECT_TIMEOUT', 2),
+        'timeout' => env('PRESENSI_FACE_VERIFICATION_TIMEOUT', 120),
+        'connect_timeout' => env('PRESENSI_FACE_VERIFICATION_CONNECT_TIMEOUT', 10),
         'min_confidence' => env('PRESENSI_FACE_MIN_CONFIDENCE', 0.78),
         'min_liveness_score' => env('PRESENSI_LIVENESS_MIN_SCORE', 0.78),
         'require_active_liveness' => env('PRESENSI_REQUIRE_ACTIVE_LIVENESS', true),
