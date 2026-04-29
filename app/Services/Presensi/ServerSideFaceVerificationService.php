@@ -139,6 +139,11 @@ class ServerSideFaceVerificationService
                 'selfie_path' => $selfieFile->getRealPath(),
             ]);
 
+            $attendanceDate = (string) ($challenge['attendance_date'] ?? now()->toDateString());
+            $absensiId = Presensi::where('nik_karyawan', $user->nik_karyawan)
+                ->whereDate('tanggal', $attendanceDate)
+                ->value('id');
+
             $multipart = [
                 [
                     'name' => 'selfie_image',
@@ -151,9 +156,35 @@ class ServerSideFaceVerificationService
                     'filename' => 'reference-' . $user->nik_karyawan . '.jpg',
                 ],
                 [
+                    'name' => 'absensi_id',
+                    'contents' => (string) ($absensiId ?? ''),
+                ],
+                [
+                    'name' => 'nik_karyawan',
+                    'contents' => (string) $user->nik_karyawan,
+                ],
+                [
+                    'name' => 'tanggal',
+                    'contents' => $attendanceDate,
+                ],
+                [
+                    'name' => 'presensi_challenge_id',
+                    'contents' => (string) ($challenge['id'] ?? ''),
+                ],
+                [
+                    'name' => 'liveness_action',
+                    'contents' => (string) ($challenge['liveness_action'] ?? 'blink'),
+                ],
+                [
+                    'name' => 'screen_spoof_score',
+                    'contents' => (string) $request->input('screen_spoof_score', 0),
+                ],
+                [
                     'name' => 'payload',
                     'contents' => json_encode([
                         'nik_karyawan' => (string) $user->nik_karyawan,
+                        'absensi_id' => $absensiId,
+                        'tanggal' => $attendanceDate,
                         'challenge_id' => $challenge['id'] ?? null,
                         'challenge_issued_at' => $challenge['issued_at'] ?? null,
                         'liveness_challenge' => [
@@ -319,14 +350,16 @@ class ServerSideFaceVerificationService
                 continue;
             }
 
-            $parts[] = [
-                'name' => $label . '_image',
-                'contents' => $binary,
-                'filename' => 'liveness-' . $nikKaryawan . '-' . $label . '.jpg',
-                'headers' => [
-                    'Content-Type' => 'image/jpeg',
-                ],
-            ];
+            foreach ([$label . '_image', 'liveness_' . $label . '_image'] as $fieldName) {
+                $parts[] = [
+                    'name' => $fieldName,
+                    'contents' => $binary,
+                    'filename' => 'liveness-' . $nikKaryawan . '-' . $label . '.jpg',
+                    'headers' => [
+                        'Content-Type' => 'image/jpeg',
+                    ],
+                ];
+            }
         }
 
         return $parts;
