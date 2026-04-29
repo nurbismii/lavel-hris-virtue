@@ -155,7 +155,7 @@ class ServerSideFaceVerificationService
                 'reference_valid' => $reference['valid'] ?? false,
                 'selfie_valid' => File::isFile((string) $selfieFile->getRealPath()),
                 'liveness_action' => (string) ($challenge['liveness_action'] ?? 'turn_left_right'),
-                'liveness_fields' => array_values(array_map(fn ($part) => $part['name'] ?? null, $livenessEvidenceParts)),
+                'liveness_fields' => array_values(array_map(fn($part) => $part['name'] ?? null, $livenessEvidenceParts)),
                 'reference_path' => $reference['absolute_path'] ?? null,
                 'selfie_path' => $selfieFile->getRealPath(),
                 'presensi_challenge_id' => $challenge['id'] ?? null,
@@ -293,8 +293,9 @@ class ServerSideFaceVerificationService
         $verified = (bool) ($payload['verified'] ?? false);
         $providerFaceMatched = (bool) ($payload['face_matched'] ?? false);
 
-        $confidence = $this->normalizedProviderConfidence($payload);
-        $score = isset($payload['score']) && is_numeric($payload['score']) ? (float) $payload['score'] : null;
+        $score = isset($payload['score'])
+            ? (float) $payload['score']
+            : (isset($payload['confidence']) ? (float) $payload['confidence'] : null);
         $livenessScore = isset($payload['liveness_score']) ? (float) $payload['liveness_score'] : null;
 
         $distance = $payload['distance'] ?? null;
@@ -303,7 +304,7 @@ class ServerSideFaceVerificationService
         $faceMatched = $httpStatus >= 200
             && $httpStatus < 300
             && ($providerFaceMatched || $verified || $status === 'verified')
-            && ($confidence === null || $confidence >= $minConfidence);
+            && ($score === null || $score >= $minConfidence);
 
         $activeLivenessPassed = (bool) ($payload['active_liveness_passed'] ?? false)
             || (bool) ($payload['challenge_passed'] ?? false);
@@ -322,8 +323,7 @@ class ServerSideFaceVerificationService
             'liveness_passed' => $livenessPassed,
             'active_liveness_passed' => $activeLivenessPassed,
             'face_matched' => $faceMatched,
-            'confidence' => $confidence,
-            'score' => $score,
+            'confidence' => $score,
             'liveness_score' => $livenessScore,
             'screen_attack_detected' => $screenAttackDetected,
             'distance' => $distance,
@@ -333,23 +333,6 @@ class ServerSideFaceVerificationService
             'message' => $payload['message'] ?? null,
             'raw' => $payload,
         ];
-    }
-
-    private function normalizedProviderConfidence(array $payload): ?float
-    {
-        if (isset($payload['confidence']) && is_numeric($payload['confidence'])) {
-            $confidence = (float) $payload['confidence'];
-        } elseif (isset($payload['score']) && is_numeric($payload['score'])) {
-            $confidence = (float) $payload['score'];
-        } else {
-            return null;
-        }
-
-        if ($confidence > 1) {
-            $confidence = $confidence / 100;
-        }
-
-        return round(max(0, min(1, $confidence)), 4);
     }
 
     private function extractLivenessEvidence(Request $request): array
