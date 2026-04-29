@@ -1,0 +1,314 @@
+:root {
+    --vp-primary: #0d6efd;
+    --vp-success: #198754;
+    --vp-dark: #102033;
+    --vp-soft: #f3f7fb;
+    --vp-muted: #6c757d;
+}
+
+body {
+    background: var(--vp-soft);
+}
+
+.auth-wrapper {
+    min-height: 100vh;
+    background: radial-gradient(
+            circle at top left,
+            rgba(13, 110, 253, 0.18),
+            transparent 34%
+        ),
+        radial-gradient(
+            circle at bottom right,
+            rgba(25, 135, 84, 0.14),
+            transparent 32%
+        ),
+        linear-gradient(135deg, #f7fbff 0%, #eef5f3 100%);
+    overflow: hidden;
+}
+
+.auth-brand-panel {
+    position: relative;
+    min-height: 100vh;
+    padding: 56px;
+    background: linear-gradient(
+            135deg,
+            rgba(13, 110, 253, 0.96),
+            rgba(25, 135, 84, 0.92)
+        ),
+        url("{{ asset('assets/img/bg-pattern.png') }}");
+    background-size: cover;
+    color: #fff;
+    overflow: hidden;
+}
+
+.auth-brand-panel::before,
+.auth-brand-panel::after {
+    content: "";
+    position: absolute;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    filter: blur(1px);
+}
+
+.auth-brand-panel::before {
+    width: 280px;
+    height: 280px;
+    top: -90px;
+    right: -70px;
+}
+
+.auth-brand-panel::after {
+    width: 190px;
+    height: 190px;
+    bottom: 80px;
+    left: -70px;
+}
+
+.brand-content {
+    position: relative;
+    z-index: 2;
+    max-width: 620px;
+}
+
+.brand-logo-box {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    margin-bottom: 28px;
+}
+
+.brand-logo-box img {
+    max-width: 44px;
+    max-height: 44px;
+}
+
+.brand-title {
+    font-size: clamp(2.2rem, 4vw, 4.3rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
+    margin-bottom: 20px;
+}
+
+.brand-text {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.84);
+    max-width: 520px;
+}
+
+.feature-card {
+    margin-top: 38px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+.feature-item {
+    padding: 18px;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(12px);
+}
+
+.feature-item i {
+    font-size: 20px;
+    margin-bottom: 10px;
+}
+
+.feature-item span {
+    display: block;
+    font-size: 0.82rem;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.auth-form-panel {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 18px;
+}
+
+.login-box {
+    width: 100%;
+    max-width: 440px;
+}
+
+.mobile-logo {
+    width: 74px;
+    height: 74px;
+    border-radius: 24px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 18px;
+    box-shadow: 0 16px 40px rgba(16, 32, 51, 0.08);
+}
+
+.mobile-logo img {
+    max-width: 52px;
+    max-height: 52px;
+}
+
+.login-card {
+    border: 0;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 24px 70px rgba(16, 32, 51, 0.13);
+    backdrop-filter: blur(18px);
+}
+
+.login-card .card-body {
+    padding: 34px;
+}
+
+.auth-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(25, 135, 84, 0.1);
+    color: #13764b;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.login-title {
+    font-weight: 800;
+    color: var(--vp-dark);
+    letter-spacing: -0.02em;
+}
+
+.login-subtitle {
+    color: var(--vp-muted);
+    font-size: 0.94rem;
+    line-height: 1.6;
+}
+
+.form-label {
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #344256;
+    margin-bottom: 8px;
+}
+
+.input-group-modern {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    transform: translateY(-50%);
+    color: #9aa6b2;
+    z-index: 3;
+}
+
+.form-control-modern {
+    height: 52px;
+    border-radius: 16px;
+    border: 1px solid #e0e7ef;
+    padding-left: 46px;
+    background: #f8fafc;
+    font-size: 0.94rem;
+    transition: all 0.2s ease;
+}
+
+.form-control-modern:focus {
+    background: #fff;
+    border-color: rgba(13, 110, 253, 0.45);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: #8a96a3;
+    z-index: 4;
+    padding: 6px;
+}
+
+.password-toggle:hover {
+    color: var(--vp-primary);
+}
+
+.btn-login {
+    height: 52px;
+    border: 0;
+    border-radius: 16px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    background: linear-gradient(135deg, var(--vp-primary), var(--vp-success));
+    box-shadow: 0 14px 28px rgba(13, 110, 253, 0.22);
+}
+
+.btn-login:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 18px 34px rgba(13, 110, 253, 0.28);
+}
+
+.auth-link {
+    color: var(--vp-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.auth-link:hover {
+    color: var(--vp-success);
+}
+
+.auth-footer {
+    color: #7d8896;
+    font-size: 0.82rem;
+}
+
+@media (max-width: 991.98px) {
+    .auth-wrapper {
+        background: radial-gradient(
+                circle at top,
+                rgba(13, 110, 253, 0.16),
+                transparent 36%
+            ),
+            linear-gradient(180deg, #f7fbff 0%, #eef5f3 100%);
+    }
+
+    .auth-form-panel {
+        min-height: 100vh;
+        padding: 26px 16px;
+    }
+
+    .login-card .card-body {
+        padding: 26px;
+    }
+}
+
+@media (max-width: 420px) {
+    .login-card {
+        border-radius: 24px;
+    }
+
+    .login-card .card-body {
+        padding: 22px;
+    }
+
+    .form-control-modern,
+    .btn-login {
+        height: 50px;
+    }
+}

@@ -145,7 +145,7 @@ $menuCatalog = [
 ],
 'jadwal_kerja' => [
 'route_name' => 'work-patterns.index',
-'icon' => 'fas fa-calendar-week',
+'icon' => 'fas fa-calendar',
 'tone' => 'sky',
 'description' => 'Kelola master pola kerja dan jadwal kerja.',
 ],
@@ -397,16 +397,6 @@ if ($hour < 11) {
                     </div>
                     @endforeach
                 </div>
-
-                @if($currentUser->hasMenuAccess('presensi'))
-                <div class="attendance-overview__footer">
-                    <a href="{{ route('presensi.index') }}" class="attendance-action-button">
-                        <i class="fas fa-map-marker-alt"></i>
-                        Buka Presensi
-                        <i class="fas fa-arrow-right"></i>
-                    </a>
-                </div>
-                @endif
             </div>
             @endif
 

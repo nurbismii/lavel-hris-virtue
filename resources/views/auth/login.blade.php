@@ -1,79 +1,141 @@
 @extends('layouts.app-auth')
 
 @section('content')
-<div class="container-fluid min-vh-100">
-    <div class="row min-vh-100">
 
-        {{-- LEFT SIDE (Branding) --}}
-        <div class="col-lg-7 d-none d-lg-flex align-items-center justify-content-center bg-primary text-white">
-            <div class="text-left px-5">
-                <h1 class="fw-bold mb-3">PT VDNI | V-People</h1>
-                <p class="fs-5 opacity-75">
-                    Manage gaji karyawan, data pribadi dan pengajuan<br>
-                    dalam satu platform modern.
+<div class="container-fluid auth-wrapper p-0">
+    <div class="row g-0 min-vh-100">
+
+        {{-- LEFT SIDE --}}
+        <div class="col-lg-7 d-none d-lg-flex align-items-center auth-brand-panel">
+            <div class="brand-content">
+                <div class="brand-logo-box">
+                    <img src="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" alt="V-People">
+                </div>
+
+                <div class="mb-3">
+                    <span class="badge rounded-pill bg-light text-primary px-3 py-2">
+                        PT VDNI Employee Platform
+                    </span>
+                </div>
+
+                <h1 class="brand-title">
+                    Kelola HR lebih cepat, rapi, dan terintegrasi.
+                </h1>
+
+                <p class="brand-text">
+                    V-People membantu proses administrasi karyawan, presensi,
+                    pengajuan, dokumen, dan data personal dalam satu sistem yang aman
+                    serta mudah digunakan.
                 </p>
+
+                <div class="feature-card">
+                    <div class="feature-item">
+                        <i class="fas fa-user-shield"></i>
+                        <strong>Secure Access</strong>
+                        <span>Login aman untuk pengguna terdaftar.</span>
+                    </div>
+
+                    <div class="feature-item">
+                        <i class="fas fa-clock"></i>
+                        <strong>Real-time</strong>
+                        <span>Data HR diperbarui lebih cepat.</span>
+                    </div>
+
+                    <div class="feature-item">
+                        <i class="fas fa-mobile-alt"></i>
+                        <strong>Mobile Ready</strong>
+                        <span>Nyaman digunakan dari perangkat mobile.</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        {{-- RIGHT SIDE (Form) --}}
-        <div class="col-lg-5 d-flex align-items-center justify-content-center">
-            <div class="w-100" style="max-width: 420px;">
+        {{-- RIGHT SIDE --}}
+        <div class="col-lg-5 auth-form-panel">
+            <div class="login-box">
 
-                {{-- Logo --}}
-                <div class="text-center mb-4">
-                    <img src="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" height="100" width="120" class="mb-3" />
-                    <h4 class="fw-bold mb-1">Masuk ke akun kamu</h4>
-                    <p class="text-muted mb-0">
-                        Mari kita bantu kamu kembali bekerja
-                    </p>
+                {{-- MOBILE LOGO --}}
+                <div class="d-lg-none text-center mb-4">
+                    <div class="mobile-logo">
+                        <img src="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" alt="V-People">
+                    </div>
+                    <h4 class="fw-bold mb-1">V-People</h4>
+                    <p class="text-muted small mb-0">PT Virtue Dragon Nickel Industry</p>
                 </div>
 
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-body p-4">
+                <div class="card login-card">
+                    <div class="card-body">
+
+                        <div class="mb-4">
+                            <div class="auth-badge">
+                                <i class="fas fa-lock"></i>
+                                Secure Login
+                            </div>
+
+                            <h3 class="login-title mb-2">Selamat datang kembali</h3>
+                            <p class="login-subtitle mb-0">
+                                Masuk menggunakan akun V-People kamu untuk melanjutkan pekerjaan.
+                            </p>
+                        </div>
 
                         <form method="POST" action="{{ route('login') }}">
                             @csrf
 
                             {{-- Email --}}
                             <div class="mb-3">
-                                <label class="form-label small text-muted">
-                                    Email address
-                                </label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    value="{{ old('email') }}"
-                                    class="form-control form-control rounded-3 @error('email') is-invalid @enderror"
-                                    placeholder="you@company.com"
-                                    required
-                                    autofocus>
-                                @error('email')
-                                <div class="invalid-feedback">
-                                    {{ $message }}
+                                <label for="email" class="form-label">Email Address</label>
+                                <div class="input-group-modern">
+                                    <i class="fas fa-envelope input-icon"></i>
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        value="{{ old('email') }}"
+                                        class="form-control form-control-modern @error('email') is-invalid @enderror"
+                                        placeholder="nama@company.com"
+                                        autocomplete="email"
+                                        required
+                                        autofocus>
+                                    @error('email')
+                                    <div class="invalid-feedback d-block">
+                                        {{ $message }}
+                                    </div>
+                                    @enderror
                                 </div>
-                                @enderror
                             </div>
 
                             {{-- Password --}}
                             <div class="mb-3">
-                                <label class="form-label small text-muted">
-                                    Password
-                                </label>
-                                <input
-                                    type="password"
-                                    name="password"
-                                    class="form-control form-control rounded-3 @error('password') is-invalid @enderror"
-                                    placeholder="••••••••"
-                                    required>
-                                @error('password')
-                                <div class="invalid-feedback">
-                                    {{ $message }}
+                                <label for="password" class="form-label">Password</label>
+                                <div class="input-group-modern">
+                                    <i class="fas fa-key input-icon"></i>
+                                    <input
+                                        id="password"
+                                        type="password"
+                                        name="password"
+                                        class="form-control form-control-modern pe-5 @error('password') is-invalid @enderror"
+                                        placeholder="Masukkan password"
+                                        autocomplete="current-password"
+                                        required>
+
+                                    <button
+                                        type="button"
+                                        class="password-toggle"
+                                        onclick="togglePassword()"
+                                        aria-label="Tampilkan password">
+                                        <i id="passwordIcon" class="fas fa-eye"></i>
+                                    </button>
+
+                                    @error('password')
+                                    <div class="invalid-feedback d-block">
+                                        {{ $message }}
+                                    </div>
+                                    @enderror
                                 </div>
-                                @enderror
                             </div>
 
                             {{-- Options --}}
-                            <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
                                 <div class="form-check">
                                     <input
                                         class="form-check-input"
@@ -81,47 +143,59 @@
                                         name="remember"
                                         id="remember"
                                         {{ old('remember') ? 'checked' : '' }}>
-                                    <label class="form-check-label small" for="remember">
-                                        Remember me
+                                    <label class="form-check-label small text-muted" for="remember">
+                                        Ingat saya
                                     </label>
                                 </div>
 
                                 @if (Route::has('password.request'))
-                                <a href="{{ route('password.request') }}" class="small text-decoration-none">
-                                    Forgot password?
+                                <a href="{{ route('password.request') }}" class="auth-link small">
+                                    Lupa password?
                                 </a>
                                 @endif
                             </div>
 
                             {{-- Button --}}
                             <div class="d-grid mb-3">
-                                <button type="submit" class="btn btn-primary rounded-3">
-                                    Sign In
+                                <button type="submit" class="btn btn-primary btn-login">
+                                    Masuk Sekarang
+                                    <i class="fas fa-arrow-right ms-2"></i>
                                 </button>
                             </div>
 
                             {{-- Register Link --}}
                             @if (Route::has('register'))
-                            <div class="text-center small">
+                            <div class="text-center small text-muted">
                                 Belum punya akun?
-                                <a href="{{ route('register') }}">
-                                    Daftar disini
+                                <a href="{{ route('register') }}" class="auth-link">
+                                    Daftar di sini
                                 </a>
                             </div>
                             @endif
                         </form>
-
                     </div>
                 </div>
 
-                {{-- Footer --}}
-                <div class="text-center mt-4 small text-muted">
-                    © {{ date('Y') }} PT Virtue Dragon Nickel Industry
+                <div class="text-center mt-4 auth-footer">
+                    © {{ date('Y') }} PT Virtue Dragon Nickel Industry. All rights reserved.
                 </div>
-
             </div>
         </div>
-
     </div>
 </div>
+
+<script>
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const passwordIcon = document.getElementById('passwordIcon');
+
+        if (!passwordInput || !passwordIcon) return;
+
+        const isPassword = passwordInput.type === 'password';
+
+        passwordInput.type = isPassword ? 'text' : 'password';
+        passwordIcon.classList.toggle('fa-eye', !isPassword);
+        passwordIcon.classList.toggle('fa-eye-slash', isPassword);
+    }
+</script>
 @endsection
