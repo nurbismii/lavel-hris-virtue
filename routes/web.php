@@ -101,6 +101,7 @@ Route::middleware(['android.redirect'])->group(function () {
             ->name('roster.attachment');
         Route::resource('/roster', 'App\Http\Controllers\User\RosterController')->middleware('menu:roster');
         Route::resource('/slipgaji', 'App\Http\Controllers\User\SlipgajiController')->middleware('menu:slip_gaji_user');
+        Route::get('/slipgaji/{id}/pdf', [SlipGajiController::class, 'exportPdf'])->middleware('menu:slip_gaji_user')->name('slipgaji.pdf');
         Route::get('/lembur', [UserOvertimeOrderController::class, 'index'])->middleware('menu:lembur')->name('lembur.index');
         Route::post('/lembur/{id}/respond', [UserOvertimeOrderController::class, 'respond'])->middleware('menu:lembur')->name('lembur.respond');
 

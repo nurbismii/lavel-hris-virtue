@@ -8,17 +8,16 @@
             <div>
                 <h4 class="fw-bold">
                     <i class="fas fa-file-alt text-primary me-2"></i>
-                    Data Surat Peringatan
+                    Data Pelanggaran
                 </h4>
-
                 <small class="text-muted">
-                    Daftar surat peringatan
+                    Daftar pelanggaran karyawan yang tercatat dalam sistem. Kelola data pelanggaran dengan mudah dan efisien.
                 </small>
             </div>
 
             <div class="ms-md-auto py-2 py-md-0">
                 <a class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalImportSuratPeringatan">
-                    Bulk Surat Peringatan
+                    Bulk Pelanggaran
                 </a>
             </div>
         </div>
@@ -108,7 +107,7 @@
         processing: true,
         serverSide: true,
         responsive: true,
-        
+
         ajax: {
             url: "{{ route('surat-peringatan.index') }}",
             data: function(d) {

@@ -203,7 +203,7 @@ class PresensiController extends Controller
             return $this->failPresensi('Foto referensi wajah belum didaftarkan oleh admin.');
         }
 
-        if ($request->accuracy < 5 || $request->accuracy > 60) {
+        if ($request->accuracy > 75) {
             return $this->failPresensi('GPS tidak valid. Tunggu akurasi lokasi membaik lalu coba lagi.');
         }
 

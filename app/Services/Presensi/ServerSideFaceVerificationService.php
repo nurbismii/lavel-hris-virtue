@@ -80,6 +80,7 @@ class ServerSideFaceVerificationService
             ];
         }
 
+
         return [
             'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
             'passed' => false,
@@ -129,6 +130,14 @@ class ServerSideFaceVerificationService
                 ];
             }
 
+            \Log::info('FACE PROVIDER REQUEST', [
+                'endpoint' => $endpoint,
+                'token_exists' => !empty(config('services.presensi_face.token')),
+                'reference_valid' => $reference['valid'] ?? false,
+                'reference_path' => $reference['absolute_path'] ?? null,
+                'selfie_path' => $selfieFile->getRealPath(),
+            ]);
+
             $response = (new Client([
                 'timeout' => (float) config('services.presensi_face.timeout', 8),
                 'connect_timeout' => (float) config('services.presensi_face.connect_timeout', 2),
@@ -164,7 +173,17 @@ class ServerSideFaceVerificationService
                 ],
             ]);
 
+            \Log::info('FACE PROVIDER RESPONSE', [
+                'status' => $response->getStatusCode(),
+                'body' => (string) $response->getBody(),
+            ]);
+
             if ($response->getStatusCode() >= 500) {
+                \Log::error('FACE PROVIDER SERVER ERROR', [
+                    'status' => $response->getStatusCode(),
+                    'body' => (string) $response->getBody(),
+                ]);
+
                 return null;
             }
 
@@ -176,6 +195,10 @@ class ServerSideFaceVerificationService
 
             return $this->normalizeProviderPayload($payload, $response->getStatusCode());
         } catch (GuzzleException $exception) {
+            \Log::error('FACE PROVIDER GUZZLE ERROR', [
+                'message' => $exception->getMessage(),
+            ]);
+
             return null;
         } finally {
             if (is_resource($selfieHandle)) {

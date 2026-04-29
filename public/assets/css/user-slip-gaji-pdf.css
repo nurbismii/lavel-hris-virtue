@@ -1,91 +1,355 @@
+@page {
+    margin: 18px 22px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
 body {
-    font-family: DejaVu Sans, sans-serif;
-    font-size: 10px;
-    color: #333;
-}
-
-.header {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.title {
-    font-size: 18px;
-    font-weight: bold;
-}
-
-.subtitle {
-    font-size: 12px;
-    color: #666;
+    font-family: DejaVu Sans, Arial, sans-serif;
+    font-size: 10.5px;
+    color: #102033;
+    background: #ffffff;
+    margin: 0;
+    padding: 0;
 }
 
 table {
-    width: 100%;
     border-collapse: collapse;
-    margin-bottom: 15px;
-}
-
-th,
-td {
-    padding: 6px 8px;
-    border: 1px solid #ddd;
-}
-
-th {
-    background: #f5f5f5;
-    text-align: left;
 }
 
 .text-right {
     text-align: right;
 }
 
-.section-title {
-    background: #eee;
-    font-weight: bold;
+/* HEADER */
+.pdf-hero {
+    background: #0d6efd;
+    color: #ffffff;
+    padding: 16px 18px;
+    border-radius: 12px;
+    margin-bottom: 12px;
 }
 
-.total {
-    font-size: 10px;
-    font-weight: bold;
-    background: #e6ffe6;
+.pdf-hero-table {
+    border-collapse: collapse;
 }
 
-.pdf-header-table,
-.pdf-header-table td,
-.pdf-footer-table,
-.pdf-footer-table td {
-    border: none;
-}
-
-.pdf-header-table,
-.pdf-footer-table {
-    width: 100%;
+.pdf-logo-cell {
+    vertical-align: middle;
 }
 
 .pdf-logo {
-    width: 120px;
+    width: 72px;
+    height: auto;
+    display: block;
 }
 
-.pdf-header-meta {
+.pdf-kicker {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: #d9ecff;
+    margin-bottom: 3px;
+}
+
+.pdf-title {
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: .5px;
+    line-height: 1.2;
+}
+
+.pdf-subtitle {
+    margin-top: 3px;
+    font-size: 10.5px;
+    color: #eef7ff;
+}
+
+.pdf-period {
+    margin-top: 7px;
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: #ffffff;
+    color: #0d6efd;
+    font-size: 9.5px;
+    font-weight: bold;
+}
+
+.pdf-status-cell {
     text-align: right;
+    vertical-align: top;
 }
 
-.pdf-header-divider {
-    margin-top: 10px;
-    border: 1px solid #ccc;
-}
-
-.pdf-footer-table {
-    margin-top: 15px;
-}
-
-.pdf-footer-note,
-.pdf-footer-bank {
+.pdf-status {
+    display: inline-block;
+    padding: 7px 12px;
+    border-radius: 20px;
     font-size: 10px;
-    color: #777;
+    font-weight: bold;
+    text-align: center;
+}
+
+.pdf-status-paid {
+    background: #ffffff;
+    color: #198754;
+}
+
+.pdf-status-unpaid {
+    background: #fff3cd;
+    color: #7a5200;
+}
+
+/* SUMMARY */
+.summary-table {
+    margin-bottom: 12px;
+}
+
+.summary-left,
+.summary-right {
+    border: 1px solid #e3eaf3;
+    background: #f8fafc;
+    padding: 13px 14px;
+    vertical-align: middle;
+}
+
+.summary-left {
+    border-right: 0;
+    border-radius: 12px 0 0 12px;
+}
+
+.summary-right {
+    border-radius: 0 12px 12px 0;
+}
+
+.summary-label {
+    color: #6c757d;
+    font-size: 10px;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.summary-amount {
+    color: #198754;
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: bold;
+}
+
+.summary-meta-label {
+    width: 32%;
+    color: #6c757d;
+    font-size: 9.5px;
+    padding: 2px 0;
+}
+
+.summary-meta-value {
+    width: 68%;
+    color: #102033;
+    font-size: 9.5px;
+    font-weight: bold;
+    padding: 2px 0;
+    text-align: right;
+}
+
+/* SECTION */
+.section-box {
+    border: 1px solid #e3eaf3;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+
+.section-heading {
+    background: #f1f7ff;
+    color: #0d6efd;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: .4px;
+    padding: 9px 11px;
+    border-bottom: 1px solid #e3eaf3;
+}
+
+.info-table th,
+.info-table td {
+    border-bottom: 1px solid #edf2f7;
+    padding: 8px 10px;
+    vertical-align: top;
+}
+
+.info-table tr:last-child th,
+.info-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.info-table th {
+    background: #fbfdff;
+    color: #6c757d;
+    font-size: 9.5px;
+    text-align: left;
+    font-weight: bold;
+}
+
+.info-table td {
+    color: #102033;
+    font-size: 9.8px;
+    font-weight: bold;
+}
+
+/* SALARY COLUMNS */
+.salary-columns {
+    margin-bottom: 12px;
+}
+
+.salary-column {
+    vertical-align: top;
+}
+
+.salary-column-left {
+    padding-right: 6px;
+}
+
+.salary-column-right {
+    padding-left: 6px;
+}
+
+.salary-box {
+    border: 1px solid #e3eaf3;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.salary-box-title {
+    padding: 10px 11px;
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: .4px;
+    color: #102033;
+    border-bottom: 1px solid #e3eaf3;
+}
+
+.income-title {
+    background: #ecfdf3;
+    color: #198754;
+}
+
+.deduction-title {
+    background: #fff0f1;
+    color: #dc3545;
+}
+
+.salary-box-total {
+    padding: 10px 11px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #102033;
+    text-align: right;
+    border-bottom: 1px solid #e3eaf3;
+}
+
+.salary-detail-table td {
+    padding: 7px 10px;
+    border-bottom: 1px dashed #dce5ef;
+    font-size: 9.6px;
+}
+
+.salary-detail-table tr:last-child td {
+    border-bottom: 0;
+}
+
+.salary-detail-table td:first-child {
+    color: #475569;
+    font-weight: normal;
+}
+
+.salary-detail-table td:last-child {
+    font-weight: bold;
+}
+
+.income-value {
+    color: #198754;
+}
+
+.deduction-value {
+    color: #dc3545;
+}
+
+.empty-text {
+    color: #6c757d;
+    text-align: center;
+    font-style: italic;
+}
+
+/* FINAL TOTAL */
+.final-total-table {
+    border-collapse: collapse;
+    margin-bottom: 12px;
+}
+
+.final-total-table td {
+    background: #102033;
+    color: #ffffff;
+    padding: 13px 15px;
+    vertical-align: middle;
+}
+
+.final-total-label {
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: .4px;
+}
+
+.final-total-note {
+    color: #cbd5e1;
+    font-size: 9.5px;
+    margin-top: 3px;
+}
+
+.final-total-amount {
+    text-align: right;
+    font-size: 19px;
+    line-height: 1.2;
+    font-weight: bold;
+}
+
+/* FOOTER */
+.pdf-footer-table {
+    margin-top: 8px;
+}
+
+.pdf-footer-note {
+    vertical-align: top;
+    padding: 10px 12px;
+    background: #f8fafc;
+    border: 1px solid #e3eaf3;
+    border-right: 0;
+    color: #475569;
+    font-size: 9.3px;
+    line-height: 1.55;
 }
 
 .pdf-footer-bank {
-    text-align: right;
+    vertical-align: top;
+    padding: 0;
+}
+
+.bank-box {
+    padding: 10px 12px;
+    background: #ffffff;
+    border: 1px solid #e3eaf3;
+    color: #102033;
+    font-size: 9.3px;
+    line-height: 1.55;
+}
+
+.bank-title {
+    color: #6c757d;
+    font-size: 9px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    text-transform: uppercase;
 }

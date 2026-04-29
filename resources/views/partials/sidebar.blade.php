@@ -96,7 +96,7 @@
                     <li class="nav-item {{ request()->routeIs('surat-peringatan.*') ? 'active' : '' }}">
                         <a href="{{ route('surat-peringatan.index') }}">
                             <i class="fas fa-file-alt"></i>
-                            <p>Surat Peringatan</p>
+                            <p>Pelanggaran</p>
                         </a>
                     </li>
                 @endif

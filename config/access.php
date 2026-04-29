@@ -26,7 +26,7 @@ $menus = [
         'group' => 'Data Master',
     ],
     'surat_peringatan' => [
-        'label' => 'Surat Peringatan',
+        'label' => 'Pelanggaran',
         'group' => 'Data Master',
     ],
     'data_presensi' => [

@@ -1751,7 +1751,7 @@ return;
             let accuracy = position.coords.accuracy;
             let now = Date.now();
 
-            if (accuracy > 60) {
+            if (accuracy > 75) {
                 gpsReady = false;
                 gpsEvidenceReady = false;
                 stableStartTime = null;
@@ -1908,7 +1908,7 @@ return;
                         return;
                     }
 
-                    if (accuracy > 60) {
+                    if (accuracy > 75) {
                         return;
                     }
 
