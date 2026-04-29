@@ -227,9 +227,9 @@ class AttendanceSecurityService
             }
         }
 
-        $openAt = (int) ($frames->get('baseline_open')['captured_at_ms'] ?? 0);
-        $closedAt = (int) ($frames->get('blink_closed')['captured_at_ms'] ?? 0);
-        $reopenedAt = (int) ($frames->get('blink_reopened')['captured_at_ms'] ?? 0);
+        $openAt = $this->livenessFrameTimestamp($frames->get('baseline_open'));
+        $closedAt = $this->livenessFrameTimestamp($frames->get('blink_closed'));
+        $reopenedAt = $this->livenessFrameTimestamp($frames->get('blink_reopened'));
 
         if ($openAt <= 0 || $closedAt <= $openAt || $reopenedAt <= $closedAt || ($reopenedAt - $openAt) > 10000) {
             $this->fail('Urutan liveness tidak valid. Ulangi verifikasi kamera.');
@@ -246,6 +246,15 @@ class AttendanceSecurityService
                 'duration_ms' => $reopenedAt - $openAt,
             ],
         ];
+    }
+
+    private function livenessFrameTimestamp($frame): float
+    {
+        if (!is_array($frame) || !isset($frame['captured_at_ms']) || !is_numeric($frame['captured_at_ms'])) {
+            return 0;
+        }
+
+        return (float) $frame['captured_at_ms'];
     }
 
     public function validateSelfieImage(UploadedFile $file, User $user, ?string $referencePath): array

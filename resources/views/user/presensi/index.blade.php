@@ -479,6 +479,8 @@ return $clock->format('H:i') . $suffix;
     let faceMatchedReady = false;
     let latestFaceMatchCapturePayload = null;
     let livenessCaptureInProgress = false;
+    let livenessStartedAtMs = 0;
+    let lastLivenessCapturedAtMs = 0;
     let livenessEvidence = {
         frames: []
     };
@@ -521,8 +523,11 @@ return $clock->format('H:i') . $suffix;
     }
 
     function resetLivenessEvidence() {
+        livenessStartedAtMs = (window.performance && performance.now) ? performance.now() : Date.now();
+        lastLivenessCapturedAtMs = 0;
         livenessEvidence = {
-            frames: []
+            frames: [],
+            started_at_client: new Date().toISOString()
         };
 
         const evidenceInput = document.getElementById('face_liveness_evidence');
@@ -2065,9 +2070,9 @@ return;
     let blinkIsProcessing = false;
 
     const BLINK_SAMPLE_INTERVAL_MS = 70;
-    const BLINK_BASELINE_FRAMES = 4;
-    const BLINK_DROP_RATIO = 0.90;
-    const BLINK_REOPEN_RATIO = 0.70;
+    const BLINK_BASELINE_FRAMES = 3;
+    const BLINK_DROP_RATIO = 0.94;
+    const BLINK_REOPEN_RATIO = 0.72;
     const BLINK_MIN_CLOSED_FRAMES = 1;
     const BLINK_MIN_DROP_ABSOLUTE = 0.008;
 
@@ -2107,6 +2112,19 @@ return;
             return;
         }
 
+        if (!livenessStartedAtMs) {
+            livenessStartedAtMs = (window.performance && performance.now) ? performance.now() : Date.now();
+        }
+
+        const nowMs = (window.performance && performance.now) ? performance.now() : Date.now();
+        let capturedAtMs = Math.max(1, Math.round(nowMs - livenessStartedAtMs));
+
+        if (capturedAtMs <= lastLivenessCapturedAtMs) {
+            capturedAtMs = lastLivenessCapturedAtMs + 1;
+        }
+
+        lastLivenessCapturedAtMs = capturedAtMs;
+
         const maxWidth = 220;
         const scale = Math.min(1, maxWidth / videoElement.videoWidth);
         const canvas = document.createElement('canvas');
@@ -2116,7 +2134,8 @@ return;
 
         const frame = {
             label,
-            captured_at_ms: Date.now(),
+            captured_at_ms: capturedAtMs,
+            captured_at_client: new Date().toISOString(),
             image: canvas.toDataURL('image/jpeg', 0.62),
             ear: extra.ear ?? null
         };
