@@ -40,6 +40,37 @@ class ServerSideFaceVerificationService
         return $this->buildDecision($passive, $provider);
     }
 
+    public function verifyStored(
+        Presensi $presensi,
+        User $user,
+        string $referencePath,
+        array $challenge,
+        array $faceResult,
+        array $selfieAudit,
+        array $livenessEvidencePaths,
+        array $context = []
+    ): array {
+        $reference = $this->resolveReferenceImage($referencePath, (string) $user->nik_karyawan);
+        $selfiePath = $this->resolveStoredSelfiePath((string) $presensi->face_selfie_path, (string) $user->nik_karyawan);
+        $passive = $this->runPassiveLivenessChecks($selfiePath, $selfieAudit);
+        $provider = $this->runProviderVerificationFromPaths(
+            $selfiePath,
+            $reference,
+            $user,
+            $challenge,
+            $faceResult,
+            $selfieAudit,
+            $passive,
+            $this->buildStoredLivenessEvidenceParts($livenessEvidencePaths, (string) $user->nik_karyawan),
+            array_merge($context, [
+                'absensi_id' => $presensi->id,
+                'liveness_evidence_summary' => $this->summarizeStoredLivenessEvidencePaths($livenessEvidencePaths),
+            ])
+        );
+
+        return $this->buildDecision($passive, $provider);
+    }
+
     private function buildDecision(array $passive, ?array $provider): array
     {
         $failClosed = (bool) config('services.presensi_face.fail_closed', false);
@@ -112,6 +143,38 @@ class ServerSideFaceVerificationService
         array $selfieAudit,
         array $passive
     ): ?array {
+        $livenessEvidence = $this->extractLivenessEvidence($request);
+
+        return $this->runProviderVerificationFromPaths(
+            (string) $selfieFile->getRealPath(),
+            $reference,
+            $user,
+            $challenge,
+            $faceResult,
+            $selfieAudit,
+            $passive,
+            $this->buildLivenessEvidenceParts($livenessEvidence, (string) $user->nik_karyawan),
+            [
+                'screen_spoof_score' => $this->providerScreenSpoofScore($request),
+                'client_screen_spoof_score_raw' => (float) $request->input('screen_spoof_score', 0),
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'liveness_evidence_summary' => $this->summarizeLivenessEvidence($livenessEvidence),
+            ]
+        );
+    }
+
+    private function runProviderVerificationFromPaths(
+        ?string $selfiePath,
+        array $reference,
+        User $user,
+        array $challenge,
+        array $faceResult,
+        array $selfieAudit,
+        array $passive,
+        array $livenessEvidenceParts,
+        array $context = []
+    ): ?array {
         $endpoint = trim((string) config('services.presensi_face.endpoint'));
 
         if ($endpoint === '') {
@@ -126,12 +189,19 @@ class ServerSideFaceVerificationService
             ];
         }
 
-        $livenessEvidence = $this->extractLivenessEvidence($request);
+        if (!$selfiePath || !File::isFile($selfiePath)) {
+            return [
+                'liveness_passed' => false,
+                'face_matched' => false,
+                'message' => 'File selfie presensi tidak dapat dibaca oleh server verifier.',
+            ];
+        }
+
         $selfieHandle = null;
         $referenceHandle = null;
 
         try {
-            $selfieHandle = fopen($selfieFile->getRealPath(), 'r');
+            $selfieHandle = fopen($selfiePath, 'r');
             $referenceHandle = fopen($reference['absolute_path'], 'r');
 
             if (!$selfieHandle || !$referenceHandle) {
@@ -142,22 +212,22 @@ class ServerSideFaceVerificationService
                 ];
             }
 
-            $attendanceDate = (string) ($challenge['attendance_date'] ?? now()->toDateString());
-            $absensiId = Presensi::where('nik_karyawan', $user->nik_karyawan)
+            $attendanceDate = (string) ($challenge['attendance_date'] ?? $context['attendance_date'] ?? now()->toDateString());
+            $absensiId = $context['absensi_id'] ?? Presensi::where('nik_karyawan', $user->nik_karyawan)
                 ->whereDate('tanggal', $attendanceDate)
                 ->value('id');
-            $providerScreenSpoofScore = $this->providerScreenSpoofScore($request);
-            $livenessEvidenceParts = $this->buildLivenessEvidenceParts($livenessEvidence, (string) $user->nik_karyawan);
+            $providerScreenSpoofScore = $this->normalizeScreenSpoofScore((float) ($context['screen_spoof_score'] ?? 0));
+            $livenessAction = (string) ($challenge['liveness_action'] ?? 'turn_left_right');
 
             \Log::info('FACE PROVIDER REQUEST', [
                 'endpoint' => $endpoint,
                 'token_exists' => !empty(config('services.presensi_face.token')),
                 'reference_valid' => $reference['valid'] ?? false,
-                'selfie_valid' => File::isFile((string) $selfieFile->getRealPath()),
-                'liveness_action' => (string) ($challenge['liveness_action'] ?? 'turn_left_right'),
+                'selfie_valid' => File::isFile($selfiePath),
+                'liveness_action' => $livenessAction,
                 'liveness_fields' => array_values(array_map(fn($part) => $part['name'] ?? null, $livenessEvidenceParts)),
                 'reference_path' => $reference['absolute_path'] ?? null,
-                'selfie_path' => $selfieFile->getRealPath(),
+                'selfie_path' => $selfiePath,
                 'presensi_challenge_id' => $challenge['id'] ?? null,
                 'screen_spoof_score' => $providerScreenSpoofScore,
             ]);
@@ -191,7 +261,7 @@ class ServerSideFaceVerificationService
                 ],
                 [
                     'name' => 'liveness_action',
-                    'contents' => (string) ($challenge['liveness_action'] ?? 'turn_left_right'),
+                    'contents' => $livenessAction,
                 ],
                 [
                     'name' => 'screen_spoof_score',
@@ -206,20 +276,20 @@ class ServerSideFaceVerificationService
                         'challenge_id' => $challenge['id'] ?? null,
                         'challenge_issued_at' => $challenge['issued_at'] ?? null,
                         'liveness_challenge' => [
-                            'action' => $challenge['liveness_action'] ?? 'turn_left_right',
+                            'action' => $livenessAction,
                             'label' => $challenge['liveness_label'] ?? null,
                         ],
                         'client_liveness' => $faceResult['liveness'] ?? null,
-                        'liveness_evidence_summary' => $this->summarizeLivenessEvidence($livenessEvidence),
+                        'liveness_evidence_summary' => $context['liveness_evidence_summary'] ?? [],
                         'client_face_distance' => $faceResult['distance'] ?? null,
                         'client_detection_score' => $faceResult['detection_score'] ?? null,
                         'screen_spoof_score' => $providerScreenSpoofScore,
-                        'client_screen_spoof_score_raw' => (float) $request->input('screen_spoof_score', 0),
+                        'client_screen_spoof_score_raw' => (float) ($context['client_screen_spoof_score_raw'] ?? $providerScreenSpoofScore),
                         'selfie_sha256' => $selfieAudit['hash'] ?? null,
                         'reference_sha256' => $reference['hash'] ?? null,
                         'passive_liveness' => $passive,
-                        'ip_hash' => hash('sha256', (string) $request->ip()),
-                        'user_agent_hash' => hash('sha256', (string) $request->userAgent()),
+                        'ip_hash' => hash('sha256', (string) ($context['ip'] ?? '')),
+                        'user_agent_hash' => hash('sha256', (string) ($context['user_agent'] ?? '')),
                     ]),
                 ],
             ];
@@ -293,9 +363,10 @@ class ServerSideFaceVerificationService
         $verified = (bool) ($payload['verified'] ?? false);
         $providerFaceMatched = (bool) ($payload['face_matched'] ?? false);
 
-        $score = isset($payload['score'])
+        $confidence = $this->normalizedProviderConfidence($payload);
+        $score = isset($payload['score']) && is_numeric($payload['score'])
             ? (float) $payload['score']
-            : (isset($payload['confidence']) ? (float) $payload['confidence'] : null);
+            : null;
         $livenessScore = isset($payload['liveness_score']) ? (float) $payload['liveness_score'] : null;
 
         $distance = $payload['distance'] ?? null;
@@ -304,7 +375,7 @@ class ServerSideFaceVerificationService
         $faceMatched = $httpStatus >= 200
             && $httpStatus < 300
             && ($providerFaceMatched || $verified || $status === 'verified')
-            && ($score === null || $score >= $minConfidence);
+            && ($confidence === null || $confidence >= $minConfidence);
 
         $activeLivenessPassed = (bool) ($payload['active_liveness_passed'] ?? false)
             || (bool) ($payload['challenge_passed'] ?? false);
@@ -323,7 +394,8 @@ class ServerSideFaceVerificationService
             'liveness_passed' => $livenessPassed,
             'active_liveness_passed' => $activeLivenessPassed,
             'face_matched' => $faceMatched,
-            'confidence' => $score,
+            'confidence' => $confidence,
+            'score' => $score,
             'liveness_score' => $livenessScore,
             'screen_attack_detected' => $screenAttackDetected,
             'distance' => $distance,
@@ -333,6 +405,25 @@ class ServerSideFaceVerificationService
             'message' => $payload['message'] ?? null,
             'raw' => $payload,
         ];
+    }
+
+    private function normalizedProviderConfidence(array $payload): ?float
+    {
+        foreach (['confidence', 'score'] as $key) {
+            if (!isset($payload[$key]) || !is_numeric($payload[$key])) {
+                continue;
+            }
+
+            $value = (float) $payload[$key];
+
+            if ($value > 1) {
+                $value = $value / 100;
+            }
+
+            return round(max(0, min(1, $value)), 4);
+        }
+
+        return null;
     }
 
     private function extractLivenessEvidence(Request $request): array
@@ -398,6 +489,54 @@ class ServerSideFaceVerificationService
         return $parts;
     }
 
+    private function buildStoredLivenessEvidenceParts(array $paths, string $nikKaryawan): array
+    {
+        $parts = [];
+        $fieldNames = [
+            'center' => 'liveness_center_image',
+            'turn_left' => 'liveness_turn_left_image',
+            'turn_right' => 'liveness_turn_right_image',
+        ];
+
+        foreach ($fieldNames as $label => $fieldName) {
+            $path = $this->resolveStoredLivenessPath((string) ($paths[$label] ?? ''));
+
+            if (!$path) {
+                continue;
+            }
+
+            $parts[] = [
+                'name' => $fieldName,
+                'contents' => File::get($path),
+                'filename' => 'liveness-' . $nikKaryawan . '-' . $label . '.jpg',
+                'headers' => [
+                    'Content-Type' => 'image/jpeg',
+                ],
+            ];
+        }
+
+        return $parts;
+    }
+
+    private function summarizeStoredLivenessEvidencePaths(array $paths): array
+    {
+        $frames = [];
+
+        foreach (['center', 'turn_left', 'turn_right'] as $label) {
+            $path = $this->resolveStoredLivenessPath((string) ($paths[$label] ?? ''));
+
+            $frames[] = [
+                'label' => $label,
+                'sha256' => $path ? hash_file('sha256', $path) : null,
+                'stored' => $path !== null,
+            ];
+        }
+
+        return [
+            'frames' => $frames,
+        ];
+    }
+
     private function decodeEvidenceImage(string $dataUrl): ?string
     {
         if (!preg_match('/^data:image\/jpeg;base64,([A-Za-z0-9+\/=]+)$/', $dataUrl, $matches)) {
@@ -430,13 +569,43 @@ class ServerSideFaceVerificationService
 
     private function providerScreenSpoofScore(Request $request): float
     {
-        $score = (float) $request->input('screen_spoof_score', 0);
+        return $this->normalizeScreenSpoofScore((float) $request->input('screen_spoof_score', 0));
+    }
 
+    private function normalizeScreenSpoofScore(float $score): float
+    {
         if ($score > 1) {
             $score = $score / 100;
         }
 
         return round(max(0, min(1, $score)), 4);
+    }
+
+    private function resolveStoredSelfiePath(string $path, string $nikKaryawan): ?string
+    {
+        $normalizedPath = str_replace('\\', '/', ltrim($path, '/'));
+        $expectedDirectory = 'presensi-selfie/' . $nikKaryawan . '/';
+
+        if ($normalizedPath === '' || str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, $expectedDirectory)) {
+            return null;
+        }
+
+        $absolutePath = public_path($normalizedPath);
+
+        return File::isFile($absolutePath) ? $absolutePath : null;
+    }
+
+    private function resolveStoredLivenessPath(string $path): ?string
+    {
+        $normalizedPath = str_replace('\\', '/', ltrim($path, '/'));
+
+        if ($normalizedPath === '' || str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, 'presensi-liveness/')) {
+            return null;
+        }
+
+        $absolutePath = storage_path('app/' . $normalizedPath);
+
+        return File::isFile($absolutePath) ? $absolutePath : null;
     }
 
     private function resolveReferenceImage(string $referencePath, string $nikKaryawan): array

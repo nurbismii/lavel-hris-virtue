@@ -4,13 +4,13 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Presensi\PresensiRequest;
+use App\Jobs\VerifyPresensiFaceAsync;
 use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\Presensi;
 use App\Services\Presensi\AttendanceSecurityService;
 use App\Services\Presensi\AttendanceDateResolverService;
 use App\Services\Presensi\AttendanceFulfillmentService;
-use App\Services\Presensi\ServerSideFaceVerificationService;
 use App\Services\Presensi\ShiftAssignmentService;
 use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Presensi\OvertimeOrderService;
@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -153,8 +154,7 @@ class PresensiController extends Controller
     public function store(
         PresensiRequest $request,
         $type,
-        AttendanceSecurityService $securityService,
-        ServerSideFaceVerificationService $serverFaceVerificationService
+        AttendanceSecurityService $securityService
     ) {
         $user = Auth::user();
         $karyawan = $user->employee;
@@ -225,19 +225,15 @@ class PresensiController extends Controller
         }
 
         $selfieAudit = $securityService->validateSelfieImage($selfieFile, $user, $karyawan->face_reference_path);
-        $serverVerification = $serverFaceVerificationService->verify(
-            $selfieFile,
-            $user,
-            $karyawan->face_reference_path,
-            $request,
-            $challenge,
-            $faceResult,
-            $selfieAudit
-        );
-
-        if (($serverVerification['status'] ?? null) === Presensi::STATUS_ABSEN_REJECTED) {
-            return $this->failPresensi($serverVerification['message'] ?? 'Server-side liveness atau face verification ditolak.');
-        }
+        $livenessEvidencePaths = $this->storeLivenessEvidenceFrames($request, (string) $user->nik_karyawan, $type);
+        $serverVerification = [
+            'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
+            'passed' => false,
+            'method' => 'server-side-async-pending',
+            'message' => 'Presensi dicatat dan sedang menunggu verifikasi AI server-side.',
+            'provider' => null,
+            'passive_liveness' => null,
+        ];
 
         $storedFaceMeta = $securityService->buildStoredMeta(
             $request,
@@ -255,10 +251,6 @@ class PresensiController extends Controller
 
         if ($request->speed && $request->speed > 40) {
             $securityScore -= 30;
-        }
-
-        if (($serverVerification['status'] ?? null) === Presensi::STATUS_ABSEN_PENDING_REVIEW) {
-            $securityScore -= 35;
         }
 
         $lastPresensi = Presensi::where('nik_karyawan', $user->nik_karyawan)
@@ -280,6 +272,7 @@ class PresensiController extends Controller
 
         $isSuspicious = $securityScore < 60 ? 'TRUE' : 'FALSE';
         $selfiePath = null;
+        $absensiId = null;
 
         try {
             DB::transaction(function () use (
@@ -295,7 +288,8 @@ class PresensiController extends Controller
                 $serverVerification,
                 $securityScore,
                 $isSuspicious,
-                &$selfiePath
+                &$selfiePath,
+                &$absensiId
             ) {
                 $absensi = Presensi::where('nik_karyawan', $user->nik_karyawan)
                     ->whereDate('tanggal', $attendanceDate)
@@ -375,20 +369,41 @@ class PresensiController extends Controller
                 $absensi->face_verification_meta = $storedFaceMeta;
                 $absensi->presensi_challenge_id = $challenge['id'];
                 $absensi->save();
+                $absensiId = $absensi->id;
             });
         } catch (Throwable $exception) {
             if ($selfiePath) {
                 $this->deleteStoredSelfie($selfiePath);
             }
 
+            $this->deleteStoredLivenessEvidence($livenessEvidencePaths);
+
             throw $exception;
         }
 
-        if (($serverVerification['status'] ?? null) === Presensi::STATUS_ABSEN_PENDING_REVIEW) {
-            toast()->warning('Menunggu Review', 'Presensi dicatat, tetapi perlu review server-side face verification.');
-        } else {
-            toast()->success('Success', 'Presensi berhasil dicatat dan terverifikasi server.');
+        if ($absensiId) {
+            $jobChallenge = $challenge;
+            unset($jobChallenge['token']);
+
+            VerifyPresensiFaceAsync::dispatch(
+                $absensiId,
+                (string) $user->id,
+                (string) $karyawan->face_reference_path,
+                $jobChallenge,
+                $faceResult,
+                $selfieAudit,
+                $livenessEvidencePaths,
+                [
+                    'screen_spoof_score' => (float) $request->input('screen_spoof_score', 0),
+                    'client_screen_spoof_score_raw' => (float) $request->input('screen_spoof_score', 0),
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'attendance_date' => $attendanceDate,
+                ]
+            )->onQueue((string) config('services.presensi_face.queue', 'default'));
         }
+
+        toast()->warning('Menunggu Verifikasi AI', 'Presensi dicatat. Status akan diperbarui otomatis setelah verifikasi wajah selesai.');
 
         return back();
     }
@@ -425,6 +440,16 @@ class PresensiController extends Controller
     private function resolveNextAttendanceType(?Presensi $absensi, ?string $statusPresensi): ?string
     {
         if ($statusPresensi) {
+            return null;
+        }
+
+        if (
+            $absensi
+            && in_array($absensi->status_absen, [
+                Presensi::STATUS_ABSEN_PENDING_REVIEW,
+                Presensi::STATUS_ABSEN_REJECTED,
+            ], true)
+        ) {
             return null;
         }
 
@@ -547,6 +572,38 @@ class PresensiController extends Controller
         return 'presensi-selfie/' . $nik . '/' . $datePath . '/' . $filename;
     }
 
+    private function storeLivenessEvidenceFrames(Request $request, string $nik, string $type): array
+    {
+        $evidence = json_decode((string) $request->input('face_liveness_evidence'), true);
+        $frames = collect($evidence['frames'] ?? [])->keyBy(fn($frame) => (string) ($frame['label'] ?? ''));
+        $requiredLabels = ['center', 'turn_left', 'turn_right'];
+        $datePath = now()->format('Y/m/d');
+        $storedPaths = [];
+
+        foreach ($requiredLabels as $label) {
+            $frame = $frames->get($label);
+            $image = is_array($frame) ? (string) ($frame['image'] ?? '') : '';
+
+            if (!preg_match('/^data:image\/jpeg;base64,([A-Za-z0-9+\/=]+)$/', $image, $matches)) {
+                $this->deleteStoredLivenessEvidence($storedPaths);
+                $this->failPresensiValidation('Bukti liveness tidak valid. Ulangi verifikasi kamera.');
+            }
+
+            $binary = base64_decode($matches[1], true);
+
+            if ($binary === false || strlen($binary) > 700000) {
+                $this->deleteStoredLivenessEvidence($storedPaths);
+                $this->failPresensiValidation('Ukuran bukti liveness tidak valid. Ulangi verifikasi kamera.');
+            }
+
+            $path = 'presensi-liveness/' . $nik . '/' . $datePath . '/' . $type . '_' . $label . '_' . Str::lower(Str::random(12)) . '.jpg';
+            Storage::disk('local')->put($path, $binary);
+            $storedPaths[$label] = $path;
+        }
+
+        return $storedPaths;
+    }
+
     private function deleteStoredSelfie(string $path): void
     {
         $normalizedPath = str_replace('\\', '/', ltrim($path, '/'));
@@ -559,6 +616,23 @@ class PresensiController extends Controller
 
         if (File::isFile($absolutePath)) {
             File::delete($absolutePath);
+        }
+    }
+
+    private function deleteStoredLivenessEvidence(array $paths): void
+    {
+        foreach ($paths as $path) {
+            if (!is_string($path) || $path === '') {
+                continue;
+            }
+
+            $normalizedPath = str_replace('\\', '/', ltrim($path, '/'));
+
+            if (str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, 'presensi-liveness/')) {
+                continue;
+            }
+
+            Storage::disk('local')->delete($normalizedPath);
         }
     }
 

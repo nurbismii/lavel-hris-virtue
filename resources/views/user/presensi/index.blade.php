@@ -2068,8 +2068,8 @@ return $clock->format('H:i') . $suffix;
                 });
 
                 Swal.fire({
-                    title: 'Mengirim presensi...',
-                    text: 'Mohon tunggu, selfie dan lokasi sedang dikirim.',
+                    title: 'Menyimpan presensi...',
+                    text: 'Mohon tunggu, data presensi sedang dicatat.',
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     didOpen: () => Swal.showLoading()
