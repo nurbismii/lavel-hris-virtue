@@ -190,12 +190,14 @@ class PresensiController extends Controller
             return $this->failPresensi('Foto referensi wajah belum didaftarkan oleh admin.');
         }
 
-        if ($request->accuracy > 75) {
-            return $this->failPresensi('GPS tidak valid. Tunggu akurasi lokasi membaik lalu coba lagi.');
-        }
-
         if ($request->speed > 50) {
             return $this->failPresensi('Pergerakan tidak wajar. Presensi ditolak untuk keamanan lokasi.');
+        }
+
+        $maxGpsAccuracy = $securityService->maxGpsAccuracyFor($lokasi);
+
+        if ((float) $request->accuracy > $maxGpsAccuracy) {
+            return $this->failPresensi('Akurasi GPS ' . round((float) $request->accuracy) . 'm melebihi batas ' . round($maxGpsAccuracy) . 'm. Tunggu akurasi lokasi membaik lalu coba lagi.');
         }
 
         $distance = $this->calculateDistance(
@@ -445,16 +447,31 @@ class PresensiController extends Controller
         return null;
     }
 
-    public function logGps(Request $request)
+    public function logGps(Request $request, AttendanceSecurityService $securityService)
     {
         $request->validate([
             'lat' => 'required|numeric',
             'long' => 'required|numeric',
-            'accuracy' => 'required|numeric|min:0|max:60',
+            'accuracy' => 'required|numeric|min:0|max:200',
             'speed' => 'nullable|numeric|min:0|max:80',
         ]);
 
         $user = auth()->user();
+        $lokasi = LokasiAbsen::where('divisi_id', optional($user->employee)->divisi_id)->first();
+
+        if (!$lokasi) {
+            return response()->json(['message' => 'Lokasi presensi belum diatur.'], 422);
+        }
+
+        $maxGpsAccuracy = $securityService->maxGpsAccuracyFor($lokasi);
+
+        if ((float) $request->accuracy > $maxGpsAccuracy) {
+            return response()->json([
+                'message' => 'Akurasi GPS melebihi batas.',
+                'accuracy' => (float) $request->accuracy,
+                'max_accuracy' => $maxGpsAccuracy,
+            ], 422);
+        }
 
         LogPresensi::create([
             'nik_karyawan' => $user->nik_karyawan,

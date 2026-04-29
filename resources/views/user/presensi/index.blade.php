@@ -467,6 +467,7 @@ return $clock->format('H:i') . $suffix;
     let positionHistory = [];
     let gpsEvidenceReady = false;
     let gpsLogInFlight = false;
+    let gpsEvidenceLastAttemptAt = 0;
     let cameraStream = null;
     let cameraDetectionIntervalId = null;
     let cameraValidationStartedAt = null;
@@ -486,6 +487,8 @@ return $clock->format('H:i') . $suffix;
     };
 
     const gpsValidationDelayMs = 2500;
+    const gpsEvidenceRetryDelayMs = 5000;
+    const gpsEvidenceReuseMs = 60000;
     const cameraValidationDelayMs = 900;
     const liveDetectionIntervalMs = 320;
     const faceDistanceThreshold = 0.5;
@@ -1639,6 +1642,7 @@ return $clock->format('H:i') . $suffix;
         let latOffice = {{ $lokasi->lat }};
         let longOffice = {{ $lokasi->long }};
         let radius = {{ $lokasi->radius }};
+        let maxGpsAccuracy = Math.min(200, Math.max(60, Number(radius) * 0.25));
 
         let lastLat = null;
         let lastLong = null;
@@ -1799,14 +1803,14 @@ return $clock->format('H:i') . $suffix;
             let accuracy = position.coords.accuracy;
             let now = Date.now();
 
-            if (accuracy > 75) {
+            if (accuracy > maxGpsAccuracy) {
                 gpsReady = false;
                 gpsEvidenceReady = false;
                 stableStartTime = null;
                 updateAttendanceButtonState();
 
                 document.getElementById("distanceInfo").innerHTML =
-                    "<span class='text-danger'>GPS tidak valid (" + Math.round(accuracy) + "m)</span>";
+                    "<span class='text-danger'>Akurasi GPS belum valid (" + Math.round(accuracy) + "m, batas " + Math.round(maxGpsAccuracy) + "m)</span>";
                 return;
             }
 
@@ -1943,24 +1947,26 @@ return $clock->format('H:i') . $suffix;
             document.getElementById("device_info").value = JSON.stringify(deviceInfo);
 
             if (gpsReady) {
-                const isFirstGpsEvidence = !window.lastLogTime;
-                const previousLogTime = window.lastLogTime || 0;
+                const currentTime = Date.now();
+                const previousLogTime = Number(window.lastLogTime || 0);
                 const previousLat = window.lastLat;
                 const previousLong = window.lastLong;
-                const shouldSendGpsEvidence = isFirstGpsEvidence || (Date.now() - previousLogTime >= 5000);
+                const hasReusableGpsEvidence = gpsEvidenceReady &&
+                    previousLogTime > 0 &&
+                    Number.isFinite(previousLat) &&
+                    Number.isFinite(previousLong) &&
+                    calculateDistance(previousLat, previousLong, latUser, longUser) < 3 &&
+                    (currentTime - previousLogTime) < gpsEvidenceReuseMs;
+                const canRetryGpsEvidence = (currentTime - gpsEvidenceLastAttemptAt) >= gpsEvidenceRetryDelayMs;
+                const shouldSendGpsEvidence = !hasReusableGpsEvidence && canRetryGpsEvidence;
 
                 if (shouldSendGpsEvidence && !gpsLogInFlight) {
-                    const distance = isFirstGpsEvidence ? null : calculateDistance(previousLat, previousLong, latUser, longUser);
-
-                    if (!isFirstGpsEvidence && distance < 3 && Date.now() - previousLogTime < 60000) {
-                        return;
-                    }
-
-                    if (accuracy > 75) {
+                    if (accuracy > maxGpsAccuracy) {
                         return;
                     }
 
                     gpsLogInFlight = true;
+                    gpsEvidenceLastAttemptAt = currentTime;
 
                     fetch(gpsLogUrl, {
                         method: "POST",
@@ -1976,6 +1982,13 @@ return $clock->format('H:i') . $suffix;
                         })
                     }).then(function(response) {
                         gpsEvidenceReady = response.ok;
+
+                        if (response.ok) {
+                            window.lastLat = latUser;
+                            window.lastLong = longUser;
+                            window.lastLogTime = Date.now();
+                        }
+
                         updateAttendanceButtonState();
                     }).catch(function(err) {
                         gpsEvidenceReady = false;
@@ -1984,10 +1997,6 @@ return $clock->format('H:i') . $suffix;
                     }).finally(function() {
                         gpsLogInFlight = false;
                     });
-
-                    window.lastLat = latUser;
-                    window.lastLong = longUser;
-                    window.lastLogTime = Date.now();
                 }
             }
         }, function() {
@@ -2006,6 +2015,15 @@ return $clock->format('H:i') . $suffix;
                         icon: 'warning',
                         title: 'GPS belum tervalidasi',
                         text: 'Pastikan lokasi stabil sebelum absen.'
+                    });
+                    return;
+                }
+
+                if (!gpsEvidenceReady) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Bukti GPS belum tersimpan',
+                        text: 'Tunggu beberapa detik sampai validasi GPS live selesai.'
                     });
                     return;
                 }

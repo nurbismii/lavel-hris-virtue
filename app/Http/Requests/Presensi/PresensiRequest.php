@@ -16,7 +16,7 @@ class PresensiRequest extends FormRequest
         return [
             'lat_user' => ['required', 'numeric', 'between:-90,90'],
             'long_user' => ['required', 'numeric', 'between:-180,180'],
-            'accuracy' => ['required', 'numeric', 'min:0', 'max:60'],
+            'accuracy' => ['required', 'numeric', 'min:0', 'max:200'],
             'speed' => ['nullable', 'numeric', 'min:0', 'max:80'],
             'device_info' => ['required', 'string', 'max:2500'],
             'selfie_capture' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],

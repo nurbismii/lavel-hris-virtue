@@ -27,6 +27,8 @@ class AttendanceSecurityService
     private const MIN_SELFIE_DIMENSION = 240;
     private const MAX_SELFIE_DIMENSION = 2000;
     private const GPS_EVIDENCE_WINDOW_SECONDS = 120;
+    private const MIN_GPS_ACCURACY_METERS = 60;
+    private const MAX_GPS_ACCURACY_METERS = 200;
     private const MAX_SCREEN_SPOOF_SCORE = 45;
     private const LIVENESS_ACTION_TURN_LEFT_RIGHT = 'turn_left_right';
 
@@ -316,6 +318,8 @@ class AttendanceSecurityService
 
     public function validateRecentGpsEvidence(Request $request, User $user, LokasiAbsen $lokasi): void
     {
+        $maxAccuracy = $this->maxGpsAccuracyFor($lokasi);
+
         $recentLog = LogPresensi::where('nik_karyawan', $user->nik_karyawan)
             ->where('created_at', '>=', now()->subSeconds(self::GPS_EVIDENCE_WINDOW_SECONDS))
             ->where('ip_address', $request->ip())
@@ -327,8 +331,8 @@ class AttendanceSecurityService
             $this->fail('Bukti GPS live belum lengkap. Tunggu lokasi stabil beberapa detik lalu coba lagi.');
         }
 
-        if ((float) $recentLog->accuracy > 60 || (float) $recentLog->speed > 50) {
-            $this->fail('Bukti GPS live tidak valid. Tunggu GPS stabil lalu coba lagi.');
+        if ((float) $recentLog->accuracy > $maxAccuracy || (float) $recentLog->speed > 50) {
+            $this->fail('Bukti GPS live tidak valid. Akurasi GPS ' . round((float) $recentLog->accuracy) . 'm melebihi batas ' . round($maxAccuracy) . 'm.');
         }
 
         $submittedDistance = $this->calculateDistance(
@@ -356,6 +360,16 @@ class AttendanceSecurityService
         if ($officeDistance > (float) $lokasi->radius) {
             $this->fail('Jejak GPS live berada di luar radius presensi.');
         }
+    }
+
+    public function maxGpsAccuracyFor(LokasiAbsen $lokasi): float
+    {
+        $radius = max(1, (float) $lokasi->radius);
+
+        return min(
+            self::MAX_GPS_ACCURACY_METERS,
+            max(self::MIN_GPS_ACCURACY_METERS, $radius * 0.25)
+        );
     }
 
     public function buildStoredMeta(
