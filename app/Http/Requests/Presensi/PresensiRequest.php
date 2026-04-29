@@ -27,6 +27,15 @@ class PresensiRequest extends FormRequest
             'face_verification_meta' => ['required', 'json', 'max:5000'],
             'attendance_challenge_token' => ['required', 'string', 'size:64'],
             'attendance_challenge_id' => ['required', 'uuid'],
+            'presensi_challenge_id' => ['required', 'uuid'],
+            'presensi_challenge_action' => ['required', 'string', 'in:blink'],
+            'face_liveness_passed' => ['required', 'boolean'],
+            'face_liveness_type' => ['required', 'string', 'in:blink'],
+            'face_liveness_score' => ['required', 'numeric', 'min:0', 'max:2'],
+            'face_liveness_message' => ['nullable', 'string', 'max:250'],
+            'face_liveness_evidence' => ['required', 'json', 'max:1200000'],
+            'screen_spoof_score' => ['required', 'numeric', 'min:0', 'max:100'],
+            'screen_spoof_reason' => ['nullable', 'json', 'max:5000'],
         ];
     }
 
@@ -52,6 +61,11 @@ class PresensiRequest extends FormRequest
             'attendance_challenge_token.size' => 'Sesi keamanan presensi tidak valid. Muat ulang halaman lalu coba lagi.',
             'attendance_challenge_id.required' => 'Sesi keamanan presensi belum siap. Muat ulang halaman lalu coba lagi.',
             'attendance_challenge_id.uuid' => 'Sesi keamanan presensi tidak valid. Muat ulang halaman lalu coba lagi.',
+            'face_liveness_passed.required' => 'Liveness belum selesai. Kedipkan mata sesuai instruksi kamera.',
+            'face_liveness_passed.boolean' => 'Status liveness tidak valid.',
+            'face_liveness_evidence.required' => 'Bukti liveness belum lengkap. Ulangi verifikasi kamera.',
+            'face_liveness_evidence.json' => 'Bukti liveness tidak valid. Ulangi verifikasi kamera.',
+            'screen_spoof_score.required' => 'Validasi anti-foto belum selesai. Ulangi verifikasi kamera.',
         ];
     }
 }

@@ -34,19 +34,6 @@ class PresensiController extends Controller
         $text = "Are you sure you want to delete?";
         confirmDelete($title, $text);
 
-         // Liveness challenge untuk presensi hari ini
-        $faceChallenge = [
-            'id' => (string) Str::uuid(),
-            'action' => 'blink',
-            'label' => 'Kedipkan mata sekali',
-            'issued_at' => now()->toDateTimeString(),
-            'expires_at' => now()->addSeconds(60)->toDateTimeString(),
-        ];
-
-        session([
-            'presensi_face_challenge' => $faceChallenge,
-        ]);
-
         $user = Auth::user();
         $karyawan = $user->employee;
         $karyawan->loadMissing('workPattern');
@@ -144,7 +131,7 @@ class PresensiController extends Controller
         $todayFulfillment = $attendanceFulfillmentService->evaluate($absensiHariIni, $currentScheduleSource, $activeAttendanceDateString);
 
         return view('user.presensi.index', [
-            'faceChallenge' => $faceChallenge,
+            'faceChallenge' => $attendanceChallenge,
             'presensi' => $presensiRecords,
             'absensiHariIni' => $absensiHariIni,
             'lokasi' => $lokasi,

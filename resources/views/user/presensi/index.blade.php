@@ -375,13 +375,14 @@ return $clock->format('H:i') . $suffix;
                     <input type="hidden" name="attendance_challenge_id" id="attendance_challenge_id" value="{{ $attendanceChallenge['id'] ?? '' }}">
                     <input type="hidden" name="attendance_challenge_token" id="attendance_challenge_token" value="{{ $attendanceChallenge['token'] ?? '' }}">
 
-                    <input type="hidden" name="presensi_challenge_id" id="presensi_challenge_id" value="{{ $faceChallenge['id'] ?? '' }}">
-                    <input type="hidden" name="presensi_challenge_action" id="presensi_challenge_action" value="{{ $faceChallenge['action'] ?? '' }}">
+                    <input type="hidden" name="presensi_challenge_id" id="presensi_challenge_id" value="{{ $attendanceChallenge['id'] ?? '' }}">
+                    <input type="hidden" name="presensi_challenge_action" id="presensi_challenge_action" value="{{ $attendanceChallenge['liveness_action'] ?? 'blink' }}">
 
                     <input type="hidden" name="face_liveness_passed" id="face_liveness_passed" value="0">
-                    <input type="hidden" name="face_liveness_type" id="face_liveness_type" value="blink">
+                    <input type="hidden" name="face_liveness_type" id="face_liveness_type" value="{{ $attendanceChallenge['liveness_action'] ?? 'blink' }}">
                     <input type="hidden" name="face_liveness_score" id="face_liveness_score">
                     <input type="hidden" name="face_liveness_message" id="face_liveness_message">
+                    <input type="hidden" name="face_liveness_evidence" id="face_liveness_evidence">
 
                     <input type="hidden" name="screen_spoof_score" id="screen_spoof_score" value="">
                     <input type="hidden" name="screen_spoof_reason" id="screen_spoof_reason" value="">
@@ -478,6 +479,9 @@ return $clock->format('H:i') . $suffix;
     let faceMatchedReady = false;
     let latestFaceMatchCapturePayload = null;
     let livenessCaptureInProgress = false;
+    let livenessEvidence = {
+        frames: []
+    };
 
     const gpsValidationDelayMs = 2500;
     const cameraValidationDelayMs = 900;
@@ -488,6 +492,7 @@ return $clock->format('H:i') . $suffix;
     const faceModelPath = @json(asset('vendor/face-api/weights'));
     const faceReferencePath = @json($faceReferenceUrl);
     const attendanceChallenge = @json($attendanceChallenge);
+    const livenessAction = attendanceChallenge && attendanceChallenge.liveness_action ? attendanceChallenge.liveness_action : 'blink';
     const manualSelfieEnabled = false;
     const attendanceSubmitBaseUrl = @json(url('/absen'));
     const gpsLogUrl = @json(url('/api/gps-log'));
@@ -513,6 +518,18 @@ return $clock->format('H:i') . $suffix;
     function resetFaceMatchedReady() {
         faceMatchedReady = false;
         latestFaceMatchCapturePayload = null;
+    }
+
+    function resetLivenessEvidence() {
+        livenessEvidence = {
+            frames: []
+        };
+
+        const evidenceInput = document.getElementById('face_liveness_evidence');
+
+        if (evidenceInput) {
+            evidenceInput.value = '';
+        }
     }
 
     function isAttendanceChallengeReady() {
@@ -693,6 +710,7 @@ return $clock->format('H:i') . $suffix;
         blinkLivenessPassed = false;
         blinkLivenessScore = null;
         blinkLivenessMessage = '';
+        resetLivenessEvidence();
 
         document.getElementById('face_verified').value = '0';
         document.getElementById('face_distance').value = '';
@@ -1084,12 +1102,19 @@ return $clock->format('H:i') . $suffix;
             roll_angle: payload.rollAngle ?? null,
             frame_state: payload.frameState ?? null,
             client_liveness: {
-                type: 'blink',
+                type: livenessAction,
                 passed: blinkLivenessPassed,
                 score: blinkLivenessScore,
                 message: blinkLivenessMessage,
                 challenge_id: attendanceChallenge ? attendanceChallenge.id : null,
-                challenge_action: attendanceChallenge ? attendanceChallenge.action : null,
+                challenge_action: livenessAction,
+                evidence_frames: (livenessEvidence.frames || []).map(function(frame) {
+                    return {
+                        label: frame.label,
+                        captured_at_ms: frame.captured_at_ms,
+                        ear: frame.ear ?? null
+                    };
+                }),
                 checked_at_client: new Date().toISOString()
             },
             verified_at_client: new Date().toISOString()
@@ -1132,15 +1157,12 @@ return $clock->format('H:i') . $suffix;
         const captureDataInput = document.getElementById('selfie_capture_data');
         const selfiePreview = document.getElementById('selfiePreview');
 
-        document.getElementById('screen_spoof_score').value = spoofCheck.score;
-        document.getElementById('screen_spoof_reason').value = JSON.stringify(spoofCheck);
-
-        if (spoofCheck.score >= 60) {
-            throw new Error('Selfie terindikasi berasal dari layar/foto. Gunakan wajah langsung di depan kamera.');
-        }
-
         if (!video || !video.videoWidth || !video.videoHeight) {
             throw new Error('Kamera belum siap untuk menyimpan selfie.');
+        }
+
+        if (!hasRequiredLivenessEvidence()) {
+            throw new Error('Bukti liveness belum lengkap. Ulangi verifikasi dan ikuti instruksi kedip.');
         }
 
         const captureScale = Math.min(1, selfieMaxCaptureWidth / video.videoWidth);
@@ -1148,6 +1170,14 @@ return $clock->format('H:i') . $suffix;
         captureCanvas.width = Math.round(video.videoWidth * captureScale);
         captureCanvas.height = Math.round(video.videoHeight * captureScale);
         captureCanvas.getContext('2d').drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+        const spoofCheck = analyzeScreenSpoofFromCanvas(captureCanvas);
+
+        document.getElementById('screen_spoof_score').value = spoofCheck.score;
+        document.getElementById('screen_spoof_reason').value = JSON.stringify(spoofCheck);
+
+        if (spoofCheck.score >= 45) {
+            throw new Error('Selfie terindikasi berasal dari layar/foto. Gunakan wajah langsung di depan kamera.');
+        }
 
         const captureBlob = await new Promise(function(resolve) {
             captureCanvas.toBlob(resolve, 'image/jpeg', selfieJpegQuality);
@@ -2064,6 +2094,50 @@ return;
         return (vertical1 + vertical2) / (2.0 * horizontal);
     }
 
+    function syncLivenessEvidenceInput() {
+        const evidenceInput = document.getElementById('face_liveness_evidence');
+
+        if (evidenceInput) {
+            evidenceInput.value = JSON.stringify(livenessEvidence);
+        }
+    }
+
+    function captureLivenessEvidenceFrame(label, videoElement, extra = {}) {
+        if (!videoElement || !videoElement.videoWidth || !videoElement.videoHeight) {
+            return;
+        }
+
+        const maxWidth = 220;
+        const scale = Math.min(1, maxWidth / videoElement.videoWidth);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(videoElement.videoWidth * scale);
+        canvas.height = Math.round(videoElement.videoHeight * scale);
+        canvas.getContext('2d').drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+
+        const frame = {
+            label,
+            captured_at_ms: Date.now(),
+            image: canvas.toDataURL('image/jpeg', 0.62),
+            ear: extra.ear ?? null
+        };
+
+        livenessEvidence.frames = (livenessEvidence.frames || []).filter(function(item) {
+            return item.label !== label;
+        });
+        livenessEvidence.frames.push(frame);
+        syncLivenessEvidenceInput();
+    }
+
+    function hasRequiredLivenessEvidence() {
+        const labels = (livenessEvidence.frames || []).map(function(frame) {
+            return frame.label;
+        });
+
+        return ['baseline_open', 'blink_closed', 'blink_reopened'].every(function(label) {
+            return labels.includes(label);
+        });
+    }
+
     function setBlinkResult(passed, score, message) {
         blinkLivenessPassed = passed;
         blinkLivenessScore = score;
@@ -2151,6 +2225,7 @@ return;
         openFrameCount = 0;
         blinkOpenSamples = [];
         blinkOpenBaseline = null;
+        resetLivenessEvidence();
 
         setBlinkResult(false, null, 'Hadap lurus ke kamera, lalu kedipkan mata.');
 
@@ -2214,6 +2289,9 @@ return;
 
                     blinkOpenBaseline = blinkOpenSamples.reduce((sum, value) => sum + value, 0) / blinkOpenSamples.length;
                     eyeWasOpen = true;
+                    captureLivenessEvidenceFrame('baseline_open', videoElement, {
+                        ear: avgEAR
+                    });
 
                     setBlinkResult(
                         false,
@@ -2245,6 +2323,9 @@ return;
 
                     if (closedFrameCount >= BLINK_MIN_CLOSED_FRAMES) {
                         blinkClosedDetected = true;
+                        captureLivenessEvidenceFrame('blink_closed', videoElement, {
+                            ear: avgEAR
+                        });
                         setBlinkResult(
                             false,
                             avgEAR,
@@ -2258,6 +2339,9 @@ return;
                 if (blinkClosedDetected && avgEAR >= reopenThreshold) {
                     blinkReopenedDetected = true;
                     blinkDetected = true;
+                    captureLivenessEvidenceFrame('blink_reopened', videoElement, {
+                        ear: avgEAR
+                    });
 
                     await captureSelfieFromBlink(
                         avgEAR,

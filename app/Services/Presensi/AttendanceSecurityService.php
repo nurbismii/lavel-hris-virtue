@@ -27,6 +27,8 @@ class AttendanceSecurityService
     private const MIN_SELFIE_DIMENSION = 240;
     private const MAX_SELFIE_DIMENSION = 2000;
     private const GPS_EVIDENCE_WINDOW_SECONDS = 120;
+    private const MAX_SCREEN_SPOOF_SCORE = 45;
+    private const LIVENESS_ACTION_BLINK = 'blink';
 
     public function issueChallenge(User $user, Request $request, string $attendanceDate, ?string $type = null): array
     {
@@ -43,6 +45,8 @@ class AttendanceSecurityService
             'issued_at' => $issuedAt->toIso8601String(),
             'expires_at' => $issuedAt->copy()->addSeconds($this->challengeTtlSeconds())->toIso8601String(),
             'min_capture_delay_ms' => $this->minCaptureDelayMs(),
+            'liveness_action' => self::LIVENESS_ACTION_BLINK,
+            'liveness_label' => 'Kedipkan mata sekali',
         ];
 
         Cache::put($this->challengeCacheKey($token), $payload, $this->challengeTtlSeconds());
@@ -53,6 +57,9 @@ class AttendanceSecurityService
             'issued_at' => $payload['issued_at'],
             'expires_at' => $payload['expires_at'],
             'min_capture_delay_ms' => $payload['min_capture_delay_ms'],
+            'liveness_action' => $payload['liveness_action'],
+            'liveness_label' => $payload['liveness_label'],
+            'liveness_required_frames' => ['baseline_open', 'blink_closed', 'blink_reopened'],
         ];
     }
 
@@ -120,6 +127,7 @@ class AttendanceSecurityService
         $detectionScore = isset($meta['detection_score']) ? (float) $meta['detection_score'] : null;
         $rollAngle = isset($meta['roll_angle']) ? abs((float) $meta['roll_angle']) : null;
         $elapsedMs = isset($meta['challenge_elapsed_ms']) ? (int) $meta['challenge_elapsed_ms'] : 0;
+        $liveness = $this->validateLivenessPayload($request, $meta, $challenge);
 
         if (!$faceVerified || $detectionCount !== 1) {
             $this->fail('Selfie harus tervalidasi dan memuat tepat satu wajah.');
@@ -159,6 +167,84 @@ class AttendanceSecurityService
             'detection_score' => $detectionScore,
             'roll_angle' => $rollAngle,
             'elapsed_ms' => $elapsedMs,
+            'liveness' => $liveness,
+        ];
+    }
+
+    private function validateLivenessPayload(Request $request, array $meta, array $challenge): array
+    {
+        $challengeId = (string) ($challenge['id'] ?? '');
+        $expectedAction = (string) ($challenge['liveness_action'] ?? self::LIVENESS_ACTION_BLINK);
+        $client = is_array($meta['client_liveness'] ?? null) ? $meta['client_liveness'] : [];
+        $passed = filter_var($request->input('face_liveness_passed'), FILTER_VALIDATE_BOOLEAN);
+        $score = (float) $request->input('face_liveness_score');
+        $screenSpoofScore = (float) $request->input('screen_spoof_score');
+        $evidence = json_decode((string) $request->input('face_liveness_evidence'), true);
+
+        if (!$passed || !($client['passed'] ?? false)) {
+            $this->fail('Liveness belum valid. Kedipkan mata langsung di depan kamera.');
+        }
+
+        if (!hash_equals($challengeId, (string) $request->input('presensi_challenge_id'))) {
+            $this->fail('Challenge liveness tidak cocok. Muat ulang halaman lalu coba lagi.');
+        }
+
+        if (!hash_equals($expectedAction, (string) $request->input('presensi_challenge_action'))) {
+            $this->fail('Instruksi liveness tidak cocok. Muat ulang halaman lalu coba lagi.');
+        }
+
+        if (!hash_equals($expectedAction, (string) $request->input('face_liveness_type'))) {
+            $this->fail('Jenis liveness tidak cocok. Muat ulang halaman lalu coba lagi.');
+        }
+
+        if (
+            !hash_equals($challengeId, (string) ($client['challenge_id'] ?? ''))
+            || !hash_equals($expectedAction, (string) ($client['challenge_action'] ?? ''))
+        ) {
+            $this->fail('Metadata liveness tidak cocok dengan challenge server.');
+        }
+
+        if ($screenSpoofScore >= self::MAX_SCREEN_SPOOF_SCORE) {
+            $this->fail('Selfie terindikasi berasal dari layar atau foto. Gunakan wajah langsung di depan kamera.');
+        }
+
+        if (!is_array($evidence) || !is_array($evidence['frames'] ?? null)) {
+            $this->fail('Bukti liveness tidak lengkap. Ulangi verifikasi kamera.');
+        }
+
+        $frames = collect($evidence['frames'])->keyBy(fn($frame) => (string) ($frame['label'] ?? ''));
+        $requiredFrames = ['baseline_open', 'blink_closed', 'blink_reopened'];
+
+        foreach ($requiredFrames as $frameLabel) {
+            $frame = $frames->get($frameLabel);
+
+            if (!is_array($frame) || empty($frame['image']) || !is_string($frame['image'])) {
+                $this->fail('Bukti liveness tidak lengkap. Ulangi verifikasi kamera.');
+            }
+
+            if (!preg_match('/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/', $frame['image'])) {
+                $this->fail('Format bukti liveness tidak valid. Ulangi verifikasi kamera.');
+            }
+        }
+
+        $openAt = (int) ($frames->get('baseline_open')['captured_at_ms'] ?? 0);
+        $closedAt = (int) ($frames->get('blink_closed')['captured_at_ms'] ?? 0);
+        $reopenedAt = (int) ($frames->get('blink_reopened')['captured_at_ms'] ?? 0);
+
+        if ($openAt <= 0 || $closedAt <= $openAt || $reopenedAt <= $closedAt || ($reopenedAt - $openAt) > 10000) {
+            $this->fail('Urutan liveness tidak valid. Ulangi verifikasi kamera.');
+        }
+
+        return [
+            'type' => $expectedAction,
+            'passed' => true,
+            'score' => $score,
+            'screen_spoof_score' => $screenSpoofScore,
+            'message' => (string) $request->input('face_liveness_message'),
+            'evidence_summary' => [
+                'frames' => $requiredFrames,
+                'duration_ms' => $reopenedAt - $openAt,
+            ],
         ];
     }
 
