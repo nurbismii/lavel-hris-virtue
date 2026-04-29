@@ -293,9 +293,8 @@ class ServerSideFaceVerificationService
         $verified = (bool) ($payload['verified'] ?? false);
         $providerFaceMatched = (bool) ($payload['face_matched'] ?? false);
 
-        $score = isset($payload['score'])
-            ? (float) $payload['score']
-            : (isset($payload['confidence']) ? (float) $payload['confidence'] : null);
+        $confidence = $this->normalizedProviderConfidence($payload);
+        $score = isset($payload['score']) && is_numeric($payload['score']) ? (float) $payload['score'] : null;
         $livenessScore = isset($payload['liveness_score']) ? (float) $payload['liveness_score'] : null;
 
         $distance = $payload['distance'] ?? null;
@@ -304,7 +303,7 @@ class ServerSideFaceVerificationService
         $faceMatched = $httpStatus >= 200
             && $httpStatus < 300
             && ($providerFaceMatched || $verified || $status === 'verified')
-            && ($score === null || $score >= $minConfidence);
+            && ($confidence === null || $confidence >= $minConfidence);
 
         $activeLivenessPassed = (bool) ($payload['active_liveness_passed'] ?? false)
             || (bool) ($payload['challenge_passed'] ?? false);
@@ -323,7 +322,8 @@ class ServerSideFaceVerificationService
             'liveness_passed' => $livenessPassed,
             'active_liveness_passed' => $activeLivenessPassed,
             'face_matched' => $faceMatched,
-            'confidence' => $score,
+            'confidence' => $confidence,
+            'score' => $score,
             'liveness_score' => $livenessScore,
             'screen_attack_detected' => $screenAttackDetected,
             'distance' => $distance,
@@ -333,6 +333,23 @@ class ServerSideFaceVerificationService
             'message' => $payload['message'] ?? null,
             'raw' => $payload,
         ];
+    }
+
+    private function normalizedProviderConfidence(array $payload): ?float
+    {
+        if (isset($payload['confidence']) && is_numeric($payload['confidence'])) {
+            $confidence = (float) $payload['confidence'];
+        } elseif (isset($payload['score']) && is_numeric($payload['score'])) {
+            $confidence = (float) $payload['score'];
+        } else {
+            return null;
+        }
+
+        if ($confidence > 1) {
+            $confidence = $confidence / 100;
+        }
+
+        return round(max(0, min(1, $confidence)), 4);
     }
 
     private function extractLivenessEvidence(Request $request): array
