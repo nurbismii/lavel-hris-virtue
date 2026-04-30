@@ -768,12 +768,6 @@ return $clock->format('H:i') . $suffix;
         updateAttendanceButtonState();
     }
 
-    function updateAttendanceButtonState() {
-        document.querySelectorAll(".btn-absen").forEach(button => {
-            button.disabled = !(gpsReady && gpsEvidenceReady && faceVerificationPassed && blinkLivenessPassed);
-        });
-    }
-
     function updateDistanceInfo(statusClass, distance, message) {
         const distanceInfo = document.getElementById("distanceInfo");
 
@@ -787,6 +781,58 @@ return $clock->format('H:i') . $suffix;
 
         distanceInfo.innerHTML = '';
         distanceInfo.appendChild(status);
+    }
+
+    function getAttendanceButtonBlockReason() {
+        const faceVerifiedInput = document.getElementById('face_verified');
+        const livenessPassedInput = document.getElementById('face_liveness_passed');
+        const faceReady = faceVerificationPassed || (faceVerifiedInput && faceVerifiedInput.value === '1');
+        const livenessReady = blinkLivenessPassed || (livenessPassedInput && livenessPassedInput.value === '1');
+
+        if (!gpsReady) {
+            return 'GPS belum valid';
+        }
+
+        if (!gpsEvidenceReady) {
+            return 'bukti GPS live belum tersimpan';
+        }
+
+        if (!faceReady) {
+            return 'matching wajah belum selesai';
+        }
+
+        if (!livenessReady) {
+            return 'liveness wajah belum selesai';
+        }
+
+        if (!isAttendanceChallengeReady()) {
+            return 'sesi presensi kedaluwarsa';
+        }
+
+        return '';
+    }
+
+    function updateAttendanceButtonState() {
+        const blockReason = getAttendanceButtonBlockReason();
+
+        document.querySelectorAll(".btn-absen").forEach(button => {
+            button.disabled = Boolean(blockReason);
+            button.title = blockReason ? 'Belum bisa presensi: ' + blockReason : '';
+            button.setAttribute('aria-disabled', blockReason ? 'true' : 'false');
+        });
+
+        return !blockReason;
+    }
+
+    function updateGpsReadyInfo(distance) {
+        const blockReason = getAttendanceButtonBlockReason();
+
+        if (!blockReason) {
+            updateDistanceInfo('text-success', distance, 'Siap presensi');
+            return;
+        }
+
+        updateDistanceInfo('text-warning', distance, 'Lokasi siap - ' + blockReason);
     }
 
     async function loadFaceModels() {
@@ -1265,6 +1311,7 @@ return $clock->format('H:i') . $suffix;
             frameState: 'green'
         });
 
+        setBlinkResult(true, blinkLivenessScore ?? 1, blinkLivenessMessage || 'Liveness berhasil. Gerakan wajah terdeteksi.');
         faceVerificationPassed = true;
         cameraVerificationLocked = true;
         setSelfieSurfaceMode('preview');
@@ -1968,7 +2015,7 @@ return $clock->format('H:i') . $suffix;
                 const shouldSendGpsEvidence = !hasReusableGpsEvidence && canRetryGpsEvidence;
 
                 if (hasReusableGpsEvidence) {
-                    updateDistanceInfo('text-success', currentDistance, 'Dalam Radius - siap presensi');
+                    updateGpsReadyInfo(currentDistance);
                 } else if (gpsLogInFlight || shouldSendGpsEvidence) {
                     updateDistanceInfo('text-warning', currentDistance, 'Dalam Radius - menyimpan bukti GPS live...');
                 } else if (!gpsEvidenceReady) {
@@ -2006,7 +2053,8 @@ return $clock->format('H:i') . $suffix;
                             window.lastLat = latUser;
                             window.lastLong = longUser;
                             window.lastLogTime = Date.now();
-                            updateDistanceInfo('text-success', currentDistance, 'Dalam Radius - siap presensi');
+                            updateAttendanceButtonState();
+                            updateGpsReadyInfo(currentDistance);
                         } else {
                             let message = 'Bukti GPS live belum tersimpan';
 
