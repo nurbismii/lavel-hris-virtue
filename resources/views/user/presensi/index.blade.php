@@ -656,17 +656,44 @@ return $clock->format('H:i') . $suffix;
 
     function createUserLocationIcon() {
         const safeInitials = escapeHtml(employeeInitials || 'U');
-        const markerClass = employeePhotoUrl ? ' user-location-marker__pin--photo' : '';
         const markerContent = (employeePhotoUrl
-            ? '<img src="' + escapeHtml(employeePhotoUrl) + '" alt="Foto user">'
+            ? '<img class="user-location-marker__photo" src="' + escapeHtml(employeePhotoUrl) + '" alt="Foto user">'
             : '') + '<span>' + safeInitials + '</span>';
 
         return L.divIcon({
             className: 'user-location-marker',
-            html: '<div class="user-location-marker__pin' + markerClass + '">' + markerContent + '</div><div class="user-location-marker__shadow"></div>',
+            html: '<div class="user-location-marker__pin">' + markerContent + '</div><div class="user-location-marker__shadow"></div>',
             iconSize: [48, 58],
             iconAnchor: [24, 54],
             popupAnchor: [0, -48]
+        });
+    }
+
+    function bindUserMarkerPhotoFallback(marker) {
+        const element = marker && typeof marker.getElement === 'function' ? marker.getElement() : null;
+
+        if (!element) {
+            return;
+        }
+
+        const pin = element.querySelector('.user-location-marker__pin');
+        const photo = element.querySelector('.user-location-marker__photo');
+
+        if (!pin || !photo) {
+            return;
+        }
+
+        photo.addEventListener('load', function() {
+            pin.classList.add('user-location-marker__pin--photo');
+        }, {
+            once: true
+        });
+
+        photo.addEventListener('error', function() {
+            pin.classList.remove('user-location-marker__pin--photo');
+            photo.remove();
+        }, {
+            once: true
         });
     }
 
@@ -1957,6 +1984,7 @@ return $clock->format('H:i') . $suffix;
                     title: "Posisi kamu",
                     icon: createUserLocationIcon()
                 }).addTo(map);
+                bindUserMarkerPhotoFallback(markerUser);
             }
 
             currentDistance = getDistance(latUser, longUser, latOffice, longOffice);
