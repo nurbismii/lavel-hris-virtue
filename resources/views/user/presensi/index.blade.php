@@ -520,7 +520,7 @@ return $clock->format('H:i') . $suffix;
     const attendanceSubmitBaseUrl = @json(url('/absen'));
     const gpsLogUrl = @json(url('/api/gps-log'));
     const freeMapTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-    const freeMapAttribution = 'Tiles &copy; Esri - Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
+    const freeMapAttribution = 'Lokasi presensi';
 
     function attendanceChallengeExpiresAt() {
         if (!attendanceChallenge || !attendanceChallenge.expires_at) {
@@ -772,6 +772,21 @@ return $clock->format('H:i') . $suffix;
         document.querySelectorAll(".btn-absen").forEach(button => {
             button.disabled = !(gpsReady && gpsEvidenceReady && faceVerificationPassed && blinkLivenessPassed);
         });
+    }
+
+    function updateDistanceInfo(statusClass, distance, message) {
+        const distanceInfo = document.getElementById("distanceInfo");
+
+        if (!distanceInfo) {
+            return;
+        }
+
+        const status = document.createElement('span');
+        status.className = statusClass;
+        status.textContent = Number(distance).toFixed(1) + " meter (" + message + ")";
+
+        distanceInfo.innerHTML = '';
+        distanceInfo.appendChild(status);
     }
 
     async function loadFaceModels() {
@@ -1919,14 +1934,6 @@ return $clock->format('H:i') . $suffix;
                 return;
             }
 
-            gpsReady = true;
-            updateAttendanceButtonState();
-
-            document.getElementById("distanceInfo").innerHTML =
-                "<span class='text-success'>" +
-                currentDistance.toFixed(1) +
-                " meter (Dalam Radius)</span>";
-
             document.getElementById("lat_user").value = latUser;
             document.getElementById("long_user").value = longUser;
             document.getElementById("accuracy_user").value = accuracy;
@@ -1944,6 +1951,8 @@ return $clock->format('H:i') . $suffix;
 
             document.getElementById("device_info").value = JSON.stringify(deviceInfo);
 
+            gpsReady = true;
+
             if (gpsReady) {
                 const currentTime = Date.now();
                 const previousLogTime = Number(window.lastLogTime || 0);
@@ -1957,6 +1966,18 @@ return $clock->format('H:i') . $suffix;
                     (currentTime - previousLogTime) < gpsEvidenceReuseMs;
                 const canRetryGpsEvidence = (currentTime - gpsEvidenceLastAttemptAt) >= gpsEvidenceRetryDelayMs;
                 const shouldSendGpsEvidence = !hasReusableGpsEvidence && canRetryGpsEvidence;
+
+                if (hasReusableGpsEvidence) {
+                    updateDistanceInfo('text-success', currentDistance, 'Dalam Radius - siap presensi');
+                } else if (gpsLogInFlight || shouldSendGpsEvidence) {
+                    updateDistanceInfo('text-warning', currentDistance, 'Dalam Radius - menyimpan bukti GPS live...');
+                } else if (!gpsEvidenceReady) {
+                    updateDistanceInfo('text-warning', currentDistance, 'Dalam Radius - menunggu kirim ulang bukti GPS');
+                } else {
+                    updateDistanceInfo('text-success', currentDistance, 'Dalam Radius');
+                }
+
+                updateAttendanceButtonState();
 
                 if (shouldSendGpsEvidence && !gpsLogInFlight) {
                     if (accuracy > maxGpsAccuracy) {
@@ -1978,18 +1999,34 @@ return $clock->format('H:i') . $suffix;
                             accuracy: accuracy,
                             speed: speed ?? 0,
                         })
-                    }).then(function(response) {
+                    }).then(async function(response) {
                         gpsEvidenceReady = response.ok;
 
                         if (response.ok) {
                             window.lastLat = latUser;
                             window.lastLong = longUser;
                             window.lastLogTime = Date.now();
+                            updateDistanceInfo('text-success', currentDistance, 'Dalam Radius - siap presensi');
+                        } else {
+                            let message = 'Bukti GPS live belum tersimpan';
+
+                            try {
+                                const payload = await response.json();
+
+                                if (payload && payload.message) {
+                                    message = payload.message;
+                                }
+                            } catch (error) {
+                                message = 'Bukti GPS live gagal tersimpan';
+                            }
+
+                            updateDistanceInfo('text-danger', currentDistance, message);
                         }
 
                         updateAttendanceButtonState();
                     }).catch(function(err) {
                         gpsEvidenceReady = false;
+                        updateDistanceInfo('text-danger', currentDistance, 'Bukti GPS live gagal tersimpan');
                         updateAttendanceButtonState();
                         console.log("GPS Log Error:", err);
                     }).finally(function() {
