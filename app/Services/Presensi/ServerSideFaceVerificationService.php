@@ -372,10 +372,15 @@ class ServerSideFaceVerificationService
         $distance = $payload['distance'] ?? null;
         $threshold = $payload['threshold'] ?? null;
 
+        $explicitFaceDecision = $providerFaceMatched || $verified || $status === 'verified';
+        $passesConfidenceGate = $explicitFaceDecision
+            || $confidence === null
+            || $confidence >= $minConfidence;
+
         $faceMatched = $httpStatus >= 200
             && $httpStatus < 300
-            && ($providerFaceMatched || $verified || $status === 'verified')
-            && ($confidence === null || $confidence >= $minConfidence);
+            && $explicitFaceDecision
+            && $passesConfidenceGate;
 
         $activeLivenessPassed = (bool) ($payload['active_liveness_passed'] ?? false)
             || (bool) ($payload['challenge_passed'] ?? false);
