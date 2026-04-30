@@ -297,6 +297,71 @@
     border-radius: 22px;
 }
 
+.user-location-marker {
+    background: transparent;
+    border: 0;
+}
+
+.user-location-marker__pin {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0d6efd 0%, #0f766e 100%);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.32);
+}
+
+.user-location-marker__pin::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -9px;
+    width: 16px;
+    height: 16px;
+    border-right: 3px solid #ffffff;
+    border-bottom: 3px solid #ffffff;
+    background: inherit;
+    transform: translateX(-50%) rotate(45deg);
+    z-index: 0;
+}
+
+.user-location-marker__pin img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+.user-location-marker__pin span {
+    position: relative;
+    z-index: 1;
+}
+
+.user-location-marker__pin--photo span {
+    opacity: 0;
+}
+
+.user-location-marker__shadow {
+    width: 24px;
+    height: 8px;
+    margin: 4px auto 0;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.28);
+    filter: blur(2px);
+}
+
 .location-status-card {
     display: flex;
     align-items: center;

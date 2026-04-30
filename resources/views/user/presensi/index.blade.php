@@ -12,6 +12,8 @@
 @section('content')
 
 @php
+$employeePhotoUrl = optional(auth()->user()->employee)->document_photo_url;
+$employeeInitials = auth()->user()->avatar_initials;
 $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
 $faceReferenceUrl = $faceReferencePath ? route('presensi.face-reference') : null;
 $formatPresensiClock = function ($value, $attendanceDate = null, $empty = '--:--') {
@@ -521,6 +523,8 @@ return $clock->format('H:i') . $suffix;
     const gpsLogUrl = @json(url('/api/gps-log'));
     const freeMapTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     const freeMapAttribution = 'Lokasi presensi';
+    const employeePhotoUrl = @json($employeePhotoUrl);
+    const employeeInitials = @json($employeeInitials);
 
     function attendanceChallengeExpiresAt() {
         if (!attendanceChallenge || !attendanceChallenge.expires_at) {
@@ -636,6 +640,34 @@ return $clock->format('H:i') . $suffix;
         return isWebView ?
             'WebView belum mengizinkan kamera live. Biasanya perlu izin native CAMERA dan grant `RESOURCE_VIDEO_CAPTURE` di aplikasi Android.' :
             'Akses kamera ditolak atau tidak tersedia. Gunakan upload manual bila perlu.';
+    }
+
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, function(character) {
+            return ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            })[character];
+        });
+    }
+
+    function createUserLocationIcon() {
+        const safeInitials = escapeHtml(employeeInitials || 'U');
+        const markerClass = employeePhotoUrl ? ' user-location-marker__pin--photo' : '';
+        const markerContent = (employeePhotoUrl
+            ? '<img src="' + escapeHtml(employeePhotoUrl) + '" alt="Foto user">'
+            : '') + '<span>' + safeInitials + '</span>';
+
+        return L.divIcon({
+            className: 'user-location-marker',
+            html: '<div class="user-location-marker__pin' + markerClass + '">' + markerContent + '</div><div class="user-location-marker__shadow"></div>',
+            iconSize: [48, 58],
+            iconAnchor: [24, 54],
+            popupAnchor: [0, -48]
+        });
     }
 
     function initMap(latOffice, longOffice, radius) {
@@ -1922,7 +1954,8 @@ return $clock->format('H:i') . $suffix;
                 markerUser.setLatLng([latUser, longUser]);
             } else {
                 markerUser = L.marker([latUser, longUser], {
-                    title: "Posisi kamu"
+                    title: "Posisi kamu",
+                    icon: createUserLocationIcon()
                 }).addTo(map);
             }
 
