@@ -83,39 +83,53 @@ return $clock->format('H:i') . $suffix;
 
         @php
         $statusPresensiHariIni = $absensiHariIni->status_presensi ?? null;
-        $nextType = null;
+        $verificationStatus = $absensiHariIni->status_absen ?? null;
+        $nextType = $nextAttendanceType ?? null;
         $label = '';
         $btnClass = 'btn-primary';
         $btnIcon = 'fas fa-arrow-right';
         $actionTitle = 'Siap untuk langkah berikutnya';
         $actionText = 'Ambil selfie terlebih dahulu, tunggu matching berhasil, lalu lanjutkan presensi saat GPS valid.';
+        $inactiveButtonLabel = 'Presensi Hari Ini Selesai';
+        $inactiveButtonIcon = 'fas fa-check-circle';
+        $inactiveButtonClass = 'btn-success';
 
         if ($statusPresensiHariIni) {
         $actionTitle = 'Status presensi tanggal aktif';
         $actionText = 'Tanggal presensi ini tercatat sebagai ' . $statusPresensiHariIni . '. Presensi jam tidak diperlukan.';
-        } elseif (!$absensiHariIni || !$absensiHariIni->jam_masuk) {
-        $nextType = 'masuk';
+        } elseif ($verificationStatus === \App\Models\Presensi::STATUS_ABSEN_PENDING_REVIEW) {
+        $nextType = null;
+        $actionTitle = 'Menunggu verifikasi AI';
+        $actionText = 'Presensi sebelumnya sudah dicatat dan sedang diverifikasi. Kamera akan dibuka lagi setelah status presensi terverifikasi.';
+        $inactiveButtonLabel = 'Menunggu Review';
+        $inactiveButtonIcon = 'fas fa-hourglass-half';
+        $inactiveButtonClass = 'btn-warning text-dark';
+        } elseif ($verificationStatus === \App\Models\Presensi::STATUS_ABSEN_REJECTED) {
+        $nextType = null;
+        $actionTitle = 'Presensi ditolak';
+        $actionText = 'Presensi terakhir ditolak oleh verifikasi keamanan. Hubungi HR/Admin untuk review atau pembukaan ulang presensi.';
+        $inactiveButtonLabel = 'Ditolak';
+        $inactiveButtonIcon = 'fas fa-times-circle';
+        $inactiveButtonClass = 'btn-danger';
+        } elseif ($nextType === 'masuk') {
         $label = 'Absen Masuk';
         $btnClass = 'btn-primary';
         $btnIcon = 'fas fa-sign-in-alt';
         $actionTitle = 'Absen masuk tersedia';
         $actionText = 'Ambil selfie dulu, pastikan matching berhasil, lalu sistem akan mengizinkan presensi masuk.';
-        } elseif (!$absensiHariIni->jam_istirahat) {
-        $nextType = 'istirahat';
+        } elseif ($nextType === 'istirahat') {
         $label = 'Mulai Istirahat';
         $btnClass = 'btn-warning';
         $btnIcon = 'fas fa-mug-hot';
         $actionTitle = 'Mulai waktu istirahat';
         $actionText = 'Lanjutkan ke presensi istirahat setelah selfie cocok dan lokasi kamu tetap valid.';
-        } elseif (!$absensiHariIni->jam_kembali_istirahat) {
-        $nextType = 'kembali';
+        } elseif ($nextType === 'kembali') {
         $label = 'Kembali Istirahat';
         $btnClass = 'btn-info';
         $btnIcon = 'fas fa-undo-alt';
         $actionTitle = 'Kembali dari istirahat';
         $actionText = 'Sistem akan membuka tombol kembali setelah selfie terverifikasi dan GPS tetap sesuai.';
-        } elseif (!$absensiHariIni->jam_pulang) {
-        $nextType = 'pulang';
+        } elseif ($nextType === 'pulang') {
         $label = 'Absen Pulang';
         $btnClass = 'btn-danger';
         $btnIcon = 'fas fa-sign-out-alt';
@@ -123,7 +137,7 @@ return $clock->format('H:i') . $suffix;
         $actionText = 'Ambil selfie terakhir, tunggu matching, lalu lakukan presensi pulang.';
         }
 
-        $requiresFaceStep = (bool) ($nextType && $faceReferencePath);
+        $requiresFaceStep = (bool) ($nextType && $faceReferencePath && $attendanceChallenge);
         @endphp
 
         <div class="attendance-card">
@@ -349,9 +363,9 @@ return $clock->format('H:i') . $suffix;
                                             {{ $label }}
                                         </button>
                                         @else
-                                        <button class="btn btn-success shadow" disabled>
-                                            <i class="fas fa-check-circle me-2"></i>
-                                            Presensi Hari Ini Selesai
+                                        <button class="btn {{ $inactiveButtonClass }} shadow" disabled>
+                                            <i class="{{ $inactiveButtonIcon }} me-2"></i>
+                                            {{ $inactiveButtonLabel }}
                                         </button>
                                         @endif
                                     </div>

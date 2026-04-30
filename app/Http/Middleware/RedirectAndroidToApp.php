@@ -10,6 +10,10 @@ class RedirectAndroidToApp
 {
     public function handle(Request $request, Closure $next)
     {
+        if (app()->environment('local')) {
+            return $next($request);
+        }
+
         $userAgent = $request->header('User-Agent') ?? '';
 
         $isAndroid = stripos($userAgent, 'Android') !== false;

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ApiController;
 use App\Http\Controllers\Admin\NationalHolidayController;
+use App\Http\Controllers\Admin\OvertimeMasterController;
 use App\Http\Controllers\Admin\OvertimeOrderController as AdminOvertimeOrderController;
 use App\Http\Controllers\Admin\SettingRoleController;
 use App\Http\Controllers\Admin\ShiftController;
@@ -184,6 +185,24 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/perintah-lembur/employees/search', [AdminOvertimeOrderController::class, 'searchEmployees'])
             ->middleware(['menu:lembur', 'role:Super Admin,HR,HOD,Admin Divisi'])
             ->name('overtime-orders.employees.search');
+        Route::get('/master-lembur', [OvertimeMasterController::class, 'index'])
+            ->middleware(['menu:lembur', 'role:Super Admin,HR'])
+            ->name('overtime-masters.index');
+        Route::get('/master-lembur/create', [OvertimeMasterController::class, 'create'])
+            ->middleware(['menu:lembur', 'role:Super Admin,HR'])
+            ->name('overtime-masters.create');
+        Route::post('/master-lembur', [OvertimeMasterController::class, 'store'])
+            ->middleware(['menu:lembur', 'role:Super Admin,HR'])
+            ->name('overtime-masters.store');
+        Route::get('/master-lembur/{overtimePayRule}/edit', [OvertimeMasterController::class, 'edit'])
+            ->middleware(['menu:lembur', 'role:Super Admin,HR'])
+            ->name('overtime-masters.edit');
+        Route::put('/master-lembur/{overtimePayRule}', [OvertimeMasterController::class, 'update'])
+            ->middleware(['menu:lembur', 'role:Super Admin,HR'])
+            ->name('overtime-masters.update');
+        Route::post('/master-lembur/calculate', [OvertimeMasterController::class, 'calculate'])
+            ->middleware(['menu:lembur', 'role:Super Admin,HR'])
+            ->name('overtime-masters.calculate');
         Route::resource('/perintah-lembur', AdminOvertimeOrderController::class)
             ->except(['edit', 'update'])
             ->middleware(['menu:lembur', 'role:Super Admin,HR,HOD,Admin Divisi'])

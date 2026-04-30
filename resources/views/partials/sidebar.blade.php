@@ -3,6 +3,7 @@
     $homeUrl = $user ? route($user->preferredHomeRouteName()) : '#';
     $can = fn(string $menu) => $user && $user->hasMenuAccess($menu);
     $canManageOvertimeOrders = $user && $user->hasRole(['Super Admin', 'HR', 'HOD', 'Admin Divisi']);
+    $canManageOvertimeMaster = $user && $user->hasRole(['Super Admin', 'HR']);
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -323,6 +324,15 @@
                         <a href="{{ route('overtime-orders.index') }}">
                             <i class="fas fa-clock"></i>
                             <p>Perintah Lembur</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('lembur') && $canManageOvertimeMaster)
+                    <li class="nav-item {{ request()->routeIs('overtime-masters.*') ? 'active' : '' }}">
+                        <a href="{{ route('overtime-masters.index') }}">
+                            <i class="fas fa-calculator"></i>
+                            <p>Master Lembur</p>
                         </a>
                     </li>
                 @endif
