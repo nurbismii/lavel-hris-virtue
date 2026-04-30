@@ -28,6 +28,20 @@ $suffix = ' +1';
 
 return $clock->format('H:i') . $suffix;
 };
+
+$attendanceVerificationStatus = function ($record, string $type, bool $hasTime = true) {
+if (!$record || !$hasTime) {
+return null;
+}
+
+$verification = null;
+
+if (isset($record->verifications) && $record->verifications instanceof \Illuminate\Support\Collection) {
+$verification = $record->verifications->firstWhere('attendance_type', $type);
+}
+
+return $verification->status ?? ($record->status_absen ?? null);
+};
 @endphp
 
 <div class="container-fluid">
@@ -321,26 +335,42 @@ return $clock->format('H:i') . $suffix;
                                 <div class="attendance-summary row g-3">
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
+                                            @php($masukVerification = $attendanceVerificationStatus($absensiHariIni ?? null, 'masuk', filled($absensiHariIni->jam_masuk ?? null)))
                                             <span class="attendance-metric__label">Masuk</span>
                                             <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_masuk ?? null, optional($absensiHariIni)->tanggal) }}</div>
+                                            <span class="attendance-metric__status badge {{ \App\Models\Presensi::statusAbsenBadgeClass($masukVerification) }}">
+                                                {{ $masukVerification ? \App\Models\Presensi::statusAbsenLabel($masukVerification) : 'Belum' }}
+                                            </span>
                                         </div>
                                     </div>
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
+                                            @php($istirahatVerification = $attendanceVerificationStatus($absensiHariIni ?? null, 'istirahat', filled($absensiHariIni->jam_istirahat ?? null)))
                                             <span class="attendance-metric__label">Istirahat</span>
                                             <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_istirahat ?? null, optional($absensiHariIni)->tanggal) }}</div>
+                                            <span class="attendance-metric__status badge {{ \App\Models\Presensi::statusAbsenBadgeClass($istirahatVerification) }}">
+                                                {{ $istirahatVerification ? \App\Models\Presensi::statusAbsenLabel($istirahatVerification) : 'Belum' }}
+                                            </span>
                                         </div>
                                     </div>
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
+                                            @php($kembaliVerification = $attendanceVerificationStatus($absensiHariIni ?? null, 'kembali', filled($absensiHariIni->jam_kembali_istirahat ?? null)))
                                             <span class="attendance-metric__label">Kembali</span>
                                             <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_kembali_istirahat ?? null, optional($absensiHariIni)->tanggal) }}</div>
+                                            <span class="attendance-metric__status badge {{ \App\Models\Presensi::statusAbsenBadgeClass($kembaliVerification) }}">
+                                                {{ $kembaliVerification ? \App\Models\Presensi::statusAbsenLabel($kembaliVerification) : 'Belum' }}
+                                            </span>
                                         </div>
                                     </div>
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
+                                            @php($pulangVerification = $attendanceVerificationStatus($absensiHariIni ?? null, 'pulang', filled($absensiHariIni->jam_pulang ?? null)))
                                             <span class="attendance-metric__label">Pulang</span>
                                             <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_pulang ?? null, optional($absensiHariIni)->tanggal) }}</div>
+                                            <span class="attendance-metric__status badge {{ \App\Models\Presensi::statusAbsenBadgeClass($pulangVerification) }}">
+                                                {{ $pulangVerification ? \App\Models\Presensi::statusAbsenLabel($pulangVerification) : 'Belum' }}
+                                            </span>
                                         </div>
                                     </div>
                                 </div>
@@ -421,7 +451,7 @@ return $clock->format('H:i') . $suffix;
                     <thead class="table-light">
                         <tr>
                             <th>Tanggal</th>
-                            <th>Verifikasi</th>
+                            <th>Verifikasi Terakhir</th>
                             <th>Status</th>
                             <th>Shift</th>
                             <th>Masuk</th>
@@ -434,6 +464,10 @@ return $clock->format('H:i') . $suffix;
                         @forelse($presensi as $item)
                         @php($verificationStatus = $item->status_absen ?? null)
                         @php($fulfillment = $item->attendance_fulfillment ?? null)
+                        @php($masukVerification = $attendanceVerificationStatus($item, 'masuk', filled($item->jam_masuk)))
+                        @php($istirahatVerification = $attendanceVerificationStatus($item, 'istirahat', filled($item->jam_istirahat)))
+                        @php($kembaliVerification = $attendanceVerificationStatus($item, 'kembali', filled($item->jam_kembali_istirahat)))
+                        @php($pulangVerification = $attendanceVerificationStatus($item, 'pulang', filled($item->jam_pulang)))
                         <tr>
                             <td>{{ formatDateIndonesia($item->tanggal) }}</td>
                             <td>
@@ -443,10 +477,46 @@ return $clock->format('H:i') . $suffix;
                             </td>
                             <td>{{ \App\Models\Presensi::shortStatus($item->status_presensi) ?? '-' }}</td>
                             <td>{{ optional($item->resolved_shift)->code ?? 'AUTO' }}</td>
-                            <td>{{ $formatPresensiClock($item->jam_masuk, $item->tanggal, '-') }}</td>
-                            <td>{{ $formatPresensiClock($item->jam_istirahat, $item->tanggal, '-') }}</td>
-                            <td>{{ $formatPresensiClock($item->jam_kembali_istirahat, $item->tanggal, '-') }}</td>
-                            <td>{{ $formatPresensiClock($item->jam_pulang, $item->tanggal, '-') }}</td>
+                            <td>
+                                <div class="attendance-history-time">
+                                    <span>{{ $formatPresensiClock($item->jam_masuk, $item->tanggal, '-') }}</span>
+                                    @if($masukVerification)
+                                    <span class="attendance-history-verification badge {{ \App\Models\Presensi::statusAbsenBadgeClass($masukVerification) }}">
+                                        {{ \App\Models\Presensi::statusAbsenLabel($masukVerification) }}
+                                    </span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td>
+                                <div class="attendance-history-time">
+                                    <span>{{ $formatPresensiClock($item->jam_istirahat, $item->tanggal, '-') }}</span>
+                                    @if($istirahatVerification)
+                                    <span class="attendance-history-verification badge {{ \App\Models\Presensi::statusAbsenBadgeClass($istirahatVerification) }}">
+                                        {{ \App\Models\Presensi::statusAbsenLabel($istirahatVerification) }}
+                                    </span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td>
+                                <div class="attendance-history-time">
+                                    <span>{{ $formatPresensiClock($item->jam_kembali_istirahat, $item->tanggal, '-') }}</span>
+                                    @if($kembaliVerification)
+                                    <span class="attendance-history-verification badge {{ \App\Models\Presensi::statusAbsenBadgeClass($kembaliVerification) }}">
+                                        {{ \App\Models\Presensi::statusAbsenLabel($kembaliVerification) }}
+                                    </span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td>
+                                <div class="attendance-history-time">
+                                    <span>{{ $formatPresensiClock($item->jam_pulang, $item->tanggal, '-') }}</span>
+                                    @if($pulangVerification)
+                                    <span class="attendance-history-verification badge {{ \App\Models\Presensi::statusAbsenBadgeClass($pulangVerification) }}">
+                                        {{ \App\Models\Presensi::statusAbsenLabel($pulangVerification) }}
+                                    </span>
+                                    @endif
+                                </div>
+                            </td>
                         </tr>
                         @empty
                         <tr>
@@ -656,7 +726,7 @@ return $clock->format('H:i') . $suffix;
         map = L.map("map", {
             zoomControl: true,
             attributionControl: true
-        }).setView(officePosition, 17);
+        }).setView(officePosition, 18);
 
         L.tileLayer(freeMapTileUrl, {
             maxZoom: 19,

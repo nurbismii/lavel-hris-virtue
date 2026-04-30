@@ -107,11 +107,18 @@ class PresensiController extends Controller
             ->whereBetween('tanggal', [$start, $end])
             ->get();
 
+        $verificationRows = DB::table('presensi_verifications')
+            ->select('presensi_id', 'attendance_type', 'status')
+            ->whereIn('presensi_id', $presensiRows->pluck('id')->filter()->values())
+            ->get()
+            ->groupBy('presensi_id');
+
         $presensiMap = [];
 
         foreach ($presensiRows as $p) {
 
             $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
+            $verificationByType = $this->verificationStatusByType($verificationRows->get($p->id));
 
             $presensiMap[$p->nik_karyawan][$tgl] = [
                 'status' => $p->status_presensi ? Presensi::shortStatus($p->status_presensi) : null,
@@ -119,6 +126,10 @@ class PresensiController extends Controller
                 'i' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
                 'k' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
                 'p' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_pulang, $tgl),
+                'm_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'masuk', $p->jam_masuk ? ($p->status_absen ?? null) : null),
+                'i_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'istirahat', $p->jam_istirahat ? ($p->status_absen ?? null) : null),
+                'k_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'kembali', $p->jam_kembali_istirahat ? ($p->status_absen ?? null) : null),
+                'p_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'pulang', $p->jam_pulang ? ($p->status_absen ?? null) : null),
                 'verification' => $p->status_absen ?? null,
             ];
         }
@@ -198,11 +209,18 @@ class PresensiController extends Controller
             ->whereBetween('tanggal', [$start, $end])
             ->get();
 
+        $verificationRows = DB::table('presensi_verifications')
+            ->select('presensi_id', 'attendance_type', 'status')
+            ->whereIn('presensi_id', $presensiRows->pluck('id')->filter()->values())
+            ->get()
+            ->groupBy('presensi_id');
+
         $presensiMap = [];
 
         foreach ($presensiRows as $p) {
 
             $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
+            $verificationByType = $this->verificationStatusByType($verificationRows->get($p->id));
 
             $presensiMap[$p->nik_karyawan][$tgl] = [
                 'status' => $p->status_presensi ? Presensi::shortStatus($p->status_presensi) : '',
@@ -210,6 +228,10 @@ class PresensiController extends Controller
                 'i' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
                 'k' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
                 'p' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_pulang, $tgl),
+                'm_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'masuk', $p->jam_masuk ? ($p->status_absen ?? null) : null),
+                'i_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'istirahat', $p->jam_istirahat ? ($p->status_absen ?? null) : null),
+                'k_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'kembali', $p->jam_kembali_istirahat ? ($p->status_absen ?? null) : null),
+                'p_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'pulang', $p->jam_pulang ? ($p->status_absen ?? null) : null),
                 'verification' => $p->status_absen ?? null,
             ];
         }
@@ -226,6 +248,10 @@ class PresensiController extends Controller
                     'i' => $payload['i'] ?? '',
                     'k' => $payload['k'] ?? '',
                     'p' => $payload['p'] ?? '',
+                    'm_status' => null,
+                    'i_status' => null,
+                    'k_status' => null,
+                    'p_status' => null,
                 ];
             }
         }
@@ -240,6 +266,10 @@ class PresensiController extends Controller
                     'i' => $payload['i'] ?? '',
                     'k' => $payload['k'] ?? '',
                     'p' => $payload['p'] ?? '',
+                    'm_status' => null,
+                    'i_status' => null,
+                    'k_status' => null,
+                    'p_status' => null,
                 ];
             }
         }
@@ -273,7 +303,7 @@ class PresensiController extends Controller
 
                         $row[] = $p['status']
                             ? $p['status']
-                            : trim("$p[m] $p[i] $p[k] $p[p]");
+                            : $this->formatAttendanceExportCell($p);
                     } else {
                         $row[] = '';
                     }
@@ -296,5 +326,59 @@ class PresensiController extends Controller
         $suffix = $clock->toDateString() > Carbon::parse($attendanceDate)->toDateString() ? ' +1' : '';
 
         return $clock->format('H:i') . $suffix;
+    }
+
+    private function verificationStatusByType($rows): array
+    {
+        if (!$rows) {
+            return [];
+        }
+
+        return collect($rows)
+            ->pluck('status', 'attendance_type')
+            ->all();
+    }
+
+    private function verificationStatusForAction(array $verificationByType, string $type, ?string $fallback): ?string
+    {
+        return $verificationByType[$type] ?? $fallback;
+    }
+
+    private function formatAttendanceExportCell(array $presensi): string
+    {
+        $parts = [];
+        $types = [
+            ['label' => 'M', 'time' => 'm', 'status' => 'm_status'],
+            ['label' => 'I', 'time' => 'i', 'status' => 'i_status'],
+            ['label' => 'K', 'time' => 'k', 'status' => 'k_status'],
+            ['label' => 'P', 'time' => 'p', 'status' => 'p_status'],
+        ];
+
+        foreach ($types as $type) {
+            $time = $presensi[$type['time']] ?? null;
+
+            if (!$time) {
+                continue;
+            }
+
+            $status = $this->shortVerificationStatus($presensi[$type['status']] ?? null);
+            $parts[] = trim($type['label'] . ' ' . $time . ($status ? ' (' . $status . ')' : ''));
+        }
+
+        return trim(implode(' ', $parts));
+    }
+
+    private function shortVerificationStatus(?string $status): ?string
+    {
+        switch ($status) {
+            case Presensi::STATUS_ABSEN_VERIFIED:
+                return 'SV';
+            case Presensi::STATUS_ABSEN_PENDING_REVIEW:
+                return 'RV';
+            case Presensi::STATUS_ABSEN_REJECTED:
+                return 'RJ';
+            default:
+                return null;
+        }
     }
 }

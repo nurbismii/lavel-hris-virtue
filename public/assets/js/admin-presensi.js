@@ -178,35 +178,42 @@
             return `<span class="presensi-status-badge ${statusClass(status)}">${status}</span>`;
         }
 
-        const verification = renderVerificationMarker(data.verification);
-
         return `
             <div class="presensi-time-grid">
-                <span class="presensi-time-item"><span class="presensi-time-label">M</span>${escapeHtml(formatTime(data.m))}</span>
-                <span class="presensi-time-item"><span class="presensi-time-label">I</span>${escapeHtml(formatTime(data.i))}</span>
-                <span class="presensi-time-item"><span class="presensi-time-label">K</span>${escapeHtml(formatTime(data.k))}</span>
-                <span class="presensi-time-item"><span class="presensi-time-label">P</span>${escapeHtml(formatTime(data.p))}</span>
+                ${renderTimeItem('M', data.m, data.m_status)}
+                ${renderTimeItem('I', data.i, data.i_status)}
+                ${renderTimeItem('K', data.k, data.k_status)}
+                ${renderTimeItem('P', data.p, data.p_status)}
             </div>
-            ${verification}
         `;
     }
 
-    function renderVerificationMarker(status) {
+    function renderTimeItem(label, value, status) {
+        return `
+            <span class="presensi-time-item">
+                <span class="presensi-time-label">${escapeHtml(label)}</span>
+                <span class="presensi-time-value">${escapeHtml(formatTime(value))}</span>
+                ${value ? renderTimeStatus(status) : ''}
+            </span>
+        `;
+    }
+
+    function renderTimeStatus(status) {
         const map = {
             verified: {
                 className: 'is-verified',
                 label: 'Server verified',
-                icon: 'SV',
+                icon: 'V',
             },
             pending_review: {
                 className: 'is-review',
                 label: 'Menunggu review server',
-                icon: 'RV',
+                icon: 'R',
             },
             rejected: {
                 className: 'is-rejected',
                 label: 'Ditolak verifier',
-                icon: 'RJ',
+                icon: '!',
             },
         };
         const item = map[String(status || '')];
@@ -215,7 +222,7 @@
             return '';
         }
 
-        return `<span class="presensi-verification-chip ${item.className}" title="${escapeHtml(item.label)}">${item.icon}</span>`;
+        return `<span class="presensi-time-status ${item.className}" title="${escapeHtml(item.label)}">${item.icon}</span>`;
     }
 
     function buildColumns(response) {
@@ -256,7 +263,7 @@
                 orderable: false,
                 searchable: false,
                 className: dateClasses,
-                width: '82px',
+                width: '92px',
                 dateMeta: meta,
                 render: renderAttendanceCell,
             });

@@ -51,7 +51,8 @@ class ServerSideFaceVerificationService
         array $context = []
     ): array {
         $reference = $this->resolveReferenceImage($referencePath, (string) $user->nik_karyawan);
-        $selfiePath = $this->resolveStoredSelfiePath((string) $presensi->face_selfie_path, (string) $user->nik_karyawan);
+        $storedSelfiePath = (string) ($context['face_selfie_path'] ?? $presensi->face_selfie_path);
+        $selfiePath = $this->resolveStoredSelfiePath($storedSelfiePath, (string) $user->nik_karyawan);
         $passive = $this->runPassiveLivenessChecks($selfiePath, $selfieAudit);
         $provider = $this->runProviderVerificationFromPaths(
             $selfiePath,
@@ -64,6 +65,8 @@ class ServerSideFaceVerificationService
             $this->buildStoredLivenessEvidenceParts($livenessEvidencePaths, (string) $user->nik_karyawan),
             array_merge($context, [
                 'absensi_id' => $presensi->id,
+                'presensi_verification_id' => $context['presensi_verification_id'] ?? null,
+                'attendance_type' => $context['attendance_type'] ?? null,
                 'liveness_evidence_summary' => $this->summarizeStoredLivenessEvidencePaths($livenessEvidencePaths),
             ])
         );
@@ -96,6 +99,21 @@ class ServerSideFaceVerificationService
                     'passed' => true,
                     'method' => 'server-side-provider',
                     'message' => 'Server-side liveness dan face verification berhasil.',
+                    'provider' => $provider,
+                    'passive_liveness' => $passive,
+                ];
+            }
+
+            if (
+                (bool) ($provider['liveness_passed'] ?? false)
+                && !(bool) ($provider['screen_attack_detected'] ?? false)
+                && !(bool) ($provider['face_matched'] ?? false)
+            ) {
+                return [
+                    'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
+                    'passed' => false,
+                    'method' => 'server-side-provider-face-review',
+                    'message' => 'Liveness valid, tetapi kecocokan wajah perlu review manual.',
                     'provider' => $provider,
                     'passive_liveness' => $passive,
                 ];
@@ -248,6 +266,14 @@ class ServerSideFaceVerificationService
                     'contents' => (string) ($absensiId ?? ''),
                 ],
                 [
+                    'name' => 'presensi_verification_id',
+                    'contents' => (string) ($context['presensi_verification_id'] ?? ''),
+                ],
+                [
+                    'name' => 'attendance_type',
+                    'contents' => (string) ($context['attendance_type'] ?? ''),
+                ],
+                [
                     'name' => 'nik_karyawan',
                     'contents' => (string) $user->nik_karyawan,
                 ],
@@ -272,6 +298,8 @@ class ServerSideFaceVerificationService
                     'contents' => json_encode([
                         'nik_karyawan' => (string) $user->nik_karyawan,
                         'absensi_id' => $absensiId,
+                        'presensi_verification_id' => $context['presensi_verification_id'] ?? null,
+                        'attendance_type' => $context['attendance_type'] ?? null,
                         'tanggal' => $attendanceDate,
                         'challenge_id' => $challenge['id'] ?? null,
                         'challenge_issued_at' => $challenge['issued_at'] ?? null,

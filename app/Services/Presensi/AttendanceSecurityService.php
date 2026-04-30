@@ -3,6 +3,7 @@
 namespace App\Services\Presensi;
 
 use App\Models\Presensi;
+use App\Models\PresensiVerification;
 use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\User;
@@ -301,6 +302,9 @@ class AttendanceSecurityService
 
         if (
             Presensi::where('nik_karyawan', $user->nik_karyawan)
+                ->where('face_selfie_hash', $hash)
+                ->exists()
+            || PresensiVerification::where('nik_karyawan', $user->nik_karyawan)
                 ->where('face_selfie_hash', $hash)
                 ->exists()
         ) {

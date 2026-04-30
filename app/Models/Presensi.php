@@ -29,6 +29,11 @@ class Presensi extends Model
         return $this->belongsTo(Employee::class, 'nik_karyawan')->select('nik', 'divisi_id');
     }
 
+    public function verifications()
+    {
+        return $this->hasMany(PresensiVerification::class, 'presensi_id');
+    }
+
     public static function shortStatus(?string $status): ?string
     {
         switch ($status) {

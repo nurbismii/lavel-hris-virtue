@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Presensi;
+use App\Models\PresensiVerification;
 use App\Models\User;
 use App\Services\Presensi\ServerSideFaceVerificationService;
 use Illuminate\Bus\Queueable;
@@ -32,6 +33,7 @@ class VerifyPresensiFaceAsync implements ShouldQueue
     protected $selfieAudit;
     protected $livenessEvidencePaths;
     protected $context;
+    protected $presensiVerificationId;
 
     public function __construct(
         int $presensiId,
@@ -41,7 +43,8 @@ class VerifyPresensiFaceAsync implements ShouldQueue
         array $faceResult,
         array $selfieAudit,
         array $livenessEvidencePaths,
-        array $context = []
+        array $context = [],
+        ?int $presensiVerificationId = null
     ) {
         $this->presensiId = $presensiId;
         $this->userId = $userId;
@@ -51,6 +54,7 @@ class VerifyPresensiFaceAsync implements ShouldQueue
         $this->selfieAudit = $selfieAudit;
         $this->livenessEvidencePaths = $livenessEvidencePaths;
         $this->context = $context;
+        $this->presensiVerificationId = $presensiVerificationId;
         $this->onQueue((string) config('services.presensi_face.queue', 'default'));
     }
 
@@ -58,24 +62,21 @@ class VerifyPresensiFaceAsync implements ShouldQueue
     {
         $presensi = Presensi::find($this->presensiId);
         $user = User::find($this->userId);
+        $verificationRecord = $this->resolveVerificationRecord();
 
-        if (!$presensi || !$user) {
+        if (!$presensi || !$user || ($this->presensiVerificationId && !$verificationRecord)) {
             $this->cleanupLivenessEvidence();
 
             return;
         }
 
-        if ($presensi->status_absen !== Presensi::STATUS_ABSEN_PENDING_REVIEW) {
+        if (!$this->targetStillPending($presensi, $verificationRecord)) {
             $this->cleanupLivenessEvidence();
 
             return;
         }
 
-        if (!$this->matchesCurrentChallenge($presensi)) {
-            $this->cleanupLivenessEvidence();
-
-            return;
-        }
+        $context = array_merge($this->context, $this->verificationContext($verificationRecord));
 
         try {
             $verification = $verificationService->verifyStored(
@@ -86,7 +87,7 @@ class VerifyPresensiFaceAsync implements ShouldQueue
                 $this->faceResult,
                 $this->selfieAudit,
                 $this->livenessEvidencePaths,
-                $this->context
+                $context
             );
 
             $this->updatePresensi($verification);
@@ -99,6 +100,7 @@ class VerifyPresensiFaceAsync implements ShouldQueue
     {
         Log::error('Async presensi face verification job failed.', [
             'presensi_id' => $this->presensiId,
+            'presensi_verification_id' => $this->presensiVerificationId,
             'user_id' => $this->userId,
             'error' => $exception->getMessage(),
         ]);
@@ -110,6 +112,44 @@ class VerifyPresensiFaceAsync implements ShouldQueue
     protected function updatePresensi(array $verification): void
     {
         DB::transaction(function () use ($verification) {
+            $status = (string) ($verification['status'] ?? Presensi::STATUS_ABSEN_PENDING_REVIEW);
+
+            $status = $this->normalizeVerificationStatus($status);
+
+            $provider = is_array($verification['provider'] ?? null)
+                ? $verification['provider']
+                : [];
+            $verified = $status === Presensi::STATUS_ABSEN_VERIFIED;
+            $verificationRecord = $this->lockedVerificationRecord();
+
+            if ($this->presensiVerificationId && !$verificationRecord) {
+                return;
+            }
+
+            if ($verificationRecord) {
+                if (
+                    $verificationRecord->status !== Presensi::STATUS_ABSEN_PENDING_REVIEW
+                    || !$this->matchesVerificationChallenge($verificationRecord)
+                ) {
+                    return;
+                }
+
+                $distance = $provider['distance'] ?? $verificationRecord->face_verification_distance;
+
+                $verificationRecord->status = $status;
+                $verificationRecord->face_verified = $verified;
+                $verificationRecord->face_verified_at = $verified ? now() : null;
+                $verificationRecord->face_verification_distance = is_numeric($distance)
+                    ? (float) $distance
+                    : $verificationRecord->face_verification_distance;
+                $verificationRecord->face_verification_method = $verification['method'] ?? 'server-side-provider-async';
+                $verificationRecord->face_verification_meta = $this->mergeVerificationMeta(
+                    $verificationRecord->face_verification_meta,
+                    $verification
+                );
+                $verificationRecord->save();
+            }
+
             $presensi = Presensi::whereKey($this->presensiId)
                 ->lockForUpdate()
                 ->first();
@@ -122,21 +162,7 @@ class VerifyPresensiFaceAsync implements ShouldQueue
                 return;
             }
 
-            $status = (string) ($verification['status'] ?? Presensi::STATUS_ABSEN_PENDING_REVIEW);
-
-            if (!in_array($status, [
-                Presensi::STATUS_ABSEN_VERIFIED,
-                Presensi::STATUS_ABSEN_PENDING_REVIEW,
-                Presensi::STATUS_ABSEN_REJECTED,
-            ], true)) {
-                $status = Presensi::STATUS_ABSEN_PENDING_REVIEW;
-            }
-
-            $provider = is_array($verification['provider'] ?? null)
-                ? $verification['provider']
-                : [];
             $distance = $provider['distance'] ?? $presensi->face_verification_distance;
-            $verified = $status === Presensi::STATUS_ABSEN_VERIFIED;
 
             $presensi->status_absen = $status;
             $presensi->face_verified = $verified;
@@ -156,6 +182,41 @@ class VerifyPresensiFaceAsync implements ShouldQueue
     protected function markPendingReviewAfterFailure(Throwable $exception): void
     {
         DB::transaction(function () use ($exception) {
+            $verification = [
+                'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
+                'passed' => false,
+                'method' => 'server-side-provider-async-failed',
+                'message' => 'Job verifikasi AI gagal dijalankan. Butuh review manual.',
+                'provider' => [
+                    'error' => Str::limit($exception->getMessage(), 500),
+                ],
+                'passive_liveness' => null,
+            ];
+
+            $verificationRecord = $this->lockedVerificationRecord();
+
+            if ($this->presensiVerificationId && !$verificationRecord) {
+                return;
+            }
+
+            if ($verificationRecord) {
+                if (
+                    $verificationRecord->status !== Presensi::STATUS_ABSEN_PENDING_REVIEW
+                    || !$this->matchesVerificationChallenge($verificationRecord)
+                ) {
+                    return;
+                }
+
+                $verificationRecord->face_verified = false;
+                $verificationRecord->face_verified_at = null;
+                $verificationRecord->face_verification_method = $verification['method'];
+                $verificationRecord->face_verification_meta = $this->mergeVerificationMeta(
+                    $verificationRecord->face_verification_meta,
+                    $verification
+                );
+                $verificationRecord->save();
+            }
+
             $presensi = Presensi::whereKey($this->presensiId)
                 ->lockForUpdate()
                 ->first();
@@ -167,17 +228,6 @@ class VerifyPresensiFaceAsync implements ShouldQueue
             ) {
                 return;
             }
-
-            $verification = [
-                'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
-                'passed' => false,
-                'method' => 'server-side-provider-async-failed',
-                'message' => 'Job verifikasi AI gagal dijalankan. Butuh review manual.',
-                'provider' => [
-                    'error' => Str::limit($exception->getMessage(), 500),
-                ],
-                'passive_liveness' => null,
-            ];
 
             $presensi->face_verified = false;
             $presensi->face_verified_at = null;
@@ -212,12 +262,77 @@ class VerifyPresensiFaceAsync implements ShouldQueue
         return json_encode($meta);
     }
 
+    protected function normalizeVerificationStatus(string $status): string
+    {
+        if (in_array($status, [
+            Presensi::STATUS_ABSEN_VERIFIED,
+            Presensi::STATUS_ABSEN_PENDING_REVIEW,
+            Presensi::STATUS_ABSEN_REJECTED,
+        ], true)) {
+            return $status;
+        }
+
+        return Presensi::STATUS_ABSEN_PENDING_REVIEW;
+    }
+
     protected function matchesCurrentChallenge(Presensi $presensi): bool
     {
         $challengeId = (string) ($this->challenge['id'] ?? '');
 
         return $challengeId !== ''
             && hash_equals($challengeId, (string) $presensi->presensi_challenge_id);
+    }
+
+    protected function matchesVerificationChallenge(PresensiVerification $verification): bool
+    {
+        $challengeId = (string) ($this->challenge['id'] ?? '');
+
+        return $challengeId !== ''
+            && hash_equals($challengeId, (string) $verification->presensi_challenge_id);
+    }
+
+    protected function targetStillPending(Presensi $presensi, ?PresensiVerification $verification): bool
+    {
+        if ($verification) {
+            return $verification->status === Presensi::STATUS_ABSEN_PENDING_REVIEW
+                && $this->matchesVerificationChallenge($verification);
+        }
+
+        return $presensi->status_absen === Presensi::STATUS_ABSEN_PENDING_REVIEW
+            && $this->matchesCurrentChallenge($presensi);
+    }
+
+    protected function resolveVerificationRecord(): ?PresensiVerification
+    {
+        if (!$this->presensiVerificationId) {
+            return null;
+        }
+
+        return PresensiVerification::find($this->presensiVerificationId);
+    }
+
+    protected function lockedVerificationRecord(): ?PresensiVerification
+    {
+        if (!$this->presensiVerificationId) {
+            return null;
+        }
+
+        return PresensiVerification::whereKey($this->presensiVerificationId)
+            ->lockForUpdate()
+            ->first();
+    }
+
+    protected function verificationContext(?PresensiVerification $verification): array
+    {
+        if (!$verification) {
+            return [];
+        }
+
+        return [
+            'face_selfie_path' => $verification->face_selfie_path,
+            'presensi_verification_id' => $verification->id,
+            'attendance_type' => $verification->attendance_type,
+        ];
     }
 
     protected function cleanupLivenessEvidence(): void

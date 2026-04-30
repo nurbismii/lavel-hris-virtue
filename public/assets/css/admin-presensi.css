@@ -1,7 +1,7 @@
 .presensi-page {
     --presensi-nik-width: 96px;
     --presensi-name-width: 190px;
-    --presensi-cell-width: 72px;
+    --presensi-cell-width: 92px;
 }
 
 .presensi-filter {
@@ -288,10 +288,41 @@ thead .presensi-sticky-col {
     white-space: nowrap;
 }
 
+.presensi-time-value {
+    min-width: 27px;
+}
+
 .presensi-time-label {
     color: #94a3b8;
     font-size: 8px;
     font-weight: 800;
+}
+
+.presensi-time-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    font-size: 7px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.presensi-time-status.is-verified {
+    color: #166534;
+    background: #bbf7d0;
+}
+
+.presensi-time-status.is-review {
+    color: #854d0e;
+    background: #fde68a;
+}
+
+.presensi-time-status.is-rejected {
+    color: #991b1b;
+    background: #fecaca;
 }
 
 .presensi-empty-cell {
@@ -389,7 +420,7 @@ thead .presensi-sticky-col {
     .presensi-page {
         --presensi-nik-width: 92px;
         --presensi-name-width: 190px;
-        --presensi-cell-width: 78px;
+        --presensi-cell-width: 94px;
     }
 
     .presensi-card .dataTables_scrollBody {

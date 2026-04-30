@@ -14,6 +14,7 @@ use App\Services\Presensi\AttendanceFulfillmentService;
 use App\Services\Presensi\ShiftAssignmentService;
 use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Presensi\OvertimeOrderService;
+use App\Services\Presensi\PresensiVerificationStatusService;
 use App\Services\Presensi\WorkScheduleService;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
@@ -52,6 +53,7 @@ class PresensiController extends Controller
         $activeOvertimeOrder = $overtimeService->getAcceptedOrderForDate($user->nik_karyawan, $activeAttendanceDateString);
 
         $absensiHariIni = Presensi::where('nik_karyawan', Auth::user()->nik_karyawan)
+            ->with('verifications')
             ->whereDate('tanggal', $activeAttendanceDateString)
             ->first();
         $statusPresensiHariIni = optional($absensiHariIni)->status_presensi;
@@ -81,6 +83,7 @@ class PresensiController extends Controller
         $currentScheduleData = $activeAttendanceContext['schedule_data'];
 
         $presensiRecords = Presensi::where('nik_karyawan', $user->nik_karyawan)
+            ->with('verifications')
             ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
             ->orderBy('tanggal', 'desc')
             ->get();
@@ -154,7 +157,8 @@ class PresensiController extends Controller
     public function store(
         PresensiRequest $request,
         $type,
-        AttendanceSecurityService $securityService
+        AttendanceSecurityService $securityService,
+        PresensiVerificationStatusService $verificationStatusService
     ) {
         $user = Auth::user();
         $karyawan = $user->employee;
@@ -273,6 +277,7 @@ class PresensiController extends Controller
         $isSuspicious = $securityScore < 60 ? 'TRUE' : 'FALSE';
         $selfiePath = null;
         $absensiId = null;
+        $verificationId = null;
 
         try {
             DB::transaction(function () use (
@@ -288,8 +293,10 @@ class PresensiController extends Controller
                 $serverVerification,
                 $securityScore,
                 $isSuspicious,
+                $verificationStatusService,
                 &$selfiePath,
-                &$absensiId
+                &$absensiId,
+                &$verificationId
             ) {
                 $absensi = Presensi::where('nik_karyawan', $user->nik_karyawan)
                     ->whereDate('tanggal', $attendanceDate)
@@ -362,14 +369,28 @@ class PresensiController extends Controller
                 $absensi->face_selfie_path = $selfiePath;
                 $absensi->face_selfie_hash = $selfieAudit['hash'];
                 $serverVerified = ($serverVerification['status'] ?? null) === Presensi::STATUS_ABSEN_VERIFIED;
+                $verificationDistance = $this->verificationDistance($serverVerification, $request->face_distance);
                 $absensi->face_verified = $serverVerified;
-                $absensi->face_verification_distance = $this->verificationDistance($serverVerification, $request->face_distance);
+                $absensi->face_verification_distance = $verificationDistance;
                 $absensi->face_verified_at = $serverVerified ? now() : null;
                 $absensi->face_verification_method = $serverVerification['method'] ?? 'server-side-passive-review';
                 $absensi->face_verification_meta = $storedFaceMeta;
                 $absensi->presensi_challenge_id = $challenge['id'];
                 $absensi->save();
+
+                $verification = $verificationStatusService->createPending($absensi, $type, [
+                    'status' => $serverVerification['status'] ?? Presensi::STATUS_ABSEN_PENDING_REVIEW,
+                    'face_selfie_path' => $selfiePath,
+                    'face_selfie_hash' => $selfieAudit['hash'],
+                    'face_verification_distance' => $verificationDistance,
+                    'face_verification_method' => $serverVerification['method'] ?? 'server-side-async-pending',
+                    'face_verification_meta' => $storedFaceMeta,
+                    'presensi_challenge_id' => $challenge['id'],
+                    'submitted_at' => $now,
+                ]);
+
                 $absensiId = $absensi->id;
+                $verificationId = $verification->id;
             });
         } catch (Throwable $exception) {
             if ($selfiePath) {
@@ -399,7 +420,8 @@ class PresensiController extends Controller
                     'ip' => $request->ip(),
                     'user_agent' => $request->userAgent(),
                     'attendance_date' => $attendanceDate,
-                ]
+                ],
+                $verificationId
             )->onQueue((string) config('services.presensi_face.queue', 'default'));
         }
 

@@ -372,6 +372,26 @@
     padding: 1rem;
 }
 
+.attendance-metric__status {
+    margin-top: 0.45rem;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.attendance-history-time {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    min-width: 78px;
+}
+
+.attendance-history-verification {
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+}
+
 .attendance-action-card {
     display: flex;
     flex-wrap: wrap;
