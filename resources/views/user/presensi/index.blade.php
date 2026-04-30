@@ -27,23 +27,15 @@ return $clock->format('H:i') . $suffix;
 
 <div class="container-fluid">
     <div class="page-inner">
-        <div class="presensi-hero mb-4">
-            <div class="presensi-hero__content">
-                <div class="presensi-hero__icon">
-                    <i class="fas fa-user-shield"></i>
-                </div>
-
-                <div>
-                    <h3 class="presensi-hero__title">Presensi</h3>
-                    <p class="presensi-hero__text">
-                        Verifikasi wajah, validasi lokasi, dan pencatatan kehadiran dalam satu alur.
-                    </p>
-                </div>
-            </div>
-
-            <div class="presensi-hero__badge">
-                <i class="fas fa-shield-alt"></i>
-                Face & GPS Verified
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1">
+                    <i class="fas fa-map-pin text-primary me-2"></i>
+                    Presensi
+                </h3>
+                <small class="text-muted">
+                    Silakan presensi untuk mencatat kehadiranmu
+                </small>
             </div>
         </div>
 
@@ -191,12 +183,7 @@ return $clock->format('H:i') . $suffix;
                                                 <i class="fas fa-camera"></i>
                                                 Kamera Presensi
                                             </span>
-                                            <h6 class="camera-stage__title mb-0">Validasi wajah real-time</h6>
                                         </div>
-
-                                        <span id="cameraFrameBadge" class="camera-frame-chip is-neutral">
-                                            Siaga
-                                        </span>
                                     </div>
 
                                     <div class="camera-stage__media">
@@ -239,24 +226,7 @@ return $clock->format('H:i') . $suffix;
                                     </div>
 
                                     <div class="camera-stage__footer">
-                                        <div class="camera-feedback">
-                                            <div id="cameraFrameMessage" class="camera-feedback__message">
-                                                Menunggu pembacaan wajah...
-                                            </div>
-
-                                            <div class="camera-feedback__progress">
-                                                <span id="cameraHoldBar"></span>
-                                            </div>
-
-                                            <div class="camera-feedback__bottom">
-                                                <span id="cameraProgressText">Menunggu pembacaan wajah</span>
-                                                <span id="blinkStatus">Hadap lurus ke kamera</span>
-                                            </div>
-
-                                            <p id="cameraAssistText" class="camera-feedback__assist mb-0">
-                                                Sistem akan membaca wajah dan mengambil selfie otomatis setelah validasi berhasil.
-                                            </p>
-                                        </div>
+                                        
 
                                         <div class="camera-action-group">
                                             <button type="button" id="retryCameraButton" class="btn btn-outline-primary btn-sm">
@@ -434,13 +404,12 @@ return $clock->format('H:i') . $suffix;
             </div>
         </div>
 
-        <div class="history-card">
-            <div class="history-card__body table-responsive">
+        <div class="card">
+            <div class="card-body table-responsive">
                 <table id="table-presensi" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                     <thead class="table-light">
                         <tr>
                             <th>Tanggal</th>
-                            <th>Verifikasi</th>
                             <th>Status</th>
                             <th>Shift</th>
                             <th>Masuk</th>
@@ -452,14 +421,8 @@ return $clock->format('H:i') . $suffix;
                     <tbody>
                         @forelse($presensi as $item)
                         @php($fulfillment = $item->attendance_fulfillment ?? null)
-                        @php($verificationStatus = $item->status_absen)
                         <tr>
                             <td>{{ formatDateIndonesia($item->tanggal) }}</td>
-                            <td>
-                                <span class="badge {{ \App\Models\Presensi::statusAbsenBadgeClass($verificationStatus) }}">
-                                    {{ \App\Models\Presensi::statusAbsenLabel($verificationStatus) }}
-                                </span>
-                            </td>
                             <td>{{ \App\Models\Presensi::shortStatus($item->status_presensi) ?? '-' }}</td>
                             <td>{{ optional($item->resolved_shift)->code ?? 'AUTO' }}</td>
                             <td>{{ $formatPresensiClock($item->jam_masuk, $item->tanggal, '-') }}</td>
@@ -948,14 +911,11 @@ return $clock->format('H:i') . $suffix;
     }
 
     function getLiveGuideRect(width, height) {
-        const guideWidth = Math.min(width * 0.58, 280);
-        const guideHeight = Math.min(height * 0.78, 360);
-
         return {
-            x: (width - guideWidth) / 2,
-            y: height * 0.08,
-            width: guideWidth,
-            height: guideHeight
+            x: width * 0.18,
+            y: height * 0.10,
+            width: width * 0.64,
+            height: height * 0.80
         };
     }
 
@@ -1013,7 +973,6 @@ return $clock->format('H:i') . $suffix;
             yellow: '#ffc107',
             green: '#198754'
         };
-
         const state = options.state || 'neutral';
         const guideRect = getLiveGuideRect(displaySize.width, displaySize.height);
         const boxes = Array.isArray(options.boxes) ? options.boxes : [];
@@ -1033,93 +992,16 @@ return $clock->format('H:i') . $suffix;
             context.stroke();
         };
 
-        const strokeFaceGuide = function(x, y, width, height) {
-            const cx = x + width / 2;
-
-            // Outline bentuk wajah
-            context.beginPath();
-
-            context.moveTo(cx, y + height * 0.98);
-
-            context.bezierCurveTo(
-                x + width * 0.16,
-                y + height * 0.86,
-                x + width * 0.06,
-                y + height * 0.55,
-                x + width * 0.16,
-                y + height * 0.28
-            );
-
-            context.bezierCurveTo(
-                x + width * 0.24,
-                y + height * 0.08,
-                x + width * 0.38,
-                y,
-                cx,
-                y
-            );
-
-            context.bezierCurveTo(
-                x + width * 0.62,
-                y,
-                x + width * 0.76,
-                y + height * 0.08,
-                x + width * 0.84,
-                y + height * 0.28
-            );
-
-            context.bezierCurveTo(
-                x + width * 0.94,
-                y + height * 0.55,
-                x + width * 0.84,
-                y + height * 0.86,
-                cx,
-                y + height * 0.98
-            );
-
-            context.closePath();
-            context.stroke();
-
-            // Garis bantu wajah dibuat solid supaya tidak terlalu ramai
-            context.setLineDash([]);
-            context.globalAlpha = 0.55;
-
-            // Area mata
-            context.beginPath();
-            context.moveTo(x + width * 0.25, y + height * 0.36);
-            context.lineTo(x + width * 0.75, y + height * 0.36);
-            context.stroke();
-
-            // Garis tengah wajah
-            context.beginPath();
-            context.moveTo(cx, y + height * 0.22);
-            context.lineTo(cx, y + height * 0.72);
-            context.stroke();
-
-            // Area mulut / dagu
-            context.beginPath();
-            context.moveTo(x + width * 0.34, y + height * 0.70);
-            context.lineTo(x + width * 0.66, y + height * 0.70);
-            context.stroke();
-
-            context.globalAlpha = 1;
-        };
-
         context.clearRect(0, 0, overlay.width, overlay.height);
-
+        context.setLineDash([10, 8]);
         context.lineWidth = 3;
         context.strokeStyle = palette[state] || palette.neutral;
-
-        // Frame utama bentuk wajah
-        context.setLineDash([10, 8]);
-        strokeFaceGuide(guideRect.x, guideRect.y, guideRect.width, guideRect.height);
+        strokeRoundedRect(guideRect.x, guideRect.y, guideRect.width, guideRect.height, 42);
         context.setLineDash([]);
 
-        // Kotak deteksi wajah dari face-api tetap kotak, karena ini bounding box wajah
         boxes.forEach(function(box) {
             context.lineWidth = 3;
             context.strokeStyle = palette[state] || palette.neutral;
-            context.setLineDash([]);
             strokeRoundedRect(box.x, box.y, box.width, box.height, 14);
         });
     }
@@ -1503,10 +1385,10 @@ return $clock->format('H:i') . $suffix;
         const centerX = faceBox.x + (faceBox.width / 2);
         const centerY = faceBox.y + (faceBox.height / 2);
         const insideGuide =
-            centerX >= guideRect.x + (guideRect.width * 0.20) &&
-            centerX <= guideRect.x + (guideRect.width * 0.80) &&
-            centerY >= guideRect.y + (guideRect.height * 0.20) &&
-            centerY <= guideRect.y + (guideRect.height * 0.78);
+            centerX >= guideRect.x + (guideRect.width * 0.16) &&
+            centerX <= guideRect.x + (guideRect.width * 0.84) &&
+            centerY >= guideRect.y + (guideRect.height * 0.18) &&
+            centerY <= guideRect.y + (guideRect.height * 0.82);
         const faceHeightRatio = faceBox.height / displaySize.height;
         const detectionScore = Number(detection.detection.score.toFixed(4));
         const rollAngle = Number(getFaceRollAngle(detection.landmarks).toFixed(2));
@@ -1532,7 +1414,7 @@ return $clock->format('H:i') . $suffix;
             return;
         }
 
-        if (detectionScore < 0.78 || faceHeightRatio < 0.34 || faceHeightRatio > 0.74 || rollAngle > 12) {
+        if (detectionScore < 0.78 || faceHeightRatio < 0.32 || faceHeightRatio > 0.76 || rollAngle > 12) {
             cameraValidationStartedAt = null;
             drawLiveCameraOverlay({
                 state: 'yellow',
@@ -1759,7 +1641,6 @@ return $clock->format('H:i') . $suffix;
         let latOffice = {{ $lokasi->lat }};
         let longOffice = {{ $lokasi->long }};
         let radius = {{ $lokasi->radius }};
-
         let maxGpsAccuracy = Math.min(200, Math.max(60, Number(radius) * 0.25));
 
         let lastLat = null;
@@ -2269,7 +2150,7 @@ return $clock->format('H:i') . $suffix;
             absYaw: Number(Math.abs(yaw).toFixed(4))
         };
     }
-
+    
     function calculateEAR(eye) {
         const vertical1 = distance(eye[1], eye[5]);
         const vertical2 = distance(eye[2], eye[4]);
@@ -2427,13 +2308,13 @@ return $clock->format('H:i') . $suffix;
         setBlinkResult(false, null, 'Hadap lurus ke kamera sampai frame tengah tersimpan.');
 
         blinkInterval = setInterval(async () => {
-
+            
             if (blinkIsProcessing) {
                 return;
             }
 
             blinkIsProcessing = true;
-
+            
             try {
                 if (!videoElement || videoElement.readyState < 2) {
                     setBlinkResult(false, null, 'Kamera belum siap.');
@@ -2532,9 +2413,9 @@ return $clock->format('H:i') . $suffix;
                 }
 
                 if (turnStage === 'turn_right') {
-                    const oppositeDirection = turnLeftYaw === null ?
-                        turnMetric.absYaw >= TURN_MIN_YAW :
-                        (turnLeftYaw < 0 ? turnMetric.yaw >= TURN_MIN_YAW : turnMetric.yaw <= -TURN_MIN_YAW);
+                    const oppositeDirection = turnLeftYaw === null
+                        ? turnMetric.absYaw >= TURN_MIN_YAW
+                        : (turnLeftYaw < 0 ? turnMetric.yaw >= TURN_MIN_YAW : turnMetric.yaw <= -TURN_MIN_YAW);
 
                     if (!oppositeDirection) {
                         setBlinkResult(
