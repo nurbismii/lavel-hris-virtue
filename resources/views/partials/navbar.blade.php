@@ -4,11 +4,15 @@
 
         <ul class="navbar-nav topbar-nav ms-md-auto align-items-center">
 
+            <li class="nav-item me-2">
+                @include('partials.language-switcher')
+            </li>
+
             <li class="nav-item topbar-icon dropdown hidden-caret">
                 @php
                 $user = auth()->user();
                 $employee = optional($user)->employee;
-                $employeeName = $employee->nama_karyawan ?? optional($user)->name ?? 'Pengguna';
+                $employeeName = $employee->nama_karyawan ?? optional($user)->name ?? __('common.user');
                 $employeePhotoUrl = $employee->document_photo_url;
                 $employeeInitials = $user->avatar_initials;
                 $unreadCount = $user->unreadNotifications->count();
@@ -37,10 +41,10 @@
                     <!-- Header -->
                     <li class="px-3 py-3 border-bottom bg-light rounded-top">
                         <div class="d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 fw-bold">Notifikasi</h6>
+                            <h6 class="mb-0 fw-bold">{{ __('notifications.title') }}</h6>
                             @if($unreadCount > 0)
                             <span class="badge bg-danger rounded-pill">
-                                {{ $unreadCount }} New
+                                {{ $unreadCount }} {{ __('common.new') }}
                             </span>
                             @endif
                         </div>
@@ -54,7 +58,7 @@
 
                             <div class="flex-grow-1">
                                 <div class="fw-semibold small">
-                                    {{ $notif->data['judul'] ?? 'Notifikasi' }}
+                                    {{ $notif->data['judul'] ?? __('notifications.title') }}
                                 </div>
 
                                 <div class="text-muted small">
@@ -75,7 +79,7 @@
                         </a>
                         @empty
                         <div class="text-center text-muted py-4">
-                            Tidak ada notifikasi
+                            {{ __('notifications.empty') }}
                         </div>
                         @endforelse
                     </li>
@@ -88,14 +92,14 @@
                             <form action="{{ route('notif.readAll') }}" method="POST">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-light">
-                                    Baca semua
+                                    {{ __('notifications.mark_all_read') }}
                                 </button>
                             </form>
                             @endif
 
                             <a href="{{ route('kotak-masuk.index') }}"
                                 class="text-primary fw-semibold small">
-                                Lihat semua →
+                                {{ __('notifications.view_all') }} &rarr;
                             </a>
                         </div>
                     </li>
@@ -119,7 +123,7 @@
                         @endif
                     </div>
                     <span class="profile-username">
-                        <span class="op-7">Hi,</span>
+                        <span class="op-7">{{ __('common.hi') }},</span>
                         <span class="fw-bold">{{ $employeeName }}</span>
                     </span>
                 </a>
@@ -140,20 +144,20 @@
                                 <div class="u-text">
                                     <h4>{{ $employeeName }}</h4>
                                     <p class="text-muted">{{ $user->email }}</p>
-                                    <a href="{{ route('pengaturan-akun.index') }}" class="btn btn-xs btn-secondary btn-sm">Profil Saya</a>
+                                    <a href="{{ route('pengaturan-akun.index') }}" class="btn btn-xs btn-secondary btn-sm">{{ __('navigation.my_profile') }}</a>
                                 </div>
                             </div>
                         </li>
                         <li>
                             <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="{{ route('kotak-masuk.index') }}">Kotak Masuk</a>
+                            <a class="dropdown-item" href="{{ route('kotak-masuk.index') }}">{{ __('navigation.inbox') }}</a>
                             <div class="dropdown-divider"></div>
-                            <a class="dropdown-item" href="{{ route('update.akun') }}">Pengaturan Akun</a>
+                            <a class="dropdown-item" href="{{ route('update.akun') }}">{{ __('navigation.account_settings') }}</a>
                             <div class="dropdown-divider"></div>
 
                             <a class="dropdown-item" href="{{ route('logout') }}"
                                 onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                Keluar
+                                {{ __('navigation.logout') }}
                             </a>
                             <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                                 @csrf

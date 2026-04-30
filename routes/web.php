@@ -20,6 +20,7 @@ use App\Http\Controllers\AdminDivisi\AttendanceSettingController;
 use App\Http\Controllers\AdminDivisi\ShiftSettingController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\LocaleController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +33,8 @@ Route::get('/mobile-logout', function () {
 
     return redirect('/login?app=V-PEOPLE');
 });
+
+Route::post('/locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 
 Route::get('forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');

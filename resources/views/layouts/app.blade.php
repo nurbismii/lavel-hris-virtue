@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ app(\App\Services\Localization\LocaleService::class)->htmlLang() }}">
 
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -70,15 +70,15 @@
                     <nav class="pull-left">
                         <ul class="nav">
                             <li class="nav-item">
-                                <a class="nav-link" href="#"> Help </a>
+                                <a class="nav-link" href="#"> {{ __('common.help') }} </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="#"> Licenses </a>
+                                <a class="nav-link" href="#"> {{ __('common.licenses') }} </a>
                             </li>
                         </ul>
                     </nav>
                     <div>
-                        Created by
+                        {{ __('common.created_by') }}
                         <a href="#">PT VDNI</a>.
                     </div>
                 </div>

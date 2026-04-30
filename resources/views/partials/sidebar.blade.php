@@ -34,7 +34,7 @@
                     <li class="nav-item {{ request()->routeIs('dashboard.karyawan') ? 'active' : '' }}">
                         <a href="{{ route('dashboard.karyawan') }}">
                             <i class="fas fa-home"></i>
-                            <p>Dashboard Karyawan</p>
+                            <p>{{ __('navigation.dashboard_employee') }}</p>
                         </a>
                     </li>
                 @endif
@@ -43,7 +43,7 @@
                     <li class="nav-item {{ request()->routeIs('home') ? 'active' : '' }}">
                         <a href="{{ route('home') }}">
                             <i class="fas fa-home"></i>
-                            <p>Dashboard</p>
+                            <p>{{ __('navigation.dashboard') }}</p>
                         </a>
                     </li>
                 @endif
@@ -53,7 +53,7 @@
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
                         </span>
-                        <h4 class="text-section">Data Master</h4>
+                        <h4 class="text-section">{{ __('navigation.master_data') }}</h4>
                     </li>
                 @endif
 
@@ -61,7 +61,7 @@
                     <li class="nav-item {{ request()->routeIs('karyawan.*') ? 'active' : '' }}">
                         <a href="{{ route('karyawan.index') }}">
                             <i class="fas fa-users"></i>
-                            <p>Data Karyawan</p>
+                            <p>{{ __('navigation.employee_data') }}</p>
                         </a>
                     </li>
                 @endif
@@ -70,7 +70,7 @@
                     <li class="nav-item {{ request()->routeIs('user.*') ? 'active' : '' }}">
                         <a href="{{ route('user.index') }}">
                             <i class="fas fa-user-friends"></i>
-                            <p>Data User</p>
+                            <p>{{ __('navigation.user_data') }}</p>
                         </a>
                     </li>
                 @endif
@@ -79,7 +79,7 @@
                     <li class="nav-item {{ request()->routeIs('slip-gaji.*') ? 'active' : '' }}">
                         <a href="{{ route('slip-gaji.index') }}">
                             <i class="fas fa-file-invoice-dollar"></i>
-                            <p>Slip Gaji</p>
+                            <p>{{ __('navigation.salary_slip') }}</p>
                         </a>
                     </li>
                 @endif
@@ -88,7 +88,7 @@
                     <li class="nav-item {{ request()->routeIs('resign.*') ? 'active' : '' }}">
                         <a href="{{ route('resign.index') }}">
                             <i class="fas fa-user-minus"></i>
-                            <p>Resign</p>
+                            <p>{{ __('navigation.resignation') }}</p>
                         </a>
                     </li>
                 @endif
@@ -97,7 +97,7 @@
                     <li class="nav-item {{ request()->routeIs('surat-peringatan.*') ? 'active' : '' }}">
                         <a href="{{ route('surat-peringatan.index') }}">
                             <i class="fas fa-file-alt"></i>
-                            <p>Pelanggaran</p>
+                            <p>{{ __('navigation.violation') }}</p>
                         </a>
                     </li>
                 @endif
@@ -106,7 +106,7 @@
                     <li class="nav-item {{ request()->routeIs('data-presensi.*') ? 'active' : '' }}">
                         <a href="{{ route('data-presensi.index') }}">
                             <i class="fas fa-check"></i>
-                            <p>Data Presensi</p>
+                            <p>{{ __('navigation.attendance_data') }}</p>
                         </a>
                     </li>
                 @endif
@@ -115,7 +115,7 @@
                     <li class="nav-item {{ request()->routeIs('distribusi.*') ? 'active' : '' }}">
                         <a href="{{ route('distribusi.index') }}">
                             <i class="fas fa-map"></i>
-                            <p>Distribusi Wilayah</p>
+                            <p>{{ __('navigation.area_distribution') }}</p>
                         </a>
                     </li>
                 @endif
@@ -125,7 +125,7 @@
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
                         </span>
-                        <h4 class="text-section">Self Service</h4>
+                        <h4 class="text-section">{{ __('navigation.self_service') }}</h4>
                     </li>
                 @endif
 
@@ -133,7 +133,7 @@
                     <li class="nav-item {{ request()->routeIs('slipgaji.*') ? 'active' : '' }}">
                         <a href="{{ route('slipgaji.index') }}">
                             <i class="fas fa-file-invoice-dollar"></i>
-                            <p>Slip Gaji</p>
+                            <p>{{ __('navigation.salary_slip') }}</p>
                         </a>
                     </li>
                 @endif
@@ -142,7 +142,7 @@
                     <li class="nav-item {{ request()->routeIs('cuti.*') ? 'active' : '' }}">
                         <a href="{{ route('cuti.index') }}">
                             <i class="fas fa-sign-out-alt"></i>
-                            <p>Cuti Tahunan</p>
+                            <p>{{ __('navigation.annual_leave') }}</p>
                         </a>
                     </li>
                 @endif
@@ -151,7 +151,7 @@
                     <li class="nav-item {{ request()->routeIs('roster.*') ? 'active' : '' }}">
                         <a href="{{ route('roster.index') }}">
                             <i class="fas fa-plane-departure"></i>
-                            <p>Cuti Roster</p>
+                            <p>{{ __('navigation.roster_leave') }}</p>
                         </a>
                     </li>
                 @endif
@@ -160,7 +160,7 @@
                     <li class="nav-item {{ request()->routeIs('izin.*') ? 'active' : '' }}">
                         <a href="{{ route('izin.index') }}">
                             <i class="fas fa-file-signature"></i>
-                            <p>Izin (Paid & Unpaid)</p>
+                            <p>{{ __('navigation.permission_paid_unpaid') }}</p>
                         </a>
                     </li>
                 @endif
@@ -169,7 +169,7 @@
                     <li class="nav-item {{ request()->routeIs('presensi.*') ? 'active' : '' }}">
                         <a href="{{ route('presensi.index') }}">
                             <i class="fas fa-map-pin"></i>
-                            <p>Presensi Karyawan</p>
+                            <p>{{ __('navigation.employee_attendance') }}</p>
                         </a>
                     </li>
                 @endif
@@ -178,7 +178,7 @@
                     <li class="nav-item {{ request()->routeIs('lembur.*') ? 'active' : '' }}">
                         <a href="{{ route('lembur.index') }}">
                             <i class="fas fa-clock"></i>
-                            <p>Perintah Lembur</p>
+                            <p>{{ __('navigation.overtime_order') }}</p>
                         </a>
                     </li>
                 @endif
@@ -189,14 +189,14 @@
                             <i class="fa fa-ellipsis-h"></i>
                         </span>
                         <div class="sidebar-section-title">
-                            <h4 class="text-section mb-0">Approval HOD</h4>
+                            <h4 class="text-section mb-0">{{ __('navigation.approval_hod') }}</h4>
                         </div>
                     </li>
 
                     <li class="nav-item {{ request()->routeIs('approval.cuti.hod') ? 'active' : '' }}">
                         <a href="{{ route('approval.cuti.hod') }}" class="{{ ($approvalHodCounts['cuti'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
                             <i class="fas fa-pen"></i>
-                            <p>Cuti Tahunan</p>
+                            <p>{{ __('navigation.annual_leave') }}</p>
                             @if(($approvalHodCounts['cuti'] ?? 0) > 0)
                                 <span class="badge badge-success">{{ $approvalHodCounts['cuti'] }}</span>
                             @endif
@@ -206,7 +206,7 @@
                     <li class="nav-item {{ request()->routeIs('approval.izin.hod') ? 'active' : '' }}">
                         <a href="{{ route('approval.izin.hod') }}" class="{{ ($approvalHodCounts['izin'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
                             <i class="fas fa-pencil-alt"></i>
-                            <p>Izin (Paid & Unpaid)</p>
+                            <p>{{ __('navigation.permission_paid_unpaid') }}</p>
                             @if(($approvalHodCounts['izin'] ?? 0) > 0)
                                 <span class="badge badge-secondary">{{ $approvalHodCounts['izin'] }}</span>
                             @endif
@@ -216,7 +216,7 @@
                     <li class="nav-item {{ request()->routeIs('approval.roster.hod') ? 'active' : '' }}">
                         <a href="{{ route('approval.roster.hod') }}" class="{{ ($approvalHodCounts['roster'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
                             <i class="fas fa-pen-fancy"></i>
-                            <p>Roster</p>
+                            <p>{{ __('navigation.roster') }}</p>
                             @if(($approvalHodCounts['roster'] ?? 0) > 0)
                                 <span class="badge badge-warning">{{ $approvalHodCounts['roster'] }}</span>
                             @endif
@@ -230,14 +230,14 @@
                             <i class="fa fa-ellipsis-h"></i>
                         </span>
                         <div class="sidebar-section-title">
-                            <h4 class="text-section mb-0">Approval HR</h4>
+                            <h4 class="text-section mb-0">{{ __('navigation.approval_hr') }}</h4>
                         </div>
                     </li>
 
                     <li class="nav-item {{ request()->routeIs('approval.cuti.hrd') ? 'active' : '' }}">
                         <a href="{{ route('approval.cuti.hrd') }}" class="{{ ($approvalHrCounts['cuti'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
                             <i class="fas fa-pen"></i>
-                            <p>Cuti Tahunan</p>
+                            <p>{{ __('navigation.annual_leave') }}</p>
                             @if(($approvalHrCounts['cuti'] ?? 0) > 0)
                                 <span class="badge badge-primary">{{ $approvalHrCounts['cuti'] }}</span>
                             @endif
@@ -247,7 +247,7 @@
                     <li class="nav-item {{ request()->routeIs('approval.izin.hrd') ? 'active' : '' }}">
                         <a href="{{ route('approval.izin.hrd') }}" class="{{ ($approvalHrCounts['izin'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
                             <i class="fas fa-pencil-alt"></i>
-                            <p>Izin (Paid & Unpaid)</p>
+                            <p>{{ __('navigation.permission_paid_unpaid') }}</p>
                             @if(($approvalHrCounts['izin'] ?? 0) > 0)
                                 <span class="badge badge-secondary">{{ $approvalHrCounts['izin'] }}</span>
                             @endif
@@ -257,7 +257,7 @@
                     <li class="nav-item {{ request()->routeIs('approval.roster.hrd') ? 'active' : '' }}">
                         <a href="{{ route('approval.roster.hrd') }}" class="{{ ($approvalHrCounts['roster'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
                             <i class="fas fa-pen-fancy"></i>
-                            <p>Roster</p>
+                            <p>{{ __('navigation.roster') }}</p>
                             @if(($approvalHrCounts['roster'] ?? 0) > 0)
                                 <span class="badge badge-warning">{{ $approvalHrCounts['roster'] }}</span>
                             @endif
@@ -270,7 +270,7 @@
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
                         </span>
-                        <h4 class="text-section">Operasional</h4>
+                        <h4 class="text-section">{{ __('navigation.operations') }}</h4>
                     </li>
                 @endif
 
@@ -278,7 +278,7 @@
                     <li class="nav-item {{ request()->routeIs('set-kehadiran.*') ? 'active' : '' }}">
                         <a href="{{ route('set-kehadiran.index') }}">
                             <i class="fas fa-cogs"></i>
-                            <p>Setting Hari Off</p>
+                            <p>{{ __('navigation.day_off_setting') }}</p>
                         </a>
                     </li>
                 @endif
@@ -287,7 +287,7 @@
                     <li class="nav-item {{ request()->routeIs('national-holidays.*') ? 'active' : '' }}">
                         <a href="{{ route('national-holidays.index') }}">
                             <i class="fas fa-calendar"></i>
-                            <p>Master Tanggal Merah</p>
+                            <p>{{ __('navigation.holiday_master') }}</p>
                         </a>
                     </li>
                 @endif
@@ -296,7 +296,7 @@
                     <li class="nav-item {{ request()->routeIs('work-patterns.*') ? 'active' : '' }}">
                         <a href="{{ route('work-patterns.index') }}">
                             <i class="fas fa-spinner"></i>
-                            <p>Master Jadwal Kerja</p>
+                            <p>{{ __('navigation.work_pattern_master') }}</p>
                         </a>
                     </li>
                 @endif
@@ -305,7 +305,7 @@
                     <li class="nav-item {{ request()->routeIs('shifts.*') ? 'active' : '' }}">
                         <a href="{{ route('shifts.index') }}">
                             <i class="fas fa-user-clock"></i>
-                            <p>Master Shift</p>
+                            <p>{{ __('navigation.shift_master') }}</p>
                         </a>
                     </li>
                 @endif
@@ -314,7 +314,7 @@
                     <li class="nav-item {{ request()->routeIs('shift-settings.*') ? 'active' : '' }}">
                         <a href="{{ route('shift-settings.index') }}">
                             <i class="fas fa-user-clock"></i>
-                            <p>Pengaturan Shift</p>
+                            <p>{{ __('navigation.shift_setting') }}</p>
                         </a>
                     </li>
                 @endif
@@ -323,7 +323,7 @@
                     <li class="nav-item {{ request()->routeIs('overtime-orders.*') ? 'active' : '' }}">
                         <a href="{{ route('overtime-orders.index') }}">
                             <i class="fas fa-clock"></i>
-                            <p>Perintah Lembur</p>
+                            <p>{{ __('navigation.overtime_order') }}</p>
                         </a>
                     </li>
                 @endif
@@ -332,7 +332,7 @@
                     <li class="nav-item {{ request()->routeIs('overtime-masters.*') ? 'active' : '' }}">
                         <a href="{{ route('overtime-masters.index') }}">
                             <i class="fas fa-calculator"></i>
-                            <p>Master Lembur</p>
+                            <p>{{ __('navigation.overtime_master') }}</p>
                         </a>
                     </li>
                 @endif
@@ -341,7 +341,7 @@
                     <li class="nav-item {{ request()->routeIs('perusahaan.*') ? 'active' : '' }}">
                         <a href="{{ route('perusahaan.index') }}">
                             <i class="fas fa-hotel"></i>
-                            <p>Perusahaan</p>
+                            <p>{{ __('navigation.company') }}</p>
                         </a>
                     </li>
                 @endif
@@ -351,7 +351,7 @@
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
                         </span>
-                        <h4 class="text-section">Admin Panel</h4>
+                        <h4 class="text-section">{{ __('navigation.admin_panel') }}</h4>
                     </li>
                 @endif
 
@@ -359,7 +359,7 @@
                     <li class="nav-item {{ request()->routeIs('setting-lokasi-presensi.*') ? 'active' : '' }}">
                         <a href="{{ route('setting-lokasi-presensi.index') }}">
                             <i class="fas fa-map-marked-alt"></i>
-                            <p>Lokasi Presensi</p>
+                            <p>{{ __('navigation.attendance_location') }}</p>
                         </a>
                     </li>
                 @endif
@@ -368,7 +368,7 @@
                     <li class="nav-item {{ request()->routeIs('setting-role.*') ? 'active' : '' }}">
                         <a href="{{ route('setting-role.index') }}">
                             <i class="fas fa-user-shield"></i>
-                            <p>Peran dan Akses</p>
+                            <p>{{ __('navigation.role_access') }}</p>
                         </a>
                     </li>
                 @endif
@@ -380,7 +380,7 @@
                             aria-expanded="{{ request()->routeIs('search-by-security.*') || request()->routeIs('search-logs.*') ? 'true' : 'false' }}">
 
                             <i class="fas fa-laptop"></i>
-                            <p>Exit Portal</p>
+                            <p>{{ __('navigation.exit_portal') }}</p>
                             <span class="caret"></span>
                         </a>
 
@@ -388,13 +388,13 @@
                             <ul class="nav nav-collapse">
                                 <li class="{{ request()->routeIs('search-by-security.index') ? 'active' : '' }}">
                                     <a href="{{ route('search-by-security.index') }}">
-                                        <span class="sub-item">User</span>
+                                        <span class="sub-item">{{ __('navigation.user') }}</span>
                                     </a>
                                 </li>
 
                                 <li class="{{ request()->routeIs('search-logs.index') ? 'active' : '' }}">
                                     <a href="{{ route('search-logs.index') }}">
-                                        <span class="sub-item">Logs</span>
+                                        <span class="sub-item">{{ __('navigation.logs') }}</span>
                                     </a>
                                 </li>
                             </ul>

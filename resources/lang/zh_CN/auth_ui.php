@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'all_rights_reserved' => '版权所有。',
+    'email_address' => '邮箱地址',
+    'employee_platform' => 'PT VDNI 员工平台',
+    'feature_mobile_text' => '适合在移动设备上使用。',
+    'feature_mobile_title' => '移动端就绪',
+    'feature_realtime_text' => 'HR 数据更新更及时。',
+    'feature_realtime_title' => '实时数据',
+    'feature_secure_text' => '为已注册用户提供安全登录。',
+    'feature_secure_title' => '安全访问',
+    'forgot_password' => '忘记密码？',
+    'hero_description' => 'V-People 将员工行政、考勤、申请、文件和个人数据集中在一个安全且易用的系统中。',
+    'hero_title' => '更快速、更有序、更一体化地管理 HR。',
+    'login_now' => '立即登录',
+    'login_subtitle' => '使用你的 V-People 账户登录以继续工作。',
+    'no_account' => '还没有账户？',
+    'password' => '密码',
+    'password_placeholder' => '请输入密码',
+    'register_here' => '在这里注册',
+    'remember_me' => '记住我',
+    'secure_login' => '安全登录',
+    'show_password' => '显示密码',
+    'welcome_back' => '欢迎回来',
+];

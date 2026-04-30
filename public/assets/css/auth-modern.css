@@ -11,6 +11,65 @@ body {
     background: var(--vp-soft);
 }
 
+.language-switcher--auth {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 20;
+}
+
+.language-switcher__toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 58px;
+    justify-content: center;
+    border: 1px solid rgba(16, 32, 51, 0.08);
+    color: #344256;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 10px 28px rgba(16, 32, 51, 0.1);
+}
+
+.language-switcher__toggle:hover,
+.language-switcher__toggle:focus {
+    color: var(--vp-primary);
+    background: #ffffff;
+}
+
+.language-switcher__menu {
+    min-width: 168px;
+    border-radius: 14px;
+    padding: 6px;
+}
+
+.language-switcher__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.language-switcher__item.active,
+.language-switcher__item:active {
+    color: var(--vp-primary);
+    background: rgba(13, 110, 253, 0.1);
+}
+
+.language-switcher__code {
+    width: 28px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #344256;
+    font-size: 11px;
+    font-weight: 800;
+}
+
 /* =========================================================
    AUTH WRAPPER
 ========================================================= */

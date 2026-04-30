@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ app(\App\Services\Localization\LocaleService::class)->htmlLang() }}">
 
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -22,6 +22,7 @@
 </head>
 
 <body>
+    @include('partials.language-switcher', ['class' => 'language-switcher--auth'])
 
     @yield('content')
 

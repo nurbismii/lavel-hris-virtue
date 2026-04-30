@@ -14,37 +14,35 @@
 
                 <div class="mb-3">
                     <span class="badge rounded-pill bg-light text-primary px-3 py-2">
-                        PT VDNI Employee Platform
+                        {{ __('auth_ui.employee_platform') }}
                     </span>
                 </div>
 
                 <h1 class="brand-title">
-                    Kelola HR lebih cepat, rapi, dan terintegrasi.
+                    {{ __('auth_ui.hero_title') }}
                 </h1>
 
                 <p class="brand-text">
-                    V-People membantu proses administrasi karyawan, presensi,
-                    pengajuan, dokumen, dan data personal dalam satu sistem yang aman
-                    serta mudah digunakan.
+                    {{ __('auth_ui.hero_description') }}
                 </p>
 
                 <div class="feature-card">
                     <div class="feature-item">
                         <i class="fas fa-user-shield"></i>
-                        <strong>Secure Access</strong>
-                        <span>Login aman untuk pengguna terdaftar.</span>
+                        <strong>{{ __('auth_ui.feature_secure_title') }}</strong>
+                        <span>{{ __('auth_ui.feature_secure_text') }}</span>
                     </div>
 
                     <div class="feature-item">
                         <i class="fas fa-clock"></i>
-                        <strong>Real-time</strong>
-                        <span>Data HR diperbarui lebih cepat.</span>
+                        <strong>{{ __('auth_ui.feature_realtime_title') }}</strong>
+                        <span>{{ __('auth_ui.feature_realtime_text') }}</span>
                     </div>
 
                     <div class="feature-item">
                         <i class="fas fa-mobile-alt"></i>
-                        <strong>Mobile Ready</strong>
-                        <span>Nyaman digunakan dari perangkat mobile.</span>
+                        <strong>{{ __('auth_ui.feature_mobile_title') }}</strong>
+                        <span>{{ __('auth_ui.feature_mobile_text') }}</span>
                     </div>
                 </div>
             </div>
@@ -69,12 +67,12 @@
                         <div class="mb-4">
                             <div class="auth-badge">
                                 <i class="fas fa-lock"></i>
-                                Secure Login
+                                {{ __('auth_ui.secure_login') }}
                             </div>
 
-                            <h3 class="login-title mb-2">Selamat datang kembali</h3>
+                            <h3 class="login-title mb-2">{{ __('auth_ui.welcome_back') }}</h3>
                             <p class="login-subtitle mb-0">
-                                Masuk menggunakan akun V-People kamu untuk melanjutkan pekerjaan.
+                                {{ __('auth_ui.login_subtitle') }}
                             </p>
                         </div>
 
@@ -83,7 +81,7 @@
 
                             {{-- Email --}}
                             <div class="mb-3">
-                                <label for="email" class="form-label">Email Address</label>
+                                <label for="email" class="form-label">{{ __('auth_ui.email_address') }}</label>
                                 <div class="input-group-modern">
                                     <i class="fas fa-envelope input-icon"></i>
                                     <input
@@ -106,7 +104,7 @@
 
                             {{-- Password --}}
                             <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
+                                <label for="password" class="form-label">{{ __('auth_ui.password') }}</label>
                                 <div class="input-group-modern">
                                     <i class="fas fa-key input-icon"></i>
                                     <input
@@ -114,7 +112,7 @@
                                         type="password"
                                         name="password"
                                         class="form-control form-control-modern pe-5 @error('password') is-invalid @enderror"
-                                        placeholder="Masukkan password"
+                                        placeholder="{{ __('auth_ui.password_placeholder') }}"
                                         autocomplete="current-password"
                                         required>
 
@@ -122,7 +120,7 @@
                                         type="button"
                                         class="password-toggle"
                                         onclick="togglePassword()"
-                                        aria-label="Tampilkan password">
+                                        aria-label="{{ __('auth_ui.show_password') }}">
                                         <i id="passwordIcon" class="fas fa-eye"></i>
                                     </button>
 
@@ -144,13 +142,13 @@
                                         id="remember"
                                         {{ old('remember') ? 'checked' : '' }}>
                                     <label class="form-check-label small text-muted" for="remember">
-                                        Ingat saya
+                                        {{ __('auth_ui.remember_me') }}
                                     </label>
                                 </div>
 
                                 @if (Route::has('password.request'))
                                 <a href="{{ route('password.request') }}" class="auth-link small">
-                                    Lupa password?
+                                    {{ __('auth_ui.forgot_password') }}
                                 </a>
                                 @endif
                             </div>
@@ -158,7 +156,7 @@
                             {{-- Button --}}
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary btn-login">
-                                    Masuk Sekarang
+                                    {{ __('auth_ui.login_now') }}
                                     <i class="fas fa-arrow-right ms-2"></i>
                                 </button>
                             </div>
@@ -166,9 +164,9 @@
                             {{-- Register Link --}}
                             @if (Route::has('register'))
                             <div class="text-center small text-muted">
-                                Belum punya akun?
+                                {{ __('auth_ui.no_account') }}
                                 <a href="{{ route('register') }}" class="auth-link">
-                                    Daftar di sini
+                                    {{ __('auth_ui.register_here') }}
                                 </a>
                             </div>
                             @endif
@@ -177,7 +175,7 @@
                 </div>
 
                 <div class="text-center mt-4 auth-footer">
-                    © {{ date('Y') }} PT Virtue Dragon Nickel Industry. All rights reserved.
+                    &copy; {{ date('Y') }} PT Virtue Dragon Nickel Industry. {{ __('auth_ui.all_rights_reserved') }}
                 </div>
             </div>
         </div>

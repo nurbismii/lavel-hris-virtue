@@ -1,0 +1,26 @@
+<?php
+
+return [
+    'all_rights_reserved' => 'Seluruh hak cipta dilindungi.',
+    'email_address' => 'Alamat Email',
+    'employee_platform' => 'Platform Karyawan PT VDNI',
+    'feature_mobile_text' => 'Nyaman digunakan dari perangkat mobile.',
+    'feature_mobile_title' => 'Siap Mobile',
+    'feature_realtime_text' => 'Data HR diperbarui lebih cepat.',
+    'feature_realtime_title' => 'Real-time',
+    'feature_secure_text' => 'Login aman untuk pengguna terdaftar.',
+    'feature_secure_title' => 'Akses Aman',
+    'forgot_password' => 'Lupa password?',
+    'hero_description' => 'V-People membantu proses administrasi karyawan, presensi, pengajuan, dokumen, dan data personal dalam satu sistem yang aman serta mudah digunakan.',
+    'hero_title' => 'Kelola HR lebih cepat, rapi, dan terintegrasi.',
+    'login_now' => 'Masuk Sekarang',
+    'login_subtitle' => 'Masuk menggunakan akun V-People kamu untuk melanjutkan pekerjaan.',
+    'no_account' => 'Belum punya akun?',
+    'password' => 'Password',
+    'password_placeholder' => 'Masukkan password',
+    'register_here' => 'Daftar di sini',
+    'remember_me' => 'Ingat saya',
+    'secure_login' => 'Login Aman',
+    'show_password' => 'Tampilkan password',
+    'welcome_back' => 'Selamat datang kembali',
+];
