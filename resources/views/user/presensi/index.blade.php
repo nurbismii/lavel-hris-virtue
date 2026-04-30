@@ -12,8 +12,6 @@
 @section('content')
 
 @php
-$employeePhotoUrl = optional(auth()->user()->employee)->document_photo_url;
-$employeeInitials = auth()->user()->avatar_initials;
 $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
 $faceReferenceUrl = $faceReferencePath ? route('presensi.face-reference') : null;
 $formatPresensiClock = function ($value, $attendanceDate = null, $empty = '--:--') {
@@ -523,8 +521,6 @@ return $clock->format('H:i') . $suffix;
     const gpsLogUrl = @json(url('/api/gps-log'));
     const freeMapTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     const freeMapAttribution = 'Lokasi presensi';
-    const employeePhotoUrl = @json($employeePhotoUrl);
-    const employeeInitials = @json($employeeInitials);
 
     function attendanceChallengeExpiresAt() {
         if (!attendanceChallenge || !attendanceChallenge.expires_at) {
@@ -642,58 +638,15 @@ return $clock->format('H:i') . $suffix;
             'Akses kamera ditolak atau tidak tersedia. Gunakan upload manual bila perlu.';
     }
 
-    function escapeHtml(value) {
-        return String(value || '').replace(/[&<>"']/g, function(character) {
-            return ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            })[character];
-        });
-    }
-
-    function createUserLocationIcon() {
-        const safeInitials = escapeHtml(employeeInitials || 'U');
-        const markerContent = (employeePhotoUrl
-            ? '<img class="user-location-marker__photo" src="' + escapeHtml(employeePhotoUrl) + '" alt="Foto user">'
-            : '') + '<span>' + safeInitials + '</span>';
+    function createMapPinIcon(color) {
+        const safeColor = color === 'red' ? 'red' : 'blue';
 
         return L.divIcon({
-            className: 'user-location-marker',
-            html: '<div class="user-location-marker__pin">' + markerContent + '</div><div class="user-location-marker__shadow"></div>',
-            iconSize: [48, 58],
-            iconAnchor: [24, 54],
-            popupAnchor: [0, -48]
-        });
-    }
-
-    function bindUserMarkerPhotoFallback(marker) {
-        const element = marker && typeof marker.getElement === 'function' ? marker.getElement() : null;
-
-        if (!element) {
-            return;
-        }
-
-        const pin = element.querySelector('.user-location-marker__pin');
-        const photo = element.querySelector('.user-location-marker__photo');
-
-        if (!pin || !photo) {
-            return;
-        }
-
-        photo.addEventListener('load', function() {
-            pin.classList.add('user-location-marker__pin--photo');
-        }, {
-            once: true
-        });
-
-        photo.addEventListener('error', function() {
-            pin.classList.remove('user-location-marker__pin--photo');
-            photo.remove();
-        }, {
-            once: true
+            className: 'attendance-map-pin attendance-map-pin--' + safeColor,
+            html: '<span></span>',
+            iconSize: [34, 44],
+            iconAnchor: [17, 40],
+            popupAnchor: [0, -38]
         });
     }
 
@@ -711,7 +664,8 @@ return $clock->format('H:i') . $suffix;
         }).addTo(map);
 
         markerOffice = L.marker(officePosition, {
-            title: "Lokasi presensi"
+            title: "Lokasi presensi",
+            icon: createMapPinIcon('red')
         }).addTo(map);
 
         circleOffice = L.circle(officePosition, {
@@ -1982,9 +1936,8 @@ return $clock->format('H:i') . $suffix;
             } else {
                 markerUser = L.marker([latUser, longUser], {
                     title: "Posisi kamu",
-                    icon: createUserLocationIcon()
+                    icon: createMapPinIcon('blue')
                 }).addTo(map);
-                bindUserMarkerPhotoFallback(markerUser);
             }
 
             currentDistance = getDistance(latUser, longUser, latOffice, longOffice);
