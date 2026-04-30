@@ -230,7 +230,7 @@ class PresensiController extends Controller
             'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
             'passed' => false,
             'method' => 'server-side-async-pending',
-            'message' => 'Presensi dicatat dan sedang menunggu verifikasi AI server-side.',
+            'message' => 'Presensi dicatat dan sedang menunggu verifikasi',
             'provider' => null,
             'passive_liveness' => null,
         ];
@@ -403,7 +403,7 @@ class PresensiController extends Controller
             )->onQueue((string) config('services.presensi_face.queue', 'default'));
         }
 
-        toast()->warning('Menunggu Verifikasi AI', 'Presensi dicatat. Status akan diperbarui otomatis setelah verifikasi wajah selesai.');
+        toast()->warning('Menunggu Verifikasi', 'Status akan diperbarui otomatis setelah verifikasi wajah selesai.');
 
         return back();
     }
