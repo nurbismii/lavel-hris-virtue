@@ -784,10 +784,16 @@ return $clock->format('H:i') . $suffix;
     }
 
     function getAttendanceButtonBlockReason() {
-        const faceVerifiedInput = document.getElementById('face_verified');
         const livenessPassedInput = document.getElementById('face_liveness_passed');
-        const faceReady = faceVerificationPassed || (faceVerifiedInput && faceVerifiedInput.value === '1');
+        const livenessEvidenceInput = document.getElementById('face_liveness_evidence');
+        const selfieDataInput = document.getElementById('selfie_capture_data');
+        const selfieInput = document.getElementById('selfie_capture');
+        const faceMetaInput = document.getElementById('face_verification_meta');
         const livenessReady = blinkLivenessPassed || (livenessPassedInput && livenessPassedInput.value === '1');
+        const hasLivenessEvidence = livenessEvidenceInput && livenessEvidenceInput.value.trim() !== '';
+        const hasSelfieCapture = (selfieDataInput && selfieDataInput.value.trim() !== '') ||
+            (selfieInput && selfieInput.files && selfieInput.files.length > 0);
+        const hasFaceMeta = faceMetaInput && faceMetaInput.value.trim() !== '';
 
         if (!gpsReady) {
             return 'GPS belum valid';
@@ -797,11 +803,7 @@ return $clock->format('H:i') . $suffix;
             return 'bukti GPS live belum tersimpan';
         }
 
-        if (!faceReady) {
-            return 'matching wajah belum selesai';
-        }
-
-        if (!livenessReady) {
+        if (!livenessReady || !hasLivenessEvidence || !hasSelfieCapture || !hasFaceMeta) {
             return 'liveness wajah belum selesai';
         }
 
@@ -2120,11 +2122,13 @@ return $clock->format('H:i') . $suffix;
                     return;
                 }
 
-                if (!faceVerificationPassed) {
+                const blockReason = getAttendanceButtonBlockReason();
+
+                if (blockReason) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Matching wajah belum selesai',
-                        text: 'Arahkan wajah ke frame sampai indikator hijau muncul.'
+                        title: 'Presensi belum siap',
+                        text: blockReason
                     });
                     return;
                 }
