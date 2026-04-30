@@ -443,16 +443,6 @@ class PresensiController extends Controller
             return null;
         }
 
-        if (
-            $absensi
-            && in_array($absensi->status_absen, [
-                Presensi::STATUS_ABSEN_PENDING_REVIEW,
-                Presensi::STATUS_ABSEN_REJECTED,
-            ], true)
-        ) {
-            return null;
-        }
-
         if (!$absensi || !$absensi->jam_masuk) {
             return 'masuk';
         }

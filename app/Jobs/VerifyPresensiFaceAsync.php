@@ -71,6 +71,12 @@ class VerifyPresensiFaceAsync implements ShouldQueue
             return;
         }
 
+        if (!$this->matchesCurrentChallenge($presensi)) {
+            $this->cleanupLivenessEvidence();
+
+            return;
+        }
+
         try {
             $verification = $verificationService->verifyStored(
                 $presensi,
@@ -108,7 +114,11 @@ class VerifyPresensiFaceAsync implements ShouldQueue
                 ->lockForUpdate()
                 ->first();
 
-            if (!$presensi || $presensi->status_absen !== Presensi::STATUS_ABSEN_PENDING_REVIEW) {
+            if (
+                !$presensi
+                || $presensi->status_absen !== Presensi::STATUS_ABSEN_PENDING_REVIEW
+                || !$this->matchesCurrentChallenge($presensi)
+            ) {
                 return;
             }
 
@@ -150,7 +160,11 @@ class VerifyPresensiFaceAsync implements ShouldQueue
                 ->lockForUpdate()
                 ->first();
 
-            if (!$presensi || $presensi->status_absen !== Presensi::STATUS_ABSEN_PENDING_REVIEW) {
+            if (
+                !$presensi
+                || $presensi->status_absen !== Presensi::STATUS_ABSEN_PENDING_REVIEW
+                || !$this->matchesCurrentChallenge($presensi)
+            ) {
                 return;
             }
 
@@ -196,6 +210,14 @@ class VerifyPresensiFaceAsync implements ShouldQueue
         ];
 
         return json_encode($meta);
+    }
+
+    protected function matchesCurrentChallenge(Presensi $presensi): bool
+    {
+        $challengeId = (string) ($this->challenge['id'] ?? '');
+
+        return $challengeId !== ''
+            && hash_equals($challengeId, (string) $presensi->presensi_challenge_id);
     }
 
     protected function cleanupLivenessEvidence(): void

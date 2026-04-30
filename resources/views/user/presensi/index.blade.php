@@ -83,7 +83,6 @@ return $clock->format('H:i') . $suffix;
 
         @php
         $statusPresensiHariIni = $absensiHariIni->status_presensi ?? null;
-        $verificationStatus = $absensiHariIni->status_absen ?? null;
         $nextType = $nextAttendanceType ?? null;
         $label = '';
         $btnClass = 'btn-primary';
@@ -97,20 +96,6 @@ return $clock->format('H:i') . $suffix;
         if ($statusPresensiHariIni) {
         $actionTitle = 'Status presensi tanggal aktif';
         $actionText = 'Tanggal presensi ini tercatat sebagai ' . $statusPresensiHariIni . '. Presensi jam tidak diperlukan.';
-        } elseif ($verificationStatus === \App\Models\Presensi::STATUS_ABSEN_PENDING_REVIEW) {
-        $nextType = null;
-        $actionTitle = 'Menunggu verifikasi AI';
-        $actionText = 'Presensi sebelumnya sudah dicatat dan sedang diverifikasi. Kamera akan dibuka lagi setelah status presensi terverifikasi.';
-        $inactiveButtonLabel = 'Menunggu Review';
-        $inactiveButtonIcon = 'fas fa-hourglass-half';
-        $inactiveButtonClass = 'btn-warning text-dark';
-        } elseif ($verificationStatus === \App\Models\Presensi::STATUS_ABSEN_REJECTED) {
-        $nextType = null;
-        $actionTitle = 'Presensi ditolak';
-        $actionText = 'Presensi terakhir ditolak oleh verifikasi keamanan. Hubungi HR/Admin untuk review atau pembukaan ulang presensi.';
-        $inactiveButtonLabel = 'Ditolak';
-        $inactiveButtonIcon = 'fas fa-times-circle';
-        $inactiveButtonClass = 'btn-danger';
         } elseif ($nextType === 'masuk') {
         $label = 'Absen Masuk';
         $btnClass = 'btn-primary';
