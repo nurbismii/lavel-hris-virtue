@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
 @push('styles')
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin="">
 <link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css') }}">
 @endpush
 
@@ -460,8 +465,7 @@ return $clock->format('H:i') . $suffix;
 @endsection
 
 @push('scripts')
-@php($googleMapsApiKey = config('services.google_maps.api_key'))
-<script src="https://maps.googleapis.com/maps/api/js?v=3{{ $googleMapsApiKey ? '&key=' . urlencode($googleMapsApiKey) : '' }}"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
 @if ($lokasi)
@@ -515,6 +519,8 @@ return $clock->format('H:i') . $suffix;
     const manualSelfieEnabled = false;
     const attendanceSubmitBaseUrl = @json(url('/absen'));
     const gpsLogUrl = @json(url('/api/gps-log'));
+    const freeMapTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+    const freeMapAttribution = 'Tiles &copy; Esri - Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
 
     function attendanceChallengeExpiresAt() {
         if (!attendanceChallenge || !attendanceChallenge.expires_at) {
@@ -633,38 +639,30 @@ return $clock->format('H:i') . $suffix;
     }
 
     function initMap(latOffice, longOffice, radius) {
-        map = new google.maps.Map(document.getElementById("map"), {
-            zoom: 17,
-            center: {
-                lat: latOffice,
-                lng: longOffice
-            },
-            mapTypeId: "hybrid",
-        });
+        const officePosition = [latOffice, longOffice];
 
-        markerOffice = new google.maps.Marker({
-            position: {
-                lat: latOffice,
-                lng: longOffice
-            },
-            map: map,
-            title: "Lokasi presensi",
-            icon: "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
-        });
+        map = L.map("map", {
+            zoomControl: true,
+            attributionControl: true
+        }).setView(officePosition, 17);
 
-        circleOffice = new google.maps.Circle({
-            strokeColor: "#fd0d0d",
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
+        L.tileLayer(freeMapTileUrl, {
+            maxZoom: 19,
+            attribution: freeMapAttribution
+        }).addTo(map);
+
+        markerOffice = L.marker(officePosition, {
+            title: "Lokasi presensi"
+        }).addTo(map);
+
+        circleOffice = L.circle(officePosition, {
+            color: "#fd0d0d",
+            opacity: 0.8,
+            weight: 2,
             fillColor: "#fd0d0d",
             fillOpacity: 0.2,
-            map,
-            center: {
-                lat: latOffice,
-                lng: longOffice
-            },
             radius: radius
-        });
+        }).addTo(map);
     }
 
     function getDistance(lat1, lon1, lat2, lon2) {
@@ -1676,21 +1674,18 @@ return $clock->format('H:i') . $suffix;
         }
 
         const refreshMapViewport = function() {
-            if (!map || !window.google || !window.google.maps) {
+            if (!map || !window.L) {
                 return;
             }
 
-            google.maps.event.trigger(map, 'resize');
+            map.invalidateSize();
 
             if (markerUser) {
-                map.panTo(markerUser.getPosition());
+                map.panTo(markerUser.getLatLng());
                 return;
             }
 
-            map.setCenter({
-                lat: latOffice,
-                lng: longOffice
-            });
+            map.setView([latOffice, longOffice], map.getZoom() || 17);
         };
 
         const setWizardStep = function(step, options = {}) {
@@ -1860,20 +1855,11 @@ return $clock->format('H:i') . $suffix;
             lastTime = now;
 
             if (markerUser) {
-                markerUser.setPosition({
-                    lat: latUser,
-                    lng: longUser
-                });
+                markerUser.setLatLng([latUser, longUser]);
             } else {
-                markerUser = new google.maps.Marker({
-                    position: {
-                        lat: latUser,
-                        lng: longUser
-                    },
-                    map: map,
-                    title: "Posisi kamu",
-                    icon: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-                });
+                markerUser = L.marker([latUser, longUser], {
+                    title: "Posisi kamu"
+                }).addTo(map);
             }
 
             currentDistance = getDistance(latUser, longUser, latOffice, longOffice);

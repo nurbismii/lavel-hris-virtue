@@ -1,5 +1,13 @@
 @extends('layouts.app')
 
+@push('styles')
+<link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin="">
+@endpush
+
 @section('content')
 <div class="container-fluid">
     <div class="page-inner">
@@ -130,58 +138,65 @@
 @endsection
 
 @push('scripts')
-<script src="https://maps.googleapis.com/maps/api/js?v=3"></script>
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
 
 <script>
     let map;
     let marker;
     let circle;
+    const freeMapTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+    const freeMapAttribution = 'Tiles &copy; Esri - Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
+
+    function radiusValue() {
+        const value = parseInt(document.getElementById("radius").value, 10);
+
+        return Number.isFinite(value) && value > 0 ? value : 100;
+    }
 
     function initMap() {
 
         let lat = parseFloat(document.getElementById("latitude").value);
         let lng = parseFloat(document.getElementById("longitude").value);
-        let radiusValue = parseInt(document.getElementById("radius").value);
+        const center = [lat, lng];
 
-        let center = new google.maps.LatLng(lat, lng);
+        if (map) {
+            map.remove();
+        }
 
-        map = new google.maps.Map(document.getElementById("location"), {
-            center: center,
-            zoom: 16,
-            mapTypeId: "hybrid",
-            tilt: 45,
-            heading: 90,
-            streetViewControl: false,
-            mapTypeControl: false,
-            fullscreenControl: true
-        });
+        map = L.map("location", {
+            zoomControl: true,
+            attributionControl: true
+        }).setView(center, 16);
 
-        marker = new google.maps.Marker({
-            position: center,
-            map: map,
+        L.tileLayer(freeMapTileUrl, {
+            maxZoom: 19,
+            attribution: freeMapAttribution
+        }).addTo(map);
+
+        marker = L.marker(center, {
+            title: "Titik lokasi presensi",
             draggable: true
-        });
+        }).addTo(map);
 
-        circle = new google.maps.Circle({
-            strokeColor: "#0d6efd",
-            strokeOpacity: 0.8,
-            strokeWeight: 2,
+        circle = L.circle(center, {
+            color: "#0d6efd",
+            opacity: 0.8,
+            weight: 2,
             fillColor: "#0d6efd",
             fillOpacity: 0.2,
-            map: map,
-            center: center,
-            radius: radiusValue
+            radius: radiusValue()
+        }).addTo(map);
+
+        marker.on("dragend", function(event) {
+            const position = event.target.getLatLng();
+            setLocation(position.lat, position.lng, false);
         });
 
-        marker.addListener("dragend", function(event) {
-            updateInputs(event.latLng.lat(), event.latLng.lng());
-            circle.setCenter(event.latLng);
-        });
-
-        map.addListener("click", function(event) {
-            marker.setPosition(event.latLng);
-            circle.setCenter(event.latLng);
-            updateInputs(event.latLng.lat(), event.latLng.lng());
+        map.on("click", function(event) {
+            setLocation(event.latlng.lat, event.latlng.lng, false);
         });
     }
 
@@ -190,22 +205,39 @@
         document.getElementById("longitude").value = lng.toFixed(8);
     }
 
+    function setLocation(lat, lng, moveMap = true) {
+        const position = [lat, lng];
+
+        if (marker) {
+            marker.setLatLng(position);
+        }
+
+        if (circle) {
+            circle.setLatLng(position);
+        }
+
+        if (moveMap && map) {
+            map.setView(position, map.getZoom() || 16);
+        }
+
+        updateInputs(lat, lng);
+    }
+
     document.getElementById("radius").addEventListener("input", function() {
         if (circle) {
-            circle.setRadius(parseInt(this.value));
+            circle.setRadius(radiusValue());
         }
     });
 
     function getLocation() {
         navigator.geolocation.getCurrentPosition(function(position) {
-            updateInputs(position.coords.latitude, position.coords.longitude);
-            initMap();
+            setLocation(position.coords.latitude, position.coords.longitude);
         });
     }
 
-    window.onload = function() {
+    document.addEventListener("DOMContentLoaded", function() {
         initMap();
-    };
+    });
 </script>
 
 <script>
