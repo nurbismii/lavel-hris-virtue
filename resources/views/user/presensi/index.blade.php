@@ -187,6 +187,12 @@ return $clock->format('H:i') . $suffix;
                                     </div>
 
                                     <div class="camera-stage__media">
+                                        <div class="camera-stage__media-topbar" aria-hidden="true">
+                                            <span id="cameraFrameBadge" class="camera-frame-chip is-neutral">Siaga</span>
+                                            <span id="cameraProgressText" class="camera-stage__pill camera-stage__pill--secondary">
+                                                Menunggu pembacaan wajah
+                                            </span>
+                                        </div>
 
                                         <div class="camera-stage__mirror">
                                             <video
@@ -410,6 +416,7 @@ return $clock->format('H:i') . $suffix;
                     <thead class="table-light">
                         <tr>
                             <th>Tanggal</th>
+                            <th>Verifikasi</th>
                             <th>Status</th>
                             <th>Shift</th>
                             <th>Masuk</th>
@@ -420,9 +427,15 @@ return $clock->format('H:i') . $suffix;
                     </thead>
                     <tbody>
                         @forelse($presensi as $item)
+                        @php($verificationStatus = $item->status_absen ?? null)
                         @php($fulfillment = $item->attendance_fulfillment ?? null)
                         <tr>
                             <td>{{ formatDateIndonesia($item->tanggal) }}</td>
+                            <td>
+                                <span class="badge {{ \App\Models\Presensi::statusAbsenBadgeClass($verificationStatus) }}">
+                                    {{ \App\Models\Presensi::statusAbsenLabel($verificationStatus) }}
+                                </span>
+                            </td>
                             <td>{{ \App\Models\Presensi::shortStatus($item->status_presensi) ?? '-' }}</td>
                             <td>{{ optional($item->resolved_shift)->code ?? 'AUTO' }}</td>
                             <td>{{ $formatPresensiClock($item->jam_masuk, $item->tanggal, '-') }}</td>

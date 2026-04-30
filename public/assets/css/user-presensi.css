@@ -406,7 +406,7 @@
     position: relative;
     overflow: hidden;
     min-height: 80px;
-    border-radius: 22px;
+    border-radius: 24px;
     background: radial-gradient(
             circle at top,
             rgba(255, 255, 255, 0.6),
@@ -414,6 +414,7 @@
         ),
         linear-gradient(180deg, #eff4f9 0%, #e5edf5 100%);
     border: 1px solid rgba(148, 163, 184, 0.16);
+    box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
     transition: box-shadow 0.2s ease, border-color 0.2s ease,
         transform 0.2s ease;
 }
@@ -503,31 +504,41 @@
     position: relative;
     overflow: hidden;
     min-height: 320px;
-    border-radius: 18px;
-    background: radial-gradient(
-            circle at top,
-            rgba(59, 130, 246, 0.16),
-            transparent 36%
-        ),
-        linear-gradient(180deg, #dbe7f3 0%, #cdd9e5 100%);
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
+    border-radius: 20px;
+    background: linear-gradient(135deg, #0f172a 0%, #1d4ed8 48%, #0f766e 100%);
+    border: 1px solid rgba(15, 23, 42, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        0 18px 34px rgba(15, 23, 42, 0.16);
 }
 
 .camera-stage__media::before {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(
-            180deg,
-            rgba(15, 23, 42, 0.03),
-            rgba(15, 23, 42, 0.18)
-        ),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-        linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-    background-size: auto, 24px 24px, 24px 24px;
+    background: linear-gradient(180deg, rgba(2, 6, 23, 0.12), rgba(2, 6, 23, 0.34)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    background-size: auto, 28px 28px, 28px 28px;
     pointer-events: none;
     z-index: 0;
+}
+
+.camera-stage__media::after {
+    content: "";
+    position: absolute;
+    inset: 12px;
+    border-radius: 16px;
+    background: linear-gradient(#ffffff, #ffffff) left top / 42px 2px no-repeat,
+        linear-gradient(#ffffff, #ffffff) left top / 2px 42px no-repeat,
+        linear-gradient(#ffffff, #ffffff) right top / 42px 2px no-repeat,
+        linear-gradient(#ffffff, #ffffff) right top / 2px 42px no-repeat,
+        linear-gradient(#ffffff, #ffffff) left bottom / 42px 2px no-repeat,
+        linear-gradient(#ffffff, #ffffff) left bottom / 2px 42px no-repeat,
+        linear-gradient(#ffffff, #ffffff) right bottom / 42px 2px no-repeat,
+        linear-gradient(#ffffff, #ffffff) right bottom / 2px 42px no-repeat;
+    opacity: 0.58;
+    pointer-events: none;
+    z-index: 3;
 }
 
 .camera-stage__media-topbar {
@@ -535,12 +546,20 @@
     top: 14px;
     left: 14px;
     right: 14px;
-    z-index: 3;
+    z-index: 5;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.7rem;
     pointer-events: none;
+}
+
+.camera-stage__media-topbar .camera-frame-chip {
+    color: #ffffff;
+    background: rgba(15, 23, 42, 0.58);
+    border-color: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
 }
 
 .camera-stage__pill {
@@ -585,7 +604,7 @@
     inset: 0;
     width: 100%;
     height: 100%;
-    border-radius: 18px;
+    border-radius: 20px;
 }
 
 .camera-live-video,
@@ -648,6 +667,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
+    z-index: 4;
 }
 
 .camera-guide__shape {
@@ -954,15 +974,53 @@
 }
 
 @media (max-width: 767.98px) {
+    .container-fluid > .page-inner {
+        padding-top: 0.75rem;
+    }
+
+    .page-inner > .d-flex.justify-content-between {
+        margin-bottom: 0.85rem !important;
+    }
+
+    .page-inner > .d-flex h3 {
+        font-size: 1.15rem;
+        line-height: 1.25;
+    }
+
     .attendance-hero,
     .attendance-card__body,
     .face-section {
-        padding: 1rem;
+        padding: 0.85rem;
+    }
+
+    .attendance-kicker,
+    .map-chip,
+    .face-status-chip {
+        padding: 6px 9px;
+        font-size: 11.5px;
+    }
+
+    .attendance-card {
+        border-radius: 18px;
+    }
+
+    .attendance-steps {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.45rem;
+        width: 100%;
+    }
+
+    .attendance-step {
+        min-width: 0;
+        padding: 0.55rem 0.65rem;
+        border-radius: 14px;
+        box-shadow: none;
     }
 
     .attendance-stage {
         grid-template-columns: 1fr;
-        gap: 0.75rem;
+        gap: 0.55rem;
     }
 
     .attendance-stage__rail {
@@ -974,8 +1032,26 @@
     }
 
     .attendance-card__header {
-        margin-bottom: 1rem;
-        padding-bottom: 0.85rem;
+        gap: 0.6rem;
+        margin-bottom: 0.7rem;
+        padding-bottom: 0.65rem;
+    }
+
+    .attendance-stage__main {
+        padding: 0.7rem;
+        border-radius: 16px;
+    }
+
+    .map-card__header,
+    .face-section__header,
+    .history-header {
+        gap: 0.55rem;
+        margin-bottom: 0.65rem;
+    }
+
+    .section-title {
+        font-size: 0.98rem;
+        line-height: 1.35;
     }
 
     .map-surface {
@@ -991,15 +1067,24 @@
     }
 
     .camera-stage {
-        padding: 0.8rem;
+        gap: 0.55rem;
+        padding: 0.6rem;
+    }
+
+    .camera-stage__header {
+        display: none;
     }
 
     .camera-stage__media {
         min-height: 280px;
+        border-radius: 18px;
     }
 
-    .camera-stage__header {
-        gap: 0.75rem;
+    .camera-stage__media::after {
+        inset: 9px;
+        border-radius: 13px;
+        background-size: 30px 2px, 2px 30px, 30px 2px, 2px 30px, 30px 2px,
+            2px 30px, 30px 2px, 2px 30px;
     }
 
     .camera-stage__header-chips {
@@ -1012,6 +1097,7 @@
 
     .camera-action-group .btn {
         flex: 1 1 100%;
+        min-height: 40px;
     }
 
     .camera-guide__shape {
@@ -1020,7 +1106,30 @@
     }
 
     .camera-guide__label {
+        bottom: 12px;
         min-width: 0;
         width: calc(100% - 2rem);
+        padding: 8px 11px;
+        font-size: 11px;
+    }
+
+    .camera-stage__media-topbar {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        gap: 0.45rem;
+    }
+
+    .camera-stage__media-topbar .camera-frame-chip,
+    .camera-stage__pill {
+        padding: 0.4rem 0.55rem;
+        font-size: 11px;
+    }
+
+    .camera-stage__pill--secondary {
+        max-width: 58%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }
