@@ -42,6 +42,24 @@ $verification = $record->verifications->firstWhere('attendance_type', $type);
 
 return $verification->status ?? ($record->status_absen ?? null);
 };
+
+$lokasi = $lokasi ?? null;
+$isLocationReady = $isLocationReady ?? (
+    $lokasi
+    && is_numeric($lokasi->lat ?? null)
+    && is_numeric($lokasi->long ?? null)
+    && is_numeric($lokasi->radius ?? null)
+    && (float) $lokasi->lat >= -90
+    && (float) $lokasi->lat <= 90
+    && (float) $lokasi->long >= -180
+    && (float) $lokasi->long <= 180
+    && (float) $lokasi->radius >= 1
+);
+$locationIssueMessage = $locationIssueMessage ?? (
+    $lokasi
+        ? 'Konfigurasi lokasi presensi divisi Anda belum lengkap. Hubungi HR/Admin untuk melengkapi titik koordinat dan radius.'
+        : 'Lokasi presensi untuk divisi Anda belum diatur.'
+);
 @endphp
 
 <div class="container-fluid">
@@ -58,9 +76,9 @@ return $verification->status ?? ($record->status_absen ?? null);
             </div>
         </div>
 
-        @if (!$lokasi)
+        @if (!$isLocationReady)
         <div class="alert alert-danger">
-            Lokasi presensi untuk divisi Anda belum diatur.
+            {{ $locationIssueMessage }}
         </div>
         @else
         @if (!$faceReferencePath)
@@ -538,7 +556,7 @@ return $verification->status ?? ($record->status_absen ?? null);
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
-@if ($lokasi)
+@if ($isLocationReady)
 <script>
     let map;
     let markerUser;
@@ -1796,9 +1814,9 @@ return $verification->status ?? ($record->status_absen ?? null);
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        let latOffice = {{ $lokasi->lat }};
-        let longOffice = {{ $lokasi->long }};
-        let radius = {{ $lokasi->radius }};
+        let latOffice = @json((float) $lokasi->lat);
+        let longOffice = @json((float) $lokasi->long);
+        let radius = @json((float) $lokasi->radius);
         let maxGpsAccuracy = Math.min(200, Math.max(60, Number(radius) * 0.25));
 
         let lastLat = null;

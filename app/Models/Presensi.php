@@ -26,7 +26,13 @@ class Presensi extends Model
 
     public function employee()
     {
-        return $this->belongsTo(Employee::class, 'nik_karyawan')->select('nik', 'divisi_id');
+        return $this->belongsTo(Employee::class, 'nik_karyawan')->select([
+            'nik',
+            'nama_karyawan',
+            'area_kerja',
+            'departemen_id',
+            'divisi_id',
+        ]);
     }
 
     public function verifications()

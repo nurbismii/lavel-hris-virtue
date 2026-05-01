@@ -15,6 +15,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\User\OvertimeOrderController as UserOvertimeOrderController;
 use App\Http\Controllers\User\PresensiController;
+use App\Http\Controllers\User\SlipgajiController as UserSlipGajiController;
 use App\Http\Controllers\Admin\PresensiController as PresensiAdminController;
 use App\Http\Controllers\AdminDivisi\AttendanceSettingController;
 use App\Http\Controllers\AdminDivisi\ShiftSettingController;
@@ -94,7 +95,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/presensi/face-reference', [PresensiController::class, 'faceReference'])
             ->middleware('menu:presensi')
             ->name('presensi.face-reference');
-        Route::resource('/presensi', 'App\Http\Controllers\User\PresensiController')->except('store')->middleware('menu:presensi');
+        Route::resource('/presensi', 'App\Http\Controllers\User\PresensiController')
+            ->only(['index'])
+            ->middleware('menu:presensi');
         Route::post('/absen/{type}', [PresensiController::class, 'store'])->middleware(['auth', 'menu:presensi', 'throttle:presensi']);
         Route::get('/izin/{izin}/bukti', [App\Http\Controllers\User\IzinController::class, 'proof'])
             ->middleware('menu:izin')
@@ -104,15 +107,19 @@ Route::middleware(['android.redirect'])->group(function () {
             ->middleware('menu:roster')
             ->name('roster.attachment');
         Route::resource('/roster', 'App\Http\Controllers\User\RosterController')->middleware('menu:roster');
-        Route::resource('/slipgaji', 'App\Http\Controllers\User\SlipgajiController')->middleware('menu:slip_gaji_user');
-        Route::get('/slipgaji/{id}/pdf', [SlipGajiController::class, 'exportPdf'])->middleware('menu:slip_gaji_user')->name('slipgaji.pdf');
+        Route::resource('/slipgaji', UserSlipGajiController::class)
+            ->only(['index', 'show'])
+            ->middleware('menu:slip_gaji_user');
+        Route::get('/slipgaji/{id}/pdf', [UserSlipGajiController::class, 'exportPdf'])->middleware('menu:slip_gaji_user')->name('slipgaji.pdf');
         Route::get('/lembur', [UserOvertimeOrderController::class, 'index'])->middleware('menu:lembur')->name('lembur.index');
         Route::post('/lembur/{id}/respond', [UserOvertimeOrderController::class, 'respond'])->middleware('menu:lembur')->name('lembur.respond');
 
-        Route::resource('/pengaturan-akun', 'App\Http\Controllers\User\PengaturanAkunController')->except(['show']);
+        Route::resource('/pengaturan-akun', 'App\Http\Controllers\User\PengaturanAkunController')
+            ->only(['index', 'store']);
         Route::get('/pengaturan-akun/update', [App\Http\Controllers\User\PengaturanAkunController::class, 'SetIndex'])->name('update.akun');
 
-        Route::resource('/kotak-masuk', 'App\Http\Controllers\User\InboxController');
+        Route::resource('/kotak-masuk', 'App\Http\Controllers\User\InboxController')
+            ->only(['index']);
         Route::post('/notif/read-all', function () {
             auth()->user()->unreadNotifications->markAsRead();
             return back();
@@ -144,12 +151,23 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/karyawan/{nik}/recruitment-documents', [App\Http\Controllers\Admin\KaryawanController::class, 'recruitmentDocuments'])
             ->middleware('menu:data_karyawan')
             ->name('karyawan.recruitment-documents');
-        Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController')->middleware('menu:data_karyawan');
+        Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController')
+            ->only(['index', 'store', 'edit', 'update', 'destroy'])
+            ->middleware('menu:data_karyawan');
 
-        Route::resource('/user', 'App\Http\Controllers\Admin\UserController')->middleware('menu:data_user');
-        Route::resource('/slip-gaji', 'App\Http\Controllers\Admin\SlipGajiController')->middleware('menu:slip_gaji_admin');
+        Route::resource('/user', 'App\Http\Controllers\Admin\UserController')
+            ->only(['index', 'edit', 'update', 'destroy'])
+            ->middleware('menu:data_user');
+        Route::resource('/slip-gaji', 'App\Http\Controllers\Admin\SlipGajiController')
+            ->only(['index', 'show'])
+            ->middleware('menu:slip_gaji_admin');
         Route::get('/slip-gaji/{id}/pdf', [SlipGajiController::class, 'exportPdf'])->middleware('menu:slip_gaji_admin')->name('slip-gaji.pdf');
-        Route::resource('/perusahaan', 'App\Http\Controllers\Admin\PerusahaanController')->middleware('menu:perusahaan');
+        Route::resource('/perusahaan', 'App\Http\Controllers\Admin\PerusahaanController')
+            ->only(['index', 'show', 'edit', 'update'])
+            ->middleware('menu:perusahaan');
+        Route::delete('/perusahaan/{id}', [App\Http\Controllers\Admin\PerusahaanController::class, 'delete'])
+            ->middleware('menu:perusahaan')
+            ->name('perusahaan.destroy');
 
         // === DEPARTEMEN ===
         Route::get('/departemen/{perusahaan_id}', [App\Http\Controllers\Admin\DepartemenController::class, 'create'])->middleware('menu:perusahaan')->name('departemen.create');
@@ -165,10 +183,16 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::post('/divisi/merge', [App\Http\Controllers\Admin\DivisiController::class, 'mergeDivisi'])->middleware('menu:perusahaan')->name('divisi.merge');
         //=== END DIVISI ===
 
-        Route::resource('/resign', 'App\Http\Controllers\Admin\ResignController')->middleware('menu:resign');
-        Route::resource('/surat-peringatan', 'App\Http\Controllers\Admin\SuratPeringatanController')->middleware('menu:surat_peringatan');
+        Route::resource('/resign', 'App\Http\Controllers\Admin\ResignController')
+            ->only(['index', 'store', 'edit', 'update', 'destroy'])
+            ->middleware('menu:resign');
+        Route::resource('/surat-peringatan', 'App\Http\Controllers\Admin\SuratPeringatanController')
+            ->only(['index', 'store', 'edit', 'update', 'destroy'])
+            ->middleware('menu:surat_peringatan');
 
-        Route::resource('/setting-lokasi-presensi', 'App\Http\Controllers\Admin\SettingLokasiPresensiController')->middleware('menu:setting_lokasi_presensi');
+        Route::resource('/setting-lokasi-presensi', 'App\Http\Controllers\Admin\SettingLokasiPresensiController')
+            ->except(['show'])
+            ->middleware('menu:setting_lokasi_presensi');
         Route::resource('/master-jadwal-kerja', WorkPatternController::class)
             ->except(['show'])
             ->middleware(['menu:jadwal_kerja', 'role:Super Admin,HR,HOD,Admin Divisi'])
@@ -212,11 +236,25 @@ Route::middleware(['android.redirect'])->group(function () {
             ->names('overtime-orders');
 
         // === ROLE ===
-        Route::resource('/setting-role', '\App\Http\Controllers\Admin\SettingRoleController')->middleware('menu:setting_role');
+        Route::resource('/setting-role', '\App\Http\Controllers\Admin\SettingRoleController')
+            ->except(['show'])
+            ->middleware('menu:setting_role');
         Route::patch('/role/update/{id}', [SettingRoleController::class, 'updateRole'])->middleware('menu:setting_role')->name('role.update');
         // === END ROLE ===
 
-        Route::resource('/data-presensi', 'App\Http\Controllers\Admin\PresensiController')->middleware('menu:data_presensi');
+        Route::get('/data-presensi/review-wajah', [PresensiAdminController::class, 'faceReview'])
+            ->middleware(['menu:data_presensi', 'role:Super Admin,HR'])
+            ->name('data-presensi.face-review.index');
+        Route::get('/data-presensi/review-wajah/{verification}/selfie', [PresensiAdminController::class, 'faceReviewSelfie'])
+            ->middleware(['menu:data_presensi', 'role:Super Admin,HR'])
+            ->name('data-presensi.face-review.selfie');
+        Route::post('/data-presensi/review-wajah/{verification}/decision', [PresensiAdminController::class, 'decideFaceReview'])
+            ->middleware(['menu:data_presensi', 'role:Super Admin,HR'])
+            ->name('data-presensi.face-review.decide');
+
+        Route::resource('/data-presensi', 'App\Http\Controllers\Admin\PresensiController')
+            ->only(['index'])
+            ->middleware('menu:data_presensi');
 
         Route::get('/ajax/departemen-by-area', [App\Http\Controllers\Admin\KaryawanController::class, 'departemenByArea'])->middleware('menu:data_karyawan,setting_hari_off,data_presensi')->name('ajax.departemen.by.area');
         Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->middleware('menu:data_karyawan,setting_hari_off,pengaturan_shift,data_presensi')->name('ajax.divisi.by.departemen');
@@ -225,8 +263,10 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/presensi/export', [PresensiAdminController::class, 'export'])->middleware('menu:data_presensi')->name('presensi.export');
 
         Route::prefix('third-party')->middleware('menu:exit_portal')->group(function () {
-            Route::resource('/search-by-security', 'App\Http\Controllers\SearchBySecurity\UserController');
-            Route::resource('/search-logs', 'App\Http\Controllers\SearchBySecurity\SearchLogController');
+            Route::resource('/search-by-security', 'App\Http\Controllers\SearchBySecurity\UserController')
+                ->except(['show']);
+            Route::resource('/search-logs', 'App\Http\Controllers\SearchBySecurity\SearchLogController')
+                ->only(['index']);
         });
     });
 
@@ -272,7 +312,8 @@ Route::group(['prefix' => 'wilayah', 'middleware' => ['auth']], function () {
     Route::middleware('menu:distribusi_wilayah')->group(function () {
         Route::get('/distribusi/export', [App\Http\Controllers\Admin\WilayahController::class, 'export'])->name('distribusi.export');
         Route::get('/distribusi/export-excel', [App\Http\Controllers\Admin\WilayahController::class, 'exportExcel'])->name('distribusi.export-excel');
-        Route::resource('/distribusi', 'App\Http\Controllers\Admin\WilayahController');
+        Route::resource('/distribusi', 'App\Http\Controllers\Admin\WilayahController')
+            ->only(['index']);
     });
 
     Route::middleware('menu:data_karyawan,distribusi_wilayah')->group(function () {

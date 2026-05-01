@@ -11,13 +11,14 @@ use Yajra\DataTables\Facades\DataTables;
 
 class SlipgajiController extends Controller
 {
-    //
     public function index(Request $request)
     {
         if ($request->ajax()) {
+            $nikKaryawan = $this->authenticatedEmployeeNik();
 
-            $slipGaji = KomponenGaji::where('nik', auth()->user()->nik_karyawan)
+            $slipGaji = KomponenGaji::query()
                 ->join('data_karyawans', 'data_karyawans.id', '=', 'komponen_gajis.data_karyawan_id')
+                ->where('data_karyawans.nik', $nikKaryawan)
                 ->select([
                     'komponen_gajis.*',
                     'data_karyawans.nik',
@@ -45,7 +46,9 @@ class SlipgajiController extends Controller
 
     public function show($id)
     {
-        $slip = KomponenGaji::with('karyawan')->where('id', $id)->first();
+        $slip = $this->scopedSlipGajiQuery()
+            ->where('id', $id)
+            ->firstOrFail();
 
         return view('user.slip-gaji.show', [
             'slip' => $slip
@@ -54,7 +57,9 @@ class SlipgajiController extends Controller
 
     public function exportPdf($id)
     {
-        $slip = KomponenGaji::with('karyawan')->findOrFail($id);
+        $slip = $this->scopedSlipGajiQuery()
+            ->where('id', $id)
+            ->firstOrFail();
 
         $pdf = Pdf::loadView('user.slip-gaji.pdf', compact('slip'))
             ->setPaper('A4', 'portrait');
@@ -62,5 +67,25 @@ class SlipgajiController extends Controller
         return $pdf->stream(
             'Slip-Gaji-' . ($slip->karyawan->nik ?? 'karyawan') . '-' . $slip->periode . '.pdf'
         );
+    }
+
+    private function scopedSlipGajiQuery()
+    {
+        $nikKaryawan = $this->authenticatedEmployeeNik();
+
+        return KomponenGaji::query()
+            ->with('karyawan')
+            ->whereHas('karyawan', function ($query) use ($nikKaryawan) {
+                $query->where('nik', $nikKaryawan);
+            });
+    }
+
+    private function authenticatedEmployeeNik(): string
+    {
+        $nikKaryawan = (string) optional(Auth::user())->nik_karyawan;
+
+        abort_if($nikKaryawan === '', 403, 'NIK karyawan tidak ditemukan pada akun ini.');
+
+        return $nikKaryawan;
     }
 }

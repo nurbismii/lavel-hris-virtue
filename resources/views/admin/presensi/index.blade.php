@@ -29,6 +29,12 @@
             </div>
 
             <div class="ms-md-auto pt-3 pt-md-0">
+                @if(auth()->user()->hasRole(['Super Admin', 'HR']))
+                <a href="{{ route('data-presensi.face-review.index') }}" class="btn btn-primary btn-sm me-2">
+                    <i class="fas fa-user-check me-1"></i>
+                    Review Wajah
+                </a>
+                @endif
                 <button type="button" class="btn btn-outline-primary btn-sm" id="btnExport">
                     <i class="fas fa-file-export me-1"></i>
                     Export CSV

@@ -45,7 +45,9 @@ class PresensiController extends Controller
         $activeAttendanceDateString = $activeAttendanceContext['date'];
         $activeAttendanceDate = Carbon::parse($activeAttendanceDateString);
 
-        $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
+        $lokasi = $this->resolveAttendanceLocation($karyawan->divisi_id);
+        $isLocationReady = $this->isAttendanceLocationReady($lokasi);
+        $locationIssueMessage = $isLocationReady ? null : $this->attendanceLocationIssueMessage($lokasi);
         app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $activeAttendanceDateString);
         $overtimeService = app(OvertimeOrderService::class);
         $workScheduleService = app(WorkScheduleService::class);
@@ -60,7 +62,7 @@ class PresensiController extends Controller
         $nextAttendanceType = $this->resolveNextAttendanceType($absensiHariIni, $statusPresensiHariIni);
         $attendanceChallenge = null;
 
-        if ($lokasi && filled($karyawan->face_reference_path) && $nextAttendanceType) {
+        if ($isLocationReady && filled($karyawan->face_reference_path) && $nextAttendanceType) {
             $attendanceChallenge = app(AttendanceSecurityService::class)
                 ->issueChallenge($user, request(), $activeAttendanceDateString, $nextAttendanceType);
         }
@@ -139,6 +141,8 @@ class PresensiController extends Controller
             'presensi' => $presensiRecords,
             'absensiHariIni' => $absensiHariIni,
             'lokasi' => $lokasi,
+            'isLocationReady' => $isLocationReady,
+            'locationIssueMessage' => $locationIssueMessage,
             'cutoffStart' => $start,
             'cutoffEnd' => $end,
             'activeOvertimeOrder' => $activeOvertimeOrder,
@@ -184,10 +188,10 @@ class PresensiController extends Controller
 
         $request->validated();
 
-        $lokasi = LokasiAbsen::where('divisi_id', $karyawan->divisi_id)->first();
+        $lokasi = $this->resolveAttendanceLocation($karyawan->divisi_id);
 
-        if (!$lokasi) {
-            return $this->failPresensi('Lokasi presensi belum diatur.');
+        if (!$this->isAttendanceLocationReady($lokasi)) {
+            return $this->failPresensi($this->attendanceLocationIssueMessage($lokasi));
         }
 
         if (empty($karyawan->face_reference_path)) {
@@ -494,10 +498,10 @@ class PresensiController extends Controller
         ]);
 
         $user = auth()->user();
-        $lokasi = LokasiAbsen::where('divisi_id', optional($user->employee)->divisi_id)->first();
+        $lokasi = $this->resolveAttendanceLocation(optional($user->employee)->divisi_id);
 
-        if (!$lokasi) {
-            return response()->json(['message' => 'Lokasi presensi belum diatur.'], 422);
+        if (!$this->isAttendanceLocationReady($lokasi)) {
+            return response()->json(['message' => $this->attendanceLocationIssueMessage($lokasi)], 422);
         }
 
         $maxGpsAccuracy = $securityService->maxGpsAccuracyFor($lokasi);
@@ -549,6 +553,45 @@ class PresensiController extends Controller
             'Content-Disposition' => 'inline; filename="face-reference"',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    private function resolveAttendanceLocation($divisiId): ?LokasiAbsen
+    {
+        if (blank($divisiId)) {
+            return null;
+        }
+
+        return LokasiAbsen::where('divisi_id', $divisiId)->first();
+    }
+
+    private function isAttendanceLocationReady(?LokasiAbsen $lokasi): bool
+    {
+        if (!$lokasi) {
+            return false;
+        }
+
+        if (!is_numeric($lokasi->lat) || !is_numeric($lokasi->long) || !is_numeric($lokasi->radius)) {
+            return false;
+        }
+
+        $latitude = (float) $lokasi->lat;
+        $longitude = (float) $lokasi->long;
+        $radius = (float) $lokasi->radius;
+
+        return $latitude >= -90
+            && $latitude <= 90
+            && $longitude >= -180
+            && $longitude <= 180
+            && $radius >= 1;
+    }
+
+    private function attendanceLocationIssueMessage(?LokasiAbsen $lokasi): string
+    {
+        if (!$lokasi) {
+            return 'Lokasi presensi untuk divisi Anda belum diatur.';
+        }
+
+        return 'Konfigurasi lokasi presensi divisi Anda belum lengkap. Hubungi HR/Admin untuk melengkapi titik koordinat dan radius.';
     }
 
     private function calculateDistance($lat1, $lon1, $lat2, $lon2)
