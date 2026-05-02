@@ -49,6 +49,10 @@ $menus = [
         'label' => 'Cuti Roster',
         'group' => 'Self Service',
     ],
+    'off_roster' => [
+        'label' => 'Pengajuan OFF Roster',
+        'group' => 'Self Service',
+    ],
     'izin' => [
         'label' => 'Izin (Paid & Unpaid)',
         'group' => 'Self Service',
@@ -225,6 +229,7 @@ return [
             'slip_gaji_user',
             'cuti',
             'roster',
+            'off_roster',
             'izin',
             'presensi',
             'lembur',

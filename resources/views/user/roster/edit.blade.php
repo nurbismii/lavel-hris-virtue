@@ -24,7 +24,7 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                 <a href="{{ route('roster.index') }}" class="btn btn-sm btn-primary"><i class="fas fa-arrow-left me-1"></i> Kembali</a>
             </div>
 
-            <form id="rosterWizardForm" action="{{ route('roster.update', $roster->id) }}" method="POST" enctype="multipart/form-data">
+            <form id="rosterWizardForm" action="{{ route('roster.update', $roster->id) }}" method="POST" enctype="multipart/form-data" data-off-dates-url="{{ Auth::user()->hasRole('Staff Roster') ? route('roster-off.effective-dates') : '' }}">
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="nik_karyawan" value="{{ $employee->nik }}">
@@ -116,6 +116,9 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                                             </div>
                                         </div>
                                         @endforeach
+                                    </div>
+                                    <div class="alert alert-light border small mt-3 mb-0" id="approvedRosterOffList">
+                                        Isi periode awal dan akhir untuk mendeteksi OFF roster yang sudah disetujui.
                                     </div>
                                 </div>
                             </div>
@@ -283,6 +286,9 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
         const cutiPanel = document.getElementById('planPanelCuti');
         const insentifPanel = document.getElementById('planPanelInsentif');
         const weekNames = ['satu', 'dua', 'tiga', 'empat', 'lima'];
+        const offDatesUrl = form.dataset.offDatesUrl || '';
+        const approvedRosterOffList = document.getElementById('approvedRosterOffList');
+        let approvedRosterOffDates = new Map();
         let currentStep = 1;
 
         function initAirportSelects() {
@@ -340,6 +346,109 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                 top: 0,
                 behavior: 'smooth'
             });
+        }
+
+        function rosterWeekRows() {
+            return weekNames.map(function(fieldName) {
+                return {
+                    status: document.querySelector('[name="' + fieldName + '"]'),
+                    date: document.querySelector('[name="tanggal_' + fieldName + '"]')
+                };
+            });
+        }
+
+        function renderApprovedRosterOffList(items) {
+            if (!approvedRosterOffList) return;
+
+            if (!offDatesUrl) {
+                approvedRosterOffList.innerHTML = 'Auto-detect OFF hanya aktif untuk akun karyawan roster.';
+                return;
+            }
+
+            if (!items.length) {
+                approvedRosterOffList.innerHTML = 'Belum ada OFF roster efektif pada rentang periode ini.';
+                return;
+            }
+
+            approvedRosterOffList.innerHTML = '<strong>OFF roster efektif pada periode ini:</strong> ' + items.map(function(item) {
+                return item.date;
+            }).join(', ');
+        }
+
+        function applyApprovedRosterOffDates() {
+            const rows = rosterWeekRows();
+
+            approvedRosterOffDates.forEach(function(item, date) {
+                const alreadyUsed = rows.some(function(row) {
+                    return row.date && row.date.value === date;
+                });
+
+                if (alreadyUsed) return;
+
+                const emptyRow = rows.find(function(row) {
+                    return row.date && !row.date.value;
+                });
+
+                if (emptyRow && emptyRow.date && emptyRow.status) {
+                    emptyRow.date.value = date;
+                    emptyRow.status.value = 'OFF';
+                }
+            });
+
+            rows.forEach(function(row) {
+                if (!row.status || !row.date || !row.date.value) return;
+
+                if (approvedRosterOffDates.has(row.date.value)) {
+                    row.status.value = 'OFF';
+                    row.status.classList.add('is-valid');
+                    row.status.title = 'Status otomatis OFF karena tanggal ini ada di pengajuan OFF roster efektif.';
+                } else {
+                    row.status.classList.remove('is-valid');
+                    row.status.removeAttribute('title');
+                }
+            });
+        }
+
+        function fetchApprovedRosterOffDates() {
+            if (!offDatesUrl) {
+                renderApprovedRosterOffList([]);
+                return;
+            }
+
+            const start = document.querySelector('[name="periode_awal"]').value;
+            const end = document.querySelector('[name="periode_akhir"]').value;
+
+            if (!start || !end) {
+                approvedRosterOffDates = new Map();
+                renderApprovedRosterOffList([]);
+                applyApprovedRosterOffDates();
+                return;
+            }
+
+            const url = offDatesUrl + '?periode_awal=' + encodeURIComponent(start) + '&periode_akhir=' + encodeURIComponent(end);
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(function(response) {
+                    return response.ok ? response.json() : { data: [] };
+                })
+                .then(function(payload) {
+                    const items = payload.data || [];
+                    approvedRosterOffDates = new Map(items.map(function(item) {
+                        return [item.date, item];
+                    }));
+                    renderApprovedRosterOffList(items);
+                    applyApprovedRosterOffDates();
+                })
+                .catch(function() {
+                    approvedRosterOffDates = new Map();
+                    renderApprovedRosterOffList([]);
+                    applyApprovedRosterOffDates();
+                });
         }
 
         function validateStep() {
@@ -523,6 +632,14 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
             el.addEventListener('change', updateTotal);
         });
 
+        document.querySelectorAll('[name="periode_awal"], [name="periode_akhir"]').forEach(function(el) {
+            el.addEventListener('change', fetchApprovedRosterOffDates);
+        });
+
+        rosterWeekRows().forEach(function(row) {
+            if (row.date) row.date.addEventListener('change', applyApprovedRosterOffDates);
+        });
+
         document.querySelectorAll('#tgl_awal_kerja, #tgl_akhir_kerja').forEach(function(el) {
             el.addEventListener('change', updateInsentifRoster);
         });
@@ -540,6 +657,7 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
         syncStep();
         updateTotal();
         updateInsentifRoster();
+        fetchApprovedRosterOffDates();
     });
 </script>
 @endpush

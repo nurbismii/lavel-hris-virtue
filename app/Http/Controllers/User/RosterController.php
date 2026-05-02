@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Roster\RosterRequest;
 use App\Models\PeriodeKerjaRoster;
 use App\Models\Roster;
+use App\Models\RosterOffRequest;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -119,29 +121,20 @@ class RosterController extends Controller
                 'status_pengajuan_hrd' => $statusPengajuanHrd // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
             ]);
 
-            PeriodeKerjaRoster::create([
+            $weeklyRoster = $this->applyApprovedOffToWeeklyStatus(
+                $nikKaryawan,
+                $request->periode_awal,
+                $request->periode_akhir,
+                $this->weeklyRosterPayload($request)
+            );
+
+            PeriodeKerjaRoster::create(array_merge([
                 'cuti_roster_id' => $roster->id,
                 'periode_awal' => $request->periode_awal,
                 'periode_akhir' => $request->periode_akhir,
-
-                'satu' => $request->hari_1,
-                'tanggal_satu' => $request->tanggal_1,
-
-                'dua' => $request->hari_2,
-                'tanggal_dua' => $request->tanggal_2,
-
-                'tiga' => $request->hari_3,
-                'tanggal_tiga' => $request->tanggal_3,
-
-                'empat' => $request->hari_4,
-                'tanggal_empat' => $request->tanggal_4,
-
-                'lima' => $request->hari_5,
-                'tanggal_lima' => $request->tanggal_5,
-
                 'tipe_rencana' => $request->tipe_rencana,
                 'alasan' => $request->alasan,
-            ]);
+            ], $weeklyRoster));
 
 
             DB::commit();
@@ -243,30 +236,21 @@ class RosterController extends Controller
                 'file' => $file_name,
             ]);
 
+            $weeklyRoster = $this->applyApprovedOffToWeeklyStatus(
+                $nikKaryawan,
+                $request->periode_awal,
+                $request->periode_akhir,
+                $this->weeklyRosterPayload($request)
+            );
+
             PeriodeKerjaRoster::updateOrCreate(
                 ['cuti_roster_id' => $roster->id],
-                [
+                array_merge([
                     'periode_awal' => $request->periode_awal,
                     'periode_akhir' => $request->periode_akhir,
-
-                    'satu' => $request->satu,
-                    'tanggal_satu' => $request->tanggal_satu,
-
-                    'dua' => $request->dua,
-                    'tanggal_dua' => $request->tanggal_dua,
-
-                    'tiga' => $request->tiga,
-                    'tanggal_tiga' => $request->tanggal_tiga,
-
-                    'empat' => $request->empat,
-                    'tanggal_empat' => $request->tanggal_empat,
-
-                    'lima' => $request->lima,
-                    'tanggal_lima' => $request->tanggal_lima,
-
                     'tipe_rencana' => $request->tipe_rencana,
                     'alasan' => $request->alasan,
-                ]
+                ], $weeklyRoster)
             );
 
             DB::commit();
@@ -302,6 +286,85 @@ class RosterController extends Controller
         $roster->delete();
         toast()->success('Success', 'Pengajuan roster berhasil dihapus');
         return redirect()->route('roster.index');
+    }
+
+    private function weeklyRosterPayload($request): array
+    {
+        $weeks = [
+            1 => ['status' => 'satu', 'date' => 'tanggal_satu'],
+            2 => ['status' => 'dua', 'date' => 'tanggal_dua'],
+            3 => ['status' => 'tiga', 'date' => 'tanggal_tiga'],
+            4 => ['status' => 'empat', 'date' => 'tanggal_empat'],
+            5 => ['status' => 'lima', 'date' => 'tanggal_lima'],
+        ];
+
+        $payload = [];
+
+        foreach ($weeks as $number => $fields) {
+            $payload[$fields['status']] = $request->input(
+                $fields['status'],
+                $request->input('hari_' . $number)
+            );
+            $payload[$fields['date']] = $request->input(
+                $fields['date'],
+                $request->input('tanggal_' . $number)
+            );
+        }
+
+        return $payload;
+    }
+
+    private function applyApprovedOffToWeeklyStatus(string $nikKaryawan, ?string $periodeAwal, ?string $periodeAkhir, array $weeklyRoster): array
+    {
+        if (!$nikKaryawan || !$periodeAwal || !$periodeAkhir) {
+            return $weeklyRoster;
+        }
+
+        $start = Carbon::parse($periodeAwal)->toDateString();
+        $end = Carbon::parse($periodeAkhir)->toDateString();
+
+        $offDateValues = RosterOffRequest::query()
+            ->effectiveForAttendance()
+            ->where('nik_karyawan', $nikKaryawan)
+            ->whereBetween('tanggal_off', [$start, $end])
+            ->pluck('tanggal_off')
+            ->map(fn($date) => Carbon::parse($date)->toDateString())
+            ->values();
+        $offDates = $offDateValues->flip();
+
+        foreach (['satu', 'dua', 'tiga', 'empat', 'lima'] as $field) {
+            $dateField = 'tanggal_' . $field;
+            $date = $weeklyRoster[$dateField] ?? null;
+
+            if ($date && $offDates->has(Carbon::parse($date)->toDateString())) {
+                $weeklyRoster[$field] = 'OFF';
+            }
+        }
+
+        $existingDates = collect(['satu', 'dua', 'tiga', 'empat', 'lima'])
+            ->map(fn($field) => $weeklyRoster['tanggal_' . $field] ?? null)
+            ->filter()
+            ->map(fn($date) => Carbon::parse($date)->toDateString())
+            ->flip();
+
+        foreach ($offDateValues as $offDate) {
+            if ($existingDates->has($offDate)) {
+                continue;
+            }
+
+            foreach (['satu', 'dua', 'tiga', 'empat', 'lima'] as $field) {
+                $dateField = 'tanggal_' . $field;
+
+                if (blank($weeklyRoster[$dateField] ?? null)) {
+                    $weeklyRoster[$dateField] = $offDate;
+                    $weeklyRoster[$field] = 'OFF';
+                    $existingDates->put($offDate, true);
+                    break;
+                }
+            }
+        }
+
+        return $weeklyRoster;
     }
 
     private function findUserRoster($id): Roster

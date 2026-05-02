@@ -113,6 +113,13 @@ $menuCatalog = [
 'tone' => 'teal',
 'description' => 'Kelola pengajuan roster dan status persetujuan.',
 ],
+'off_roster' => [
+'route_name' => 'roster-off.index',
+'icon' => 'fas fa-times',
+'tone' => 'sky',
+'description' => 'Ajukan hari OFF roster dan lihat riwayat persetujuannya.',
+'roles' => ['Staff Roster'],
+],
 'izin' => [
 'route_name' => 'izin.index',
 'icon' => 'fas fa-file-signature',
@@ -185,11 +192,15 @@ $menuCatalog = [
 $allAccessibleMenuItems = collect($accessibleMenus)
 ->filter()
 ->unique()
-->map(function ($menuKey) use ($menuCatalog) {
+->map(function ($menuKey) use ($menuCatalog, $currentUser) {
 $menuConfig = config('access.menus.' . $menuKey);
 $menuMeta = $menuCatalog[$menuKey] ?? null;
 
 if (!$menuConfig || !$menuMeta) {
+return null;
+}
+
+if (!empty($menuMeta['roles'] ?? null) && !$currentUser->hasRole($menuMeta['roles'])) {
 return null;
 }
 
@@ -267,6 +278,15 @@ if ($hour < 11) {
     'tone' => 'teal',
     ],
     [
+    'menu' => 'off_roster',
+    'label' => 'Pengajuan OFF',
+    'description' => 'Ajukan hari OFF roster dan lihat riwayatnya.',
+    'route' => route('roster-off.index'),
+    'icon' => 'fas fa-times',
+    'tone' => 'sky',
+    'roles' => ['Staff Roster'],
+    ],
+    [
     'menu' => 'approval_hod',
     'label' => 'Approval HOD',
     'description' => 'Tinjau pengajuan yang membutuhkan keputusan HOD.',
@@ -309,7 +329,15 @@ if ($hour < 11) {
     'tone' => 'primary',
     ],
     ])->filter(function ($action) use ($currentUser) {
-    return blank($action['menu']) || $currentUser->hasMenuAccess($action['menu']);
+    if (!blank($action['menu']) && !$currentUser->hasMenuAccess($action['menu'])) {
+    return false;
+    }
+
+    if (!empty($action['roles'] ?? null) && !$currentUser->hasRole($action['roles'])) {
+    return false;
+    }
+
+    return true;
     })->values();
     $quickActionLimit = 8;
     $visibleQuickActions = $quickActions->take($quickActionLimit);

@@ -10,11 +10,13 @@ use App\Http\Controllers\Admin\SlipGajiController;
 use App\Http\Controllers\Admin\WorkPatternController;
 use App\Http\Controllers\Approval\CutiApprovalController;
 use App\Http\Controllers\Approval\IzinApprovalController;
+use App\Http\Controllers\Approval\RosterOffApprovalController;
 use App\Http\Controllers\Approval\RosterApprovalController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\User\OvertimeOrderController as UserOvertimeOrderController;
 use App\Http\Controllers\User\PresensiController;
+use App\Http\Controllers\User\RosterOffRequestController;
 use App\Http\Controllers\User\SlipgajiController as UserSlipGajiController;
 use App\Http\Controllers\Admin\PresensiController as PresensiAdminController;
 use App\Http\Controllers\AdminDivisi\AttendanceSettingController;
@@ -107,6 +109,13 @@ Route::middleware(['android.redirect'])->group(function () {
             ->middleware('menu:roster')
             ->name('roster.attachment');
         Route::resource('/roster', 'App\Http\Controllers\User\RosterController')->middleware('menu:roster');
+        Route::get('/roster-off/effective-dates', [RosterOffRequestController::class, 'effectiveDates'])
+            ->middleware(['menu:off_roster', 'role:Staff Roster'])
+            ->name('roster-off.effective-dates');
+        Route::resource('/roster-off', RosterOffRequestController::class)
+            ->only(['index', 'store', 'destroy'])
+            ->parameters(['roster-off' => 'rosterOff'])
+            ->middleware(['menu:off_roster', 'role:Staff Roster']);
         Route::resource('/slipgaji', UserSlipGajiController::class)
             ->only(['index', 'show'])
             ->middleware('menu:slip_gaji_user');
@@ -282,11 +291,15 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::post('/hod/cuti-roster/{id}', [RosterApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.roster.hod.process');
         Route::get('/hod/show/cuti-roster/{id}', [RosterApprovalController::class, 'hodShow'])->middleware('menu:approval_hod')->name('approval.roster.hod.show');
         Route::get('/hod/cuti-roster/{id}/attachment', [RosterApprovalController::class, 'hodAttachment'])->middleware('menu:approval_hod')->name('approval.roster.hod.attachment');
+        Route::get('/hod/off-roster', [RosterOffApprovalController::class, 'hodIndex'])->middleware('menu:approval_hod')->name('approval.roster-off.hod');
+        Route::post('/hod/off-roster/{id}', [RosterOffApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.roster-off.hod.process');
 
         Route::get('/hrd/cuti-roster', [RosterApprovalController::class, 'hrdIndex'])->middleware('menu:approval_hr')->name('approval.roster.hrd');
         Route::get('/hrd/show/cuti-roster/{id}', [RosterApprovalController::class, 'hrdShow'])->middleware('menu:approval_hr')->name('approval.roster.hrd.show');
         Route::get('/hrd/cuti-roster/{id}/attachment', [RosterApprovalController::class, 'hrdAttachment'])->middleware('menu:approval_hr')->name('approval.roster.hrd.attachment');
         Route::post('/hrd/cuti-roster/{id}', [RosterApprovalController::class, 'hrdProcess'])->middleware('menu:approval_hr')->name('approval.roster.hrd.process');
+        Route::get('/hrd/off-roster', [RosterOffApprovalController::class, 'hrdIndex'])->middleware('menu:approval_hr')->name('approval.roster-off.hrd');
+        Route::post('/hrd/off-roster/{id}', [RosterOffApprovalController::class, 'hrdProcess'])->middleware('menu:approval_hr')->name('approval.roster-off.hrd.process');
 
         Route::get('/hod/izin', [IzinApprovalController::class, 'hodIndex'])->middleware('menu:approval_hod')->name('approval.izin.hod');
         Route::post('/hod/izin/{id}', [IzinApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.izin.hod.process');

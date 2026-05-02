@@ -6,6 +6,7 @@ use App\Models\Cuti;
 use App\Models\Employee;
 use App\Models\Presensi;
 use App\Models\Roster;
+use App\Models\RosterOffRequest;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 
@@ -33,6 +34,11 @@ class AttendanceStatusService
         $this->refreshRoster($roster);
     }
 
+    public function syncApprovedRosterOff(RosterOffRequest $offRequest): void
+    {
+        $this->refreshRosterOff($offRequest);
+    }
+
     public function refreshCuti(Cuti $cuti): void
     {
         $this->refreshDateRange($cuti->nik_karyawan, $cuti->tanggal_mulai, $cuti->tanggal_berakhir);
@@ -47,6 +53,15 @@ class AttendanceStatusService
     {
         $this->refreshDateRange($roster->nik_karyawan, $roster->tgl_mulai_cuti, $roster->tgl_mulai_cuti_berakhir);
         $this->refreshDateRange($roster->nik_karyawan, $roster->tgl_mulai_cuti_tahunan, $roster->tgl_mulai_cuti_tahunan_berakhir);
+    }
+
+    public function refreshRosterOff(RosterOffRequest $offRequest): void
+    {
+        if (!$offRequest->nik_karyawan || !$offRequest->tanggal_off) {
+            return;
+        }
+
+        $this->syncStatusForDate($offRequest->nik_karyawan, $offRequest->tanggal_off);
     }
 
     public function syncStatusForDate(string $nikKaryawan, $tanggal): ?string
@@ -84,6 +99,12 @@ class AttendanceStatusService
     public function resolveStatusForDate(string $nikKaryawan, $tanggal): ?string
     {
         $dateString = Carbon::parse($tanggal)->toDateString();
+
+        $rosterOffStatus = $this->resolveRosterOffStatusForDate($nikKaryawan, $dateString);
+
+        if ($rosterOffStatus) {
+            return $rosterOffStatus;
+        }
 
         $rosterStatus = $this->resolveRosterStatusForDate($nikKaryawan, $dateString);
 
@@ -196,6 +217,17 @@ class AttendanceStatusService
         }
 
         return null;
+    }
+
+    private function resolveRosterOffStatusForDate(string $nikKaryawan, string $tanggal): ?string
+    {
+        $exists = RosterOffRequest::query()
+            ->effectiveForAttendance()
+            ->where('nik_karyawan', $nikKaryawan)
+            ->whereDate('tanggal_off', $tanggal)
+            ->exists();
+
+        return $exists ? self::STATUS_OFF : null;
     }
 
     private function dateWithinRange(?string $tanggalMulai, ?string $tanggalBerakhir, string $tanggal): bool

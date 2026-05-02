@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Models\Cuti;
 use App\Models\Roster;
+use App\Models\RosterOffRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 
@@ -32,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
                 'cuti' => 0,
                 'izin' => 0,
                 'roster' => 0,
+                'roster_off' => 0,
                 'total' => 0,
             ];
 
@@ -39,6 +42,7 @@ class AppServiceProvider extends ServiceProvider
                 'cuti' => 0,
                 'izin' => 0,
                 'roster' => 0,
+                'roster_off' => 0,
                 'total' => 0,
             ];
 
@@ -67,9 +71,17 @@ class AppServiceProvider extends ServiceProvider
                         ->where('status_pengajuan', 0)
                 )->count();
 
+                if (Schema::hasTable('roster_off_requests')) {
+                    $approvalHodCounts['roster_off'] = $user->applyEmployeeRelationScope(
+                        RosterOffRequest::query()
+                            ->where('status_hod', RosterOffRequest::STATUS_PENDING)
+                    )->count();
+                }
+
                 $approvalHodCounts['total'] = $approvalHodCounts['cuti']
                     + $approvalHodCounts['izin']
-                    + $approvalHodCounts['roster'];
+                    + $approvalHodCounts['roster']
+                    + $approvalHodCounts['roster_off'];
             }
 
             if ($user->hasMenuAccess('approval_hr')) {
@@ -93,9 +105,18 @@ class AppServiceProvider extends ServiceProvider
                         ->where('status_pengajuan_hrd', 0)
                 )->count();
 
+                if (Schema::hasTable('roster_off_requests')) {
+                    $approvalHrCounts['roster_off'] = $user->applyEmployeeRelationScope(
+                        RosterOffRequest::query()
+                            ->where('status_hod', RosterOffRequest::STATUS_APPROVED)
+                            ->where('status_hrd', RosterOffRequest::STATUS_PENDING)
+                    )->count();
+                }
+
                 $approvalHrCounts['total'] = $approvalHrCounts['cuti']
                     + $approvalHrCounts['izin']
-                    + $approvalHrCounts['roster'];
+                    + $approvalHrCounts['roster']
+                    + $approvalHrCounts['roster_off'];
             }
 
             $view->with(compact('approvalHodCounts', 'approvalHrCounts'));
