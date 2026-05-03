@@ -2898,10 +2898,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 <script>
     $(document).ready(function() {
         $("#table-presensi").DataTable({
-            responsive: true,
-            order: [
-                [0, 'desc']
-            ]
+            responsive: true
         });
     });
 </script>
