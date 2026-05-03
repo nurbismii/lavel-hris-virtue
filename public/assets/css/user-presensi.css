@@ -173,6 +173,10 @@
     display: none;
 }
 
+.attendance-stage--single-flow .attendance-stage__rail::after {
+    display: none;
+}
+
 .attendance-stage__number {
     width: 42px;
     height: 42px;
@@ -229,6 +233,20 @@
     background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
+.attendance-stage--merged {
+    grid-template-columns: 1fr;
+    margin-top: 1rem;
+}
+
+.attendance-stage--merged .attendance-stage__main,
+.attendance-stage--merged.is-active .attendance-stage__main,
+.attendance-stage--merged.is-done .attendance-stage__main {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
 .attendance-stage__hint {
     display: flex;
     align-items: center;
@@ -257,6 +275,34 @@
 
 .attendance-stage__hint.is-success i {
     color: #198754;
+}
+
+.attendance-unified-panel {
+    position: relative;
+    display: grid;
+    gap: 1rem;
+}
+
+.attendance-unified-panel .location-status-card,
+.attendance-unified-panel .attendance-summary,
+.attendance-unified-panel .attendance-action-card {
+    margin-top: 0;
+}
+
+.presensi-hidden-map {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    width: 240px;
+    height: 160px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.presensi-hidden-map .map-surface {
+    width: 240px;
+    height: 160px;
 }
 
 .attendance-card__grid {
@@ -619,6 +665,89 @@
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
 }
 
+.camera-live-location-panel {
+    position: absolute;
+    right: 14px;
+    bottom: 14px;
+    left: 14px;
+    z-index: 6;
+    display: grid;
+    grid-template-columns: 116px minmax(0, 1fr);
+    gap: 12px;
+    align-items: stretch;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 18px;
+    background: rgba(15, 23, 42, 0.72);
+    color: #ffffff;
+    box-shadow: 0 16px 34px rgba(2, 6, 23, 0.28);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    pointer-events: none;
+}
+
+.camera-live-location-panel[data-location-state="success"] {
+    border-color: rgba(34, 197, 94, 0.5);
+    background: rgba(20, 83, 45, 0.72);
+}
+
+.camera-live-location-panel[data-location-state="warning"] {
+    border-color: rgba(245, 158, 11, 0.5);
+    background: rgba(69, 46, 10, 0.76);
+}
+
+.camera-live-location-panel[data-location-state="danger"] {
+    border-color: rgba(248, 113, 113, 0.55);
+    background: rgba(88, 28, 28, 0.78);
+}
+
+.camera-live-location-panel__map {
+    min-height: 88px;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #0f172a;
+}
+
+.camera-live-location-panel__map .leaflet-control-container {
+    display: none;
+}
+
+.camera-live-location-panel__content {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+
+.camera-live-location-panel__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.camera-live-location-panel__status {
+    overflow: hidden;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.camera-live-location-panel__meta {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
 .camera-stage__pill {
     display: inline-flex;
     align-items: center;
@@ -766,7 +895,7 @@
 .camera-guide__label {
     position: absolute;
     left: 50%;
-    bottom: 18px;
+    bottom: 142px;
     transform: translateX(-50%);
     min-width: 220px;
     padding: 10px 16px;
@@ -1163,11 +1292,38 @@
     }
 
     .camera-guide__label {
-        bottom: 12px;
+        bottom: 114px;
         min-width: 0;
         width: calc(100% - 2rem);
         padding: 8px 11px;
         font-size: 11px;
+    }
+
+    .camera-live-location-panel {
+        right: 10px;
+        bottom: 10px;
+        left: 10px;
+        grid-template-columns: 86px minmax(0, 1fr);
+        gap: 9px;
+        padding: 8px;
+        border-radius: 16px;
+    }
+
+    .camera-live-location-panel__map {
+        min-height: 76px;
+        border-radius: 12px;
+    }
+
+    .camera-live-location-panel__status {
+        font-size: 13px;
+    }
+
+    .camera-live-location-panel__meta {
+        display: -webkit-box;
+        overflow: hidden;
+        font-size: 11px;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
     }
 
     .camera-stage__media-topbar {

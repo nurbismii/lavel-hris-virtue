@@ -175,18 +175,18 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     <div class="attendance-steps">
                         <div class="attendance-step">
                             <span class="attendance-step__label">Langkah 1</span>
-                            <span class="attendance-step__value">Foto & Matching</span>
+                            <span class="attendance-step__value">Lokasi & Wajah</span>
                         </div>
                         <div class="attendance-step">
                             <span class="attendance-step__label">Langkah 2</span>
-                            <span class="attendance-step__value">Presensi</span>
+                            <span class="attendance-step__value">Simpan Presensi</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="attendance-wizard">
                     @if ($requiresFaceStep)
-                    <section id="wizardStepFace" class="attendance-stage is-active">
+                    <section id="wizardStepFace" class="attendance-stage attendance-stage--single-flow is-active">
                         <div class="attendance-stage__rail">
                             <span id="wizardIndicatorFace" class="attendance-stage__number is-active">1</span>
                         </div>
@@ -229,6 +229,22 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                             <span id="cameraProgressText" class="camera-stage__pill camera-stage__pill--secondary">
                                                 Menunggu pembacaan wajah
                                             </span>
+                                        </div>
+
+                                        <div class="camera-live-location-panel" aria-live="polite">
+                                            <div id="faceLiveMap" class="camera-live-location-panel__map"></div>
+                                            <div class="camera-live-location-panel__content">
+                                                <span class="camera-live-location-panel__eyebrow">
+                                                    <i class="fas fa-location-arrow"></i>
+                                                    Lokasi Live
+                                                </span>
+                                                <strong id="faceLiveLocationStatus" class="camera-live-location-panel__status">
+                                                    Menunggu GPS...
+                                                </strong>
+                                                <span id="faceLiveLocationMeta" class="camera-live-location-panel__meta">
+                                                    Izinkan lokasi agar titik live muncul.
+                                                </span>
+                                            </div>
                                         </div>
 
                                         <div class="camera-stage__mirror">
@@ -299,36 +315,17 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     </section>
                     @endif
 
-                    <section id="wizardStepAttendance" class="attendance-stage {{ $requiresFaceStep ? 'is-locked' : 'is-active' }}">
-                        <div class="attendance-stage__rail">
-                            <span
-                                id="wizardIndicatorAttendance"
-                                class="attendance-stage__number {{ $requiresFaceStep ? 'is-locked' : 'is-active' }}">
-                                {{ $requiresFaceStep ? '2' : '1' }}
-                            </span>
-                        </div>
-
+                    <section id="wizardStepAttendance" class="attendance-stage attendance-stage--merged is-active">
                         <div class="attendance-stage__main">
-                            <div class="map-card__header">
-                                <div>
-                                    <span class="section-caption">Validasi Lokasi</span>
-                                    <h5 class="section-title">Tahap presensi dibuka setelah selfie valid</h5>
-                                </div>
-                                <div class="map-chip">
-                                    <i class="fas fa-map-marked-alt"></i>
-                                    GPS aktif
-                                </div>
-                            </div>
-
                             @if ($requiresFaceStep)
                             <div id="attendanceStepHint" class="attendance-stage__hint">
-                                <i class="fas fa-lock"></i>
-                                Selesaikan selfie dan tunggu matching berhasil untuk membuka tahap presensi.
+                                <i class="fas fa-sync-alt"></i>
+                                GPS live dan liveness wajah diproses bersamaan. Tombol presensi aktif saat keduanya valid.
                             </div>
                             @endif
 
-                            <div id="wizardAttendanceContent" class="{{ $requiresFaceStep ? 'd-none' : '' }}">
-                                <div class="map-frame">
+                            <div id="wizardAttendanceContent" class="attendance-unified-panel">
+                                <div class="presensi-hidden-map" aria-hidden="true">
                                     <div id="map" class="map-surface"></div>
                                 </div>
 
@@ -393,7 +390,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                     </div>
                                 </div>
 
-                                <div class="attendance-action-card">
+                                <div id="attendanceActionPanel" class="attendance-action-card">
                                     <div>
                                         <span class="attendance-action-card__caption">Langkah Berikutnya</span>
                                         <h6 class="attendance-action-card__title">{{ $actionTitle }}</h6>
@@ -559,9 +556,13 @@ $locationIssueMessage = $locationIssueMessage ?? (
 @if ($isLocationReady)
 <script>
     let map;
+    let faceMap;
     let markerUser;
+    let faceMarkerUser;
     let markerOffice;
+    let faceMarkerOffice;
     let circleOffice;
+    let faceCircleOffice;
     let currentDistance = 0;
     let stableStartTime = null;
     let gpsReady = false;
@@ -764,6 +765,119 @@ $locationIssueMessage = $locationIssueMessage ?? (
             fillOpacity: 0.2,
             radius: radius
         }).addTo(map);
+    }
+
+    function initFaceLiveMap(latOffice, longOffice, radius) {
+        const mapElement = document.getElementById('faceLiveMap');
+
+        if (!mapElement || !window.L) {
+            return;
+        }
+
+        const officePosition = [latOffice, longOffice];
+
+        faceMap = L.map(mapElement, {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false,
+            tap: false,
+            touchZoom: false,
+        }).setView(officePosition, 18);
+
+        L.tileLayer(freeMapTileUrl, {
+            maxZoom: 19,
+            attribution: freeMapAttribution
+        }).addTo(faceMap);
+
+        faceMarkerOffice = L.marker(officePosition, {
+            title: 'Lokasi presensi',
+            icon: createMapPinIcon('red')
+        }).addTo(faceMap);
+
+        faceCircleOffice = L.circle(officePosition, {
+            color: '#fd0d0d',
+            opacity: 0.8,
+            weight: 1,
+            fillColor: '#fd0d0d',
+            fillOpacity: 0.10,
+            radius: radius
+        }).addTo(faceMap);
+
+        window.setTimeout(function() {
+            faceMap.invalidateSize();
+        }, 250);
+    }
+
+    function syncUserMapMarker(latUser, longUser) {
+        const userPosition = [latUser, longUser];
+
+        if (map) {
+            if (markerUser) {
+                markerUser.setLatLng(userPosition);
+            } else {
+                markerUser = L.marker(userPosition, {
+                    title: 'Posisi kamu',
+                    icon: createMapPinIcon('blue')
+                }).addTo(map);
+            }
+        }
+
+        if (faceMap) {
+            if (faceMarkerUser) {
+                faceMarkerUser.setLatLng(userPosition);
+            } else {
+                faceMarkerUser = L.marker(userPosition, {
+                    title: 'Posisi kamu',
+                    icon: createMapPinIcon('blue')
+                }).addTo(faceMap);
+            }
+
+            faceMap.setView(userPosition, Math.max(faceMap.getZoom() || 18, 18), {
+                animate: true,
+                duration: 0.35,
+            });
+            faceMap.invalidateSize();
+        }
+    }
+
+    function updateFaceLiveLocation(status, title, meta) {
+        const panel = document.querySelector('.camera-live-location-panel');
+        const statusElement = document.getElementById('faceLiveLocationStatus');
+        const metaElement = document.getElementById('faceLiveLocationMeta');
+
+        if (panel) {
+            panel.dataset.locationState = status || 'neutral';
+        }
+
+        if (statusElement) {
+            statusElement.textContent = title || 'Menunggu GPS...';
+        }
+
+        if (metaElement) {
+            metaElement.textContent = meta || 'Izinkan lokasi agar titik live muncul.';
+        }
+    }
+
+    function faceLiveLocationMeta(distance, accuracy, suffix) {
+        const parts = [];
+
+        if (Number.isFinite(distance)) {
+            parts.push('Jarak ' + Number(distance).toFixed(1) + 'm');
+        }
+
+        if (Number.isFinite(accuracy)) {
+            parts.push('Akurasi ' + Math.round(Number(accuracy)) + 'm');
+        }
+
+        if (suffix) {
+            parts.push(suffix);
+        }
+
+        return parts.join(' | ');
     }
 
     function getDistance(lat1, lon1, lat2, lon2) {
@@ -1422,7 +1536,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             preservePreview: true
         });
         updateAttendanceButtonState();
-        updateLiveFrameFeedback('green', 'Wajah cocok. Selfie tersimpan, lanjutkan ke tahap presensi.', 1);
+        updateLiveFrameFeedback('green', 'Wajah cocok. Selfie tersimpan, lanjutkan presensi saat GPS valid.', 1);
 
         if (typeof window.setAttendanceWizardStep === 'function') {
             window.setAttendanceWizardStep(2, {
@@ -1832,6 +1946,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         const wizardIndicatorAttendance = document.getElementById('wizardIndicatorAttendance');
         const attendanceStepHint = document.getElementById('attendanceStepHint');
         const wizardAttendanceContent = document.getElementById('wizardAttendanceContent');
+        const attendanceActionPanel = document.getElementById('attendanceActionPanel');
 
         if (manualSelfieButton && !manualSelfieEnabled) {
             manualSelfieButton.classList.add('d-none');
@@ -1845,6 +1960,14 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
             map.invalidateSize();
 
+            if (faceMap) {
+                faceMap.invalidateSize();
+
+                if (faceMarkerUser) {
+                    faceMap.panTo(faceMarkerUser.getLatLng());
+                }
+            }
+
             if (markerUser) {
                 map.panTo(markerUser.getLatLng());
                 return;
@@ -1855,7 +1978,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         const setWizardStep = function(step, options = {}) {
             const scroll = options.scroll === true;
-            const hasFaceStep = Boolean(wizardStepFace);
+            const hasFaceStep = Boolean(wizardStepFace && document.getElementById('selfieCameraStage'));
             const attendanceUnlocked = !hasFaceStep || step >= 2;
 
             if (wizardStepFace) {
@@ -1870,9 +1993,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
             }
 
             if (wizardStepAttendance) {
-                wizardStepAttendance.classList.toggle('is-active', attendanceUnlocked);
-                wizardStepAttendance.classList.toggle('is-locked', !attendanceUnlocked);
-                wizardStepAttendance.classList.toggle('is-done', false);
+                wizardStepAttendance.classList.add('is-active');
+                wizardStepAttendance.classList.toggle('is-locked', false);
+                wizardStepAttendance.classList.toggle('is-done', attendanceUnlocked);
             }
 
             if (wizardIndicatorAttendance) {
@@ -1883,19 +2006,19 @@ $locationIssueMessage = $locationIssueMessage ?? (
             if (attendanceStepHint) {
                 attendanceStepHint.classList.toggle('is-success', attendanceUnlocked);
                 attendanceStepHint.innerHTML = attendanceUnlocked ?
-                    "<i class='fas fa-check-circle'></i> Tahap presensi sudah terbuka. Pastikan GPS stabil lalu lanjutkan presensi." :
-                    "<i class='fas fa-lock'></i> Selesaikan selfie dan tunggu matching berhasil untuk membuka tahap presensi.";
+                    "<i class='fas fa-check-circle'></i> Liveness wajah sudah valid. Sistem tetap memastikan GPS live stabil sebelum tombol presensi aktif." :
+                    "<i class='fas fa-sync-alt'></i> GPS live dan liveness wajah diproses bersamaan. Tombol presensi aktif saat keduanya valid.";
             }
 
             if (wizardAttendanceContent) {
-                wizardAttendanceContent.classList.toggle('d-none', hasFaceStep && !attendanceUnlocked);
+                wizardAttendanceContent.classList.toggle('is-unlocked', attendanceUnlocked);
             }
 
-            if (attendanceUnlocked && scroll && wizardStepAttendance) {
+            if (attendanceUnlocked && scroll && (attendanceActionPanel || wizardStepAttendance)) {
                 window.setTimeout(function() {
-                    wizardStepAttendance.scrollIntoView({
+                    (attendanceActionPanel || wizardStepAttendance).scrollIntoView({
                         behavior: 'smooth',
-                        block: 'start'
+                        block: 'center'
                     });
                     window.setTimeout(refreshMapViewport, 260);
                 }, 120);
@@ -1905,6 +2028,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
         window.setAttendanceWizardStep = setWizardStep;
 
         initMap(latOffice, longOffice, radius);
+        initFaceLiveMap(latOffice, longOffice, radius);
+        updateFaceLiveLocation('neutral', 'Menunggu GPS...', 'Sistem akan menyimpan bukti lokasi saat titik sudah stabil.');
         updateAttendanceButtonState();
         setSelfieSurfaceMode(wizardStepFace ? 'placeholder' : 'preview');
         setWizardStep(wizardStepFace ? 1 : 2);
@@ -1966,6 +2091,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         if (!navigator.geolocation) {
             document.getElementById("distanceInfo").innerHTML =
                 "<span class='text-danger'>Browser tidak mendukung GPS</span>";
+            updateFaceLiveLocation('danger', 'Browser tidak mendukung GPS', 'Gunakan browser modern dengan izin lokasi aktif.');
             return;
         }
 
@@ -1974,12 +2100,25 @@ $locationIssueMessage = $locationIssueMessage ?? (
             let longUser = position.coords.longitude;
             let accuracy = position.coords.accuracy;
             let now = Date.now();
+            let liveDistance = getDistance(latUser, longUser, latOffice, longOffice);
+
+            syncUserMapMarker(latUser, longUser);
+            updateFaceLiveLocation(
+                'warning',
+                'Membaca lokasi live...',
+                faceLiveLocationMeta(liveDistance, accuracy, 'Menunggu titik stabil')
+            );
 
             if (accuracy > maxGpsAccuracy) {
                 gpsReady = false;
                 gpsEvidenceReady = false;
                 stableStartTime = null;
                 updateAttendanceButtonState();
+                updateFaceLiveLocation(
+                    'danger',
+                    'Akurasi GPS belum valid',
+                    faceLiveLocationMeta(liveDistance, accuracy, 'Batas ' + Math.round(maxGpsAccuracy) + 'm')
+                );
 
                 document.getElementById("distanceInfo").innerHTML =
                     "<span class='text-danger'>Akurasi GPS belum valid (" + Math.round(accuracy) + "m, batas " + Math.round(maxGpsAccuracy) + "m)</span>";
@@ -1999,6 +2138,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     gpsEvidenceReady = false;
                     stableStartTime = null;
                     updateAttendanceButtonState();
+                    updateFaceLiveLocation(
+                        'danger',
+                        'Pergerakan tidak wajar',
+                        faceLiveLocationMeta(liveDistance, accuracy, 'Kecepatan GPS terlalu tinggi')
+                    );
 
                     document.getElementById("distanceInfo").innerHTML =
                         "<span class='text-danger'>Pergerakan tidak wajar terdeteksi</span>";
@@ -2019,16 +2163,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             lastLong = longUser;
             lastTime = now;
 
-            if (markerUser) {
-                markerUser.setLatLng([latUser, longUser]);
-            } else {
-                markerUser = L.marker([latUser, longUser], {
-                    title: "Posisi kamu",
-                    icon: createMapPinIcon('blue')
-                }).addTo(map);
-            }
-
-            currentDistance = getDistance(latUser, longUser, latOffice, longOffice);
+            currentDistance = liveDistance;
 
             if (currentDistance > radius) {
                 document.getElementById("distanceInfo").innerHTML =
@@ -2040,6 +2175,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 gpsEvidenceReady = false;
                 stableStartTime = null;
                 updateAttendanceButtonState();
+                updateFaceLiveLocation(
+                    'danger',
+                    'Di luar radius presensi',
+                    faceLiveLocationMeta(currentDistance, accuracy, 'Radius ' + Math.round(radius) + 'm')
+                );
                 return;
             }
 
@@ -2050,6 +2190,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 gpsEvidenceReady = false;
                 stableStartTime = null;
                 updateAttendanceButtonState();
+                updateFaceLiveLocation(
+                    'danger',
+                    naturalCheck.reason,
+                    faceLiveLocationMeta(currentDistance, accuracy, 'Validasi gerak GPS gagal')
+                );
 
                 document.getElementById("distanceInfo").innerHTML =
                     "<span class='text-danger'>" + naturalCheck.reason + "</span>";
@@ -2062,6 +2207,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 gpsEvidenceReady = false;
                 stableStartTime = null;
                 updateAttendanceButtonState();
+                updateFaceLiveLocation(
+                    'danger',
+                    'Mock location terdeteksi',
+                    faceLiveLocationMeta(currentDistance, accuracy, 'Presensi diblokir')
+                );
 
                 document.getElementById("distanceInfo").innerHTML =
                     "<span class='text-danger'>Mock location terdeteksi</span>";
@@ -2077,6 +2227,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 gpsReady = false;
                 gpsEvidenceReady = false;
                 updateAttendanceButtonState();
+                updateFaceLiveLocation(
+                    'warning',
+                    'Memvalidasi lokasi...',
+                    faceLiveLocationMeta(currentDistance, accuracy, 'Tahan posisi sebentar')
+                );
 
                 document.getElementById("distanceInfo").innerHTML =
                     "<span class='text-warning'>" +
@@ -2119,12 +2274,32 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 const shouldSendGpsEvidence = !hasReusableGpsEvidence && canRetryGpsEvidence;
 
                 if (hasReusableGpsEvidence) {
+                    updateFaceLiveLocation(
+                        'success',
+                        'GPS live tersimpan',
+                        faceLiveLocationMeta(currentDistance, accuracy, 'Siap bersama liveness')
+                    );
                     updateGpsReadyInfo(currentDistance);
                 } else if (gpsLogInFlight || shouldSendGpsEvidence) {
+                    updateFaceLiveLocation(
+                        'warning',
+                        'Menyimpan bukti GPS live...',
+                        faceLiveLocationMeta(currentDistance, accuracy, 'Jangan berpindah lokasi')
+                    );
                     updateDistanceInfo('text-warning', currentDistance, 'Dalam Radius - menyimpan bukti GPS live...');
                 } else if (!gpsEvidenceReady) {
+                    updateFaceLiveLocation(
+                        'warning',
+                        'Menunggu kirim ulang GPS',
+                        faceLiveLocationMeta(currentDistance, accuracy, 'Dalam radius')
+                    );
                     updateDistanceInfo('text-warning', currentDistance, 'Dalam Radius - menunggu kirim ulang bukti GPS');
                 } else {
+                    updateFaceLiveLocation(
+                        'success',
+                        'Lokasi dalam radius',
+                        faceLiveLocationMeta(currentDistance, accuracy, 'Siap menyimpan bukti')
+                    );
                     updateDistanceInfo('text-success', currentDistance, 'Dalam Radius');
                 }
 
@@ -2158,6 +2333,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
                             window.lastLong = longUser;
                             window.lastLogTime = Date.now();
                             updateAttendanceButtonState();
+                            updateFaceLiveLocation(
+                                'success',
+                                'GPS live tersimpan',
+                                faceLiveLocationMeta(currentDistance, accuracy, 'Lanjutkan liveness wajah')
+                            );
                             updateGpsReadyInfo(currentDistance);
                         } else {
                             let message = 'Bukti GPS live belum tersimpan';
@@ -2173,12 +2353,22 @@ $locationIssueMessage = $locationIssueMessage ?? (
                             }
 
                             updateDistanceInfo('text-danger', currentDistance, message);
+                            updateFaceLiveLocation(
+                                'danger',
+                                message,
+                                faceLiveLocationMeta(currentDistance, accuracy, 'Coba ulang otomatis')
+                            );
                         }
 
                         updateAttendanceButtonState();
                     }).catch(function(err) {
                         gpsEvidenceReady = false;
                         updateDistanceInfo('text-danger', currentDistance, 'Bukti GPS live gagal tersimpan');
+                        updateFaceLiveLocation(
+                            'danger',
+                            'Bukti GPS live gagal tersimpan',
+                            faceLiveLocationMeta(currentDistance, accuracy, 'Periksa koneksi lalu tunggu ulang')
+                        );
                         updateAttendanceButtonState();
                         console.log("GPS Log Error:", err);
                     }).finally(function() {
@@ -2189,6 +2379,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }, function() {
             document.getElementById("distanceInfo").innerHTML =
                 "<span class='text-danger'>Gagal mengambil lokasi</span>";
+            updateFaceLiveLocation('danger', 'Gagal mengambil lokasi', 'Periksa izin lokasi di browser.');
         }, {
             enableHighAccuracy: true,
             timeout: 20000,
