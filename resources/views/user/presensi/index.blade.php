@@ -329,18 +329,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                     <div id="map" class="map-surface"></div>
                                 </div>
 
-                                <div class="location-status-card">
-                                    <div class="location-status-card__icon">
-                                        <i class="fas fa-crosshairs"></i>
-                                    </div>
-                                    <div>
-                                        <span class="location-status-card__label">Status Lokasi</span>
-                                        <div id="distanceInfo" class="location-status-card__value">
-                                            Mendeteksi lokasi...
-                                        </div>
-                                    </div>
-                                </div>
-
                                 @if ($statusPresensiHariIni)
                                 <div class="alert alert-info mb-2 mt-4">
                                     <strong>Status hari ini:</strong> {{ $statusPresensiHariIni }}
