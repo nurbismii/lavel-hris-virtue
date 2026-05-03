@@ -11,6 +11,8 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Auth\Notifications\VerifyEmail as VerifyEmailNotification;
 use App\Notifications\ResetPasswordNotification;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -32,6 +34,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'nik_karyawan',
         'role_id',
         'authorized_divisi_ids',
+        'authorized_departemen_ids',
         'email_verified_at',
     ];
 
@@ -54,6 +57,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email_verified_at' => 'datetime',
         'terakhir_login' => 'datetime',
         'authorized_divisi_ids' => 'array',
+        'authorized_departemen_ids' => 'array',
     ];
 
     public function employee()
@@ -75,6 +79,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function additionalRoles()
+    {
+        return $this->belongsToMany(Role::class, 'role_user', 'user_id', 'role_id')->withTimestamps();
     }
 
     public function sendEmailVerificationNotification()
@@ -105,7 +114,37 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function getDisplayRoleNameAttribute(): string
     {
-        return $this->normalized_role_name ?? optional($this->role)->permission_role ?? 'Belum Diatur';
+        $roleNames = $this->assignedRoles()
+            ->map(fn(Role $role) => Role::normalizeRoleName($role->permission_role) ?? $role->permission_role)
+            ->filter()
+            ->unique()
+            ->values();
+
+        return $roleNames->isNotEmpty()
+            ? $roleNames->join(' + ')
+            : 'Belum Diatur';
+    }
+
+    public function assignedRoles(): Collection
+    {
+        $this->loadMissing('role');
+        $additionalRoles = collect();
+
+        if (Schema::hasTable('role_user')) {
+            $this->loadMissing('additionalRoles');
+            $additionalRoles = $this->additionalRoles;
+        }
+
+        return collect([$this->role])
+            ->filter()
+            ->merge($additionalRoles)
+            ->unique('id')
+            ->values();
+    }
+
+    public function hasAnyRole(): bool
+    {
+        return $this->assignedRoles()->isNotEmpty();
     }
 
     public function getAvatarInitialsAttribute(): string
@@ -131,18 +170,21 @@ class User extends Authenticatable implements MustVerifyEmail
     public function hasRole($roles)
     {
         $roles = is_array($roles) ? $roles : [$roles];
-        $normalizedRoleName = $this->normalized_role_name;
-        $actualRoleName = optional($this->role)->permission_role;
+        $assignedRoles = $this->assignedRoles();
 
         foreach ($roles as $role) {
             $normalizedExpected = Role::normalizeRoleName($role);
 
-            if ($normalizedRoleName && $normalizedExpected && $normalizedRoleName === $normalizedExpected) {
-                return true;
-            }
+            foreach ($assignedRoles as $assignedRole) {
+                $normalizedRoleName = Role::normalizeRoleName($assignedRole->permission_role);
 
-            if ($actualRoleName && strcasecmp($actualRoleName, $role) === 0) {
-                return true;
+                if ($normalizedRoleName && $normalizedExpected && $normalizedRoleName === $normalizedExpected) {
+                    return true;
+                }
+
+                if ($assignedRole->permission_role && strcasecmp($assignedRole->permission_role, $role) === 0) {
+                    return true;
+                }
             }
         }
 
@@ -151,7 +193,9 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function resolveMenuPermissions(): array
     {
-        if (!$this->role) {
+        $assignedRoles = $this->assignedRoles();
+
+        if ($assignedRoles->isEmpty()) {
             return [];
         }
 
@@ -159,11 +203,18 @@ class User extends Authenticatable implements MustVerifyEmail
             return array_keys(config('access.menus', []));
         }
 
-        if (is_array($this->role->menu_permissions)) {
-            return array_values(array_unique($this->role->menu_permissions));
-        }
+        return $assignedRoles
+            ->flatMap(function (Role $role) {
+                if (is_array($role->menu_permissions)) {
+                    return $role->menu_permissions;
+                }
 
-        return config('access.default_menu_permissions.' . $this->normalized_role_name, []);
+                return config('access.default_menu_permissions.' . $role->normalized_name, []);
+            })
+            ->filter(fn($menu) => filled($menu))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     public function hasMenuAccess($menus): bool
@@ -193,6 +244,11 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isDepartmentScopedRole(): bool
     {
         return $this->hasRole(['HOD', 'Manager']);
+    }
+
+    public function isHodRole(): bool
+    {
+        return $this->hasRole('HOD');
     }
 
     public function isDivisionScopedRole(): bool
@@ -229,13 +285,27 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function scopedDivisionIds(): array
     {
-        if (!$this->isDivisionScopedRole()) {
+        if (!$this->isDivisionScopedRole() && !$this->isHodRole()) {
             return [];
         }
 
         $divisionIds = [];
 
-        if ($this->isAdminDivisiRole()) {
+        if ($this->isHodRole()) {
+            $divisionIds = (array) $this->authorized_divisi_ids;
+
+            $departmentIds = $this->scopedDepartmentIds();
+
+            if (!empty($departmentIds) && Schema::hasTable('divisis')) {
+                $divisionIds = array_merge(
+                    $divisionIds,
+                    Divisi::query()
+                        ->whereIn('departemen_id', $departmentIds)
+                        ->pluck('id')
+                        ->all()
+                );
+            }
+        } elseif ($this->isAdminDivisiRole()) {
             $divisionIds = array_merge(
                 (array) $this->authorized_divisi_ids,
                 [optional($this->employee)->divisi_id]
@@ -254,9 +324,20 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function scopedDepartmentIds(): array
     {
+        if ($this->isHodRole()) {
+            return collect(array_merge(
+                    (array) $this->authorized_departemen_ids,
+                    [optional($this->employee)->departemen_id]
+                ))
+                ->filter(fn($id) => filled($id))
+                ->map(fn($id) => (string) $id)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
         if ($this->isDepartmentScopedRole()) {
             $departemenId = optional($this->employee)->departemen_id;
-
             return $departemenId ? [(string) $departemenId] : [];
         }
 
@@ -287,11 +368,23 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($this->isDepartmentScopedRole()) {
-            $departemenId = optional($this->employee)->departemen_id;
+            $departemenIds = $this->scopedDepartmentIds();
+            $divisiIds = $this->isHodRole() ? $this->scopedDivisionIds() : [];
 
-            return $departemenId
-                ? $query->where($this->qualifyScopeColumn($table, 'departemen_id'), $departemenId)
-                : $query->whereRaw('1 = 0');
+            if (empty($departemenIds) && empty($divisiIds)) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            return $query->where(function (Builder $scopeQuery) use ($table, $departemenIds, $divisiIds) {
+                if (!empty($departemenIds)) {
+                    $scopeQuery->whereIn($this->qualifyScopeColumn($table, 'departemen_id'), $departemenIds);
+                }
+
+                if (!empty($divisiIds)) {
+                    $method = !empty($departemenIds) ? 'orWhereIn' : 'whereIn';
+                    $scopeQuery->{$method}($this->qualifyScopeColumn($table, 'divisi_id'), $divisiIds);
+                }
+            });
         }
 
         if ($this->isDivisionScopedRole()) {
@@ -314,11 +407,25 @@ class User extends Authenticatable implements MustVerifyEmail
         }
 
         if ($this->isDepartmentScopedRole()) {
-            $departemenId = optional($this->employee)->departemen_id;
+            $departemenIds = $this->scopedDepartmentIds();
+            $divisiIds = $this->isHodRole() ? $this->scopedDivisionIds() : [];
 
-            return $departemenId
-                ? $query->whereHas($relation, fn(Builder $employeeQuery) => $employeeQuery->where('departemen_id', $departemenId))
-                : $query->whereRaw('1 = 0');
+            if (empty($departemenIds) && empty($divisiIds)) {
+                return $query->whereRaw('1 = 0');
+            }
+
+            return $query->whereHas($relation, function (Builder $employeeQuery) use ($departemenIds, $divisiIds) {
+                $employeeQuery->where(function (Builder $scopeQuery) use ($departemenIds, $divisiIds) {
+                    if (!empty($departemenIds)) {
+                        $scopeQuery->whereIn('departemen_id', $departemenIds);
+                    }
+
+                    if (!empty($divisiIds)) {
+                        $method = !empty($departemenIds) ? 'orWhereIn' : 'whereIn';
+                        $scopeQuery->{$method}('divisi_id', $divisiIds);
+                    }
+                });
+            });
         }
 
         if ($this->isDivisionScopedRole()) {

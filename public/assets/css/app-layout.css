@@ -152,6 +152,20 @@
     line-height: 1.45;
 }
 
+#desktopNotifPermissionPanel {
+    background: #f8fafc;
+}
+
+#desktopNotifPermissionButton {
+    border-radius: 999px;
+    font-weight: 600;
+    white-space: normal;
+}
+
+#desktopNotifPermissionHint {
+    line-height: 1.4;
+}
+
 .mobile-bottom-nav {
     display: none;
 }

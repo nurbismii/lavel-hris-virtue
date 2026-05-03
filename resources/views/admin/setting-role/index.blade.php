@@ -68,6 +68,12 @@
                                 </td>
                                 <td>
                                     {{ optional($user->role)->scope_label ?? 'Akun sendiri' }}
+                                    @if($user->isHodRole())
+                                        <div class="small text-muted mt-1">
+                                            {{ count($user->scopedDepartmentIds()) }} departemen,
+                                            {{ count($user->scopedDivisionIds()) }} divisi aktif
+                                        </div>
+                                    @endif
                                     @if($user->isAdminDivisiRole())
                                         <div class="small text-muted mt-1">
                                             {{ count($user->scopedDivisionIds()) }} divisi aktif

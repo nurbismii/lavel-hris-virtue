@@ -132,6 +132,8 @@
             latestUrl: @json(route('notifications.latest')),
             fallbackInterval: 60000,
             inboxUrl: @json(route('kotak-masuk.index')),
+            desktopIconUrl: @json(url(versioned_asset('assets/img/kaiadmin/favicon-1.png'))),
+            desktopBadgeUrl: @json(url(versioned_asset('assets/img/kaiadmin/favicon-1.png'))),
         };
     </script>
     @endauth

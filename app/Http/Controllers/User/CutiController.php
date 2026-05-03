@@ -54,6 +54,10 @@ class CutiController extends Controller
             return redirect()->route('cuti.index');
         }
 
+        if (!empty($result['cuti'])) {
+            app(ApprovalNotificationService::class)->notifyCutiSubmitted($result['cuti']);
+        }
+
         toast()->success('Success', $result['message']);
         return redirect()->route('cuti.index');
     }

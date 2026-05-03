@@ -14,7 +14,7 @@ class SettingRoleController extends Controller
 {
     public function index()
     {
-        $users = User::with('employee', 'role')
+        $users = User::with('employee', 'role', 'additionalRoles')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -64,12 +64,19 @@ class SettingRoleController extends Controller
 
     public function edit($id)
     {
-        $user = User::with(['role', 'employee.divisi.departemen'])->findOrFail($id);
+        $user = User::with(['role', 'additionalRoles', 'employee.divisi.departemen'])->findOrFail($id);
         $roles = Role::where('status', '1')->get();
+        $allowedCompanyCodes = ['VDNI', 'VDNIP'];
         $departemens = Departemen::with([
             'perusahaan',
             'divisi' => fn($query) => $query->orderBy('nama_divisi'),
-        ])->orderBy('departemen')->get();
+        ])
+            ->whereHas('perusahaan', function ($query) use ($allowedCompanyCodes) {
+                $query->whereIn('kode_perusahaan', $allowedCompanyCodes)
+                    ->orWhereIn('nama_perusahaan', $allowedCompanyCodes);
+            })
+            ->orderBy('departemen')
+            ->get();
         $menuGroups = collect(config('access.menus', []))
             ->map(fn($menu, $key) => array_merge($menu, ['key' => $key]))
             ->groupBy('group');
@@ -87,6 +94,14 @@ class SettingRoleController extends Controller
             ->whereIn('id', $user->scopedDivisionIds())
             ->orderBy('nama_divisi')
             ->get(['id', 'nama_divisi']);
+        $assignedDepartemens = Departemen::query()
+            ->whereIn('id', $user->scopedDepartmentIds())
+            ->orderBy('departemen')
+            ->get(['id', 'departemen']);
+        $selectedAdditionalRoleIds = $user->additionalRoles
+            ->pluck('id')
+            ->map(fn($roleId) => (string) $roleId)
+            ->all();
 
         return view('admin.setting-role.edit', compact(
             'user',
@@ -94,7 +109,9 @@ class SettingRoleController extends Controller
             'departemens',
             'menuGroups',
             'roleAccessMap',
-            'assignedDivisis'
+            'assignedDivisis',
+            'assignedDepartemens',
+            'selectedAdditionalRoleIds'
         ));
     }
 
@@ -130,19 +147,36 @@ class SettingRoleController extends Controller
     {
         $validated = $request->validate([
             'role_id' => 'required|exists:roles,id',
+            'additional_role_ids' => 'nullable|array',
+            'additional_role_ids.*' => 'integer|exists:roles,id',
+            'authorized_departemen_ids' => 'nullable|array',
+            'authorized_departemen_ids.*' => 'integer|exists:departemens,id',
             'authorized_divisi_ids' => 'nullable|array',
             'authorized_divisi_ids.*' => 'integer|exists:divisis,id',
         ]);
 
         $user = User::findOrFail($id);
         $role = Role::findOrFail($validated['role_id']);
-        $authorizedDivisiIds = Role::normalizeRoleName($role->permission_role) === 'Admin Divisi'
+        $normalizedRoleName = Role::normalizeRoleName($role->permission_role);
+        $authorizedDepartemenIds = $normalizedRoleName === 'HOD'
+            ? collect($validated['authorized_departemen_ids'] ?? [])->filter()->map(fn($id) => (int) $id)->unique()->values()->all()
+            : null;
+        $authorizedDivisiIds = in_array($normalizedRoleName, ['HOD', 'Admin Divisi'], true)
             ? collect($validated['authorized_divisi_ids'] ?? [])->filter()->map(fn($id) => (int) $id)->unique()->values()->all()
             : null;
 
         $user->role_id = $role->id;
+        $user->authorized_departemen_ids = $authorizedDepartemenIds;
         $user->authorized_divisi_ids = $authorizedDivisiIds;
         $user->save();
+        $user->additionalRoles()->sync(
+            collect($validated['additional_role_ids'] ?? [])
+                ->filter(fn($roleId) => (int) $roleId !== (int) $role->id)
+                ->map(fn($roleId) => (int) $roleId)
+                ->unique()
+                ->values()
+                ->all()
+        );
 
         toast()->success('success', 'Role berhasil diperbarui.');
         return redirect()->route('setting-role.index');

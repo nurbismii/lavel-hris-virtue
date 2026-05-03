@@ -53,6 +53,17 @@
                         </div>
                     </li>
 
+                    <li id="desktopNotifPermissionPanel" class="px-3 py-2 border-bottom d-none">
+                        <button
+                            type="button"
+                            id="desktopNotifPermissionButton"
+                            class="btn btn-sm btn-outline-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                            <i class="fa fa-desktop"></i>
+                            <span id="desktopNotifPermissionText">Aktifkan Notifikasi Desktop</span>
+                        </button>
+                        <div id="desktopNotifPermissionHint" class="small text-muted mt-2 d-none"></div>
+                    </li>
+
                     <!-- Notification List -->
                     <li id="notifList" class="realtime-notif-list" style="max-height: 350px; overflow-y: auto;">
                         @forelse($notifications as $notif)

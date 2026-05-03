@@ -117,7 +117,8 @@ class CutiService
 
             return [
                 'status' => true,
-                'message' => 'Pengajuan cuti berhasil diperbarui'
+                'message' => 'Pengajuan cuti berhasil diperbarui',
+                'cuti' => $cuti->fresh(['employee']),
             ];
         });
     }

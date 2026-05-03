@@ -15,7 +15,7 @@ class CheckMenuAccess
 
         $user = Auth::user()->loadMissing('role');
 
-        if (!$user->role) {
+        if (!$user->hasAnyRole()) {
             abort(403, 'Role tidak ditemukan.');
         }
 

@@ -109,9 +109,12 @@
     <div class="page-inner">
         @php
             $currentRole = $user->role;
-            $currentMenuKeys = $currentRole ? $currentRole->resolved_menu_permissions : [];
+            $currentMenuKeys = $user->resolveMenuPermissions();
             $currentScopeLabel = $currentRole ? $currentRole->scope_label : 'Belum ada role';
             $selectedRoleId = (string) old('role_id', $user->role_id);
+            $selectedAdditionalRoleIds = collect(old('additional_role_ids', $selectedAdditionalRoleIds ?? []))
+                ->map(fn($id) => (string) $id)
+                ->all();
             $groupStyleMap = [
                 'Dashboard' => 'dashboard',
                 'Data Master' => 'data-master',
@@ -181,7 +184,20 @@
                                 </div>
                             </div>
 
-                            @if($user->isAdminDivisiRole())
+                            @if($user->isHodRole())
+                                <div class="mb-3">
+                                    <label class="form-label text-muted small mb-2">Departemen yang Bisa Diakses</label>
+                                    <div>
+                                        @forelse($assignedDepartemens as $departemen)
+                                            <span class="badge bg-primary me-1 mb-1">{{ $departemen->departemen }}</span>
+                                        @empty
+                                            <span class="text-muted small">Belum ada departemen yang ditugaskan.</span>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if($user->isHodRole() || $user->isAdminDivisiRole())
                                 <div class="mb-3">
                                     <label class="form-label text-muted small mb-2">Divisi yang Bisa Diakses</label>
                                     <div>
@@ -249,6 +265,40 @@
                         @enderror
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Role Tambahan
+                        </label>
+
+                        <select name="additional_role_ids[]"
+                            id="additional_role_ids"
+                            class="form-select @error('additional_role_ids') is-invalid @enderror"
+                            multiple
+                            size="7">
+                            @foreach($roles as $role)
+                            <option value="{{ $role->id }}"
+                                data-normalized-role="{{ $role->normalized_name }}"
+                                {{ in_array((string) $role->id, $selectedAdditionalRoleIds, true) ? 'selected' : '' }}>
+                                {{ $role->permission_role }}
+                            </option>
+                            @endforeach
+                        </select>
+
+                        @error('additional_role_ids')
+                        <div class="invalid-feedback d-block">
+                            {{ $message }}
+                        </div>
+                        @enderror
+                        @error('additional_role_ids.*')
+                        <div class="invalid-feedback d-block">
+                            {{ $message }}
+                        </div>
+                        @enderror
+                        <small class="text-muted d-block mt-2">
+                            Contoh: pilih role utama Admin Divisi, lalu tambahkan Staff Roster agar user bisa mengakses menu roster.
+                        </small>
+                    </div>
+
                     <div class="card border-0 bg-light mb-3">
                         <div class="card-body">
                             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
@@ -279,9 +329,9 @@
                         </div>
                     </div>
 
-                    <div id="admin-divisi-scope-card" class="card border-0 bg-light mb-3 d-none">
+                    <div id="role-scope-card" class="card border-0 bg-light mb-3 d-none">
                         <div class="card-body">
-                            <h6 class="fw-semibold mb-3">Akses Tambahan Divisi</h6>
+                            <h6 class="fw-semibold mb-3">Akses Tambahan Scope Data</h6>
 
                             <div class="mb-3">
                                 <label class="form-label">Divisi Bawaan Karyawan</label>
@@ -292,7 +342,42 @@
                                 <small class="text-muted">Divisi bawaan ini tetap otomatis ikut terakses meskipun tidak dicentang di bawah.</small>
                             </div>
 
-                            <div>
+                            <div id="hod-departemen-scope-section" class="mb-3 d-none">
+                                <label class="form-label">Departemen Tambahan yang Boleh Diakses HOD</label>
+                                @php
+                                    $selectedAuthorizedDepartemens = collect(old('authorized_departemen_ids', $user->authorized_departemen_ids ?? []))
+                                        ->map(fn($id) => (string) $id)
+                                        ->all();
+                                @endphp
+                                <select
+                                    name="authorized_departemen_ids[]"
+                                    id="authorized_departemen_ids"
+                                    class="form-select @error('authorized_departemen_ids') is-invalid @enderror"
+                                    multiple
+                                    size="8">
+                                    @foreach($departemens->groupBy(fn($departemen) => optional($departemen->perusahaan)->kode_perusahaan ?: optional($departemen->perusahaan)->nama_perusahaan ?: 'Perusahaan') as $companyName => $companyDepartemens)
+                                        <optgroup label="{{ $companyName }}">
+                                            @foreach($companyDepartemens as $departemen)
+                                                <option value="{{ $departemen->id }}"
+                                                    {{ in_array((string) $departemen->id, $selectedAuthorizedDepartemens, true) ? 'selected' : '' }}>
+                                                    {{ $departemen->departemen }}
+                                                </option>
+                                            @endforeach
+                                        </optgroup>
+                                    @endforeach
+                                </select>
+                                @error('authorized_departemen_ids')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                                @error('authorized_departemen_ids.*')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                                <small class="text-muted d-block mt-2">
+                                    Departemen bawaan dari profil karyawan HOD tetap otomatis ikut terakses.
+                                </small>
+                            </div>
+
+                            <div id="divisi-scope-section">
                                 <label class="form-label">Divisi Tambahan yang Boleh Diakses</label>
                                 @php
                                     $selectedAuthorizedDivisis = collect(old('authorized_divisi_ids', $user->authorized_divisi_ids ?? []))
@@ -331,7 +416,7 @@
 
                     <div class="alert alert-light border small">
                         Pilih role baru sesuai kewenangan user. Scope data mengikuti role:
-                        Super Admin/HR = semua data, HOD/Manager = departemen yang sama, Supervisor = divisi yang sama, Admin Divisi = satu atau beberapa divisi yang ditugaskan, Staff = akun sendiri.
+                        Super Admin/HR = semua data, HOD = satu atau beberapa departemen/divisi yang ditugaskan, Manager = departemen yang sama, Supervisor = divisi yang sama, Admin Divisi = satu atau beberapa divisi yang ditugaskan, Staff = akun sendiri.
                     </div>
 
                     <div class="d-flex justify-content-left">
@@ -359,7 +444,10 @@
 <script>
     $(document).ready(function() {
         const roleSelect = $('#role_id');
-        const adminDivisiScopeCard = $('#admin-divisi-scope-card');
+        const additionalRoleSelect = $('#additional_role_ids');
+        const roleScopeCard = $('#role-scope-card');
+        const hodDepartemenScopeSection = $('#hod-departemen-scope-section');
+        const authorizedDepartemenSelect = $('#authorized_departemen_ids');
         const authorizedDivisiSelect = $('#authorized_divisi_ids');
         const selectedRoleBadge = $('#selected-role-badge');
         const selectedRoleScope = $('#selected-role-scope');
@@ -371,9 +459,14 @@
 
         function renderRolePreview() {
             const selectedRoleId = roleSelect.val();
-            const selectedRole = roleAccessMap[selectedRoleId];
+            const selectedRoleIds = [selectedRoleId]
+                .concat(additionalRoleSelect.val() || [])
+                .filter((roleId, index, roleIds) => roleId && roleIds.indexOf(roleId) === index);
+            const selectedRoles = selectedRoleIds
+                .map(roleId => roleAccessMap[roleId])
+                .filter(Boolean);
 
-            if (!selectedRole) {
+            if (selectedRoles.length === 0) {
                 selectedRoleBadge.text('Belum dipilih');
                 selectedRoleScope.text('-');
                 selectedRoleCount.text('0 menu');
@@ -381,14 +474,16 @@
                 return;
             }
 
-            selectedRoleBadge.text(selectedRole.name);
-            selectedRoleScope.text(selectedRole.scope_label || '-');
-            selectedRoleCount.text(`${selectedRole.menus.length} menu`);
+            const mergedMenus = [...new Set(selectedRoles.flatMap(role => role.menus || []))];
+
+            selectedRoleBadge.text(selectedRoles.map(role => role.name).join(' + '));
+            selectedRoleScope.text(selectedRoles.map(role => role.scope_label || '-').join(' + '));
+            selectedRoleCount.text(`${mergedMenus.length} menu`);
 
             let html = '';
 
             Object.entries(menuGroups).forEach(([groupName, menus]) => {
-                const activeMenus = menus.filter(menu => selectedRole.menus.includes(menu.key));
+                const activeMenus = menus.filter(menu => mergedMenus.includes(menu.key));
                 const styleKey = groupStyleMap[groupName] || 'dashboard';
 
                 if (activeMenus.length === 0) {
@@ -410,21 +505,29 @@
             selectedRoleMenuGroups.html(html || '<div class="text-muted small">Role ini belum memiliki menu aktif.</div>');
         }
 
-        function toggleAdminDivisiScope() {
+        function toggleRoleScope() {
             const selectedOption = roleSelect.find('option:selected');
             const normalizedRole = selectedOption.data('normalized-role');
+            const isHod = normalizedRole === 'HOD';
             const isAdminDivisi = normalizedRole === 'Admin Divisi';
+            const hasScopeFields = isHod || isAdminDivisi;
 
-            adminDivisiScopeCard.toggleClass('d-none', !isAdminDivisi);
-            authorizedDivisiSelect.prop('disabled', !isAdminDivisi);
+            roleScopeCard.toggleClass('d-none', !hasScopeFields);
+            hodDepartemenScopeSection.toggleClass('d-none', !isHod);
+            authorizedDepartemenSelect.prop('disabled', !isHod);
+            authorizedDivisiSelect.prop('disabled', !hasScopeFields);
         }
 
         roleSelect.on('change', function() {
-            toggleAdminDivisiScope();
+            toggleRoleScope();
             renderRolePreview();
         });
 
-        toggleAdminDivisiScope();
+        additionalRoleSelect.on('change', function() {
+            renderRolePreview();
+        });
+
+        toggleRoleScope();
         renderRolePreview();
     });
 </script>

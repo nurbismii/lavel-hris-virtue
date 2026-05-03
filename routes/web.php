@@ -107,9 +107,10 @@ Route::middleware(['android.redirect'])->group(function () {
             ->name('izin.proof');
         Route::resource('/izin', 'App\Http\Controllers\User\IzinController')->middleware('menu:izin');
         Route::get('/roster/{roster}/attachment', [App\Http\Controllers\User\RosterController::class, 'attachment'])
-            ->middleware('menu:roster')
+            ->middleware(['menu:roster', 'role:Staff Roster,Super Admin'])
             ->name('roster.attachment');
-        Route::resource('/roster', 'App\Http\Controllers\User\RosterController')->middleware('menu:roster');
+        Route::resource('/roster', 'App\Http\Controllers\User\RosterController')
+            ->middleware(['menu:roster', 'role:Staff Roster,Super Admin']);
         Route::get('/roster-off/effective-dates', [RosterOffRequestController::class, 'effectiveDates'])
             ->middleware(['menu:off_roster', 'role:Staff Roster,Super Admin'])
             ->name('roster-off.effective-dates');

@@ -177,15 +177,21 @@ class ApprovalNotificationService
 
     private function hodRecipients(Employee $employee): Collection
     {
-        if (blank($employee->departemen_id)) {
+        if (blank($employee->departemen_id) && blank($employee->divisi_id)) {
             return collect();
         }
 
         return $this->activeUsersForRoles(['HOD'])
-            ->whereHas('employee', function (Builder $query) use ($employee) {
-                $query->where('departemen_id', $employee->departemen_id);
+            ->get()
+            ->filter(function (User $hod) use ($employee) {
+                $departmentAllowed = filled($employee->departemen_id)
+                    && in_array((string) $employee->departemen_id, $hod->scopedDepartmentIds(), true);
+                $divisionAllowed = filled($employee->divisi_id)
+                    && in_array((string) $employee->divisi_id, $hod->scopedDivisionIds(), true);
+
+                return $departmentAllowed || $divisionAllowed;
             })
-            ->get();
+            ->values();
     }
 
     private function hrRecipients(): Collection
@@ -209,13 +215,21 @@ class ApprovalNotificationService
             ->all();
 
         return User::query()
-            ->with(['role', 'employee'])
+            ->with(array_filter(['role', Schema::hasTable('role_user') ? 'additionalRoles' : null, 'employee']))
             ->where(function (Builder $query) {
                 $query->whereNull('status')
                     ->orWhere('status', 'aktif');
             })
-            ->whereHas('role', function (Builder $query) use ($roleNames) {
-                $query->whereIn('permission_role', $roleNames);
+            ->where(function (Builder $query) use ($roleNames) {
+                $query->whereHas('role', function (Builder $roleQuery) use ($roleNames) {
+                    $roleQuery->whereIn('permission_role', $roleNames);
+                });
+
+                if (Schema::hasTable('role_user')) {
+                    $query->orWhereHas('additionalRoles', function (Builder $roleQuery) use ($roleNames) {
+                        $roleQuery->whereIn('permission_role', $roleNames);
+                    });
+                }
             });
     }
 

@@ -87,6 +87,19 @@ class AdminPresensiScopeTest extends TestCase
         $this->assertSame(['HOD001', 'ADM101', 'EMP101'], collect($payload['data'])->pluck('nik_karyawan')->values()->all());
     }
 
+    public function test_hod_authorized_department_also_allows_divisions_inside_that_department(): void
+    {
+        $hod = $this->makeScopedUser('HOD', 'HOD001', [], [30]);
+
+        $this->assertContains('301', $hod->scopedDivisionIds());
+
+        $canAccessHrdEmployee = $hod->applyEmployeeScope(
+            Employee::query()->whereKey('EMP301')
+        )->exists();
+
+        $this->assertTrue($canAccessHrdEmployee);
+    }
+
     public function test_export_does_not_include_employees_outside_user_scope(): void
     {
         $request = $this->scopedRequest($this->makeScopedUser('HOD', 'HOD001'), [
@@ -176,12 +189,14 @@ class AdminPresensiScopeTest extends TestCase
         DB::table('departemens')->insert([
             ['id' => 10, 'departemen' => 'Produksi', 'perusahaan_id' => 1],
             ['id' => 20, 'departemen' => 'Finance', 'perusahaan_id' => 2],
+            ['id' => 30, 'departemen' => 'HRD', 'perusahaan_id' => 1],
         ]);
 
         DB::table('divisis')->insert([
             ['id' => 101, 'nama_divisi' => 'Smelter A', 'departemen_id' => 10],
             ['id' => 102, 'nama_divisi' => 'Smelter B', 'departemen_id' => 10],
             ['id' => 201, 'nama_divisi' => 'Payroll', 'departemen_id' => 20],
+            ['id' => 301, 'nama_divisi' => 'HR Operations', 'departemen_id' => 30],
         ]);
 
         DB::table('employees')->insert([
@@ -190,6 +205,7 @@ class AdminPresensiScopeTest extends TestCase
             ['nik' => 'EMP101', 'nama_karyawan' => 'Staff Smelter A', 'area_kerja' => 'VDNI', 'departemen_id' => 10, 'divisi_id' => 101, 'status_resign' => 'AKTIF'],
             ['nik' => 'EMP102', 'nama_karyawan' => 'Staff Smelter B', 'area_kerja' => 'VDNI', 'departemen_id' => 10, 'divisi_id' => 102, 'status_resign' => 'AKTIF'],
             ['nik' => 'EMP201', 'nama_karyawan' => 'Staff Finance', 'area_kerja' => 'OSS', 'departemen_id' => 20, 'divisi_id' => 201, 'status_resign' => 'AKTIF'],
+            ['nik' => 'EMP301', 'nama_karyawan' => 'Staff HRD', 'area_kerja' => 'VDNI', 'departemen_id' => null, 'divisi_id' => 301, 'status_resign' => 'AKTIF'],
         ]);
     }
 
@@ -203,7 +219,7 @@ class AdminPresensiScopeTest extends TestCase
         return $request;
     }
 
-    private function makeScopedUser(string $roleName, string $nik, array $authorizedDivisiIds = []): User
+    private function makeScopedUser(string $roleName, string $nik, array $authorizedDivisiIds = [], array $authorizedDepartemenIds = []): User
     {
         $user = new User();
         $user->id = 'user-' . $nik;
@@ -211,6 +227,7 @@ class AdminPresensiScopeTest extends TestCase
         $user->email = strtolower($nik) . '@example.test';
         $user->nik_karyawan = $nik;
         $user->authorized_divisi_ids = $authorizedDivisiIds;
+        $user->authorized_departemen_ids = $authorizedDepartemenIds;
         $user->setRelation('role', new Role(['permission_role' => $roleName]));
         $user->setRelation('employee', Employee::query()->whereKey($nik)->first());
 
