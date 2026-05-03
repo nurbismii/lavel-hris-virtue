@@ -87,7 +87,7 @@ class PresensiController extends Controller
         $presensiRecords = Presensi::where('nik_karyawan', $user->nik_karyawan)
             ->with('verifications')
             ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
-            ->orderBy('tanggal', 'desc')
+            ->orderBy('id', 'desc')
             ->get();
 
         $existingDates = $presensiRecords
