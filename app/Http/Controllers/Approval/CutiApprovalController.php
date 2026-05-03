@@ -7,6 +7,7 @@ use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\Cuti;
 use App\Models\Employee;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
 
@@ -64,6 +65,10 @@ class CutiApprovalController extends Controller
         app(AttendanceStatusService::class)->refreshCuti($cuti);
 
         $this->notifyApplicant($cuti, $result['approval_status'], 'HOD');
+
+        if ($action === 1) {
+            app(ApprovalNotificationService::class)->notifyCutiWaitingForHr($cuti);
+        }
 
         toast()->success('Success', 'Cuti telah ' . strtolower($result['approval_status']) . ' oleh HOD');
         return back()->with('success', 'Berhasil diproses');

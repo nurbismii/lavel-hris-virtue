@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Cuti\CutiRequest;
 use App\Models\Cuti;
 use App\Models\Employee;
+use App\Services\Notifications\ApprovalNotificationService;
 use Illuminate\Support\Facades\Auth;
 
 class CutiController extends Controller
@@ -84,6 +85,10 @@ class CutiController extends Controller
         if (!$result['status']) {
             toast()->warning('Warning', $result['message']);
             return redirect()->route('cuti.index');
+        }
+
+        if (!empty($result['cuti'])) {
+            app(ApprovalNotificationService::class)->notifyCutiSubmitted($result['cuti']);
         }
 
         toast()->success('Success', $result['message']);

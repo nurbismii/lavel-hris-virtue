@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\Cuti;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
 
@@ -63,6 +64,10 @@ class IzinApprovalController extends Controller
         app(AttendanceStatusService::class)->refreshIzin($cuti);
 
         $this->notifyApplicant($cuti, $result['approval_status'], 'HOD');
+
+        if ($action === 1) {
+            app(ApprovalNotificationService::class)->notifyIzinWaitingForHr($cuti);
+        }
 
         toast()->success('Success', 'Izin telah ' . strtolower($result['approval_status']) . ' oleh HOD');
         return back()->with('success', 'Berhasil diproses');

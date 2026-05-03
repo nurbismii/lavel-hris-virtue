@@ -119,6 +119,39 @@
     flex-shrink: 0;
 }
 
+.realtime-notif-list {
+    background: #ffffff;
+}
+
+.realtime-notif-item {
+    gap: 0.75rem;
+    white-space: normal;
+    transition: background-color 0.18s ease, transform 0.18s ease;
+}
+
+.realtime-notif-item:hover,
+.realtime-notif-item:focus {
+    background: #f8fafc;
+}
+
+.realtime-notif-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    padding: 0;
+    flex: 0 0 auto;
+}
+
+.realtime-notif-empty {
+    min-height: 112px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-right: 1rem;
+    padding-left: 1rem;
+    line-height: 1.45;
+}
+
 .mobile-bottom-nav {
     display: none;
 }

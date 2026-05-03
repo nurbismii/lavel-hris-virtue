@@ -70,6 +70,9 @@
 @endpush
 
 @section('content')
+@php
+    $canSubmitOffRequest = $canSubmitOffRequest ?? filled(auth()->user()->nik_karyawan);
+@endphp
 <div class="container-fluid">
     <div class="page-inner roster-off-page">
         <div class="roster-off-hero p-3 p-md-4 mb-4">
@@ -104,7 +107,7 @@
             <div class="col-md-4">
                 <div class="roster-off-info">
                     <small>NIK</small>
-                    <strong>{{ auth()->user()->nik_karyawan }}</strong>
+                    <strong>{{ auth()->user()->nik_karyawan ?: '-' }}</strong>
                 </div>
             </div>
             <div class="col-md-4">
@@ -121,11 +124,17 @@
                     <h5 class="fw-bold mb-1">Ajukan OFF</h5>
                     <p class="text-muted small mb-3">Tanggal OFF tidak boleh sebelum hari ini dan tidak boleh duplikat dengan pengajuan yang masih aktif.</p>
 
+                    @unless($canSubmitOffRequest)
+                        <div class="alert alert-warning small">
+                            Akun ini belum terhubung dengan NIK karyawan, sehingga belum bisa mengirim pengajuan OFF.
+                        </div>
+                    @endunless
+
                     <form action="{{ route('roster-off.store') }}" method="POST">
                         @csrf
                         <div class="mb-3">
                             <label class="form-label">Tanggal OFF</label>
-                            <input type="date" name="tanggal_off" class="form-control @error('tanggal_off') is-invalid @enderror" value="{{ old('tanggal_off') }}" required>
+                            <input type="date" name="tanggal_off" class="form-control @error('tanggal_off') is-invalid @enderror" value="{{ old('tanggal_off') }}" required {{ $canSubmitOffRequest ? '' : 'disabled' }}>
                             @error('tanggal_off')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -133,13 +142,13 @@
 
                         <div class="mb-3">
                             <label class="form-label">Alasan</label>
-                            <textarea name="alasan" rows="4" maxlength="1000" class="form-control @error('alasan') is-invalid @enderror" placeholder="Contoh: pengganti hari libur roster">{{ old('alasan') }}</textarea>
+                            <textarea name="alasan" rows="4" maxlength="1000" class="form-control @error('alasan') is-invalid @enderror" placeholder="Contoh: pengganti hari libur roster" {{ $canSubmitOffRequest ? '' : 'disabled' }}>{{ old('alasan') }}</textarea>
                             @error('alasan')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>
 
-                        <button type="submit" class="btn btn-primary w-100">
+                        <button type="submit" class="btn btn-primary w-100" {{ $canSubmitOffRequest ? '' : 'disabled' }}>
                             <i class="fas fa-paper-plane me-1"></i>
                             Kirim Pengajuan
                         </button>

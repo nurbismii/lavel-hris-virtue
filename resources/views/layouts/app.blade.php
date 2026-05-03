@@ -120,6 +120,23 @@
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
     <script src="{{ versioned_asset('assets/js/app-layout.js') }}"></script>
 
+    @auth
+    <script>
+        window.AppRealtimeNotifications = {
+            enabled: @json(config('broadcasting.default') === 'pusher' && filled(config('broadcasting.connections.pusher.key'))),
+            userId: @json((string) auth()->id()),
+            pusherKey: @json(config('broadcasting.connections.pusher.key')),
+            pusherCluster: @json(config('broadcasting.connections.pusher.options.cluster')),
+            forceTLS: @json((bool) data_get(config('broadcasting.connections.pusher.options'), 'useTLS', true)),
+            authEndpoint: @json(url('/broadcasting/auth')),
+            latestUrl: @json(route('notifications.latest')),
+            fallbackInterval: 60000,
+            inboxUrl: @json(route('kotak-masuk.index')),
+        };
+    </script>
+    @endauth
+    <script src="{{ versioned_asset('js/app.js') }}"></script>
+
     @stack('scripts')
 
 </body>

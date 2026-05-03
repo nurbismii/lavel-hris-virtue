@@ -3,8 +3,7 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
 
 class StatusPengajuanNotification extends Notification
@@ -20,23 +19,45 @@ class StatusPengajuanNotification extends Notification
 
     public function via($notifiable)
     {
-        return ['database'];
+        $channels = ['database'];
+
+        if ($this->shouldBroadcast()) {
+            $channels[] = 'broadcast';
+        }
+
+        return $channels;
     }
 
     public function toDatabase($notifiable)
     {
-        return [
-            'judul' => $this->data['judul'],
-            'pesan' => $this->data['pesan'],
-            'url'   => $this->data['url'],
-            'tipe'  => $this->data['tipe'],
-        ];
+        return $this->payload();
+    }
+
+    public function toBroadcast($notifiable)
+    {
+        return (new BroadcastMessage($this->payload()))->onConnection('sync');
     }
 
     public function toArray($notifiable)
     {
+        return $this->payload();
+    }
+
+    private function payload(): array
+    {
         return [
-            //
+            'judul' => $this->data['judul'] ?? 'Notifikasi',
+            'pesan' => $this->data['pesan'] ?? '-',
+            'url' => $this->data['url'] ?? route('kotak-masuk.index'),
+            'tipe' => $this->data['tipe'] ?? 'Sistem',
         ];
+    }
+
+    private function shouldBroadcast(): bool
+    {
+        return config('broadcasting.default') === 'pusher'
+            && filled(config('broadcasting.connections.pusher.key'))
+            && filled(config('broadcasting.connections.pusher.secret'))
+            && filled(config('broadcasting.connections.pusher.app_id'));
     }
 }

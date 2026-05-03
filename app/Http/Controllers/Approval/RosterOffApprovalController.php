@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\RosterOffRequest;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
 
@@ -62,6 +63,10 @@ class RosterOffApprovalController extends Controller
         $offRequest = $result['off_request'];
         app(AttendanceStatusService::class)->refreshRosterOff($offRequest);
         $this->notifyApplicant($offRequest, $result['approval_status'], 'HOD');
+
+        if ($action === RosterOffRequest::STATUS_APPROVED) {
+            app(ApprovalNotificationService::class)->notifyRosterOffWaitingForHr($offRequest);
+        }
 
         toast()->success('Berhasil', 'Pengajuan OFF roster telah ' . strtolower($result['approval_status']) . ' oleh HOD.');
         return back();

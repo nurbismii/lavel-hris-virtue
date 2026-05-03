@@ -17,7 +17,7 @@ class Roster extends Model
 
     public function employee()
     {
-        return $this->belongsTo(Employee::class, 'nik_karyawan')->select('nik', 'nama_karyawan', 'divisi_id');
+        return $this->belongsTo(Employee::class, 'nik_karyawan')->select('nik', 'nama_karyawan', 'departemen_id', 'divisi_id');
     }
 
     public function periodeKerjaRoster()

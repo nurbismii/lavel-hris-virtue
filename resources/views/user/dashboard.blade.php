@@ -115,10 +115,10 @@ $menuCatalog = [
 ],
 'off_roster' => [
 'route_name' => 'roster-off.index',
-'icon' => 'fas fa-times',
+'icon' => 'fas fa-calendar-day',
 'tone' => 'sky',
 'description' => 'Ajukan hari OFF roster dan lihat riwayat persetujuannya.',
-'roles' => ['Staff Roster'],
+'roles' => ['Staff Roster', 'Super Admin'],
 ],
 'izin' => [
 'route_name' => 'izin.index',
@@ -282,9 +282,9 @@ if ($hour < 11) {
     'label' => 'Pengajuan OFF',
     'description' => 'Ajukan hari OFF roster dan lihat riwayatnya.',
     'route' => route('roster-off.index'),
-    'icon' => 'fas fa-times',
+    'icon' => 'fas fa-calendar-day',
     'tone' => 'sky',
-    'roles' => ['Staff Roster'],
+    'roles' => ['Staff Roster', 'Super Admin'],
     ],
     [
     'menu' => 'approval_hod',

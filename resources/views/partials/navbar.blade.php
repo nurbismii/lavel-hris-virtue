@@ -15,7 +15,7 @@
                 $employeeName = $employee->nama_karyawan ?? optional($user)->name ?? __('common.user');
                 $employeePhotoUrl = $employee->document_photo_url;
                 $employeeInitials = $user->avatar_initials;
-                $unreadCount = $user->unreadNotifications->count();
+                $unreadCount = $user->unreadNotifications()->count();
                 $notifications = $user->notifications()->latest()->limit(5)->get();
                 @endphp
 
@@ -28,9 +28,12 @@
                     aria-haspopup="true"
                     aria-expanded="false">
                     <i class="fa fa-bell"></i>
-                    @if($unreadCount > 0)
-                    <span class="notification"> {{ $unreadCount }} </span>
-                    @endif
+                    <span
+                        id="notifBadge"
+                        class="notification {{ $unreadCount > 0 ? '' : 'd-none' }}"
+                        data-notification-badge>
+                        {{ $unreadCount }}
+                    </span>
                 </a>
 
 
@@ -42,19 +45,19 @@
                     <li class="px-3 py-3 border-bottom bg-light rounded-top">
                         <div class="d-flex justify-content-between align-items-center">
                             <h6 class="mb-0 fw-bold">{{ __('notifications.title') }}</h6>
-                            @if($unreadCount > 0)
-                            <span class="badge bg-danger rounded-pill">
+                            <span
+                                id="notifHeaderBadge"
+                                class="badge bg-danger rounded-pill {{ $unreadCount > 0 ? '' : 'd-none' }}">
                                 {{ $unreadCount }} {{ __('common.new') }}
                             </span>
-                            @endif
                         </div>
                     </li>
 
                     <!-- Notification List -->
-                    <li style="max-height: 350px; overflow-y: auto;">
+                    <li id="notifList" class="realtime-notif-list" style="max-height: 350px; overflow-y: auto;">
                         @forelse($notifications as $notif)
                         <a href="{{ route('notif.baca', $notif->id) }}"
-                            class="dropdown-item d-flex align-items-start py-3 border-bottom {{ is_null($notif->read_at) ? 'bg-light' : '' }}">
+                            class="dropdown-item d-flex align-items-start py-3 border-bottom realtime-notif-item {{ is_null($notif->read_at) ? 'bg-light' : '' }}">
 
                             <div class="flex-grow-1">
                                 <div class="fw-semibold small">
@@ -78,7 +81,7 @@
 
                         </a>
                         @empty
-                        <div class="text-center text-muted py-4">
+                        <div class="text-center text-muted py-4 realtime-notif-empty">
                             {{ __('notifications.empty') }}
                         </div>
                         @endforelse
@@ -88,14 +91,14 @@
                     <li class="border-top bg-white rounded-bottom">
                         <div class="d-flex justify-content-between align-items-center px-3 py-2">
 
-                            @if($unreadCount > 0)
-                            <form action="{{ route('notif.readAll') }}" method="POST">
+                            <div id="notifReadAllContainer" class="{{ $unreadCount > 0 ? '' : 'd-none' }}">
+                            <form action="{{ route('notif.readAll') }}" method="POST" class="m-0">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-light">
                                     {{ __('notifications.mark_all_read') }}
                                 </button>
                             </form>
-                            @endif
+                            </div>
 
                             <a href="{{ route('kotak-masuk.index') }}"
                                 class="text-primary fw-semibold small">

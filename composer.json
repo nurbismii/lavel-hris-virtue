@@ -17,6 +17,7 @@
         "laravel/tinker": "^2.0",
         "laravel/ui": "^3.4",
         "maatwebsite/excel": "3.1.47",
+        "pusher/pusher-php-server": "^7.2",
         "realrashid/sweet-alert": "^7.3",
         "yajra/laravel-datatables-oracle": "^9.21"
     },

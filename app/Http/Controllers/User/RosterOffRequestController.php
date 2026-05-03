@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roster\RosterOffRequestRequest;
 use App\Models\RosterOffRequest;
+use App\Services\Notifications\ApprovalNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,6 +25,7 @@ class RosterOffRequestController extends Controller
         return view('user.roster-off.index', [
             'employee' => $request->user()->employee,
             'offRequests' => $offRequests,
+            'canSubmitOffRequest' => filled($request->user()->nik_karyawan),
         ]);
     }
 
@@ -48,7 +50,7 @@ class RosterOffRequestController extends Controller
                 ];
             }
 
-            RosterOffRequest::create([
+            $offRequest = RosterOffRequest::create([
                 'nik_karyawan' => $nikKaryawan,
                 'requested_by' => $request->user()->id,
                 'tanggal_off' => $validated['tanggal_off'],
@@ -60,12 +62,17 @@ class RosterOffRequestController extends Controller
             return [
                 'status' => true,
                 'message' => 'Pengajuan OFF roster berhasil dikirim.',
+                'off_request' => $offRequest->fresh(['employee']),
             ];
         });
 
         if (!$result['status']) {
             toast()->warning('Peringatan', $result['message']);
             return back()->withInput();
+        }
+
+        if (!empty($result['off_request'])) {
+            app(ApprovalNotificationService::class)->notifyRosterOffSubmitted($result['off_request']);
         }
 
         toast()->success('Berhasil', $result['message']);
@@ -126,7 +133,7 @@ class RosterOffRequestController extends Controller
     private function authorizeRosterOffUser(Request $request): void
     {
         abort_unless(
-            $request->user() && $request->user()->hasRole('Staff Roster'),
+            $request->user() && $request->user()->hasRole(['Staff Roster', 'Super Admin']),
             403,
             'Fitur pengajuan OFF hanya tersedia untuk karyawan roster.'
         );

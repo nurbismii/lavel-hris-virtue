@@ -24,7 +24,7 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                 <a href="{{ route('roster.index') }}" class="btn btn-sm btn-primary"><i class="fas fa-arrow-left me-1"></i> Kembali</a>
             </div>
 
-            <form id="rosterWizardForm" action="{{ route('roster.update', $roster->id) }}" method="POST" enctype="multipart/form-data" data-off-dates-url="{{ Auth::user()->hasRole('Staff Roster') ? route('roster-off.effective-dates') : '' }}">
+            <form id="rosterWizardForm" action="{{ route('roster.update', $roster->id) }}" method="POST" enctype="multipart/form-data" data-off-dates-url="{{ Auth::user()->hasRole(['Staff Roster', 'Super Admin']) ? route('roster-off.effective-dates') : '' }}">
                 @csrf
                 @method('PUT')
                 <input type="hidden" name="nik_karyawan" value="{{ $employee->nik }}">

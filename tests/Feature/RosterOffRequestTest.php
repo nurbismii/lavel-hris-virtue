@@ -70,6 +70,22 @@ class RosterOffRequestTest extends TestCase
         $this->assertSame(1, DB::table('roster_off_requests')->where('nik_karyawan', 'EMP001')->count());
     }
 
+    public function test_super_admin_with_employee_profile_can_submit_off_request(): void
+    {
+        $user = $this->makeUser('Super Admin', 'EMP001');
+
+        app(RosterOffRequestController::class)->store($this->offFormRequest($user, [
+            'tanggal_off' => '2026-05-11',
+            'alasan' => 'Pengujian akses Super Admin.',
+        ]));
+
+        $this->assertDatabaseHas('roster_off_requests', [
+            'nik_karyawan' => 'EMP001',
+            'requested_by' => 'user-EMP001',
+            'tanggal_off' => '2026-05-11',
+        ]);
+    }
+
     public function test_effective_dates_returns_approved_off_inside_requested_period(): void
     {
         $user = $this->makeUser('Staff Roster', 'EMP001');

@@ -23,7 +23,7 @@ $weekLabels = ['MINGGU KE-1', 'MINGGU KE-2', 'MINGGU KE-3', 'MINGGU KE-4', 'MING
                 <a href="{{ route('roster.index') }}" class="btn btn-sm btn-primary"><i class="fas fa-arrow-left me-1"></i> Kembali</a>
             </div>
 
-            <form id="rosterWizardForm" action="{{ route('roster.store') }}" method="POST" enctype="multipart/form-data" data-off-dates-url="{{ Auth::user()->hasRole('Staff Roster') ? route('roster-off.effective-dates') : '' }}">
+            <form id="rosterWizardForm" action="{{ route('roster.store') }}" method="POST" enctype="multipart/form-data" data-off-dates-url="{{ Auth::user()->hasRole(['Staff Roster', 'Super Admin']) ? route('roster-off.effective-dates') : '' }}">
                 @csrf
                 <input type="hidden" name="nik_karyawan" value="{{ $employee->nik }}">
 

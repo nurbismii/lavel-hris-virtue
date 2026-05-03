@@ -49,7 +49,7 @@ class CutiService
                 ];
             }
 
-            Cuti::create([
+            $cuti = Cuti::create([
                 'nik_karyawan' => $employee->nik,
                 'tanggal' => now()->toDateString(),
                 'tanggal_mulai' => $startDate,
@@ -65,7 +65,8 @@ class CutiService
 
             return [
                 'status' => true,
-                'message' => 'Pengajuan cuti berhasil dibuat'
+                'message' => 'Pengajuan cuti berhasil dibuat',
+                'cuti' => $cuti->fresh(['employee']),
             ];
         });
     }

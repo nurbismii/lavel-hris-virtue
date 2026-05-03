@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\Roster;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -63,6 +64,10 @@ class RosterApprovalController extends Controller
         app(AttendanceStatusService::class)->refreshRoster($roster);
 
         $this->notifyApplicant($roster, $result['approval_status'], 'HOD');
+
+        if ($action === 1) {
+            app(ApprovalNotificationService::class)->notifyRosterWaitingForHr($roster);
+        }
 
         toast()->success('Success', 'Cuti roster telah ' . strtolower($result['approval_status']) . ' oleh HOD');
         return back();

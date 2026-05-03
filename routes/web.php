@@ -14,6 +14,7 @@ use App\Http\Controllers\Approval\RosterOffApprovalController;
 use App\Http\Controllers\Approval\RosterApprovalController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\User\DashboardController;
+use App\Http\Controllers\User\NotificationController;
 use App\Http\Controllers\User\OvertimeOrderController as UserOvertimeOrderController;
 use App\Http\Controllers\User\PresensiController;
 use App\Http\Controllers\User\RosterOffRequestController;
@@ -110,12 +111,12 @@ Route::middleware(['android.redirect'])->group(function () {
             ->name('roster.attachment');
         Route::resource('/roster', 'App\Http\Controllers\User\RosterController')->middleware('menu:roster');
         Route::get('/roster-off/effective-dates', [RosterOffRequestController::class, 'effectiveDates'])
-            ->middleware(['menu:off_roster', 'role:Staff Roster'])
+            ->middleware(['menu:off_roster', 'role:Staff Roster,Super Admin'])
             ->name('roster-off.effective-dates');
         Route::resource('/roster-off', RosterOffRequestController::class)
             ->only(['index', 'store', 'destroy'])
             ->parameters(['roster-off' => 'rosterOff'])
-            ->middleware(['menu:off_roster', 'role:Staff Roster']);
+            ->middleware(['menu:off_roster', 'role:Staff Roster,Super Admin']);
         Route::resource('/slipgaji', UserSlipGajiController::class)
             ->only(['index', 'show'])
             ->middleware('menu:slip_gaji_user');
@@ -129,17 +130,9 @@ Route::middleware(['android.redirect'])->group(function () {
 
         Route::resource('/kotak-masuk', 'App\Http\Controllers\User\InboxController')
             ->only(['index']);
-        Route::post('/notif/read-all', function () {
-            auth()->user()->unreadNotifications->markAsRead();
-            return back();
-        })->name('notif.readAll');
-
-        Route::get('/notif/{id}/baca', function ($id) {
-            $notif = auth()->user()->notifications()->findOrFail($id);
-            $notif->markAsRead();
-
-            return redirect($notif->data['url']);
-        })->name('notif.baca');
+        Route::get('/notifications/latest', [NotificationController::class, 'latest'])->name('notifications.latest');
+        Route::post('/notif/read-all', [NotificationController::class, 'readAll'])->name('notif.readAll');
+        Route::get('/notif/{id}/baca', [NotificationController::class, 'read'])->name('notif.baca');
     });
 
     Route::group(['prefix' => 'admin', 'middleware' => ['redirect.role', 'auth']], function () {

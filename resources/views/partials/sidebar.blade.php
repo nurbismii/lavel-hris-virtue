@@ -156,7 +156,7 @@
                     </li>
                 @endif
 
-                @if($can('off_roster') && $user->hasRole('Staff Roster'))
+                @if($can('off_roster') && $user->hasRole(['Staff Roster', 'Super Admin']))
                     <li class="nav-item {{ request()->routeIs('roster-off.*') ? 'active' : '' }}">
                         <a href="{{ route('roster-off.index') }}">
                             <i class="fas fa-times"></i>
@@ -234,7 +234,7 @@
 
                     <li class="nav-item {{ request()->routeIs('approval.roster-off.hod') ? 'active' : '' }}">
                         <a href="{{ route('approval.roster-off.hod') }}" class="{{ ($approvalHodCounts['roster_off'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
-                            <i class="fas fa-calendar-day"></i>
+                            <i class="fas fa-times"></i>
                             <p>OFF Roster</p>
                             @if(($approvalHodCounts['roster_off'] ?? 0) > 0)
                                 <span class="badge badge-info">{{ $approvalHodCounts['roster_off'] }}</span>
@@ -285,7 +285,7 @@
 
                     <li class="nav-item {{ request()->routeIs('approval.roster-off.hrd') ? 'active' : '' }}">
                         <a href="{{ route('approval.roster-off.hrd') }}" class="{{ ($approvalHrCounts['roster_off'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
-                            <i class="fas fa-calendar-day"></i>
+                            <i class="fas fa-times"></i>
                             <p>OFF Roster</p>
                             @if(($approvalHrCounts['roster_off'] ?? 0) > 0)
                                 <span class="badge badge-info">{{ $approvalHrCounts['roster_off'] }}</span>

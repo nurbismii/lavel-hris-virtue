@@ -10,7 +10,7 @@ class RosterOffRequestRequest extends FormRequest
     {
         return $this->user()
             && filled($this->user()->nik_karyawan)
-            && $this->user()->hasRole('Staff Roster');
+            && $this->user()->hasRole(['Staff Roster', 'Super Admin']);
     }
 
     public function rules(): array

@@ -7,6 +7,7 @@ use App\Http\Requests\Roster\RosterRequest;
 use App\Models\PeriodeKerjaRoster;
 use App\Models\Roster;
 use App\Models\RosterOffRequest;
+use App\Services\Notifications\ApprovalNotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -138,6 +139,8 @@ class RosterController extends Controller
 
 
             DB::commit();
+
+            app(ApprovalNotificationService::class)->notifyRosterSubmitted($roster->fresh(['employee', 'periodeKerjaRoster']));
 
             toast()->success('Success', 'Cuti Roster created successfully');
             return back();

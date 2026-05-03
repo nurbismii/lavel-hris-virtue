@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Izin\IzinRequest;
 use App\Models\Cuti;
+use App\Services\Notifications\ApprovalNotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -73,7 +74,7 @@ class IzinController extends Controller
 
         $fotoPath = $this->storeFotoIzin($request, Auth::user()->nik_karyawan);
 
-        Cuti::create([
+        $izin = Cuti::create([
             'nik_karyawan' => Auth::user()->nik_karyawan,
             'tanggal' => now(),
             'jumlah' => $jumlahHari,
@@ -86,6 +87,8 @@ class IzinController extends Controller
             'status_hrd' => $STATUS_HR, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
             'foto' => $fotoPath,
         ]);
+
+        app(ApprovalNotificationService::class)->notifyIzinSubmitted($izin->fresh(['employee']));
 
         toast()->success('Success', 'Pengajuan izin berhasil dikirim');
         return redirect()->route('izin.index');
