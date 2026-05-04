@@ -8,9 +8,9 @@
             <div>
                 <h4 class="fw-bold">
                     <i class="fas fa-user-shield text-primary me-2"></i>
-                    Permission Role User
+                    {{ __('access.setting_role.index_title') }}
                     <small class="text-muted">
-                        Mengatur role pengguna, untuk membatasi fitur
+                        {{ __('access.setting_role.index_subtitle') }}
                     </small>
                 </h4>
             </div>
@@ -20,7 +20,7 @@
                     <span class="btn-label">
                         <i class="fa fa-plus"></i>
                     </span>
-                    Role
+                    {{ __('access.setting_role.add_role') }}
                 </a>
             </div>
         </div>
@@ -39,14 +39,14 @@
                     <table id="table-setting-role" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                         <thead class="table-light">
                             <tr>
-                                <th>ID</th>
-                                <th>NIK</th>
-                                <th>Nama</th>
-                                <th>Email</th>
-                                <th>Status</th>
-                                <th>Role</th>
-                                <th>Scope</th>
-                                <th width="120">Action</th>
+                                <th>{{ __('tables.id') }}</th>
+                                <th>{{ __('tables.nik') }}</th>
+                                <th>{{ __('tables.name') }}</th>
+                                <th>{{ __('tables.email') }}</th>
+                                <th>{{ __('tables.status') }}</th>
+                                <th>{{ __('tables.role') }}</th>
+                                <th>{{ __('tables.scope') }}</th>
+                                <th width="120">{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -67,23 +67,23 @@
                                     </span>
                                 </td>
                                 <td>
-                                    {{ optional($user->role)->scope_label ?? 'Akun sendiri' }}
+                                    {{ optional($user->role)->scope_label ?? __('access.roles.staff.scope_label') }}
                                     @if($user->isHodRole())
                                         <div class="small text-muted mt-1">
-                                            {{ count($user->scopedDepartmentIds()) }} departemen,
-                                            {{ count($user->scopedDivisionIds()) }} divisi aktif
+                                             {{ __('access.setting_role.department_count', ['count' => count($user->scopedDepartmentIds())]) }},
+                                             {{ __('access.setting_role.active_division_count', ['count' => count($user->scopedDivisionIds())]) }}
                                         </div>
                                     @endif
                                     @if($user->isAdminDivisiRole())
                                         <div class="small text-muted mt-1">
-                                            {{ count($user->scopedDivisionIds()) }} divisi aktif
+                                            {{ __('access.setting_role.active_division_count', ['count' => count($user->scopedDivisionIds())]) }}
                                         </div>
                                     @endif
                                 </td>
                                 <td>
                                     <a href="{{ route('setting-role.edit', $user->id) }}"
                                         class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-edit me-1"></i> Edit
+                                        <i class="fas fa-edit me-1"></i> {{ __('access.setting_role.edit') }}
                                     </a>
                                 </td>
                             </tr>

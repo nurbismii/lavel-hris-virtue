@@ -34,6 +34,8 @@ return [
     'resignation' => 'Resign',
     'role_access' => 'Peran dan Akses',
     'roster' => 'Roster',
+    'roster_off' => 'OFF Roster',
+    'roster_off_submission' => 'Pengajuan OFF',
     'roster_leave' => 'Cuti Roster',
     'salary_slip' => 'Slip Gaji',
     'self_service' => 'Self Service',

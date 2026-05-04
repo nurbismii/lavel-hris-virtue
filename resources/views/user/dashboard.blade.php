@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard Karyawan')
+@section('title', __('navigation.dashboard_employee'))
 
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('assets/css/user-dashboard.css') }}">
@@ -40,6 +40,36 @@ $accessibleMenus = $currentUser->hasRole('Super Admin')
 ? array_keys(config('access.menus', []))
 : $currentUser->resolveMenuPermissions();
 $totalAccessibleMenuCount = count(array_unique(array_filter($accessibleMenus)));
+$translateWithFallback = static function (string $key, ?string $fallback = null): string {
+return \Illuminate\Support\Facades\Lang::has($key) ? __($key) : ($fallback ?? $key);
+};
+$menuGroupTranslationKeys = [
+'Dashboard' => 'dashboard',
+'Data Master' => 'master_data',
+'Self Service' => 'self_service',
+'Approval' => 'approval',
+'Operasional' => 'operations',
+'Admin Panel' => 'admin_panel',
+'Lainnya' => 'other',
+];
+$menuGroupLabel = static function (?string $group) use ($menuGroupTranslationKeys, $translateWithFallback): string {
+$groupName = filled($group) ? $group : 'Lainnya';
+$groupKey = $menuGroupTranslationKeys[$groupName] ?? 'other';
+
+return $translateWithFallback('access.menu_groups.' . $groupKey, $groupName);
+};
+$menuDescription = static function (string $menuKey, ?string $fallback = null) use ($translateWithFallback, $canManageOvertimeOrders): string {
+if ($menuKey === 'lembur') {
+return $translateWithFallback(
+$canManageOvertimeOrders
+? 'access.dashboard_menu.overtime_manager_description'
+: 'access.dashboard_menu.overtime_staff_description',
+$fallback
+);
+}
+
+return $translateWithFallback('access.dashboard_menu.menu_descriptions.' . $menuKey, $fallback);
+};
 $menuCatalog = [
 'dashboard_admin' => [
 'route_name' => 'home',
@@ -192,7 +222,7 @@ $menuCatalog = [
 $allAccessibleMenuItems = collect($accessibleMenus)
 ->filter()
 ->unique()
-->map(function ($menuKey) use ($menuCatalog, $currentUser) {
+->map(function ($menuKey) use ($menuCatalog, $currentUser, $translateWithFallback, $menuGroupLabel, $menuDescription) {
 $menuConfig = config('access.menus.' . $menuKey);
 $menuMeta = $menuCatalog[$menuKey] ?? null;
 
@@ -217,11 +247,12 @@ $route = route($menuMeta['route_name']);
 return [
 'key' => $menuKey,
 'group' => $menuConfig['group'] ?? 'Lainnya',
-'label' => $menuConfig['label'] ?? $menuKey,
+'group_label' => $menuGroupLabel($menuConfig['group'] ?? 'Lainnya'),
+'label' => $translateWithFallback('access.menus.' . $menuKey . '.label', $menuConfig['label'] ?? $menuKey),
 'route' => $route,
 'icon' => $menuMeta['icon'] ?? 'fas fa-link',
 'tone' => $menuMeta['tone'] ?? 'primary',
-'description' => $menuMeta['description'] ?? 'Akses menu sesuai permission akun Anda.',
+'description' => $menuDescription($menuKey, $menuMeta['description'] ?? __('access.dashboard_menu.default_description')),
 ];
 })
 ->filter()
@@ -338,6 +369,18 @@ if ($hour < 11) {
     }
 
     return true;
+    })->map(function ($action) use ($translateWithFallback, $menuDescription) {
+    if (blank($action['menu'])) {
+    $action['label'] = __('access.dashboard_menu.profile_label');
+    $action['description'] = __('access.dashboard_menu.profile_description');
+
+    return $action;
+    }
+
+    $action['label'] = $translateWithFallback('access.menus.' . $action['menu'] . '.label', $action['label']);
+    $action['description'] = $menuDescription($action['menu'], $action['description']);
+
+    return $action;
     })->values();
     $quickActionLimit = 8;
     $visibleQuickActions = $quickActions->take($quickActionLimit);
@@ -431,9 +474,9 @@ if ($hour < 11) {
             <div class="dashboard-card mb-3">
                 <div class="section-header">
                     <div>
-                        <h2 class="section-title">Menu</h2>
-                        <p class="section-subtitle">
-                            Dashboard hanya menampilkan shortcut yang paling sering dipakai.
+                            <h2 class="section-title">{{ __('access.dashboard_menu.section_title') }}</h2>
+                            <p class="section-subtitle">
+                            {{ __('access.dashboard_menu.section_subtitle') }}
                         </p>
                     </div>
                     <div class="section-actions">
@@ -444,12 +487,12 @@ if ($hour < 11) {
                             data-bs-toggle="modal"
                             data-bs-target="#allAccessMenuModal">
                             <i class="fas fa-th-large"></i>
-                            Lihat semua
+                            {{ __('access.dashboard_menu.view_all') }}
                         </button>
                         @endif
                         <span class="section-badge">
                             <i class="fas fa-bolt"></i>
-                            {{ $visibleQuickActions->count() }} shortcut utama
+                            {{ __('access.dashboard_menu.main_shortcut_count', ['count' => $visibleQuickActions->count()]) }}
                         </span>
                     </div>
                 </div>
@@ -466,7 +509,7 @@ if ($hour < 11) {
                             <span class="quick-link__description">{{ $action['description'] }}</span>
                         </div>
                         <span class="quick-link__arrow">
-                            Buka menu
+                            {{ __('access.dashboard_menu.open_menu') }}
                             <i class="fas fa-arrow-right ms-1"></i>
                         </span>
                     </a>
@@ -475,7 +518,7 @@ if ($hour < 11) {
                 @else
                 <div class="empty-quick-actions">
                     <div class="alert">
-                        Belum ada shortcut yang aktif untuk akun ini. Silakan hubungi administrator jika Anda membutuhkan akses tambahan.
+                        {{ __('access.dashboard_menu.empty_shortcuts') }}
                     </div>
                 </div>
                 @endif
@@ -487,8 +530,8 @@ if ($hour < 11) {
                     <div class="modal-content">
                         <div class="modal-header">
                             <div>
-                                <h5 class="modal-title" id="allAccessMenuModalLabel">Semua Akses Menu</h5>
-                                <small class="text-muted">Daftar menu yang aktif sesuai permission akun Anda.</small>
+                                <h5 class="modal-title" id="allAccessMenuModalLabel">{{ __('access.dashboard_menu.all_access_title') }}</h5>
+                                <small class="text-muted">{{ __('access.dashboard_menu.all_access_subtitle') }}</small>
                             </div>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
@@ -497,7 +540,7 @@ if ($hour < 11) {
                                 @foreach($allAccessibleMenuItems as $group => $menus)
                                 <div class="menu-access-group">
                                     <div class="menu-access-group__head">
-                                        <h6 class="menu-access-group__title">{{ $group }}</h6>
+                                        <h6 class="menu-access-group__title">{{ $menus->first()['group_label'] ?? $group }}</h6>
                                         <span class="menu-access-group__count">{{ $menus->count() }}</span>
                                     </div>
                                     <div class="menu-access-grid">

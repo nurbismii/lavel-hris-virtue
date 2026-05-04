@@ -34,6 +34,8 @@ return [
     'resignation' => '离职',
     'role_access' => '角色与权限',
     'roster' => '轮休',
+    'roster_off' => '轮休 OFF',
+    'roster_off_submission' => 'OFF 申请',
     'roster_leave' => '轮休假',
     'salary_slip' => '工资单',
     'self_service' => '自助服务',

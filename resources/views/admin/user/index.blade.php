@@ -8,12 +8,12 @@
             <div>
                 <h4 class="fw-bold">
                     <i class="fas fa-user-friends text-primary me-2"></i>
-                    Pengguna
+                    {{ __('access.user_management.index_title') }}
                 </h4>
 
 
                 <small class="text-muted">
-                    Daftar pengguna
+                    {{ __('access.user_management.index_subtitle') }}
                 </small>
             </div>
         </div>
@@ -25,13 +25,13 @@
                         <table id="table-user" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                             <thead>
                                 <tr>
-                                    <th>NIK</th>
-                                    <th>Nama</th>
-                                    <th>Email</th>
-                                    <th>Status</th>
-                                    <th>Role</th>
-                                    <th>Terakhir Login</th>
-                                    <th>Aksi</th>
+                                    <th>{{ __('tables.nik') }}</th>
+                                    <th>{{ __('tables.name') }}</th>
+                                    <th>{{ __('tables.email') }}</th>
+                                    <th>{{ __('tables.status') }}</th>
+                                    <th>{{ __('tables.role') }}</th>
+                                    <th>{{ __('tables.last_login') }}</th>
+                                    <th>{{ __('tables.action') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -48,13 +48,13 @@
                                             <span class="icon text-white-50">
                                                 <i class="fas fa-edit"></i>
                                             </span>
-                                            <span class="text">Edit</span>
+                                            <span class="text">{{ __('access.setting_role.edit') }}</span>
                                         </a>
                                         <a href="{{ route('user.destroy', $user->nik_karyawan) }}" class="btn btn-danger btn-sm btn-icon-split" data-confirm-delete="true">
                                             <span class="icon text-white-50">
                                                 <i class="fas fa-trash"></i>
                                             </span>
-                                            <span class="text">Hapus</span>
+                                            <span class="text">{{ __('access.setting_role.delete') }}</span>
                                         </a>
                                     </td>
                                 </tr>

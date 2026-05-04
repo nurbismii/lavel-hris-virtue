@@ -160,7 +160,7 @@
                     <li class="nav-item {{ request()->routeIs('roster-off.*') ? 'active' : '' }}">
                         <a href="{{ route('roster-off.index') }}">
                             <i class="fas fa-times"></i>
-                            <p>Pengajuan OFF</p>
+                            <p>{{ __('navigation.roster_off_submission') }}</p>
                         </a>
                     </li>
                 @endif
@@ -235,7 +235,7 @@
                     <li class="nav-item {{ request()->routeIs('approval.roster-off.hod') ? 'active' : '' }}">
                         <a href="{{ route('approval.roster-off.hod') }}" class="{{ ($approvalHodCounts['roster_off'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
                             <i class="fas fa-times"></i>
-                            <p>OFF Roster</p>
+                            <p>{{ __('navigation.roster_off') }}</p>
                             @if(($approvalHodCounts['roster_off'] ?? 0) > 0)
                                 <span class="badge badge-info">{{ $approvalHodCounts['roster_off'] }}</span>
                             @endif
@@ -286,7 +286,7 @@
                     <li class="nav-item {{ request()->routeIs('approval.roster-off.hrd') ? 'active' : '' }}">
                         <a href="{{ route('approval.roster-off.hrd') }}" class="{{ ($approvalHrCounts['roster_off'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
                             <i class="fas fa-times"></i>
-                            <p>OFF Roster</p>
+                            <p>{{ __('navigation.roster_off') }}</p>
                             @if(($approvalHrCounts['roster_off'] ?? 0) > 0)
                                 <span class="badge badge-info">{{ $approvalHrCounts['roster_off'] }}</span>
                             @endif

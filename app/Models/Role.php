@@ -44,6 +44,13 @@ class Role extends Model
         return $roleName;
     }
 
+    public static function accessTranslationKey(?string $roleName): ?string
+    {
+        $normalized = static::normalizeRoleName($roleName);
+
+        return $normalized ? str_replace([' ', '-'], '_', Str::lower($normalized)) : null;
+    }
+
     public function getNormalizedNameAttribute(): ?string
     {
         return static::normalizeRoleName($this->permission_role);
@@ -64,6 +71,31 @@ class Role extends Model
 
     public function getScopeLabelAttribute(): string
     {
-        return config('access.roles.' . $this->normalized_name . '.scope_label', 'Kustom');
+        $fallback = config('access.roles.' . $this->normalized_name . '.scope_label', 'Kustom');
+        $key = static::accessTranslationKey($this->normalized_name);
+
+        if (!$key) {
+            return $fallback;
+        }
+
+        $translationKey = 'access.roles.' . $key . '.scope_label';
+        $translated = __($translationKey);
+
+        return $translated === $translationKey ? $fallback : $translated;
+    }
+
+    public function getAccessDescriptionAttribute(): ?string
+    {
+        $fallback = $this->description ?: config('access.roles.' . $this->normalized_name . '.description');
+        $key = static::accessTranslationKey($this->normalized_name);
+
+        if (!$key) {
+            return $fallback;
+        }
+
+        $translationKey = 'access.roles.' . $key . '.description';
+        $translated = __($translationKey);
+
+        return $translated === $translationKey ? $fallback : $translated;
     }
 }

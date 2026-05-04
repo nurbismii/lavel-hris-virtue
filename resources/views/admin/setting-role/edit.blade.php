@@ -110,24 +110,16 @@
         @php
             $currentRole = $user->role;
             $currentMenuKeys = $user->resolveMenuPermissions();
-            $currentScopeLabel = $currentRole ? $currentRole->scope_label : 'Belum ada role';
+            $currentScopeLabel = $currentRole ? $currentRole->scope_label : __('access.setting_role.not_selected');
             $selectedRoleId = (string) old('role_id', $user->role_id);
             $selectedAdditionalRoleIds = collect(old('additional_role_ids', $selectedAdditionalRoleIds ?? []))
                 ->map(fn($id) => (string) $id)
                 ->all();
-            $groupStyleMap = [
-                'Dashboard' => 'dashboard',
-                'Data Master' => 'data-master',
-                'Self Service' => 'self-service',
-                'Approval' => 'approval',
-                'Operasional' => 'operasional',
-                'Admin Panel' => 'admin-panel',
-            ];
         @endphp
 
         <h4 class="fw-bold mb-4">
             <i class="fas fa-user-cog text-primary me-2"></i>
-            Edit Permission Role
+            {{ __('access.setting_role.edit_title') }}
         </h4>
 
         <div class="card shadow-sm border-0">
@@ -166,32 +158,32 @@
                         <div class="card-body">
                             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                                 <div>
-                                    <h6 class="fw-semibold mb-1">Akses User Saat Ini</h6>
-                                    <small class="text-muted">Ringkasan hak akses yang aktif berdasarkan role user saat ini.</small>
+                                    <h6 class="fw-semibold mb-1">{{ __('access.setting_role.current_access') }}</h6>
+                                    <small class="text-muted">{{ __('access.setting_role.current_access_help') }}</small>
                                 </div>
                                 <span class="badge bg-primary">{{ $user->display_role_name }}</span>
                             </div>
 
                             <div class="row g-3 mb-3">
                                 <div class="col-md-6">
-                                    <label class="form-label text-muted small mb-1">Scope Data</label>
+                                    <label class="form-label text-muted small mb-1">{{ __('access.setting_role.scope_data') }}</label>
                                     <div class="fw-semibold">{{ $currentScopeLabel }}</div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label text-muted small mb-1">Jumlah Menu Aktif</label>
-                                    <div class="fw-semibold">{{ count($currentMenuKeys) }} menu</div>
+                                    <label class="form-label text-muted small mb-1">{{ __('access.setting_role.active_menu_count') }}</label>
+                                    <div class="fw-semibold">{{ __('access.setting_role.menu_count', ['count' => count($currentMenuKeys)]) }}</div>
                                 </div>
                             </div>
 
                             @if($user->isHodRole())
                                 <div class="mb-3">
-                                    <label class="form-label text-muted small mb-2">Departemen yang Bisa Diakses</label>
+                                    <label class="form-label text-muted small mb-2">{{ __('access.setting_role.accessible_departments') }}</label>
                                     <div>
                                         @forelse($assignedDepartemens as $departemen)
                                             <span class="badge bg-primary me-1 mb-1">{{ $departemen->departemen }}</span>
                                         @empty
-                                            <span class="text-muted small">Belum ada departemen yang ditugaskan.</span>
+                                            <span class="text-muted small">{{ __('access.setting_role.no_departments') }}</span>
                                         @endforelse
                                     </div>
                                 </div>
@@ -199,29 +191,30 @@
 
                             @if($user->isHodRole() || $user->isAdminDivisiRole())
                                 <div class="mb-3">
-                                    <label class="form-label text-muted small mb-2">Divisi yang Bisa Diakses</label>
+                                    <label class="form-label text-muted small mb-2">{{ __('access.setting_role.accessible_divisions') }}</label>
                                     <div>
                                         @forelse($assignedDivisis as $divisi)
                                             <span class="badge bg-secondary me-1 mb-1">{{ $divisi->nama_divisi }}</span>
                                         @empty
-                                            <span class="text-muted small">Belum ada divisi yang ditugaskan.</span>
+                                            <span class="text-muted small">{{ __('access.setting_role.no_divisions') }}</span>
                                         @endforelse
                                     </div>
                                 </div>
                             @endif
 
                             <div>
-                                <label class="form-label text-muted small mb-2">Menu Aktif</label>
+                                <label class="form-label text-muted small mb-2">{{ __('access.setting_role.active_menu') }}</label>
                                 <div id="current-access-summary">
                                     @forelse($menuGroups as $group => $menus)
                                         @php
                                             $activeMenus = collect($menus)->filter(fn($menu) => in_array($menu['key'], $currentMenuKeys, true));
-                                            $groupStyle = $groupStyleMap[$group] ?? 'dashboard';
+                                            $groupStyle = $activeMenus->first()['group_style'] ?? 'dashboard';
+                                            $groupLabel = $activeMenus->first()['group_label'] ?? $group;
                                         @endphp
                                         @if($activeMenus->isNotEmpty())
                                             <div class="access-group access-group--{{ $groupStyle }} mb-2">
                                                 <div class="access-group__header">
-                                                    <span>{{ $group }}</span>
+                                                    <span>{{ $groupLabel }}</span>
                                                     <span class="access-group__count">{{ $activeMenus->count() }}</span>
                                                 </div>
                                                 <div>
@@ -232,7 +225,7 @@
                                             </div>
                                         @endif
                                     @empty
-                                        <div class="text-muted small">Belum ada menu aktif.</div>
+                                        <div class="text-muted small">{{ __('access.setting_role.empty_active_menu') }}</div>
                                     @endforelse
                                 </div>
                             </div>
@@ -241,14 +234,14 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
-                            Role Permission
+                            {{ __('access.setting_role.role_permission') }}
                         </label>
 
                         <select name="role_id"
                             id="role_id"
                             class="form-select @error('role_id') is-invalid @enderror"
                             required>
-                            <option value="">-- Pilih Role --</option>
+                            <option value="">{{ __('access.setting_role.select_role') }}</option>
                             @foreach($roles as $role)
                             <option value="{{ $role->id }}"
                                 data-normalized-role="{{ $role->normalized_name }}"
@@ -267,7 +260,7 @@
 
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
-                            Role Tambahan
+                            {{ __('access.setting_role.additional_role') }}
                         </label>
 
                         <select name="additional_role_ids[]"
@@ -295,7 +288,7 @@
                         </div>
                         @enderror
                         <small class="text-muted d-block mt-2">
-                            Contoh: pilih role utama Admin Divisi, lalu tambahkan Staff Roster agar user bisa mengakses menu roster.
+                            {{ __('access.setting_role.additional_role_help') }}
                         </small>
                     </div>
 
@@ -303,24 +296,24 @@
                         <div class="card-body">
                             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
                                 <div>
-                                    <h6 class="fw-semibold mb-1">Preview Akses Role Terpilih</h6>
-                                    <small class="text-muted">Preview ini membantu melihat akses yang akan dimiliki user setelah role diperbarui.</small>
+                                    <h6 class="fw-semibold mb-1">{{ __('access.setting_role.selected_role_preview') }}</h6>
+                                    <small class="text-muted">{{ __('access.setting_role.selected_role_preview_help') }}</small>
                                 </div>
                                 <span id="selected-role-badge" class="badge bg-info text-dark">{{ optional($roles->firstWhere('id', $selectedRoleId))->permission_role ?? $user->display_role_name }}</span>
                             </div>
 
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label text-muted small mb-1">Scope Data</label>
+                                    <label class="form-label text-muted small mb-1">{{ __('access.setting_role.scope_data') }}</label>
                                     <div id="selected-role-scope" class="fw-semibold">
                                         {{ optional($roles->firstWhere('id', $selectedRoleId))->scope_label ?? $currentScopeLabel }}
                                     </div>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label text-muted small mb-1">Jumlah Menu</label>
+                                    <label class="form-label text-muted small mb-1">{{ __('access.setting_role.menu_total') }}</label>
                                     <div id="selected-role-count" class="fw-semibold">
-                                        {{ count(optional($roles->firstWhere('id', $selectedRoleId))->resolved_menu_permissions ?? $currentMenuKeys) }} menu
+                                        {{ __('access.setting_role.menu_count', ['count' => count(optional($roles->firstWhere('id', $selectedRoleId))->resolved_menu_permissions ?? $currentMenuKeys)]) }}
                                     </div>
                                 </div>
                             </div>
@@ -331,19 +324,19 @@
 
                     <div id="role-scope-card" class="card border-0 bg-light mb-3 d-none">
                         <div class="card-body">
-                            <h6 class="fw-semibold mb-3">Akses Tambahan Scope Data</h6>
+                            <h6 class="fw-semibold mb-3">{{ __('access.setting_role.additional_scope_access') }}</h6>
 
                             <div class="mb-3">
-                                <label class="form-label">Divisi Bawaan Karyawan</label>
+                                <label class="form-label">{{ __('access.setting_role.employee_default_division') }}</label>
                                 <input type="text"
                                     class="form-control"
                                     value="{{ optional(optional($user->employee)->divisi)->nama_divisi ?? '-' }}"
                                     readonly>
-                                <small class="text-muted">Divisi bawaan ini tetap otomatis ikut terakses meskipun tidak dicentang di bawah.</small>
+                                <small class="text-muted">{{ __('access.setting_role.employee_default_division_help') }}</small>
                             </div>
 
                             <div id="hod-departemen-scope-section" class="mb-3 d-none">
-                                <label class="form-label">Departemen Tambahan yang Boleh Diakses HOD</label>
+                                <label class="form-label">{{ __('access.setting_role.hod_extra_departments') }}</label>
                                 @php
                                     $selectedAuthorizedDepartemens = collect(old('authorized_departemen_ids', $user->authorized_departemen_ids ?? []))
                                         ->map(fn($id) => (string) $id)
@@ -373,12 +366,12 @@
                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                 @enderror
                                 <small class="text-muted d-block mt-2">
-                                    Departemen bawaan dari profil karyawan HOD tetap otomatis ikut terakses.
+                                    {{ __('access.setting_role.hod_extra_departments_help') }}
                                 </small>
                             </div>
 
                             <div id="divisi-scope-section">
-                                <label class="form-label">Divisi Tambahan yang Boleh Diakses</label>
+                                <label class="form-label">{{ __('access.setting_role.extra_divisions') }}</label>
                                 @php
                                     $selectedAuthorizedDivisis = collect(old('authorized_divisi_ids', $user->authorized_divisi_ids ?? []))
                                         ->map(fn($id) => (string) $id)
@@ -408,26 +401,25 @@
                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                 @enderror
                                 <small class="text-muted d-block mt-2">
-                                    Gunakan `Ctrl`/`Cmd` atau tap beberapa pilihan untuk memilih lebih dari satu divisi.
+                                    {{ __('access.setting_role.extra_divisions_help') }}
                                 </small>
                             </div>
                         </div>
                     </div>
 
                     <div class="alert alert-light border small">
-                        Pilih role baru sesuai kewenangan user. Scope data mengikuti role:
-                        Super Admin/HR = semua data, HOD = satu atau beberapa departemen/divisi yang ditugaskan, Manager = departemen yang sama, Supervisor = divisi yang sama, Admin Divisi = satu atau beberapa divisi yang ditugaskan, Staff = akun sendiri.
+                        {{ __('access.setting_role.scope_rule_help') }}
                     </div>
 
                     <div class="d-flex justify-content-left">
                         <button type="submit"
                             class="btn btn-primary me-2">
-                            Update Role
+                            {{ __('access.setting_role.update_role') }}
                         </button>
 
                         <a href="{{ route('setting-role.index') }}"
                             class="btn btn-secondary">
-                            Kembali
+                            {{ __('access.setting_role.back') }}
                         </a>
                     </div>
 
@@ -455,7 +447,11 @@
         const selectedRoleMenuGroups = $('#selected-role-menu-groups');
         const roleAccessMap = @json($roleAccessMap);
         const menuGroups = @json($menuGroups);
-        const groupStyleMap = @json($groupStyleMap);
+        const menuCountTemplate = @json(__('access.setting_role.menu_count', ['count' => '__COUNT__']));
+        const notSelectedText = @json(__('access.setting_role.not_selected'));
+        const selectRoleForPreviewText = @json(__('access.setting_role.select_role_for_preview'));
+        const roleWithoutMenuText = @json(__('access.setting_role.role_without_menu'));
+        const emptyActiveMenuText = @json(__('access.setting_role.empty_active_menu'));
 
         function renderRolePreview() {
             const selectedRoleId = roleSelect.val();
@@ -467,10 +463,10 @@
                 .filter(Boolean);
 
             if (selectedRoles.length === 0) {
-                selectedRoleBadge.text('Belum dipilih');
+                selectedRoleBadge.text(notSelectedText);
                 selectedRoleScope.text('-');
-                selectedRoleCount.text('0 menu');
-                selectedRoleMenuGroups.html('<div class="text-muted small">Pilih role terlebih dahulu untuk melihat preview akses.</div>');
+                selectedRoleCount.text(menuCountTemplate.replace('__COUNT__', '0'));
+                selectedRoleMenuGroups.html(`<div class="text-muted small">${selectRoleForPreviewText}</div>`);
                 return;
             }
 
@@ -478,13 +474,15 @@
 
             selectedRoleBadge.text(selectedRoles.map(role => role.name).join(' + '));
             selectedRoleScope.text(selectedRoles.map(role => role.scope_label || '-').join(' + '));
-            selectedRoleCount.text(`${mergedMenus.length} menu`);
+            selectedRoleCount.text(menuCountTemplate.replace('__COUNT__', mergedMenus.length));
 
             let html = '';
 
             Object.entries(menuGroups).forEach(([groupName, menus]) => {
                 const activeMenus = menus.filter(menu => mergedMenus.includes(menu.key));
-                const styleKey = groupStyleMap[groupName] || 'dashboard';
+                const firstMenu = menus[0] || {};
+                const styleKey = firstMenu.group_style || 'dashboard';
+                const groupLabel = firstMenu.group_label || groupName;
 
                 if (activeMenus.length === 0) {
                     return;
@@ -492,7 +490,7 @@
 
                 html += `<div class="access-group access-group--${styleKey} mb-2">`;
                 html += `<div class="access-group__header">`;
-                html += `<span>${groupName}</span>`;
+                html += `<span>${groupLabel}</span>`;
                 html += `<span class="access-group__count">${activeMenus.length}</span>`;
                 html += `</div>`;
                 html += `<div>`;
@@ -502,7 +500,7 @@
                 html += `</div></div>`;
             });
 
-            selectedRoleMenuGroups.html(html || '<div class="text-muted small">Role ini belum memiliki menu aktif.</div>');
+            selectedRoleMenuGroups.html(html || `<div class="text-muted small">${roleWithoutMenuText}</div>`);
         }
 
         function toggleRoleScope() {

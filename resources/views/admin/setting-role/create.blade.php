@@ -43,13 +43,13 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-user-shield text-primary me-2"></i>
-                    Role dan Akses Menu
+                    {{ __('access.setting_role.create_title') }}
                 </h4>
-                <small class="text-muted">Super Admin dapat menentukan menu apa saja yang boleh diakses oleh tiap role.</small>
+                <small class="text-muted">{{ __('access.setting_role.create_subtitle') }}</small>
             </div>
 
             <a href="{{ route('setting-role.index') }}" class="btn btn-sm btn-secondary">
-                <i class="fas fa-arrow-left me-1"></i> Kembali
+                <i class="fas fa-arrow-left me-1"></i> {{ __('access.setting_role.back') }}
             </a>
         </div>
 
@@ -61,14 +61,14 @@
 
                     <div class="row g-3 mb-4">
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Nama Role</label>
+                            <label class="form-label fw-semibold">{{ __('access.setting_role.role_name') }}</label>
                             <input
                                 type="text"
                                 name="permission_role"
                                 id="permission_role"
                                 class="form-control"
                                 list="role-presets"
-                                placeholder="Contoh: HOD / Manager / Staff"
+                                placeholder="{{ __('access.setting_role.role_name_placeholder') }}"
                                 required>
                             <datalist id="role-presets">
                                 @foreach($rolePresets as $roleName => $meta)
@@ -78,37 +78,37 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Status Role</label>
+                            <label class="form-label fw-semibold">{{ __('access.setting_role.role_status') }}</label>
                             <select name="status" id="status" class="form-select">
-                                <option value="1">Aktif</option>
-                                <option value="0">Nonaktif</option>
+                                <option value="1">{{ __('access.setting_role.active') }}</option>
+                                <option value="0">{{ __('access.setting_role.inactive') }}</option>
                             </select>
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Role Bawaan</label>
+                            <label class="form-label fw-semibold">{{ __('access.setting_role.default_roles') }}</label>
                             <div class="border rounded-3 px-3 py-2 bg-light small text-muted h-100 d-flex align-items-center">
                                 Super Admin, HR, HOD, Manager, Supervisor, Staff, Admin Divisi
                             </div>
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Deskripsi</label>
+                            <label class="form-label fw-semibold">{{ __('access.setting_role.description') }}</label>
                             <textarea
                                 name="description"
                                 id="description"
                                 class="form-control"
                                 rows="3"
-                                placeholder="Deskripsi singkat role ini..."></textarea>
+                                placeholder="{{ __('access.setting_role.description_placeholder') }}"></textarea>
                         </div>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <h5 class="fw-semibold mb-1">Hak Akses Menu</h5>
-                            <small class="text-muted">Checklist menu yang boleh dibuka oleh role ini. Jika role tidak dicentang pada menu tertentu, akses URL langsung juga akan ditolak.</small>
+                            <h5 class="fw-semibold mb-1">{{ __('access.setting_role.menu_permissions') }}</h5>
+                            <small class="text-muted">{{ __('access.setting_role.menu_permissions_help') }}</small>
                         </div>
-                        <button type="button" id="toggleAllMenus" class="btn btn-sm btn-outline-primary">Pilih Semua</button>
+                        <button type="button" id="toggleAllMenus" class="btn btn-sm btn-outline-primary">{{ __('access.setting_role.select_all') }}</button>
                     </div>
 
                     <div class="row g-3 mb-4">
@@ -116,8 +116,8 @@
                             <div class="col-lg-6">
                                 <div class="border rounded-3 h-100 p-3">
                                     <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h6 class="fw-semibold mb-0">{{ $group }}</h6>
-                                        <span class="badge bg-light text-dark">{{ count($menus) }} menu</span>
+                                        <h6 class="fw-semibold mb-0">{{ $menus->first()['group_label'] ?? $group }}</h6>
+                                        <span class="badge bg-light text-dark">{{ __('access.setting_role.menu_count', ['count' => count($menus)]) }}</span>
                                     </div>
 
                                     @foreach($menus as $menu)
@@ -140,11 +140,11 @@
 
                     <div class="d-flex justify-content-between">
                         <button type="button" id="resetForm" class="btn btn-secondary">
-                            Reset
+                            {{ __('access.setting_role.reset') }}
                         </button>
 
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i> Simpan
+                            <i class="fas fa-save me-1"></i> {{ __('access.setting_role.save') }}
                         </button>
                     </div>
                 </form>
@@ -157,13 +157,13 @@
                     <table id="table-setting-role" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                         <thead class="table-light">
                             <tr>
-                                <th width="50">No</th>
-                                <th>Role</th>
-                                <th>Scope</th>
-                                <th>Deskripsi</th>
-                                <th>Menu</th>
-                                <th width="100">Status</th>
-                                <th width="120">Action</th>
+                                <th width="50">{{ __('tables.no') }}</th>
+                                <th>{{ __('tables.role') }}</th>
+                                <th>{{ __('tables.scope') }}</th>
+                                <th>{{ __('tables.description') }}</th>
+                                <th>{{ __('tables.menu') }}</th>
+                                <th width="100">{{ __('tables.status') }}</th>
+                                <th width="120">{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -172,11 +172,11 @@
                                     <td>{{ $index + 1 }}</td>
                                     <td class="fw-semibold">{{ $role->permission_role }}</td>
                                     <td>{{ $role->scope_label }}</td>
-                                    <td>{{ $role->description ?? '-' }}</td>
+                                    <td>{{ $role->access_description ?? '-' }}</td>
                                     <td>
                                         @php
                                             $menuLabels = collect($role->resolved_menu_permissions)
-                                                ->map(fn($menuKey) => config('access.menus.' . $menuKey . '.label'))
+                                                ->map(fn($menuKey) => __('access.menus.' . $menuKey . '.label'))
                                                 ->filter()
                                                 ->values();
                                             $previewLabels = $menuLabels->take(3);
@@ -185,7 +185,7 @@
 
                                         <div class="role-menu-preview">
                                             <div class="d-flex align-items-center flex-wrap gap-2 mb-1">
-                                                <span class="badge bg-info text-dark">{{ $menuLabels->count() }} menu</span>
+                                                <span class="badge bg-info text-dark">{{ __('access.setting_role.menu_count', ['count' => $menuLabels->count()]) }}</span>
                                                 @if($menuLabels->isNotEmpty())
                                                     <button
                                                         type="button"
@@ -194,23 +194,23 @@
                                                         data-menu-labels='@json($menuLabels->all())'
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#roleMenuDetailModal">
-                                                        Lihat detail
+                                                        {{ __('access.setting_role.view_detail') }}
                                                     </button>
                                                 @endif
                                             </div>
 
                                             @if($menuLabels->isNotEmpty())
                                                 <div class="text-muted small role-menu-preview__text">
-                                                    {{ $previewLabels->implode(', ') }}@if($remainingMenuCount > 0), +{{ $remainingMenuCount }} lagi @endif
+                                                    {{ $previewLabels->implode(', ') }}@if($remainingMenuCount > 0), +{{ __('access.setting_role.more_count', ['count' => $remainingMenuCount]) }} @endif
                                                 </div>
                                             @else
-                                                <div class="text-muted small">Belum ada menu aktif.</div>
+                                                <div class="text-muted small">{{ __('access.setting_role.empty_active_menu') }}</div>
                                             @endif
                                         </div>
                                     </td>
                                     <td>
                                         <span class="badge bg-{{ $role->status == '1' ? 'success' : 'secondary' }}">
-                                            {{ $role->status == '1' ? 'Aktif' : 'Nonaktif' }}
+                                            {{ $role->status == '1' ? __('access.setting_role.active') : __('access.setting_role.inactive') }}
                                         </span>
                                     </td>
                                     <td>
@@ -222,17 +222,17 @@
                                             data-description="{{ $role->description }}"
                                             data-status="{{ $role->status }}"
                                             data-menus='@json($role->resolved_menu_permissions)'>
-                                            <i class="fas fa-edit me-1"></i> Edit
+                                            <i class="fas fa-edit me-1"></i> {{ __('access.setting_role.edit') }}
                                         </button>
 
                                         <a href="{{ route('setting-role.destroy', $role->id) }}" class="btn btn-outline-danger btn-sm btn-icon-split" data-confirm-delete="true">
-                                            <i class="fas fa-trash me-1"></i> Hapus
+                                            <i class="fas fa-trash me-1"></i> {{ __('access.setting_role.delete') }}
                                         </a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted">Data role belum tersedia</td>
+                                    <td colspan="7" class="text-center text-muted">{{ __('access.setting_role.empty_role_data') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -248,7 +248,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title" id="roleMenuDetailModalLabel">Detail Menu Role</h5>
+                    <h5 class="modal-title" id="roleMenuDetailModalLabel">{{ __('access.setting_role.role_menu_detail') }}</h5>
                     <small id="roleMenuDetailRoleName" class="text-muted d-block"></small>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -270,6 +270,10 @@
         const roleForm = $('#roleForm');
         const permissionRoleInput = $('#permission_role');
         const descriptionInput = $('#description');
+        const clearAllText = @json(__('access.setting_role.clear_all'));
+        const selectAllText = @json(__('access.setting_role.select_all'));
+        const emptyActiveMenuText = @json(__('access.setting_role.empty_active_menu'));
+        const roleLabelTemplate = @json(__('access.setting_role.role_label', ['role' => '__ROLE__']));
         let allSelected = false;
 
         function setCheckedMenus(selectedMenus) {
@@ -304,7 +308,7 @@
         $('#toggleAllMenus').on('click', function() {
             allSelected = !allSelected;
             menuCheckboxes.prop('checked', allSelected);
-            $(this).text(allSelected ? 'Bersihkan Semua' : 'Pilih Semua');
+            $(this).text(allSelected ? clearAllText : selectAllText);
         });
 
         $('.btn-edit').click(function() {
@@ -343,10 +347,10 @@
             const modalRoleName = $('#roleMenuDetailRoleName');
             const modalContent = $('#roleMenuDetailContent');
 
-            modalRoleName.text(`Role: ${roleName}`);
+            modalRoleName.text(roleLabelTemplate.replace('__ROLE__', roleName));
 
             if (!menuLabels.length) {
-                modalContent.html('<span class="text-muted small">Belum ada menu aktif.</span>');
+                modalContent.html(`<span class="text-muted small">${emptyActiveMenuText}</span>`);
                 return;
             }
 

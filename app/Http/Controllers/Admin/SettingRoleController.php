@@ -28,10 +28,8 @@ class SettingRoleController extends Controller
         confirmDelete($title, $text);
 
         $roles = Role::orderBy('permission_role')->get();
-        $menuGroups = collect(config('access.menus', []))
-            ->map(fn($menu, $key) => array_merge($menu, ['key' => $key]))
-            ->groupBy('group');
-        $rolePresets = config('access.roles', []);
+        $menuGroups = $this->localizedMenuGroups();
+        $rolePresets = $this->localizedRolePresets();
 
         return view('admin.setting-role.create', compact('roles', 'menuGroups', 'rolePresets'));
     }
@@ -53,7 +51,7 @@ class SettingRoleController extends Controller
 
         Role::create([
             'permission_role' => $validated['permission_role'],
-            'description' => $validated['description'] ?: (config('access.roles.' . $normalizedRoleName . '.description')),
+            'description' => $validated['description'] ?: $this->defaultRoleDescription($normalizedRoleName),
             'menu_permissions' => $menuPermissions,
             'status' => $validated['status'],
         ]);
@@ -77,9 +75,7 @@ class SettingRoleController extends Controller
             })
             ->orderBy('departemen')
             ->get();
-        $menuGroups = collect(config('access.menus', []))
-            ->map(fn($menu, $key) => array_merge($menu, ['key' => $key]))
-            ->groupBy('group');
+        $menuGroups = $this->localizedMenuGroups();
         $roleAccessMap = $roles->mapWithKeys(function ($role) {
             return [
                 $role->id => [
@@ -134,7 +130,7 @@ class SettingRoleController extends Controller
 
         $role->update([
             'permission_role' => $validated['permission_role'],
-            'description' => $validated['description'] ?: (config('access.roles.' . $normalizedRoleName . '.description')),
+            'description' => $validated['description'] ?: $this->defaultRoleDescription($normalizedRoleName),
             'menu_permissions' => $menuPermissions,
             'status' => $validated['status'],
         ]);
@@ -194,5 +190,78 @@ class SettingRoleController extends Controller
 
         toast()->success('success', 'Role berhasil dihapus.');
         return back();
+    }
+
+    private function localizedMenuGroups()
+    {
+        return collect(config('access.menus', []))
+            ->map(function ($menu, $key) {
+                $group = $menu['group'] ?? 'Dashboard';
+
+                return array_merge($menu, [
+                    'key' => $key,
+                    'label' => $this->transOrFallback('access.menus.' . $key . '.label', $menu['label'] ?? $key),
+                    'group' => $group,
+                    'group_label' => $this->transOrFallback('access.menu_groups.' . $this->menuGroupKey($group), $group),
+                    'group_style' => $this->menuGroupStyle($group),
+                ]);
+            })
+            ->groupBy('group');
+    }
+
+    private function localizedRolePresets(): array
+    {
+        return collect(config('access.roles', []))
+            ->map(function ($meta, $roleName) {
+                $translationKey = Role::accessTranslationKey($roleName);
+
+                return array_merge($meta, [
+                    'scope_label' => $this->transOrFallback(
+                        'access.roles.' . $translationKey . '.scope_label',
+                        $meta['scope_label'] ?? 'Kustom'
+                    ),
+                    'description' => $this->transOrFallback(
+                        'access.roles.' . $translationKey . '.description',
+                        $meta['description'] ?? null
+                    ),
+                ]);
+            })
+            ->all();
+    }
+
+    private function defaultRoleDescription(?string $roleName): ?string
+    {
+        return config('access.roles.' . $roleName . '.description');
+    }
+
+    private function transOrFallback(string $key, ?string $fallback): ?string
+    {
+        $translated = __($key);
+
+        return $translated === $key ? $fallback : $translated;
+    }
+
+    private function menuGroupKey(string $group): string
+    {
+        return [
+            'Dashboard' => 'dashboard',
+            'Data Master' => 'master_data',
+            'Self Service' => 'self_service',
+            'Approval' => 'approval',
+            'Operasional' => 'operations',
+            'Admin Panel' => 'admin_panel',
+        ][$group] ?? str_replace([' ', '-'], '_', strtolower($group));
+    }
+
+    private function menuGroupStyle(string $group): string
+    {
+        return [
+            'Dashboard' => 'dashboard',
+            'Data Master' => 'data-master',
+            'Self Service' => 'self-service',
+            'Approval' => 'approval',
+            'Operasional' => 'operasional',
+            'Admin Panel' => 'admin-panel',
+        ][$group] ?? 'dashboard';
     }
 }
