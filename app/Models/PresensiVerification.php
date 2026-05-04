@@ -21,6 +21,7 @@ class PresensiVerification extends Model
         'face_verified' => 'boolean',
         'face_verified_at' => 'datetime',
         'submitted_at' => 'datetime',
+        'reviewed_by' => 'string',
         'reviewed_at' => 'datetime',
     ];
 
@@ -31,7 +32,7 @@ class PresensiVerification extends Model
 
     public function reviewer()
     {
-        return $this->belongsTo(User::class, 'reviewed_by');
+        return $this->belongsTo(User::class, 'reviewed_by', 'id');
     }
 
     public static function attendanceTypes(): array

@@ -156,6 +156,9 @@ class PresensiController extends Controller
             'review_note' => ['nullable', 'required_if:decision,' . PresensiVerification::REVIEW_REJECTED, 'string', 'max:2000'],
         ]);
 
+        $reviewer = $request->user();
+        $reviewerId = (string) $reviewer->getKey();
+
         $status = $validated['decision'] === PresensiVerification::REVIEW_APPROVED
             ? Presensi::STATUS_ABSEN_VERIFIED
             : Presensi::STATUS_ABSEN_REJECTED;
@@ -164,13 +167,13 @@ class PresensiController extends Controller
             'decision' => $validated['decision'],
             'status' => $status,
             'review_note' => $validated['review_note'] ?? null,
-            'reviewed_by' => $request->user()->id,
-            'reviewed_by_name' => $request->user()->name,
+            'reviewed_by' => $reviewerId,
+            'reviewed_by_name' => $reviewer->name,
             'reviewed_at' => now()->toIso8601String(),
             'source' => 'hr-manual-review',
         ];
 
-        DB::transaction(function () use ($verification, $status, $verified, $validated, $request, $reviewPayload) {
+        DB::transaction(function () use ($verification, $status, $verified, $validated, $reviewerId, $reviewPayload) {
             $lockedVerification = PresensiVerification::whereKey($verification->id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -185,7 +188,7 @@ class PresensiController extends Controller
             );
             $lockedVerification->review_decision = $validated['decision'];
             $lockedVerification->review_note = $validated['review_note'] ?? null;
-            $lockedVerification->reviewed_by = $request->user()->id;
+            $lockedVerification->reviewed_by = $reviewerId;
             $lockedVerification->reviewed_at = now();
             $lockedVerification->save();
 

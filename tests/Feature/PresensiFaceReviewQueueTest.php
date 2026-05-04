@@ -16,6 +16,8 @@ use Tests\TestCase;
 
 class PresensiFaceReviewQueueTest extends TestCase
 {
+    private const HR_USER_ID = 'f2a2b70c8dbf4f99a0d9876b4774b3fb';
+
     private array $selfieFiles = [];
 
     protected function setUp(): void
@@ -112,17 +114,18 @@ class PresensiFaceReviewQueueTest extends TestCase
         $this->assertSame(Presensi::STATUS_ABSEN_VERIFIED, $verification->status);
         $this->assertSame(PresensiVerification::REVIEW_APPROVED, $verification->review_decision);
         $this->assertSame('Selfie dan lokasi sesuai.', $verification->review_note);
-        $this->assertSame(1, (int) $verification->reviewed_by);
+        $this->assertSame(self::HR_USER_ID, $verification->reviewed_by);
         $this->assertSame(Presensi::STATUS_ABSEN_VERIFIED, $presensi->status_absen);
         $this->assertSame(1, (int) $presensi->face_verified);
         $this->assertSame('hr-manual-review', $presensi->face_verification_method);
         $this->assertStringContainsString('"hr_review"', $presensi->face_verification_meta);
+        $this->assertSame('HR Reviewer', PresensiVerification::with('reviewer')->findOrFail(1)->reviewer->name);
     }
 
     private function createSchema(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->unsignedBigInteger('id')->primary();
+            $table->string('id', 36)->primary();
             $table->string('name');
             $table->string('email')->nullable();
             $table->unsignedBigInteger('role_id')->nullable();
@@ -186,7 +189,7 @@ class PresensiFaceReviewQueueTest extends TestCase
             $table->timestamp('submitted_at')->nullable();
             $table->string('review_decision', 32)->nullable();
             $table->text('review_note')->nullable();
-            $table->unsignedBigInteger('reviewed_by')->nullable();
+            $table->string('reviewed_by', 36)->nullable();
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
         });
@@ -208,7 +211,7 @@ class PresensiFaceReviewQueueTest extends TestCase
     private function seedOrganization(): void
     {
         DB::table('users')->insert([
-            'id' => 1,
+            'id' => self::HR_USER_ID,
             'name' => 'HR Reviewer',
             'email' => 'hr@example.test',
             'created_at' => now(),
@@ -310,7 +313,7 @@ class PresensiFaceReviewQueueTest extends TestCase
     private function makeHrUser(): User
     {
         $user = new User();
-        $user->id = 1;
+        $user->id = self::HR_USER_ID;
         $user->name = 'HR Reviewer';
         $user->email = 'hr@example.test';
         $user->setRelation('role', new Role(['permission_role' => 'HR']));
