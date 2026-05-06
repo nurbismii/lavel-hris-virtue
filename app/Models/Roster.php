@@ -10,6 +10,11 @@ class Roster extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'hod_processed_at' => 'datetime',
+        'hrd_processed_at' => 'datetime',
+    ];
+
     public function user()
     {
         return $this->hasOne(User::class, 'nik_karyawan', 'nik_karyawan');

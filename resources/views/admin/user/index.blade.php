@@ -61,6 +61,11 @@
                                 @endforeach
                             </tbody>
                         </table>
+                        @if(method_exists($users, 'links'))
+                        <div class="mt-3">
+                            {{ $users->links() }}
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>

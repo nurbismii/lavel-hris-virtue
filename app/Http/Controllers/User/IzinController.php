@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Izin\IzinRequest;
 use App\Models\Cuti;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -158,18 +159,11 @@ class IzinController extends Controller
 
         $this->deleteFotoIzin($existingPath);
 
-        $destinationPath = public_path('izin/' . $nik);
-
-        if (!File::exists($destinationPath)) {
-            File::makeDirectory($destinationPath, 0755, true);
-        }
-
         $file = $request->file('foto');
         $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');
         $filename = 'izin_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(8)) . '.' . $extension;
-        $file->move($destinationPath, $filename);
 
-        return 'izin/' . $nik . '/' . $filename;
+        return app(SensitiveFileStorageService::class)->storeUploadedFileAs($file, 'izin/' . $nik, $filename);
     }
 
     private function deleteFotoIzin(?string $path): void
@@ -184,11 +178,7 @@ class IzinController extends Controller
             return;
         }
 
-        $fullPath = public_path($normalizedPath);
-
-        if (File::isFile($fullPath)) {
-            File::delete($fullPath);
-        }
+        app(SensitiveFileStorageService::class)->delete($normalizedPath, ['izin/']);
     }
 
     private function serveStoredIzinProof(string $path)
@@ -197,9 +187,9 @@ class IzinController extends Controller
 
         abort_if(str_contains($normalizedPath, '..') || !Str::startsWith($normalizedPath, 'izin/'), 404);
 
-        $absolutePath = public_path($normalizedPath);
+        $absolutePath = app(SensitiveFileStorageService::class)->resolvePath($normalizedPath, ['izin/']);
 
-        abort_unless(File::isFile($absolutePath), 404, 'Bukti izin tidak ditemukan.');
+        abort_unless($absolutePath && File::isFile($absolutePath), 404, 'Bukti izin tidak ditemukan.');
 
         return response()->file($absolutePath, [
             'Content-Type' => File::mimeType($absolutePath) ?: 'application/octet-stream',

@@ -16,6 +16,7 @@ use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Presensi\OvertimeOrderService;
 use App\Services\Presensi\PresensiVerificationStatusService;
 use App\Services\Presensi\WorkScheduleService;
+use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
@@ -544,9 +545,9 @@ class PresensiController extends Controller
             404
         );
 
-        $absolutePath = public_path($normalizedPath);
+        $absolutePath = app(SensitiveFileStorageService::class)->resolvePath($normalizedPath, [$expectedDirectory]);
 
-        abort_unless(File::isFile($absolutePath), 404, 'Foto referensi wajah tidak ditemukan.');
+        abort_unless($absolutePath && File::isFile($absolutePath), 404, 'Foto referensi wajah tidak ditemukan.');
 
         return response()->file($absolutePath, [
             'Content-Type' => File::mimeType($absolutePath) ?: 'image/jpeg',
@@ -614,17 +615,14 @@ class PresensiController extends Controller
     private function storeFaceSelfie($file, $nik, $type)
     {
         $datePath = now()->format('Y/m/d');
-        $directory = public_path('presensi-selfie/' . $nik . '/' . $datePath);
-
-        if (!File::exists($directory)) {
-            File::makeDirectory($directory, 0755, true);
-        }
+        $relativeDirectory = 'presensi-selfie/' . $nik . '/' . $datePath;
+        $directory = app(SensitiveFileStorageService::class)->ensurePrivateDirectory($relativeDirectory);
 
         $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg');
         $filename = $type . '_' . now()->format('His') . '_' . Str::lower(Str::random(12)) . '.' . $extension;
         $file->move($directory, $filename);
 
-        return 'presensi-selfie/' . $nik . '/' . $datePath . '/' . $filename;
+        return $relativeDirectory . '/' . $filename;
     }
 
     private function storeLivenessEvidenceFrames(Request $request, string $nik, string $type): array

@@ -16,6 +16,7 @@ class ProcessApprovalRequest extends FormRequest
     {
         return [
             'action' => ['required', 'integer', Rule::in([1, 2])],
+            'note' => ['nullable', 'string', 'max:500'],
         ];
     }
 
@@ -24,6 +25,7 @@ class ProcessApprovalRequest extends FormRequest
         return [
             'action.required' => 'Aksi approval wajib dipilih.',
             'action.in' => 'Aksi approval tidak valid.',
+            'note.max' => 'Catatan approval maksimal 500 karakter.',
         ];
     }
 }

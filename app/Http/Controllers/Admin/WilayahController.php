@@ -133,16 +133,15 @@ class WilayahController extends Controller
     public function exportExcel(Request $request)
     {
         $filters = $this->resolveFilters($request);
-        $rows = $this->buildExportQuery($filters)
+        $query = $this->buildExportQuery($filters)
             ->orderBy('provinsi')
             ->orderBy('kabupaten')
             ->orderBy('kecamatan')
             ->orderBy('kelurahan')
-            ->orderBy('e.nama_karyawan')
-            ->get();
+            ->orderBy('e.nama_karyawan');
 
         return Excel::download(
-            new DistribusiWilayahExport($rows),
+            new DistribusiWilayahExport($query),
             'distribusi-wilayah-' . now()->format('Ymd_His') . '.xlsx'
         );
     }

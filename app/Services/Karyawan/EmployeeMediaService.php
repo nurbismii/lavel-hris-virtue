@@ -3,6 +3,7 @@
 namespace App\Services\Karyawan;
 
 use App\Models\Employee;
+use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -58,11 +59,7 @@ class EmployeeMediaService
     {
         $config = $this->getTypeConfig($type);
         $relativeDirectory = sprintf($config['directory'], $employee->nik);
-        $absoluteDirectory = public_path($relativeDirectory);
-
-        if (!File::exists($absoluteDirectory)) {
-            File::makeDirectory($absoluteDirectory, 0755, true);
-        }
+        $absoluteDirectory = app(SensitiveFileStorageService::class)->ensurePrivateDirectory($relativeDirectory);
 
         $currentPath = $employee->{$config['column']} ?? null;
         $replacedExisting = !empty($currentPath);
@@ -153,11 +150,10 @@ class EmployeeMediaService
             return;
         }
 
-        $absolutePath = public_path($relativePath);
-
-        if (File::exists($absolutePath)) {
-            File::delete($absolutePath);
-        }
+        app(SensitiveFileStorageService::class)->delete($relativePath, [
+            'employee-documents/',
+            'face-reference/',
+        ]);
     }
 
     private function getTypeConfig(string $type): array

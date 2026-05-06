@@ -54,8 +54,10 @@ Route::middleware(['android.redirect'])->group(function () {
     });
 
     Route::middleware('guest')->group(function () {
-        Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
-        Route::post('/register', [RegisterController::class, 'register']);
+        if (config('hris.self_registration_enabled')) {
+            Route::get('/register', [RegisterController::class, 'showRegistrationForm'])->name('register');
+            Route::post('/register', [RegisterController::class, 'register'])->middleware('throttle:6,1');
+        }
     });
 
     Route::middleware('auth')->group(function () {

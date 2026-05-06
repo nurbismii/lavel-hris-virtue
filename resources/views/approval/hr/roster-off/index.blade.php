@@ -6,7 +6,7 @@
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
             <div>
                 <h4 class="fw-bold mb-1">
-                    <i class="fas fa-calendar-day text-primary me-2"></i>
+                    <i class="fas text-primary"></i>
                     Approval OFF Roster HR
                 </h4>
                 <small class="text-muted">Review akhir HR untuk pengajuan hari OFF karyawan roster yang sudah disetujui HOD.</small>
@@ -72,6 +72,11 @@
                         @endforeach
                     </tbody>
                 </table>
+                @if(method_exists($offRequests, 'links'))
+                <div class="mt-3">
+                    {{ $offRequests->links() }}
+                </div>
+                @endif
             </div>
         </div>
     </div>

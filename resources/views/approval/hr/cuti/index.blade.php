@@ -53,6 +53,11 @@
                         @endforeach
                     </tbody>
                 </table>
+                @if(method_exists($cutis, 'links'))
+                <div class="mt-3">
+                    {{ $cutis->links() }}
+                </div>
+                @endif
             </div>
         </div>
     </div>

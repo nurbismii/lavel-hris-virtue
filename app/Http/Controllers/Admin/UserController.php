@@ -16,9 +16,10 @@ class UserController extends Controller
         confirmDelete($title, $text);
 
         $users = auth()->user()
-            ->applyEmployeeRelationScope(User::query()->with(['employee', 'role']))
+            ->applyEmployeeRelationScope(User::query()->with(['employee', 'role', 'additionalRoles']))
             ->orderBy('name')
-            ->get();
+            ->paginate(100)
+            ->withQueryString();
 
         return view('admin.user.index', [
             'users' => $users
@@ -55,11 +56,23 @@ class UserController extends Controller
         return redirect()->route('user.index');
     }
 
-    public function destroy($id)
+    public function destroy($nik_karyawan)
     {
         $user = auth()->user()
             ->applyEmployeeRelationScope(User::query())
-            ->findOrFail($id);
+            ->where('nik_karyawan', $nik_karyawan)
+            ->firstOrFail();
+
+        if ((string) $user->id === (string) auth()->id()) {
+            toast()->warning('Peringatan', 'Akun yang sedang digunakan tidak dapat dihapus.');
+            return redirect()->route('user.index');
+        }
+
+        if ($user->hasRole('Super Admin')) {
+            toast()->warning('Peringatan', 'Akun Super Admin tidak dapat dihapus dari halaman ini.');
+            return redirect()->route('user.index');
+        }
+
         $user->delete();
 
         toast()->success('Success', 'User deleted successfully.');

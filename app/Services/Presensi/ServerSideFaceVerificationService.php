@@ -4,6 +4,7 @@ namespace App\Services\Presensi;
 
 use App\Models\Presensi;
 use App\Models\User;
+use App\Services\Storage\SensitiveFileStorageService;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Request;
@@ -244,8 +245,8 @@ class ServerSideFaceVerificationService
                 'selfie_valid' => File::isFile($selfiePath),
                 'liveness_action' => $livenessAction,
                 'liveness_fields' => array_values(array_map(fn($part) => $part['name'] ?? null, $livenessEvidenceParts)),
-                'reference_path' => $reference['absolute_path'] ?? null,
-                'selfie_path' => $selfiePath,
+                'reference_hash' => $reference['hash'] ?? null,
+                'selfie_hash' => File::isFile($selfiePath) ? hash_file('sha256', $selfiePath) : null,
                 'presensi_challenge_id' => $challenge['id'] ?? null,
                 'screen_spoof_score' => $providerScreenSpoofScore,
             ]);
@@ -623,9 +624,9 @@ class ServerSideFaceVerificationService
             return null;
         }
 
-        $absolutePath = public_path($normalizedPath);
+        $absolutePath = app(SensitiveFileStorageService::class)->resolvePath($normalizedPath, [$expectedDirectory]);
 
-        return File::isFile($absolutePath) ? $absolutePath : null;
+        return $absolutePath && File::isFile($absolutePath) ? $absolutePath : null;
     }
 
     private function resolveStoredLivenessPath(string $path): ?string
@@ -667,12 +668,12 @@ class ServerSideFaceVerificationService
             ];
         }
 
-        $absolutePath = public_path($normalizedPath);
+        $absolutePath = app(SensitiveFileStorageService::class)->resolvePath($normalizedPath, $allowedDirectories);
 
         return [
             'absolute_path' => $absolutePath,
-            'hash' => File::isFile($absolutePath) ? hash_file('sha256', $absolutePath) : null,
-            'valid' => File::isFile($absolutePath),
+            'hash' => $absolutePath && File::isFile($absolutePath) ? hash_file('sha256', $absolutePath) : null,
+            'valid' => $absolutePath && File::isFile($absolutePath),
         ];
     }
 

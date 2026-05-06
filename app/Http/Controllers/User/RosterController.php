@@ -8,6 +8,7 @@ use App\Models\PeriodeKerjaRoster;
 use App\Models\Roster;
 use App\Models\RosterOffRequest;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -73,13 +74,7 @@ class RosterController extends Controller
                 $upload = $request->file('berkas_cuti');
                 $file_name = 'roster_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(8)) . '.' . strtolower($upload->getClientOriginalExtension());
 
-                $path = public_path('cuti-roster/' . $nikKaryawan);
-
-                if (!File::exists($path)) {
-                    File::makeDirectory($path, 0755, true);
-                }
-
-                $upload->move($path, $file_name);
+                app(SensitiveFileStorageService::class)->storeUploadedFileAs($upload, 'cuti-roster/' . $nikKaryawan, $file_name);
             }
 
             $roster = Roster::create([
@@ -147,8 +142,9 @@ class RosterController extends Controller
         } catch (\Throwable $e) {
 
             DB::rollBack();
+            report($e);
 
-            toast()->error('Error', 'Something wrong' .  $e->getMessage());
+            toast()->error('Error', 'Pengajuan roster gagal disimpan. Periksa kembali data dan lampiran, lalu coba lagi.');
             return back();
         }
     }
@@ -188,18 +184,14 @@ class RosterController extends Controller
                 $upload = $request->file('berkas_cuti');
                 $file_name = 'roster_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(8)) . '.' . strtolower($upload->getClientOriginalExtension());
 
-                $path = public_path('cuti-roster/' . $nikKaryawan);
-
-                if (!File::exists($path)) {
-                    File::makeDirectory($path, 0755, true);
+                if ($roster->file) {
+                    app(SensitiveFileStorageService::class)->delete(
+                        'cuti-roster/' . $nikKaryawan . '/' . basename($roster->file),
+                        ['cuti-roster/']
+                    );
                 }
 
-                // Hapus file lama jika ada
-                if ($roster->file && File::isFile($path . DIRECTORY_SEPARATOR . $roster->file)) {
-                    File::delete($path . DIRECTORY_SEPARATOR . $roster->file);
-                }
-
-                $upload->move($path, $file_name);
+                app(SensitiveFileStorageService::class)->storeUploadedFileAs($upload, 'cuti-roster/' . $nikKaryawan, $file_name);
             }
 
             $roster->update([
@@ -263,8 +255,9 @@ class RosterController extends Controller
         } catch (\Throwable $e) {
 
             DB::rollBack();
+            report($e);
 
-            toast()->error('Error', 'Something wrong : ' . $e->getMessage());
+            toast()->error('Error', 'Pengajuan roster gagal diperbarui. Periksa kembali data dan lampiran, lalu coba lagi.');
             return back();
         }
     }
@@ -279,10 +272,10 @@ class RosterController extends Controller
         }
 
         if ($roster->file) {
-            $file_path = public_path('cuti-roster/' . $roster->nik_karyawan . '/' . $roster->file);
-            if (File::isFile($file_path)) {
-                File::delete($file_path);
-            }
+            app(SensitiveFileStorageService::class)->delete(
+                'cuti-roster/' . $roster->nik_karyawan . '/' . basename($roster->file),
+                ['cuti-roster/']
+            );
         }
 
         $roster->periodeKerjaRoster()->delete();
@@ -387,9 +380,12 @@ class RosterController extends Controller
         abort_if(blank($roster->file), 404, 'Lampiran roster belum tersedia.');
 
         $filename = basename($roster->file);
-        $absolutePath = public_path('cuti-roster/' . $roster->nik_karyawan . '/' . $filename);
+        $absolutePath = app(SensitiveFileStorageService::class)->resolvePath(
+            'cuti-roster/' . $roster->nik_karyawan . '/' . $filename,
+            ['cuti-roster/']
+        );
 
-        abort_unless(File::isFile($absolutePath), 404, 'Lampiran roster tidak ditemukan.');
+        abort_unless($absolutePath && File::isFile($absolutePath), 404, 'Lampiran roster tidak ditemukan.');
 
         return response()->file($absolutePath, [
             'Content-Type' => File::mimeType($absolutePath) ?: 'application/octet-stream',

@@ -14,6 +14,7 @@ use App\Models\Employee;
 use App\Models\Perusahaan;
 use App\Models\WorkPattern;
 use App\Services\Recruitment\RecruitmentDocumentClient;
+use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -386,9 +387,9 @@ class KaryawanController extends Controller
             404
         );
 
-        $absolutePath = public_path($normalizedPath);
+        $absolutePath = app(SensitiveFileStorageService::class)->resolvePath($normalizedPath, [$expectedDirectory]);
 
-        abort_unless(File::isFile($absolutePath), 404, 'File dokumen tidak ditemukan.');
+        abort_unless($absolutePath && File::isFile($absolutePath), 404, 'File dokumen tidak ditemukan.');
 
         $extension = strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION));
         $downloadName = $this->buildDocumentDownloadName($employee, $documentConfig['label'], $extension);

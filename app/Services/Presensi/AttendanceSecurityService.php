@@ -7,6 +7,7 @@ use App\Models\PresensiVerification;
 use App\Models\LogPresensi;
 use App\Models\LokasiAbsen;
 use App\Models\User;
+use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -428,9 +429,9 @@ class AttendanceSecurityService
             return false;
         }
 
-        $absolutePath = public_path($normalizedPath);
+        $absolutePath = app(SensitiveFileStorageService::class)->resolvePath($normalizedPath, ['face-reference/']);
 
-        return File::isFile($absolutePath) && hash_file('sha256', $absolutePath) === $selfieHash;
+        return $absolutePath && File::isFile($absolutePath) && hash_file('sha256', $absolutePath) === $selfieHash;
     }
 
     private function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float

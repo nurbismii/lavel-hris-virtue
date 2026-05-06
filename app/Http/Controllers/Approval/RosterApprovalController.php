@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\Roster;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Approvals\ApprovalAuditService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
+use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 
@@ -21,16 +23,17 @@ class RosterApprovalController extends Controller
                 ->join('periode_kerja_roster', 'cuti_roster.id', '=', 'periode_kerja_roster.cuti_roster_id')
                 ->with(['employee', 'periodeKerjaRoster']),
             'employees'
-        )->get();
+        )->paginate(100)->withQueryString();
 
         return view('approval.hod.roster.index', compact('cutis'));
     }
 
     public function hodProcess(ProcessApprovalRequest $request, $id)
     {
-        $action = (int) $request->validated()['action'];
+        $validated = $request->validated();
+        $action = (int) $validated['action'];
 
-        $result = DB::transaction(function () use ($request, $id, $action) {
+        $result = DB::transaction(function () use ($request, $id, $action, $validated) {
             $roster = $request->user()
                 ->applyEmployeeRelationScope(Roster::query()->with(['user', 'employee', 'periodeKerjaRoster']))
                 ->whereKey($id)
@@ -44,9 +47,15 @@ class RosterApprovalController extends Controller
                 ];
             }
 
-            $roster->update([
+            $roster->update(array_merge([
                 'status_pengajuan' => $action,
-            ]);
+            ], app(ApprovalAuditService::class)->payload(
+                'cuti_roster',
+                'hod',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null
+            )));
 
             return [
                 'status' => true,
@@ -102,7 +111,7 @@ class RosterApprovalController extends Controller
             Roster::query()->with('employee', 'periodeKerjaRoster')
                 ->where('status_pengajuan', 1)
                 ->orderBy('status_pengajuan', 'asc')
-        )->get();
+        )->paginate(100)->withQueryString();
 
         return view('approval.hr.roster.index', compact('cutis'));
     }
@@ -132,9 +141,10 @@ class RosterApprovalController extends Controller
 
     public function hrdProcess(ProcessApprovalRequest $request, $id)
     {
-        $action = (int) $request->validated()['action'];
+        $validated = $request->validated();
+        $action = (int) $validated['action'];
 
-        $result = DB::transaction(function () use ($request, $id, $action) {
+        $result = DB::transaction(function () use ($request, $id, $action, $validated) {
             $roster = $request->user()
                 ->applyEmployeeRelationScope(Roster::query()->with(['user', 'employee', 'periodeKerjaRoster']))
                 ->whereKey($id)
@@ -155,9 +165,15 @@ class RosterApprovalController extends Controller
                 ];
             }
 
-            $roster->update([
+            $roster->update(array_merge([
                 'status_pengajuan_hrd' => $action,
-            ]);
+            ], app(ApprovalAuditService::class)->payload(
+                'cuti_roster',
+                'hrd',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null
+            )));
 
             return [
                 'status' => true,
@@ -205,9 +221,12 @@ class RosterApprovalController extends Controller
         abort_if(blank($roster->file), 404, 'Lampiran roster belum tersedia.');
 
         $filename = basename($roster->file);
-        $absolutePath = public_path('cuti-roster/' . $roster->nik_karyawan . '/' . $filename);
+        $absolutePath = app(SensitiveFileStorageService::class)->resolvePath(
+            'cuti-roster/' . $roster->nik_karyawan . '/' . $filename,
+            ['cuti-roster/']
+        );
 
-        abort_unless(File::isFile($absolutePath), 404, 'Lampiran roster tidak ditemukan.');
+        abort_unless($absolutePath && File::isFile($absolutePath), 404, 'Lampiran roster tidak ditemukan.');
 
         return response()->file($absolutePath, [
             'Content-Type' => File::mimeType($absolutePath) ?: 'application/octet-stream',

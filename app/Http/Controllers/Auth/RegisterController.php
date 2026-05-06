@@ -28,6 +28,8 @@ class RegisterController extends Controller
 
     public function showRegistrationForm()
     {
+        abort_unless(config('hris.self_registration_enabled'), 404);
+
         return view('auth.register');
     }
 
@@ -42,6 +44,8 @@ class RegisterController extends Controller
 
     public function register(RegisterRequest $request)
     {
+        abort_unless(config('hris.self_registration_enabled'), 404);
+
         $role = Role::query()
             ->where('permission_role', 'Staff')
             ->orderByRaw("CASE WHEN permission_role = 'Staff' THEN 0 ELSE 1 END")
@@ -54,7 +58,11 @@ class RegisterController extends Controller
             ])->withInput();
         }
 
-        $employee = employee::where('nik', $request->nik_karyawan)->first();
+        $employee = Employee::query()
+            ->where('nik', $request->nik_karyawan)
+            ->where('status_resign', 'AKTIF')
+            ->whereNull('tgl_resign')
+            ->firstOrFail();
 
         $user = User::create([
             'id' => Uuid::uuid4()->getHex(),

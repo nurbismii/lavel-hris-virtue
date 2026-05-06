@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\Cuti;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Approvals\ApprovalAuditService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
@@ -21,18 +22,20 @@ class IzinApprovalController extends Controller
                 ->orderByRaw("FIELD(cuti_izin.tipe, 'UNPAID', 'PAID')")
                 ->with('employee'),
             'employees'
-        )->get();
+        )->paginate(100)->withQueryString();
 
         return view('approval.hod.izin.index', compact('cutis'));
     }
 
     public function hodProcess(ProcessApprovalRequest $request, $id)
     {
-        $action = (int) $request->validated()['action'];
+        $validated = $request->validated();
+        $action = (int) $validated['action'];
 
-        $result = DB::transaction(function () use ($request, $id, $action) {
+        $result = DB::transaction(function () use ($request, $id, $action, $validated) {
             $cuti = $request->user()
                 ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
+                ->whereIn('tipe', ['PAID', 'UNPAID'])
                 ->whereKey($id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -44,9 +47,15 @@ class IzinApprovalController extends Controller
                 ];
             }
 
-            $cuti->update([
+            $cuti->update(array_merge([
                 'status_hod' => $action,
-            ]);
+            ], app(ApprovalAuditService::class)->payload(
+                'cuti_izin',
+                'hod',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null
+            )));
 
             return [
                 'status' => true,
@@ -81,18 +90,20 @@ class IzinApprovalController extends Controller
                 ->whereIn('tipe', ['PAID', 'UNPAID'])
                 ->orderByRaw("FIELD(tipe, 'UNPAID', 'PAID')")
                 ->orderBy('tanggal', 'desc')
-        )->get();
+        )->paginate(100)->withQueryString();
 
         return view('approval.hr.izin.index', compact('cutis'));
     }
 
     public function hrdProcess(ProcessApprovalRequest $request, $id)
     {
-        $action = (int) $request->validated()['action'];
+        $validated = $request->validated();
+        $action = (int) $validated['action'];
 
-        $result = DB::transaction(function () use ($request, $id, $action) {
+        $result = DB::transaction(function () use ($request, $id, $action, $validated) {
             $cuti = $request->user()
                 ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
+                ->whereIn('tipe', ['PAID', 'UNPAID'])
                 ->whereKey($id)
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -111,9 +122,15 @@ class IzinApprovalController extends Controller
                 ];
             }
 
-            $cuti->update([
+            $cuti->update(array_merge([
                 'status_hrd' => $action,
-            ]);
+            ], app(ApprovalAuditService::class)->payload(
+                'cuti_izin',
+                'hrd',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null
+            )));
 
             return [
                 'status' => true,

@@ -16,6 +16,7 @@ use App\Models\PresensiVerification;
 use App\Models\LogPresensi;
 use App\Services\Presensi\OvertimeOrderService;
 use App\Services\Presensi\WorkScheduleService;
+use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -315,9 +316,9 @@ class PresensiController extends Controller
             return null;
         }
 
-        $absolutePath = public_path($normalizedPath);
+        $absolutePath = app(SensitiveFileStorageService::class)->resolvePath($normalizedPath, [$expectedDirectory]);
 
-        return File::isFile($absolutePath) ? $absolutePath : null;
+        return $absolutePath && File::isFile($absolutePath) ? $absolutePath : null;
     }
 
     private function mergeHrReviewMeta(?string $currentMeta, array $payload): string
@@ -509,83 +510,7 @@ class PresensiController extends Controller
             'work_pattern_start_date',
         ]);
 
-        $employees = $employeeQuery
-            ->with('workPattern')
-            ->get();
-
-        $niks = $employees->pluck('nik');
-
-        $presensiRows = DB::table('absensis')
-            ->whereIn('nik_karyawan', $niks)
-            ->whereBetween('tanggal', [$start, $end])
-            ->get();
-
-        $verificationRows = DB::table('presensi_verifications')
-            ->select('presensi_id', 'attendance_type', 'status')
-            ->whereIn('presensi_id', $presensiRows->pluck('id')->filter()->values())
-            ->get()
-            ->groupBy('presensi_id');
-
-        $presensiMap = [];
-
-        foreach ($presensiRows as $p) {
-
-            $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
-            $verificationByType = $this->verificationStatusByType($verificationRows->get($p->id));
-
-            $presensiMap[$p->nik_karyawan][$tgl] = [
-                'status' => $p->status_presensi ? Presensi::shortStatus($p->status_presensi) : '',
-                'm' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_masuk, $tgl),
-                'i' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
-                'k' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
-                'p' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_pulang, $tgl),
-                'm_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'masuk', $p->jam_masuk ? ($p->status_absen ?? null) : null),
-                'i_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'istirahat', $p->jam_istirahat ? ($p->status_absen ?? null) : null),
-                'k_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'kembali', $p->jam_kembali_istirahat ? ($p->status_absen ?? null) : null),
-                'p_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'pulang', $p->jam_pulang ? ($p->status_absen ?? null) : null),
-                'verification' => $p->status_absen ?? null,
-            ];
-        }
-
-        $actualPresensiMap = $presensiMap;
-
-        $offMap = app(WorkScheduleService::class)->buildOffStatusMap($employees, $start, $end, $presensiMap);
-
-        foreach ($offMap as $nik => $dates) {
-            foreach ($dates as $tanggal => $payload) {
-                $presensiMap[$nik][$tanggal] = [
-                    'status' => $payload['status'] ?? '',
-                    'm' => $payload['m'] ?? '',
-                    'i' => $payload['i'] ?? '',
-                    'k' => $payload['k'] ?? '',
-                    'p' => $payload['p'] ?? '',
-                    'm_status' => null,
-                    'i_status' => null,
-                    'k_status' => null,
-                    'p_status' => null,
-                ];
-            }
-        }
-
-        $alphaMap = app(OvertimeOrderService::class)->buildAcceptedAlphaMap($niks, $start, $end, $actualPresensiMap);
-
-        foreach ($alphaMap as $nik => $dates) {
-            foreach ($dates as $tanggal => $payload) {
-                $presensiMap[$nik][$tanggal] = [
-                    'status' => $payload['status'] ?? '',
-                    'm' => $payload['m'] ?? '',
-                    'i' => $payload['i'] ?? '',
-                    'k' => $payload['k'] ?? '',
-                    'p' => $payload['p'] ?? '',
-                    'm_status' => null,
-                    'i_status' => null,
-                    'k_status' => null,
-                    'p_status' => null,
-                ];
-            }
-        }
-
-        return response()->streamDownload(function () use ($employees, $tanggalHeaders, $presensiMap) {
+        return response()->streamDownload(function () use ($employeeQuery, $start, $end, $tanggalHeaders) {
 
             $handle = fopen('php://output', 'w');
 
@@ -598,30 +523,105 @@ class PresensiController extends Controller
 
             fputcsv($handle, $header);
 
-            // ROW DATA
-            foreach ($employees as $emp) {
+            (clone $employeeQuery)
+                ->with('workPattern')
+                ->orderBy('nik')
+                ->chunk(300, function ($employees) use ($handle, $start, $end, $tanggalHeaders) {
+                    $niks = $employees->pluck('nik')->filter()->values();
 
-                $row = [
-                    $emp->nik,
-                    $emp->nama_karyawan
-                ];
-
-                foreach ($tanggalHeaders as $tgl) {
-
-                    if (isset($presensiMap[$emp->nik][$tgl])) {
-
-                        $p = $presensiMap[$emp->nik][$tgl];
-
-                        $row[] = $p['status']
-                            ? $p['status']
-                            : $this->formatAttendanceExportCell($p);
-                    } else {
-                        $row[] = '';
+                    if ($niks->isEmpty()) {
+                        return;
                     }
-                }
 
-                fputcsv($handle, $row);
-            }
+                    $presensiRows = DB::table('absensis')
+                        ->whereIn('nik_karyawan', $niks)
+                        ->whereBetween('tanggal', [$start, $end])
+                        ->get();
+
+                    $presensiIds = $presensiRows->pluck('id')->filter()->values();
+                    $verificationRows = $presensiIds->isNotEmpty()
+                        ? DB::table('presensi_verifications')
+                            ->select('presensi_id', 'attendance_type', 'status')
+                            ->whereIn('presensi_id', $presensiIds)
+                            ->get()
+                            ->groupBy('presensi_id')
+                        : collect();
+
+                    $presensiMap = [];
+
+                    foreach ($presensiRows as $p) {
+                        $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
+                        $verificationByType = $this->verificationStatusByType($verificationRows->get($p->id));
+
+                        $presensiMap[$p->nik_karyawan][$tgl] = [
+                            'status' => $p->status_presensi ? Presensi::shortStatus($p->status_presensi) : '',
+                            'm' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_masuk, $tgl),
+                            'i' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
+                            'k' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
+                            'p' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_pulang, $tgl),
+                            'm_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'masuk', $p->jam_masuk ? ($p->status_absen ?? null) : null),
+                            'i_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'istirahat', $p->jam_istirahat ? ($p->status_absen ?? null) : null),
+                            'k_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'kembali', $p->jam_kembali_istirahat ? ($p->status_absen ?? null) : null),
+                            'p_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'pulang', $p->jam_pulang ? ($p->status_absen ?? null) : null),
+                            'verification' => $p->status_absen ?? null,
+                        ];
+                    }
+
+                    $actualPresensiMap = $presensiMap;
+
+                    foreach (app(WorkScheduleService::class)->buildOffStatusMap($employees, $start, $end, $presensiMap) as $nik => $dates) {
+                        foreach ($dates as $tanggal => $payload) {
+                            $presensiMap[$nik][$tanggal] = [
+                                'status' => $payload['status'] ?? '',
+                                'm' => $payload['m'] ?? '',
+                                'i' => $payload['i'] ?? '',
+                                'k' => $payload['k'] ?? '',
+                                'p' => $payload['p'] ?? '',
+                                'm_status' => null,
+                                'i_status' => null,
+                                'k_status' => null,
+                                'p_status' => null,
+                            ];
+                        }
+                    }
+
+                    foreach (app(OvertimeOrderService::class)->buildAcceptedAlphaMap($niks, $start, $end, $actualPresensiMap) as $nik => $dates) {
+                        foreach ($dates as $tanggal => $payload) {
+                            $presensiMap[$nik][$tanggal] = [
+                                'status' => $payload['status'] ?? '',
+                                'm' => $payload['m'] ?? '',
+                                'i' => $payload['i'] ?? '',
+                                'k' => $payload['k'] ?? '',
+                                'p' => $payload['p'] ?? '',
+                                'm_status' => null,
+                                'i_status' => null,
+                                'k_status' => null,
+                                'p_status' => null,
+                            ];
+                        }
+                    }
+
+                    foreach ($employees as $emp) {
+                        $row = [
+                            $emp->nik,
+                            $emp->nama_karyawan,
+                        ];
+
+                        foreach ($tanggalHeaders as $tgl) {
+                            if (isset($presensiMap[$emp->nik][$tgl])) {
+                                $p = $presensiMap[$emp->nik][$tgl];
+
+                                $row[] = $p['status']
+                                    ? $p['status']
+                                    : $this->formatAttendanceExportCell($p);
+                            } else {
+                                $row[] = '';
+                            }
+                        }
+
+                        fputcsv($handle, $row);
+                    }
+                });
 
             fclose($handle);
         }, 'Presensi_' . now()->format('Ymd_His') . '.csv');

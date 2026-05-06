@@ -2,34 +2,37 @@
 
 namespace App\Exports;
 
-use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
-class DistribusiWilayahExport implements FromCollection, WithHeadings, ShouldAutoSize
+class DistribusiWilayahExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize
 {
-    protected $rows;
+    protected $query;
 
-    public function __construct(Collection $rows)
+    public function __construct($query)
     {
-        $this->rows = $rows;
+        $this->query = $query;
     }
 
-    public function collection()
+    public function query()
     {
-        return $this->rows->map(function ($row) {
-            return [
-                'nik' => $row->nik,
-                'nama_karyawan' => $row->nama_karyawan,
-                'area_kerja' => $row->area_kerja,
-                'jenis_kelamin' => $row->jenis_kelamin,
-                'provinsi' => $row->provinsi,
-                'kabupaten' => $row->kabupaten,
-                'kecamatan' => $row->kecamatan,
-                'kelurahan' => $row->kelurahan,
-            ];
-        });
+        return $this->query;
+    }
+
+    public function map($row): array
+    {
+        return [
+            $row->nik,
+            $row->nama_karyawan,
+            $row->area_kerja,
+            $row->jenis_kelamin,
+            $row->provinsi,
+            $row->kabupaten,
+            $row->kecamatan,
+            $row->kelurahan,
+        ];
     }
 
     public function headings(): array

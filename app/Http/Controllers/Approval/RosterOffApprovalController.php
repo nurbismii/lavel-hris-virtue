@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\RosterOffRequest;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Approvals\ApprovalAuditService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
@@ -19,16 +20,17 @@ class RosterOffApprovalController extends Controller
                 ->with('employee.divisi.departemen')
                 ->orderByRaw('CASE WHEN status_hod = 0 THEN 0 WHEN status_hod = 1 THEN 1 ELSE 2 END')
                 ->latest('tanggal_off')
-        )->get();
+        )->paginate(100)->withQueryString();
 
         return view('approval.hod.roster-off.index', compact('offRequests'));
     }
 
     public function hodProcess(ProcessApprovalRequest $request, $id)
     {
-        $action = (int) $request->validated()['action'];
+        $validated = $request->validated();
+        $action = (int) $validated['action'];
 
-        $result = DB::transaction(function () use ($request, $id, $action) {
+        $result = DB::transaction(function () use ($request, $id, $action, $validated) {
             $offRequest = $request->user()
                 ->applyEmployeeRelationScope(RosterOffRequest::query()->with(['user', 'employee']))
                 ->whereKey($id)
@@ -42,11 +44,17 @@ class RosterOffApprovalController extends Controller
                 ];
             }
 
-            $offRequest->update([
+            $offRequest->update(array_merge([
                 'status_hod' => $action,
                 'hod_processed_by' => (string) $request->user()->id,
                 'hod_processed_at' => now(),
-            ]);
+            ], app(ApprovalAuditService::class)->payload(
+                'roster_off_requests',
+                'hod',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null
+            )));
 
             return [
                 'status' => true,
@@ -80,16 +88,17 @@ class RosterOffApprovalController extends Controller
                 ->where('status_hod', RosterOffRequest::STATUS_APPROVED)
                 ->orderByRaw('CASE WHEN status_hrd = 0 THEN 0 WHEN status_hrd = 1 THEN 1 ELSE 2 END')
                 ->latest('tanggal_off')
-        )->get();
+        )->paginate(100)->withQueryString();
 
         return view('approval.hr.roster-off.index', compact('offRequests'));
     }
 
     public function hrdProcess(ProcessApprovalRequest $request, $id)
     {
-        $action = (int) $request->validated()['action'];
+        $validated = $request->validated();
+        $action = (int) $validated['action'];
 
-        $result = DB::transaction(function () use ($request, $id, $action) {
+        $result = DB::transaction(function () use ($request, $id, $action, $validated) {
             $offRequest = $request->user()
                 ->applyEmployeeRelationScope(RosterOffRequest::query()->with(['user', 'employee']))
                 ->whereKey($id)
@@ -110,11 +119,17 @@ class RosterOffApprovalController extends Controller
                 ];
             }
 
-            $offRequest->update([
+            $offRequest->update(array_merge([
                 'status_hrd' => $action,
                 'hrd_processed_by' => (string) $request->user()->id,
                 'hrd_processed_at' => now(),
-            ]);
+            ], app(ApprovalAuditService::class)->payload(
+                'roster_off_requests',
+                'hrd',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null
+            )));
 
             return [
                 'status' => true,
