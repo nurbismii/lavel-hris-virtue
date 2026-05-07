@@ -31,6 +31,9 @@
                     </thead>
                     <tbody>
                         @foreach($cutis as $cuti)
+                        @php
+                            $hrdStatus = (int) $cuti->status_pengajuan_hrd;
+                        @endphp
                         <tr>
                             <td>{{ $cuti->employee->nik }}</td>
                             <td>{{ $cuti->employee->nama_karyawan }}</td>
@@ -43,6 +46,7 @@
                                     <i class="fas fa-eye me-1"></i> Detail
                                 </a>
 
+                                @if($hrdStatus === 0)
                                 <form action="{{ route('approval.roster.hrd.process', $cuti->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     <input type="hidden" name="action" value="1">
@@ -52,8 +56,13 @@
                                 <form action="{{ route('approval.roster.hrd.process', $cuti->id) }}" method="POST" class="d-inline">
                                     @csrf
                                     <input type="hidden" name="action" value="2">
-                                    <button class="btn btn-danger btn-sm">Reject</button>
+                                    <button type="button" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">Reject</button>
                                 </form>
+                                @elseif($hrdStatus === 1)
+                                    <span class="badge bg-success ms-1">Disetujui HR</span>
+                                @else
+                                    <span class="badge bg-danger ms-1">Ditolak HR</span>
+                                @endif
                             </td>
                         </tr>
                         @endforeach

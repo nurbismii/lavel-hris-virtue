@@ -478,17 +478,17 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
 
                             @if ($isPendingHod)
                             <div class="d-grid gap-2">
-                                <form action="{{ route('approval.roster.hod.process', $roster->id) }}" method="POST" onsubmit="return confirm('Setujui pengajuan roster ini?')">
+                                <form action="{{ route('approval.roster.hod.process', $roster->id) }}" method="POST" data-approval-confirm-message="Setujui pengajuan roster ini?">
                                     @csrf
                                     <input type="hidden" name="action" value="1">
                                     <button type="submit" class="btn btn-success w-100 action-btn">
                                         <i class="fas fa-check-circle me-2"></i>Setujui Pengajuan
                                     </button>
                                 </form>
-                                <form action="{{ route('approval.roster.hod.process', $roster->id) }}" method="POST" onsubmit="return confirm('Tolak pengajuan roster ini?')">
+                                <form action="{{ route('approval.roster.hod.process', $roster->id) }}" method="POST">
                                     @csrf
                                     <input type="hidden" name="action" value="2">
-                                    <button type="submit" class="btn btn-outline-danger w-100 action-btn">
+                                    <button type="button" class="btn btn-outline-danger w-100 action-btn js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
                                         <i class="fas fa-times-circle me-2"></i>Tolak Pengajuan
                                     </button>
                                 </form>

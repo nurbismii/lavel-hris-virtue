@@ -9,6 +9,7 @@ use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
@@ -73,21 +74,43 @@ class IzinController extends Controller
 
         $jumlahHari = $tanggalMulai->diffInDays($tanggalBerakhir) + 1;
 
-        $fotoPath = $this->storeFotoIzin($request, Auth::user()->nik_karyawan);
+        $fotoPath = '-';
 
-        $izin = Cuti::create([
-            'nik_karyawan' => Auth::user()->nik_karyawan,
-            'tanggal' => now(),
-            'jumlah' => $jumlahHari,
-            'tanggal_mulai' => $tanggalMulai->toDateString(),
-            'tanggal_berakhir' => $tanggalBerakhir->toDateString(),
-            'keterangan' => $data['keterangan'] ?? null,
-            'tipe' => $data['tipe'],
-            'status_pemohon' => $STATUS_PEMOHON, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
-            'status_hod' => $STATUS_HOD, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
-            'status_hrd' => $STATUS_HR, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
-            'foto' => $fotoPath,
-        ]);
+        try {
+            $fotoPath = $this->storeFotoIzin($request, Auth::user()->nik_karyawan);
+
+            $izin = DB::transaction(function () use (
+                $data,
+                $tanggalMulai,
+                $tanggalBerakhir,
+                $jumlahHari,
+                $fotoPath,
+                $STATUS_PEMOHON,
+                $STATUS_HOD,
+                $STATUS_HR
+            ) {
+                return Cuti::create([
+                    'nik_karyawan' => Auth::user()->nik_karyawan,
+                    'tanggal' => now(),
+                    'jumlah' => $jumlahHari,
+                    'tanggal_mulai' => $tanggalMulai->toDateString(),
+                    'tanggal_berakhir' => $tanggalBerakhir->toDateString(),
+                    'keterangan' => $data['keterangan'] ?? null,
+                    'tipe' => $data['tipe'],
+                    'tipe_izin' => $this->resolveTipeIzin($data),
+                    'status_pemohon' => $STATUS_PEMOHON, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
+                    'status_hod' => $STATUS_HOD, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
+                    'status_hrd' => $STATUS_HR, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
+                    'foto' => $fotoPath,
+                ]);
+            });
+        } catch (\Throwable $exception) {
+            $this->deleteFotoIzin($fotoPath);
+            report($exception);
+
+            toast()->error('Error', 'Pengajuan izin gagal disimpan. Periksa kembali data dan bukti izin, lalu coba lagi.');
+            return back()->withInput();
+        }
 
         app(ApprovalNotificationService::class)->notifyIzinSubmitted($izin->fresh(['employee']));
 
@@ -108,16 +131,38 @@ class IzinController extends Controller
         $tanggalMulai = Carbon::parse($data['tanggal_mulai']);
         $tanggalBerakhir = Carbon::parse($data['tanggal_berakhir']);
         $jumlahHari = $tanggalMulai->diffInDays($tanggalBerakhir) + 1;
-        $fotoPath = $this->storeFotoIzin($request, Auth::user()->nik_karyawan, $izin->foto);
+        $oldFotoPath = $izin->foto;
+        $hasNewFoto = $request->hasFile('foto');
+        $fotoPath = $oldFotoPath ?: '-';
 
-        $izin->update([
-            'jumlah' => $jumlahHari,
-            'tanggal_mulai' => $tanggalMulai->toDateString(),
-            'tanggal_berakhir' => $tanggalBerakhir->toDateString(),
-            'keterangan' => $data['keterangan'] ?? null,
-            'tipe' => $data['tipe'],
-            'foto' => $fotoPath,
-        ]);
+        try {
+            $fotoPath = $this->storeFotoIzin($request, Auth::user()->nik_karyawan, $oldFotoPath);
+
+            DB::transaction(function () use ($izin, $data, $tanggalMulai, $tanggalBerakhir, $jumlahHari, $fotoPath) {
+                $izin->update([
+                    'jumlah' => $jumlahHari,
+                    'tanggal_mulai' => $tanggalMulai->toDateString(),
+                    'tanggal_berakhir' => $tanggalBerakhir->toDateString(),
+                    'keterangan' => $data['keterangan'] ?? null,
+                    'tipe' => $data['tipe'],
+                    'tipe_izin' => $this->resolveTipeIzin($data),
+                    'foto' => $fotoPath,
+                ]);
+            });
+        } catch (\Throwable $exception) {
+            if ($hasNewFoto) {
+                $this->deleteFotoIzin($fotoPath);
+            }
+
+            report($exception);
+
+            toast()->error('Error', 'Pengajuan izin gagal diperbarui. Periksa kembali data dan bukti izin, lalu coba lagi.');
+            return back()->withInput();
+        }
+
+        if ($hasNewFoto) {
+            $this->deleteFotoIzin($oldFotoPath);
+        }
 
         toast()->success('Success', 'Pengajuan izin berhasil diperbarui');
         return redirect()->route('izin.index');
@@ -132,8 +177,20 @@ class IzinController extends Controller
             return redirect()->route('izin.index');
         }
 
-        $this->deleteFotoIzin($izin->foto);
-        $izin->delete();
+        $fotoPath = $izin->foto;
+
+        try {
+            DB::transaction(function () use ($izin) {
+                $izin->delete();
+            });
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            toast()->error('Error', 'Pengajuan izin gagal dihapus. Silakan coba lagi.');
+            return redirect()->route('izin.index');
+        }
+
+        $this->deleteFotoIzin($fotoPath);
 
         toast()->success('Success', 'Pengajuan izin berhasil dihapus');
         return redirect()->route('izin.index');
@@ -151,13 +208,16 @@ class IzinController extends Controller
         return (int) $izin->status_hod === 0 && (int) $izin->status_hrd === 0;
     }
 
+    private function resolveTipeIzin(array $data): ?string
+    {
+        return ($data['tipe'] ?? null) === 'PAID' ? ($data['tipe_izin'] ?? null) : null;
+    }
+
     private function storeFotoIzin(IzinRequest $request, string $nik, ?string $existingPath = null): string
     {
         if (!$request->hasFile('foto')) {
             return $existingPath ?: '-';
         }
-
-        $this->deleteFotoIzin($existingPath);
 
         $file = $request->file('foto');
         $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');

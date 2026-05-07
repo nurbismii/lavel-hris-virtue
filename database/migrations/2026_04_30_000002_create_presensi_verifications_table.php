@@ -15,7 +15,7 @@ class CreatePresensiVerificationsTable extends Migration
         Schema::create('presensi_verifications', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('presensi_id');
-            $table->unsignedBigInteger('nik_karyawan');
+            $table->string('nik_karyawan', 20);
             $table->date('tanggal');
             $table->string('attendance_type', 32);
             $table->string('status', 64);

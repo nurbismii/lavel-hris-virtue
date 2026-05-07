@@ -52,20 +52,17 @@ class RosterController extends Controller
     {
         $validated = $request->validated();
 
-        DB::beginTransaction();
-
         $statusPengajuanHod = 0;
         $statusPengajuanHrd = 0;
         $nikKaryawan = Auth::user()->nik_karyawan;
+        $storedFilePath = null;
+        $rosterNumberLockAcquired = false;
 
         try {
+            DB::beginTransaction();
 
-            $bulan = bulan_romawi(now()->format('m'));
-            $tahun = now()->format('Y');
-            $jumlah = Roster::whereYear('created_at', now()->year)->count();
-            $jml_cuti = no_urut_surat($jumlah + 1);
-
-            $nomor_surat = '02-' . $jml_cuti . '/BR/HRD-VDNI/' . $bulan . '/' . $tahun;
+            $rosterNumberLockAcquired = $this->acquireRosterNumberLock((int) now()->year);
+            $nomor_surat = $this->generateRosterNumber();
 
             $file_name = null;
 
@@ -74,7 +71,8 @@ class RosterController extends Controller
                 $upload = $request->file('berkas_cuti');
                 $file_name = 'roster_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(8)) . '.' . strtolower($upload->getClientOriginalExtension());
 
-                app(SensitiveFileStorageService::class)->storeUploadedFileAs($upload, 'cuti-roster/' . $nikKaryawan, $file_name);
+                $storedFilePath = app(SensitiveFileStorageService::class)->storeUploadedFileAs($upload, 'cuti-roster/' . $nikKaryawan, $file_name);
+                $file_name = basename($storedFilePath);
             }
 
             $roster = Roster::create([
@@ -134,19 +132,30 @@ class RosterController extends Controller
 
 
             DB::commit();
-
-            app(ApprovalNotificationService::class)->notifyRosterSubmitted($roster->fresh(['employee', 'periodeKerjaRoster']));
-
-            toast()->success('Success', 'Cuti Roster created successfully');
-            return back();
         } catch (\Throwable $e) {
 
-            DB::rollBack();
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            if ($storedFilePath) {
+                app(SensitiveFileStorageService::class)->delete($storedFilePath, ['cuti-roster/']);
+            }
+
             report($e);
 
             toast()->error('Error', 'Pengajuan roster gagal disimpan. Periksa kembali data dan lampiran, lalu coba lagi.');
-            return back();
+            return back()->withInput();
+        } finally {
+            if ($rosterNumberLockAcquired) {
+                $this->releaseRosterNumberLock((int) now()->year);
+            }
         }
+
+        app(ApprovalNotificationService::class)->notifyRosterSubmitted($roster->fresh(['employee', 'periodeKerjaRoster']));
+
+        toast()->success('Success', 'Cuti Roster created successfully');
+        return back();
     }
 
     public function edit($id)
@@ -172,10 +181,14 @@ class RosterController extends Controller
             return redirect()->route('roster.index');
         }
 
-        DB::beginTransaction();
         $nikKaryawan = Auth::user()->nik_karyawan;
+        $newStoredFilePath = null;
+        $oldFilePath = $roster->file
+            ? 'cuti-roster/' . $nikKaryawan . '/' . basename($roster->file)
+            : null;
 
         try {
+            DB::beginTransaction();
 
             $file_name = $roster->file; // default pakai file lama
 
@@ -184,14 +197,8 @@ class RosterController extends Controller
                 $upload = $request->file('berkas_cuti');
                 $file_name = 'roster_' . now()->format('YmdHis') . '_' . Str::lower(Str::random(8)) . '.' . strtolower($upload->getClientOriginalExtension());
 
-                if ($roster->file) {
-                    app(SensitiveFileStorageService::class)->delete(
-                        'cuti-roster/' . $nikKaryawan . '/' . basename($roster->file),
-                        ['cuti-roster/']
-                    );
-                }
-
-                app(SensitiveFileStorageService::class)->storeUploadedFileAs($upload, 'cuti-roster/' . $nikKaryawan, $file_name);
+                $newStoredFilePath = app(SensitiveFileStorageService::class)->storeUploadedFileAs($upload, 'cuti-roster/' . $nikKaryawan, $file_name);
+                $file_name = basename($newStoredFilePath);
             }
 
             $roster->update([
@@ -249,17 +256,28 @@ class RosterController extends Controller
             );
 
             DB::commit();
-
-            toast()->success('Success', 'Cuti Roster updated successfully');
-            return redirect()->route('roster.index');
         } catch (\Throwable $e) {
 
-            DB::rollBack();
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            if ($newStoredFilePath) {
+                app(SensitiveFileStorageService::class)->delete($newStoredFilePath, ['cuti-roster/']);
+            }
+
             report($e);
 
             toast()->error('Error', 'Pengajuan roster gagal diperbarui. Periksa kembali data dan lampiran, lalu coba lagi.');
-            return back();
+            return back()->withInput();
         }
+
+        if ($newStoredFilePath && $oldFilePath) {
+            app(SensitiveFileStorageService::class)->delete($oldFilePath, ['cuti-roster/']);
+        }
+
+        toast()->success('Success', 'Cuti Roster updated successfully');
+        return redirect()->route('roster.index');
     }
 
     public function destroy($id)
@@ -271,17 +289,99 @@ class RosterController extends Controller
             return redirect()->route('roster.index');
         }
 
-        if ($roster->file) {
-            app(SensitiveFileStorageService::class)->delete(
-                'cuti-roster/' . $roster->nik_karyawan . '/' . basename($roster->file),
-                ['cuti-roster/']
-            );
+        $filePath = $roster->file
+            ? 'cuti-roster/' . $roster->nik_karyawan . '/' . basename($roster->file)
+            : null;
+
+        try {
+            DB::transaction(function () use ($roster) {
+                $roster->periodeKerjaRoster()->delete();
+                $roster->delete();
+            });
+        } catch (\Throwable $e) {
+            report($e);
+
+            toast()->error('Error', 'Pengajuan roster gagal dihapus. Silakan coba lagi.');
+            return redirect()->route('roster.index');
         }
 
-        $roster->periodeKerjaRoster()->delete();
-        $roster->delete();
+        if ($filePath) {
+            app(SensitiveFileStorageService::class)->delete($filePath, ['cuti-roster/']);
+        }
+
         toast()->success('Success', 'Pengajuan roster berhasil dihapus');
         return redirect()->route('roster.index');
+    }
+
+    private function generateRosterNumber(): string
+    {
+        $bulan = bulan_romawi(now()->format('m'));
+        $tahun = now()->format('Y');
+        $jml_cuti = no_urut_surat($this->nextRosterNumberSequence($tahun));
+
+        return '02-' . $jml_cuti . '/BR/HRD-VDNI/' . $bulan . '/' . $tahun;
+    }
+
+    private function nextRosterNumberSequence(string $tahun): int
+    {
+        $pattern = '02-%/BR/HRD-VDNI/%/' . $tahun;
+
+        if (DB::getDriverName() === 'mysql') {
+            $maxSequence = Roster::where('nomor_surat', 'like', $pattern)
+                ->lockForUpdate()
+                ->selectRaw('MAX(CAST(SUBSTRING(nomor_surat, 4, 4) AS UNSIGNED)) as max_sequence')
+                ->value('max_sequence');
+
+            return ((int) $maxSequence) + 1;
+        }
+
+        $maxSequence = Roster::where('nomor_surat', 'like', $pattern)
+            ->lockForUpdate()
+            ->pluck('nomor_surat')
+            ->reduce(function (int $max, ?string $nomorSurat) use ($tahun) {
+                $regex = '/^02-(\d{4})\/BR\/HRD-VDNI\/[^\/]+\/' . preg_quote($tahun, '/') . '$/';
+
+                if (!$nomorSurat || !preg_match($regex, $nomorSurat, $matches)) {
+                    return $max;
+                }
+
+                return max($max, (int) $matches[1]);
+            }, 0);
+
+        return $maxSequence + 1;
+    }
+
+    private function acquireRosterNumberLock(int $year): bool
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            return false;
+        }
+
+        $result = DB::selectOne('SELECT GET_LOCK(?, 10) AS acquired', [$this->rosterNumberLockName($year)]);
+
+        if ((int) ($result->acquired ?? 0) !== 1) {
+            throw new \RuntimeException('Nomor surat roster sedang diproses. Silakan coba beberapa detik lagi.');
+        }
+
+        return true;
+    }
+
+    private function releaseRosterNumberLock(int $year): void
+    {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
+        try {
+            DB::selectOne('SELECT RELEASE_LOCK(?) AS released', [$this->rosterNumberLockName($year)]);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
+    }
+
+    private function rosterNumberLockName(int $year): string
+    {
+        return 'cuti_roster_nomor_surat_' . $year;
     }
 
     private function weeklyRosterPayload($request): array

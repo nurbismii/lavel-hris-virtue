@@ -665,11 +665,7 @@ class PresensiController extends Controller
             return;
         }
 
-        $absolutePath = public_path($normalizedPath);
-
-        if (File::isFile($absolutePath)) {
-            File::delete($absolutePath);
-        }
+        app(SensitiveFileStorageService::class)->delete($normalizedPath, ['presensi-selfie/']);
     }
 
     private function deleteStoredLivenessEvidence(array $paths): void

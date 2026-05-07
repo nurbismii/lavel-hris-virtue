@@ -46,7 +46,7 @@
                             <td>
                                 @if($isPending)
                                 <div class="d-flex gap-2 justify-content-center">
-                                    <form action="{{ route('approval.roster-off.hod.process', $offRequest->id) }}" method="POST" onsubmit="return confirm('Setujui pengajuan OFF roster ini?')">
+                                    <form action="{{ route('approval.roster-off.hod.process', $offRequest->id) }}" method="POST" data-approval-confirm-message="Setujui pengajuan OFF roster ini?">
                                         @csrf
                                         <input type="hidden" name="action" value="1">
                                         <button class="btn btn-success btn-sm">
@@ -54,17 +54,25 @@
                                             Approve
                                         </button>
                                     </form>
-                                    <form action="{{ route('approval.roster-off.hod.process', $offRequest->id) }}" method="POST" onsubmit="return confirm('Tolak pengajuan OFF roster ini?')">
+                                    <form action="{{ route('approval.roster-off.hod.process', $offRequest->id) }}" method="POST">
                                         @csrf
                                         <input type="hidden" name="action" value="2">
-                                        <button class="btn btn-danger btn-sm">
+                                        <button type="button" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
                                             <i class="fas fa-times me-1"></i>
                                             Reject
                                         </button>
                                     </form>
                                 </div>
+                                @elseif((int) $offRequest->status_hod === \App\Models\RosterOffRequest::STATUS_APPROVED && (int) $offRequest->status_hrd === \App\Models\RosterOffRequest::STATUS_PENDING)
+                                    <span class="badge bg-info">Menunggu HR</span>
+                                    <small class="d-block text-muted mt-1">Disetujui HOD</small>
+                                @elseif((int) $offRequest->status_hod === \App\Models\RosterOffRequest::STATUS_APPROVED && (int) $offRequest->status_hrd === \App\Models\RosterOffRequest::STATUS_APPROVED)
+                                    <span class="badge bg-success">Disetujui HR</span>
+                                    <small class="d-block text-muted mt-1">Proses selesai</small>
+                                @elseif((int) $offRequest->status_hod === \App\Models\RosterOffRequest::STATUS_APPROVED && (int) $offRequest->status_hrd === \App\Models\RosterOffRequest::STATUS_REJECTED)
+                                    <span class="badge bg-danger">Ditolak HR</span>
                                 @else
-                                    <span class="text-muted small">Sudah diproses</span>
+                                    <span class="badge bg-danger">Ditolak HOD</span>
                                 @endif
                             </td>
                         </tr>

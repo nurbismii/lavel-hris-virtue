@@ -32,6 +32,10 @@
                     </thead>
                     <tbody>
                         @foreach($cutis as $cuti)
+                        @php
+                            $hodStatus = (int) $cuti->status_pengajuan;
+                            $hrdStatus = (int) $cuti->status_pengajuan_hrd;
+                        @endphp
                         <tr>
                             <td>{{ $cuti->employee->nik }}</td>
                             <td>{{ $cuti->employee->nama_karyawan }}</td>
@@ -48,6 +52,7 @@
                                         <i class="fas fa-eye me-1"></i> Detail
                                     </a>
 
+                                    @if($hodStatus === 0)
                                     <form action="{{ route('approval.roster.hod.process', $cuti->id) }}"
                                         method="POST">
                                         @csrf
@@ -61,10 +66,19 @@
                                         method="POST">
                                         @csrf
                                         <input type="hidden" name="action" value="2">
-                                        <button class="btn btn-danger btn-sm">
+                                        <button type="button" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
                                             <i class="fas fa-times me-1"></i> Reject
                                         </button>
                                     </form>
+                                    @elseif($hodStatus === 1 && $hrdStatus === 0)
+                                        <span class="badge bg-info align-self-center">Menunggu HR</span>
+                                    @elseif($hodStatus === 1 && $hrdStatus === 1)
+                                        <span class="badge bg-success align-self-center">Disetujui HR</span>
+                                    @elseif($hodStatus === 1 && $hrdStatus === 2)
+                                        <span class="badge bg-danger align-self-center">Ditolak HR</span>
+                                    @else
+                                        <span class="badge bg-danger align-self-center">Ditolak HOD</span>
+                                    @endif
 
                                 </div>
                             </td>

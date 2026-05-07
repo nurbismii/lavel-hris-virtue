@@ -8,6 +8,7 @@
 @php
     $selectedTipe = old('tipe', $izin->tipe);
     $selectedTipe = in_array($selectedTipe, ['PAID', 'UNPAID']) ? $selectedTipe : null;
+    $selectedTipeIzin = old('tipe_izin', $izin->tipe_izin);
 @endphp
 
 <div class="container-fluid">
@@ -57,42 +58,42 @@
                         <label class="form-label fw-bold">Kategori Izin Berbayar</label>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Menikah ( 3 Hari )" {{ old('tipe_izin') === 'Izin Menikah ( 3 Hari )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Menikah ( 3 Hari )" {{ $selectedTipeIzin === 'Izin Menikah ( 3 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin Menikah ( 3 Hari )
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin menikahkan anak ( 2 Hari )" {{ old('tipe_izin') === 'Izin menikahkan anak ( 2 Hari )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin menikahkan anak ( 2 Hari )" {{ $selectedTipeIzin === 'Izin menikahkan anak ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin menikahkan anak ( 2 Hari )
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Khitan / Baptis anak ( 2 Hari )" {{ old('tipe_izin') === 'Izin Khitan / Baptis anak ( 2 Hari )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Khitan / Baptis anak ( 2 Hari )" {{ $selectedTipeIzin === 'Izin Khitan / Baptis anak ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin Khitan / Baptis anak ( 2 Hari )
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin istri melahirkan / Keguguran ( 2 Hari )" {{ old('tipe_izin') === 'Izin istri melahirkan / Keguguran ( 2 Hari )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin istri melahirkan / Keguguran ( 2 Hari )" {{ $selectedTipeIzin === 'Izin istri melahirkan / Keguguran ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin istri melahirkan / Keguguran ( 2 Hari )
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Duka keluarga ( 2 Hari )" {{ old('tipe_izin') === 'Izin Duka keluarga ( 2 Hari )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Duka keluarga ( 2 Hari )" {{ $selectedTipeIzin === 'Izin Duka keluarga ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Izin Duka keluarga ( 2 Hari )
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="radio" name="tipe_izin" value="Cuti melahirkan ( 3 Bulan )" {{ old('tipe_izin') === 'Cuti melahirkan ( 3 Bulan )' ? 'checked' : '' }}>
+                            <input class="form-check-input" type="radio" name="tipe_izin" value="Cuti melahirkan ( 3 Bulan )" {{ $selectedTipeIzin === 'Cuti melahirkan ( 3 Bulan )' ? 'checked' : '' }}>
                             <label class="form-check-label">
                                 Cuti melahirkan ( 3 Bulan )
                             </label>

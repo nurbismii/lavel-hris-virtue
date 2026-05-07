@@ -32,6 +32,10 @@
                     </thead>
                     <tbody>
                         @foreach($cutis as $cuti)
+                        @php
+                            $hodStatus = (int) $cuti->status_hod;
+                            $hrdStatus = (int) $cuti->status_hrd;
+                        @endphp
                         <tr>
                             <td>{{ $cuti->employee->nama_karyawan }}</td>
                             <td>{!! $cuti->status_tipe_label !!}</td>
@@ -41,15 +45,27 @@
                             <td>{{ $cuti->jumlah }} Hari</td>
                             <td>{!! $cuti->status_hod_label !!}</td>
                             <td>
+                                @if($hodStatus === 0)
                                 <form action="{{ route('approval.izin.hod.process', $cuti->id) }}" method="POST">
                                     @csrf
                                     <button name="action" value="1" class="btn btn-success btn-sm">
                                         Approve
                                     </button>
-                                    <button name="action" value="2" class="btn btn-danger btn-sm">
+                                    <button type="button" name="action" value="2" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
                                         Reject
                                     </button>
                                 </form>
+                                @elseif($hodStatus === 1 && $hrdStatus === 0)
+                                    <span class="badge bg-info">Menunggu HR</span>
+                                    <small class="d-block text-muted mt-1">Disetujui HOD</small>
+                                @elseif($hodStatus === 1 && $hrdStatus === 1)
+                                    <span class="badge bg-success">Disetujui HR</span>
+                                    <small class="d-block text-muted mt-1">Proses selesai</small>
+                                @elseif($hodStatus === 1 && $hrdStatus === 2)
+                                    <span class="badge bg-danger">Ditolak HR</span>
+                                @else
+                                    <span class="badge bg-danger">Ditolak HOD</span>
+                                @endif
                             </td>
                         </tr>
                         @endforeach

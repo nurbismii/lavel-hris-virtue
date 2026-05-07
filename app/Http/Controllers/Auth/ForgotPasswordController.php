@@ -18,7 +18,7 @@ class ForgotPasswordController extends Controller
     public function sendResetLinkEmail(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
         ]);
 
         $email = Str::lower($request->email);
@@ -38,9 +38,11 @@ class ForgotPasswordController extends Controller
         RateLimiter::hit($key, 86400); // 86400 detik = 1 hari
 
         $status = Password::sendResetLink(
-            $request->only('email')
+            ['email' => $email]
         );
 
-        return back()->with('status', __($status));
+        return back()->with('status', __(
+            $status === Password::RESET_LINK_SENT ? $status : Password::RESET_LINK_SENT
+        ));
     }
 }
