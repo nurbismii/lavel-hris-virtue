@@ -10,6 +10,7 @@ return [
     'attendance' => '考勤',
     'attendance_data' => '考勤数据',
     'attendance_location' => '考勤地点',
+    'audit_trail' => 'Audit Trail',
     'company' => '公司',
     'dashboard' => '仪表板',
     'dashboard_employee' => '员工仪表板',

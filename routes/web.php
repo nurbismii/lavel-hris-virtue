@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ApiController;
+use App\Http\Controllers\Admin\AuditTrailController;
 use App\Http\Controllers\Admin\NationalHolidayController;
 use App\Http\Controllers\Admin\OvertimeMasterController;
 use App\Http\Controllers\Admin\OvertimeOrderController as AdminOvertimeOrderController;
@@ -241,6 +242,10 @@ Route::middleware(['android.redirect'])->group(function () {
             ->names('overtime-orders');
 
         // === ROLE ===
+        Route::get('/audit-trails', [AuditTrailController::class, 'index'])
+            ->middleware(['menu:audit_trail', 'role:Super Admin,HR'])
+            ->name('audit-trails.index');
+
         Route::resource('/setting-role', '\App\Http\Controllers\Admin\SettingRoleController')
             ->except(['show'])
             ->middleware('menu:setting_role');

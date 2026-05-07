@@ -47,9 +47,12 @@ class IzinApprovalController extends Controller
                 ];
             }
 
+            $auditService = app(ApprovalAuditService::class);
+            $oldValues = $auditService->approvalValues('cuti_izin', $cuti);
+
             $cuti->update(array_merge([
                 'status_hod' => $action,
-            ], app(ApprovalAuditService::class)->payload(
+            ], $auditService->payload(
                 'cuti_izin',
                 'hod',
                 $action,
@@ -57,9 +60,21 @@ class IzinApprovalController extends Controller
                 $validated['note'] ?? null
             )));
 
+            $cuti = $cuti->fresh(['user', 'employee']);
+
+            $auditService->record(
+                'cuti_izin',
+                $cuti,
+                'hod',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null,
+                $oldValues
+            );
+
             return [
                 'status' => true,
-                'cuti' => $cuti->fresh(['user', 'employee']),
+                'cuti' => $cuti,
                 'approval_status' => $action === 1 ? 'Disetujui' : 'Ditolak',
             ];
         });
@@ -122,9 +137,12 @@ class IzinApprovalController extends Controller
                 ];
             }
 
+            $auditService = app(ApprovalAuditService::class);
+            $oldValues = $auditService->approvalValues('cuti_izin', $cuti);
+
             $cuti->update(array_merge([
                 'status_hrd' => $action,
-            ], app(ApprovalAuditService::class)->payload(
+            ], $auditService->payload(
                 'cuti_izin',
                 'hrd',
                 $action,
@@ -132,9 +150,21 @@ class IzinApprovalController extends Controller
                 $validated['note'] ?? null
             )));
 
+            $cuti = $cuti->fresh(['user', 'employee']);
+
+            $auditService->record(
+                'cuti_izin',
+                $cuti,
+                'hrd',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null,
+                $oldValues
+            );
+
             return [
                 'status' => true,
-                'cuti' => $cuti->fresh(['user', 'employee']),
+                'cuti' => $cuti,
                 'approval_status' => $action === 1 ? 'Disetujui' : 'Ditolak',
             ];
         });

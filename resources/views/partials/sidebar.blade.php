@@ -375,7 +375,7 @@
                     </li>
                 @endif
 
-                @if($can('setting_lokasi_presensi') || $can('setting_role') || $can('exit_portal'))
+                @if($can('setting_lokasi_presensi') || $can('setting_role') || $can('audit_trail') || $can('exit_portal'))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -398,6 +398,15 @@
                         <a href="{{ route('setting-role.index') }}">
                             <i class="fas fa-user-shield"></i>
                             <p>{{ __('navigation.role_access') }}</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('audit_trail'))
+                    <li class="nav-item {{ request()->routeIs('audit-trails.*') ? 'active' : '' }}">
+                        <a href="{{ route('audit-trails.index') }}">
+                            <i class="fas fa-clipboard-list"></i>
+                            <p>{{ __('navigation.audit_trail') }}</p>
                         </a>
                     </li>
                 @endif

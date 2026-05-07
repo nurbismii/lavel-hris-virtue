@@ -47,9 +47,12 @@ class RosterApprovalController extends Controller
                 ];
             }
 
+            $auditService = app(ApprovalAuditService::class);
+            $oldValues = $auditService->approvalValues('cuti_roster', $roster);
+
             $roster->update(array_merge([
                 'status_pengajuan' => $action,
-            ], app(ApprovalAuditService::class)->payload(
+            ], $auditService->payload(
                 'cuti_roster',
                 'hod',
                 $action,
@@ -57,9 +60,21 @@ class RosterApprovalController extends Controller
                 $validated['note'] ?? null
             )));
 
+            $roster = $roster->fresh(['user', 'employee', 'periodeKerjaRoster']);
+
+            $auditService->record(
+                'cuti_roster',
+                $roster,
+                'hod',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null,
+                $oldValues
+            );
+
             return [
                 'status' => true,
-                'roster' => $roster->fresh(['user', 'employee', 'periodeKerjaRoster']),
+                'roster' => $roster,
                 'approval_status' => $action === 1 ? 'Disetujui' : 'Ditolak',
             ];
         });
@@ -165,9 +180,12 @@ class RosterApprovalController extends Controller
                 ];
             }
 
+            $auditService = app(ApprovalAuditService::class);
+            $oldValues = $auditService->approvalValues('cuti_roster', $roster);
+
             $roster->update(array_merge([
                 'status_pengajuan_hrd' => $action,
-            ], app(ApprovalAuditService::class)->payload(
+            ], $auditService->payload(
                 'cuti_roster',
                 'hrd',
                 $action,
@@ -175,9 +193,21 @@ class RosterApprovalController extends Controller
                 $validated['note'] ?? null
             )));
 
+            $roster = $roster->fresh(['user', 'employee', 'periodeKerjaRoster']);
+
+            $auditService->record(
+                'cuti_roster',
+                $roster,
+                'hrd',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null,
+                $oldValues
+            );
+
             return [
                 'status' => true,
-                'roster' => $roster->fresh(['user', 'employee', 'periodeKerjaRoster']),
+                'roster' => $roster,
                 'approval_status' => $action === 1 ? 'Disetujui' : 'Ditolak',
             ];
         });

@@ -44,11 +44,14 @@ class RosterOffApprovalController extends Controller
                 ];
             }
 
+            $auditService = app(ApprovalAuditService::class);
+            $oldValues = $auditService->approvalValues('roster_off_requests', $offRequest);
+
             $offRequest->update(array_merge([
                 'status_hod' => $action,
                 'hod_processed_by' => (string) $request->user()->id,
                 'hod_processed_at' => now(),
-            ], app(ApprovalAuditService::class)->payload(
+            ], $auditService->payload(
                 'roster_off_requests',
                 'hod',
                 $action,
@@ -56,9 +59,21 @@ class RosterOffApprovalController extends Controller
                 $validated['note'] ?? null
             )));
 
+            $offRequest = $offRequest->fresh(['user', 'employee']);
+
+            $auditService->record(
+                'roster_off_requests',
+                $offRequest,
+                'hod',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null,
+                $oldValues
+            );
+
             return [
                 'status' => true,
-                'off_request' => $offRequest->fresh(['user', 'employee']),
+                'off_request' => $offRequest,
                 'approval_status' => $action === RosterOffRequest::STATUS_APPROVED ? 'Disetujui' : 'Ditolak',
             ];
         });
@@ -119,11 +134,14 @@ class RosterOffApprovalController extends Controller
                 ];
             }
 
+            $auditService = app(ApprovalAuditService::class);
+            $oldValues = $auditService->approvalValues('roster_off_requests', $offRequest);
+
             $offRequest->update(array_merge([
                 'status_hrd' => $action,
                 'hrd_processed_by' => (string) $request->user()->id,
                 'hrd_processed_at' => now(),
-            ], app(ApprovalAuditService::class)->payload(
+            ], $auditService->payload(
                 'roster_off_requests',
                 'hrd',
                 $action,
@@ -131,9 +149,21 @@ class RosterOffApprovalController extends Controller
                 $validated['note'] ?? null
             )));
 
+            $offRequest = $offRequest->fresh(['user', 'employee']);
+
+            $auditService->record(
+                'roster_off_requests',
+                $offRequest,
+                'hrd',
+                $action,
+                $request->user(),
+                $validated['note'] ?? null,
+                $oldValues
+            );
+
             return [
                 'status' => true,
-                'off_request' => $offRequest->fresh(['user', 'employee']),
+                'off_request' => $offRequest,
                 'approval_status' => $action === RosterOffRequest::STATUS_APPROVED ? 'Disetujui' : 'Ditolak',
             ];
         });

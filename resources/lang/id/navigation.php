@@ -10,6 +10,7 @@ return [
     'attendance' => 'Presensi',
     'attendance_data' => 'Data Presensi',
     'attendance_location' => 'Lokasi Presensi',
+    'audit_trail' => 'Audit Trail',
     'company' => 'Perusahaan',
     'dashboard' => 'Dashboard',
     'dashboard_employee' => 'Dashboard Karyawan',

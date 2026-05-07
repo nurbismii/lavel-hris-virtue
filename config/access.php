@@ -105,6 +105,10 @@ $menus = [
         'label' => 'Peran dan Akses',
         'group' => 'Admin Panel',
     ],
+    'audit_trail' => [
+        'label' => 'Audit Trail',
+        'group' => 'Admin Panel',
+    ],
     'exit_portal' => [
         'label' => 'Exit Portal',
         'group' => 'Admin Panel',
@@ -176,6 +180,7 @@ return [
             'pengaturan_shift',
             'lembur',
             'perusahaan',
+            'audit_trail',
             'cuti',
             'izin',
             'presensi',
