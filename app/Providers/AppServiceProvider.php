@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\AttendanceCorrection;
 use App\Models\Cuti;
 use App\Models\Roster;
 use App\Models\RosterOffRequest;
@@ -38,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
                 'izin' => 0,
                 'roster' => 0,
                 'roster_off' => 0,
+                'attendance_correction' => 0,
                 'total' => 0,
             ];
 
@@ -46,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
                 'izin' => 0,
                 'roster' => 0,
                 'roster_off' => 0,
+                'attendance_correction' => 0,
                 'total' => 0,
             ];
 
@@ -81,10 +84,18 @@ class AppServiceProvider extends ServiceProvider
                     )->count();
                 }
 
+                if (Schema::hasTable('attendance_corrections')) {
+                    $approvalHodCounts['attendance_correction'] = $user->applyEmployeeRelationScope(
+                        AttendanceCorrection::query()
+                            ->where('status_hod', AttendanceCorrection::STATUS_PENDING)
+                    )->count();
+                }
+
                 $approvalHodCounts['total'] = $approvalHodCounts['cuti']
                     + $approvalHodCounts['izin']
                     + $approvalHodCounts['roster']
-                    + $approvalHodCounts['roster_off'];
+                    + $approvalHodCounts['roster_off']
+                    + $approvalHodCounts['attendance_correction'];
             }
 
             if ($user->hasMenuAccess('approval_hr')) {
@@ -116,10 +127,19 @@ class AppServiceProvider extends ServiceProvider
                     )->count();
                 }
 
+                if (Schema::hasTable('attendance_corrections')) {
+                    $approvalHrCounts['attendance_correction'] = $user->applyEmployeeRelationScope(
+                        AttendanceCorrection::query()
+                            ->where('status_hod', AttendanceCorrection::STATUS_APPROVED)
+                            ->where('status_hrd', AttendanceCorrection::STATUS_PENDING)
+                    )->count();
+                }
+
                 $approvalHrCounts['total'] = $approvalHrCounts['cuti']
                     + $approvalHrCounts['izin']
                     + $approvalHrCounts['roster']
-                    + $approvalHrCounts['roster_off'];
+                    + $approvalHrCounts['roster_off']
+                    + $approvalHrCounts['attendance_correction'];
             }
 
             $view->with(compact('approvalHodCounts', 'approvalHrCounts'));

@@ -76,6 +76,8 @@ class AuditTrailController extends Controller
             'isTableReady' => $isTableReady,
             'moduleOptions' => [
                 'approval' => 'Approval',
+                'attendance_correction' => 'Koreksi Presensi',
+                'leave_balance' => 'Saldo Cuti',
             ],
         ]);
     }
@@ -87,6 +89,15 @@ class AuditTrailController extends Controller
             'approval.hod.rejected' => 'HOD menolak',
             'approval.hrd.approved' => 'HR menyetujui',
             'approval.hrd.rejected' => 'HR menolak',
+            'attendance_correction.submitted' => 'Koreksi presensi diajukan',
+            'attendance_correction.hod.approved' => 'Koreksi presensi disetujui HOD',
+            'attendance_correction.hod.rejected' => 'Koreksi presensi ditolak HOD',
+            'attendance_correction.hrd.approved' => 'Koreksi presensi disetujui HR',
+            'attendance_correction.hrd.rejected' => 'Koreksi presensi ditolak HR',
+            'attendance_correction.applied' => 'Koreksi presensi diterapkan',
+            'leave_balance.manual.credit' => 'Saldo cuti ditambah HR',
+            'leave_balance.manual.debit' => 'Saldo cuti dikurangi HR',
+            'leave_balance.usage.recorded' => 'Pemakaian cuti dicatat',
         ];
     }
 }

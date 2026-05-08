@@ -4,6 +4,7 @@ namespace App\Services\Cuti;
 
 use App\Models\Cuti;
 use App\Models\Employee;
+use App\Services\LeaveBalance\LeaveBalanceService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -42,7 +43,9 @@ class CutiService
                 ];
             }
 
-            if ($jumlahHari > (int) $employee->sisa_cuti) {
+            $currentBalance = app(LeaveBalanceService::class)->currentBalance($employee);
+
+            if ($jumlahHari > $currentBalance) {
                 return [
                     'status' => false,
                     'message' => 'Sisa cuti tidak cukup'
@@ -99,7 +102,9 @@ class CutiService
                 ];
             }
 
-            if ($jumlahHari > (int) $employee->sisa_cuti) {
+            $currentBalance = app(LeaveBalanceService::class)->currentBalance($employee);
+
+            if ($jumlahHari > $currentBalance) {
                 return [
                     'status' => false,
                     'message' => 'Sisa cuti tidak cukup'

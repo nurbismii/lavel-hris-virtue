@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Approval;
 
+use App\Exceptions\LeaveBalanceException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\Cuti;
 use App\Models\Employee;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
+use App\Services\LeaveBalance\LeaveBalanceService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
@@ -114,82 +116,93 @@ class CutiApprovalController extends Controller
         $validated = $request->validated();
         $action = (int) $validated['action'];
 
-        $result = DB::transaction(function () use ($request, $id, $action, $validated) {
-            $cuti = $request->user()
-                ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
-                ->where('tipe', 'CUTI')
-                ->whereKey($id)
-                ->lockForUpdate()
-                ->firstOrFail();
+        try {
+            $result = DB::transaction(function () use ($request, $id, $action, $validated) {
+                $cuti = $request->user()
+                    ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
+                    ->where('tipe', 'CUTI')
+                    ->whereKey($id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-            if ((int) $cuti->status_hod !== 1) {
+                if ((int) $cuti->status_hod !== 1) {
+                    return [
+                        'status' => false,
+                        'message' => 'Pengajuan belum disetujui HOD.',
+                    ];
+                }
+
+                if ((int) $cuti->status_hrd !== 0) {
+                    return [
+                        'status' => false,
+                        'message' => 'Pengajuan sudah diproses oleh HR.',
+                    ];
+                }
+
+                $employee = Employee::query()
+                    ->where('nik', $cuti->nik_karyawan)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$employee) {
+                    return [
+                        'status' => false,
+                        'message' => 'Data karyawan tidak ditemukan.',
+                    ];
+                }
+
+                $leaveBalanceService = app(LeaveBalanceService::class);
+
+                if ($action === 1 && $leaveBalanceService->currentBalance($employee) < (float) $cuti->jumlah) {
+                    return [
+                        'status' => false,
+                        'message' => 'Sisa cuti karyawan tidak cukup untuk approval ini.',
+                    ];
+                }
+
+                $auditService = app(ApprovalAuditService::class);
+                $oldValues = $auditService->approvalValues('cuti_izin', $cuti);
+
+                $cuti->update(array_merge([
+                    'status_hrd' => $action,
+                ], $auditService->payload(
+                    'cuti_izin',
+                    'hrd',
+                    $action,
+                    $request->user(),
+                    $validated['note'] ?? null
+                )));
+
+                if ($action === 1) {
+                    $leaveBalanceService->recordUsageForApprovedCuti(
+                        $cuti,
+                        $employee,
+                        $request->user()
+                    );
+                }
+
+                $cuti = $cuti->fresh(['user', 'employee']);
+
+                $auditService->record(
+                    'cuti_izin',
+                    $cuti,
+                    'hrd',
+                    $action,
+                    $request->user(),
+                    $validated['note'] ?? null,
+                    $oldValues
+                );
+
                 return [
-                    'status' => false,
-                    'message' => 'Pengajuan belum disetujui HOD.',
+                    'status' => true,
+                    'cuti' => $cuti,
+                    'approval_status' => $action === 1 ? 'Disetujui' : 'Ditolak',
                 ];
-            }
-
-            if ((int) $cuti->status_hrd !== 0) {
-                return [
-                    'status' => false,
-                    'message' => 'Pengajuan sudah diproses oleh HR.',
-                ];
-            }
-
-            $employee = Employee::query()
-                ->where('nik', $cuti->nik_karyawan)
-                ->lockForUpdate()
-                ->first();
-
-            if (!$employee) {
-                return [
-                    'status' => false,
-                    'message' => 'Data karyawan tidak ditemukan.',
-                ];
-            }
-
-            if ($action === 1 && (int) $employee->sisa_cuti < (int) $cuti->jumlah) {
-                return [
-                    'status' => false,
-                    'message' => 'Sisa cuti karyawan tidak cukup untuk approval ini.',
-                ];
-            }
-
-            $auditService = app(ApprovalAuditService::class);
-            $oldValues = $auditService->approvalValues('cuti_izin', $cuti);
-
-            $cuti->update(array_merge([
-                'status_hrd' => $action,
-            ], $auditService->payload(
-                'cuti_izin',
-                'hrd',
-                $action,
-                $request->user(),
-                $validated['note'] ?? null
-            )));
-
-            $cuti = $cuti->fresh(['user', 'employee']);
-
-            $auditService->record(
-                'cuti_izin',
-                $cuti,
-                'hrd',
-                $action,
-                $request->user(),
-                $validated['note'] ?? null,
-                $oldValues
-            );
-
-            if ($action === 1) {
-                $employee->decrement('sisa_cuti', (int) $cuti->jumlah);
-            }
-
-            return [
-                'status' => true,
-                'cuti' => $cuti,
-                'approval_status' => $action === 1 ? 'Disetujui' : 'Ditolak',
-            ];
-        });
+            });
+        } catch (LeaveBalanceException $exception) {
+            toast()->warning('Peringatan', $exception->getMessage());
+            return back();
+        }
 
         if (!$result['status']) {
             toast()->warning('Peringatan', $result['message']);

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ApiController;
 use App\Http\Controllers\Admin\AuditTrailController;
+use App\Http\Controllers\Admin\LeaveBalanceController;
 use App\Http\Controllers\Admin\NationalHolidayController;
 use App\Http\Controllers\Admin\OvertimeMasterController;
 use App\Http\Controllers\Admin\OvertimeOrderController as AdminOvertimeOrderController;
@@ -9,11 +10,13 @@ use App\Http\Controllers\Admin\SettingRoleController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\SlipGajiController;
 use App\Http\Controllers\Admin\WorkPatternController;
+use App\Http\Controllers\Approval\AttendanceCorrectionApprovalController;
 use App\Http\Controllers\Approval\CutiApprovalController;
 use App\Http\Controllers\Approval\IzinApprovalController;
 use App\Http\Controllers\Approval\RosterOffApprovalController;
 use App\Http\Controllers\Approval\RosterApprovalController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\User\AttendanceCorrectionController;
 use App\Http\Controllers\User\DashboardController;
 use App\Http\Controllers\User\NotificationController;
 use App\Http\Controllers\User\OvertimeOrderController as UserOvertimeOrderController;
@@ -64,6 +67,9 @@ Route::middleware(['android.redirect'])->group(function () {
     Route::middleware('auth')->group(function () {
         Route::get('/employee-photo/{nik}', [App\Http\Controllers\Admin\KaryawanController::class, 'photo'])
             ->name('employee.photo');
+        Route::get('/attendance-corrections/{attendanceCorrection}/attachment', [AttendanceCorrectionController::class, 'attachment'])
+            ->middleware('menu:attendance_correction,approval_hod,approval_hr')
+            ->name('attendance-corrections.attachment');
 
         Route::get('/email/verify', function () {
             return view('auth.verify-email');
@@ -104,6 +110,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::resource('/presensi', 'App\Http\Controllers\User\PresensiController')
             ->only(['index'])
             ->middleware('menu:presensi');
+        Route::resource('/attendance-corrections', AttendanceCorrectionController::class)
+            ->only(['index', 'create', 'store'])
+            ->middleware('menu:attendance_correction');
         Route::post('/absen/{type}', [PresensiController::class, 'store'])->middleware(['auth', 'menu:presensi', 'throttle:presensi']);
         Route::get('/izin/{izin}/bukti', [App\Http\Controllers\User\IzinController::class, 'proof'])
             ->middleware('menu:izin')
@@ -168,6 +177,15 @@ Route::middleware(['android.redirect'])->group(function () {
             ->only(['index', 'show'])
             ->middleware('menu:slip_gaji_admin');
         Route::get('/slip-gaji/{id}/pdf', [SlipGajiController::class, 'exportPdf'])->middleware('menu:slip_gaji_admin')->name('slip-gaji.pdf');
+        Route::get('/leave-balances', [LeaveBalanceController::class, 'index'])
+            ->middleware(['menu:leave_balance', 'role:Super Admin,HR'])
+            ->name('leave-balances.index');
+        Route::get('/leave-balances/{employee}', [LeaveBalanceController::class, 'show'])
+            ->middleware(['menu:leave_balance', 'role:Super Admin,HR'])
+            ->name('leave-balances.show');
+        Route::post('/leave-balances/{employee}/entries', [LeaveBalanceController::class, 'store'])
+            ->middleware(['menu:leave_balance', 'role:Super Admin,HR'])
+            ->name('leave-balances.store');
         Route::resource('/perusahaan', 'App\Http\Controllers\Admin\PerusahaanController')
             ->only(['index', 'show', 'edit', 'update'])
             ->middleware('menu:perusahaan');
@@ -307,6 +325,12 @@ Route::middleware(['android.redirect'])->group(function () {
 
         Route::get('/hrd/izin', [IzinApprovalController::class, 'hrdIndex'])->middleware('menu:approval_hr')->name('approval.izin.hrd');
         Route::post('/hrd/izin/{id}', [IzinApprovalController::class, 'hrdProcess'])->middleware('menu:approval_hr')->name('approval.izin.hrd.process');
+
+        Route::get('/hod/attendance-corrections', [AttendanceCorrectionApprovalController::class, 'hodIndex'])->middleware('menu:approval_hod')->name('approval.attendance-corrections.hod');
+        Route::post('/hod/attendance-corrections/{attendanceCorrection}', [AttendanceCorrectionApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.attendance-corrections.hod.process');
+
+        Route::get('/hrd/attendance-corrections', [AttendanceCorrectionApprovalController::class, 'hrdIndex'])->middleware('menu:approval_hr')->name('approval.attendance-corrections.hrd');
+        Route::post('/hrd/attendance-corrections/{attendanceCorrection}', [AttendanceCorrectionApprovalController::class, 'hrdProcess'])->middleware('menu:approval_hr')->name('approval.attendance-corrections.hrd.process');
     });
 
     Route::group(['prefix' => 'admin-divisi', 'middleware' => ['auth', 'menu:setting_hari_off']], function () {

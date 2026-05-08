@@ -74,4 +74,9 @@ class Employee extends Model
     {
         return $this->hasMany(OvertimeOrder::class, 'nik_karyawan', 'nik');
     }
+
+    public function leaveBalanceLedgers()
+    {
+        return $this->hasMany(LeaveBalanceLedger::class, 'employee_nik', 'nik');
+    }
 }

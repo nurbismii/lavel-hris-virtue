@@ -61,6 +61,10 @@ $menus = [
         'label' => 'Presensi Karyawan',
         'group' => 'Self Service',
     ],
+    'attendance_correction' => [
+        'label' => 'Koreksi Presensi',
+        'group' => 'Self Service',
+    ],
     'approval_hod' => [
         'label' => 'Approval HOD',
         'group' => 'Approval',
@@ -95,6 +99,10 @@ $menus = [
     ],
     'perusahaan' => [
         'label' => 'Perusahaan & Organisasi',
+        'group' => 'Operasional',
+    ],
+    'leave_balance' => [
+        'label' => 'Saldo Cuti',
         'group' => 'Operasional',
     ],
     'setting_lokasi_presensi' => [
@@ -180,10 +188,12 @@ return [
             'pengaturan_shift',
             'lembur',
             'perusahaan',
+            'leave_balance',
             'audit_trail',
             'cuti',
             'izin',
             'presensi',
+            'attendance_correction',
         ],
         'HOD' => [
             'dashboard_karyawan',
@@ -192,6 +202,7 @@ return [
             'cuti',
             'izin',
             'presensi',
+            'attendance_correction',
             'approval_hod',
             'setting_hari_off',
             'jadwal_kerja',
@@ -206,6 +217,7 @@ return [
             'cuti',
             'izin',
             'presensi',
+            'attendance_correction',
             'lembur',
         ],
         'Supervisor' => [
@@ -215,6 +227,7 @@ return [
             'cuti',
             'izin',
             'presensi',
+            'attendance_correction',
             'lembur',
         ],
         'Staff' => [
@@ -223,6 +236,7 @@ return [
             'cuti',
             'izin',
             'presensi',
+            'attendance_correction',
             'lembur',
         ],
         'Staff Roster' => [
@@ -233,6 +247,7 @@ return [
             'off_roster',
             'izin',
             'presensi',
+            'attendance_correction',
             'lembur',
         ],
         'Admin Divisi' => [
@@ -242,6 +257,7 @@ return [
             'cuti',
             'izin',
             'presensi',
+            'attendance_correction',
             'setting_hari_off',
             'jadwal_kerja',
             'master_shift',

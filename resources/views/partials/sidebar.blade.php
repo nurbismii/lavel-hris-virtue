@@ -120,7 +120,7 @@
                     </li>
                 @endif
 
-                @if($can('slip_gaji_user') || $can('cuti') || $can('roster') || $can('off_roster') || $can('izin') || $can('presensi') || ($can('lembur') && !$canManageOvertimeOrders))
+                @if($can('slip_gaji_user') || $can('cuti') || $can('roster') || $can('off_roster') || $can('izin') || $can('presensi') || $can('attendance_correction') || ($can('lembur') && !$canManageOvertimeOrders))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -183,6 +183,15 @@
                     </li>
                 @endif
 
+                @if($can('attendance_correction'))
+                    <li class="nav-item {{ request()->routeIs('attendance-corrections.*') ? 'active' : '' }}">
+                        <a href="{{ route('attendance-corrections.index') }}">
+                            <i class="fas fa-user-clock"></i>
+                            <p>{{ __('navigation.attendance_correction') }}</p>
+                        </a>
+                    </li>
+                @endif
+
                 @if($can('lembur') && !$canManageOvertimeOrders)
                     <li class="nav-item {{ request()->routeIs('lembur.*') ? 'active' : '' }}">
                         <a href="{{ route('lembur.index') }}">
@@ -241,6 +250,16 @@
                             @endif
                         </a>
                     </li>
+
+                    <li class="nav-item {{ request()->routeIs('approval.attendance-corrections.hod') ? 'active' : '' }}">
+                        <a href="{{ route('approval.attendance-corrections.hod') }}" class="{{ ($approvalHodCounts['attendance_correction'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
+                            <i class="fas fa-user-clock"></i>
+                            <p>{{ __('navigation.attendance_correction') }}</p>
+                            @if(($approvalHodCounts['attendance_correction'] ?? 0) > 0)
+                                <span class="badge badge-danger">{{ $approvalHodCounts['attendance_correction'] }}</span>
+                            @endif
+                        </a>
+                    </li>
                 @endif
 
                 @if($can('approval_hr'))
@@ -292,9 +311,19 @@
                             @endif
                         </a>
                     </li>
+
+                    <li class="nav-item {{ request()->routeIs('approval.attendance-corrections.hrd') ? 'active' : '' }}">
+                        <a href="{{ route('approval.attendance-corrections.hrd') }}" class="{{ ($approvalHrCounts['attendance_correction'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
+                            <i class="fas fa-user-clock"></i>
+                            <p>{{ __('navigation.attendance_correction') }}</p>
+                            @if(($approvalHrCounts['attendance_correction'] ?? 0) > 0)
+                                <span class="badge badge-danger">{{ $approvalHrCounts['attendance_correction'] }}</span>
+                            @endif
+                        </a>
+                    </li>
                 @endif
 
-                @if($can('setting_hari_off') || $can('master_tanggal_merah') || $can('jadwal_kerja') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan'))
+                @if($can('setting_hari_off') || $can('master_tanggal_merah') || $can('jadwal_kerja') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan') || $can('leave_balance'))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -371,6 +400,15 @@
                         <a href="{{ route('perusahaan.index') }}">
                             <i class="fas fa-hotel"></i>
                             <p>{{ __('navigation.company') }}</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('leave_balance'))
+                    <li class="nav-item {{ request()->routeIs('leave-balances.*') ? 'active' : '' }}">
+                        <a href="{{ route('leave-balances.index') }}">
+                            <i class="fas fa-calendar-check"></i>
+                            <p>{{ __('navigation.leave_balance') }}</p>
                         </a>
                     </li>
                 @endif

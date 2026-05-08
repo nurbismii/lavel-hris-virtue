@@ -162,6 +162,12 @@ $menuCatalog = [
 'tone' => 'primary',
 'description' => 'Lakukan presensi dan lihat catatan kehadiran.',
 ],
+'attendance_correction' => [
+'route_name' => 'attendance-corrections.index',
+'icon' => 'fas fa-user-clock',
+'tone' => 'sky',
+'description' => 'Ajukan koreksi jam atau status presensi yang perlu direview.',
+],
 'approval_hod' => [
 'route_name' => 'approval.cuti.hod',
 'icon' => 'fas fa-user-check',
@@ -275,6 +281,14 @@ if ($hour < 11) {
     'route' => route('presensi.index'),
     'icon' => 'fas fa-map-marker-alt',
     'tone' => 'primary',
+    ],
+    [
+    'menu' => 'attendance_correction',
+    'label' => 'Koreksi Presensi',
+    'description' => 'Ajukan koreksi jam atau status presensi yang perlu direview.',
+    'route' => route('attendance-corrections.index'),
+    'icon' => 'fas fa-user-clock',
+    'tone' => 'sky',
     ],
     [
     'menu' => 'slip_gaji_user',

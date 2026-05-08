@@ -25,6 +25,13 @@ class Cuti extends Model
         return $this->belongsTo(Employee::class, 'nik_karyawan')->select('nik', 'nama_karyawan', 'sisa_cuti', 'divisi_id', 'departemen_id');
     }
 
+    public function leaveUsageLedger()
+    {
+        return $this->hasOne(LeaveBalanceLedger::class, 'reference_id')
+            ->where('reference_type', 'cuti_izin')
+            ->where('entry_type', LeaveBalanceLedger::TYPE_USAGE);
+    }
+
     public function getStatusTipeLabelAttribute()
     {
         switch ($this->tipe) {

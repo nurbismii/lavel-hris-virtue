@@ -32,6 +32,11 @@ class CutiController extends Controller
             ->select('nik', 'nama_karyawan', 'sisa_cuti')
             ->first();
 
+        if ($karyawan) {
+            $karyawan->sisa_cuti = app(\App\Services\LeaveBalance\LeaveBalanceService::class)
+                ->currentBalance($karyawan);
+        }
+
         return view('user.cuti.create', [
             'karyawan' => $karyawan
         ]);
@@ -66,6 +71,11 @@ class CutiController extends Controller
     {
         $cuti = $this->findUserCuti($id);
         $karyawan = $cuti->employee;
+
+        if ($karyawan) {
+            $karyawan->sisa_cuti = app(\App\Services\LeaveBalance\LeaveBalanceService::class)
+                ->currentBalance($karyawan);
+        }
 
         if (!$this->canManageCuti($cuti)) {
             toast()->warning('Warning', 'Pengajuan cuti yang sudah diproses tidak dapat diedit');

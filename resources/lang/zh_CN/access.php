@@ -27,6 +27,7 @@ return [
         'off_roster' => ['label' => '轮休 OFF 申请'],
         'izin' => ['label' => '许可（带薪和无薪）'],
         'presensi' => ['label' => '员工考勤'],
+        'attendance_correction' => ['label' => 'Koreksi Presensi'],
         'approval_hod' => ['label' => 'HOD 审批'],
         'approval_hr' => ['label' => 'HR 审批'],
         'setting_hari_off' => ['label' => '休息日设置'],
