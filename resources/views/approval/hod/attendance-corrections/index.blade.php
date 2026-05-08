@@ -5,14 +5,14 @@
     <div class="page-inner">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="text-primary mb-1">Approval Koreksi Presensi</h3>
-                <small class="text-muted">Review HOD untuk pengajuan koreksi presensi karyawan.</small>
+                <h3 class="text-primary mb-1">Approval Pengajuan Presensi</h3>
+                <small class="text-muted">Review HOD untuk koreksi presensi dan izin presensi parsial karyawan.</small>
             </div>
         </div>
 
         @if(!$isTableReady)
             <div class="alert alert-warning">
-                Fitur koreksi presensi belum aktif karena tabel <code>attendance_corrections</code> belum tersedia. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+                Fitur pengajuan presensi belum aktif lengkap. Jalankan <code>php artisan migrate</code> terlebih dahulu.
             </div>
         @else
             <div class="card">
@@ -93,7 +93,7 @@
                                 @empty
                                     <tr>
                                         <td colspan="6" class="text-center text-muted py-4">
-                                            Tidak ada pengajuan koreksi presensi dalam scope Anda.
+                                            Tidak ada pengajuan presensi dalam scope Anda.
                                         </td>
                                     </tr>
                                 @endforelse

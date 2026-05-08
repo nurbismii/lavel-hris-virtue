@@ -9,6 +9,15 @@ class AttendanceCorrection extends Model
     public const STATUS_PENDING = 0;
     public const STATUS_APPROVED = 1;
     public const STATUS_REJECTED = 2;
+    public const REQUEST_TYPE_CORRECTION = 'correction';
+    public const REQUEST_TYPE_PARTIAL_PERMISSION = 'partial_permission';
+    public const PARTIAL_LATE_ARRIVAL = 'late_arrival';
+    public const PARTIAL_SICK = 'sick';
+    public const PARTIAL_HALF_DAY = 'half_day';
+    public const PARTIAL_EARLY_LEAVE = 'early_leave';
+    public const PARTIAL_OTHER = 'other';
+    public const PERIOD_MORNING = 'morning';
+    public const PERIOD_AFTERNOON = 'afternoon';
 
     protected $guarded = [];
 
@@ -71,6 +80,33 @@ class AttendanceCorrection extends Model
             'Izin Tidak Berbayar' => 'Izin Tidak Berbayar',
             'Libur Nasional' => 'Libur Nasional',
             'Off' => 'Off',
+        ];
+    }
+
+    public static function requestTypeOptions(): array
+    {
+        return [
+            self::REQUEST_TYPE_CORRECTION => 'Koreksi jam/status presensi',
+            self::REQUEST_TYPE_PARTIAL_PERMISSION => 'Izin presensi parsial',
+        ];
+    }
+
+    public static function partialPermissionOptions(): array
+    {
+        return [
+            self::PARTIAL_LATE_ARRIVAL => 'Izin datang telat',
+            self::PARTIAL_SICK => 'Izin sakit',
+            self::PARTIAL_HALF_DAY => 'Izin 0.5',
+            self::PARTIAL_EARLY_LEAVE => 'Izin pulang cepat',
+            self::PARTIAL_OTHER => 'Lainnya',
+        ];
+    }
+
+    public static function halfDayPeriodOptions(): array
+    {
+        return [
+            self::PERIOD_MORNING => 'Setengah hari pagi',
+            self::PERIOD_AFTERNOON => 'Setengah hari siang',
         ];
     }
 
@@ -142,9 +178,41 @@ class AttendanceCorrection extends Model
         return 'bg-warning text-dark';
     }
 
+    public function getRequestTypeLabelAttribute(): string
+    {
+        return self::requestTypeOptions()[$this->request_type ?: self::REQUEST_TYPE_CORRECTION] ?? 'Koreksi jam/status presensi';
+    }
+
+    public function getPartialPermissionLabelAttribute(): ?string
+    {
+        if (($this->request_type ?: self::REQUEST_TYPE_CORRECTION) !== self::REQUEST_TYPE_PARTIAL_PERMISSION) {
+            return null;
+        }
+
+        return self::partialPermissionOptions()[$this->partial_permission_type] ?? $this->partial_permission_type;
+    }
+
+    public function getPartialPermissionPeriodLabelAttribute(): ?string
+    {
+        if (!$this->partial_permission_period) {
+            return null;
+        }
+
+        return self::halfDayPeriodOptions()[$this->partial_permission_period] ?? $this->partial_permission_period;
+    }
+
     public function requestedChanges(): array
     {
         $changes = [];
+
+        if (($this->request_type ?: self::REQUEST_TYPE_CORRECTION) === self::REQUEST_TYPE_PARTIAL_PERMISSION) {
+            $changes['Jenis'] = $this->request_type_label;
+            $changes['Kategori'] = $this->partial_permission_label ?: '-';
+
+            if ($this->partial_permission_period_label) {
+                $changes['Periode'] = $this->partial_permission_period_label;
+            }
+        }
 
         foreach ([
             'jam_masuk' => 'Jam Masuk',
@@ -160,7 +228,7 @@ class AttendanceCorrection extends Model
         }
 
         if ($this->change_status_presensi) {
-            $changes['Status Presensi'] = $this->requested_status_presensi ?: 'Hadir normal';
+            $changes['Status Harian Khusus'] = $this->requested_status_presensi ?: 'Hadir normal';
         }
 
         return $changes;

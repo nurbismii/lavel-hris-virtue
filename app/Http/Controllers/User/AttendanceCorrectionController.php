@@ -15,7 +15,7 @@ class AttendanceCorrectionController extends Controller
 {
     public function index(Request $request)
     {
-        $isTableReady = Schema::hasTable('attendance_corrections');
+        $isTableReady = $this->isFeatureReady();
         $corrections = null;
 
         if ($isTableReady) {
@@ -36,6 +36,11 @@ class AttendanceCorrectionController extends Controller
 
     public function create(Request $request)
     {
+        if (!$this->isFeatureReady()) {
+            toast()->warning('Peringatan', 'Fitur pengajuan presensi belum aktif lengkap. Jalankan migrasi database terlebih dahulu.');
+            return redirect()->route('attendance-corrections.index');
+        }
+
         if (blank($request->user()->nik_karyawan)) {
             toast()->warning('Peringatan', 'Akun Anda belum terhubung dengan NIK karyawan.');
             return redirect()->route('attendance-corrections.index');
@@ -48,6 +53,9 @@ class AttendanceCorrectionController extends Controller
             ->get();
 
         return view('user.attendance-corrections.create', [
+            'halfDayPeriodOptions' => AttendanceCorrection::halfDayPeriodOptions(),
+            'partialPermissionOptions' => AttendanceCorrection::partialPermissionOptions(),
+            'requestTypeOptions' => AttendanceCorrection::requestTypeOptions(),
             'recentPresensi' => $recentPresensi,
             'statusOptions' => AttendanceCorrection::statusPresensiOptions(),
         ]);
@@ -55,8 +63,8 @@ class AttendanceCorrectionController extends Controller
 
     public function store(StoreAttendanceCorrectionRequest $request, AttendanceCorrectionService $service)
     {
-        if (!Schema::hasTable('attendance_corrections')) {
-            toast()->warning('Peringatan', 'Fitur koreksi presensi belum aktif. Jalankan migrasi database terlebih dahulu.');
+        if (!$this->isFeatureReady()) {
+            toast()->warning('Peringatan', 'Fitur pengajuan presensi belum aktif lengkap. Jalankan migrasi database terlebih dahulu.');
             return back()->withInput();
         }
 
@@ -107,5 +115,12 @@ class AttendanceCorrectionController extends Controller
         return $user->applyEmployeeRelationScope(
             AttendanceCorrection::query()->whereKey($attendanceCorrection->getKey())
         )->exists();
+    }
+
+    private function isFeatureReady(): bool
+    {
+        return Schema::hasTable('attendance_corrections')
+            && Schema::hasColumn('attendance_corrections', 'request_type')
+            && Schema::hasColumn('absensis', 'partial_permission_type');
     }
 }

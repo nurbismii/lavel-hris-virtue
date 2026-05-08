@@ -49,11 +49,16 @@ class AttendanceCorrectionService
                 if (!$employee) {
                     return [
                         'status' => false,
-                        'message' => 'Koreksi hanya bisa diajukan oleh karyawan aktif VDNI/VDNIP.',
+                        'message' => 'Pengajuan hanya bisa dibuat oleh karyawan aktif VDNI/VDNIP.',
                     ];
                 }
 
                 $tanggal = Carbon::parse($data['tanggal'])->toDateString();
+                $businessValidation = $this->validateBusinessRequest($data, $attachment);
+
+                if (!$businessValidation['status']) {
+                    return $businessValidation;
+                }
 
                 $activeRequest = AttendanceCorrection::query()
                     ->where('nik_karyawan', $employee->nik)
@@ -67,7 +72,7 @@ class AttendanceCorrectionService
                 if ($activeRequest) {
                     return [
                         'status' => false,
-                        'message' => 'Tanggal ini masih memiliki pengajuan koreksi yang aktif. Tunggu approval selesai atau ajukan tanggal lain.',
+                        'message' => 'Tanggal ini masih memiliki pengajuan aktif. Tunggu approval selesai atau ajukan tanggal lain.',
                     ];
                 }
 
@@ -103,7 +108,7 @@ class AttendanceCorrectionService
 
                 return [
                     'status' => true,
-                    'message' => 'Pengajuan koreksi presensi berhasil dikirim.',
+                    'message' => 'Pengajuan presensi berhasil dikirim.',
                     'correction' => $correction,
                 ];
             });
@@ -154,8 +159,8 @@ class AttendanceCorrectionService
             return [
                 'status' => true,
                 'message' => $action === AttendanceCorrection::STATUS_APPROVED
-                    ? 'Koreksi presensi disetujui oleh HOD dan menunggu HR.'
-                    : 'Koreksi presensi ditolak oleh HOD.',
+                    ? 'Pengajuan presensi disetujui oleh HOD dan menunggu HR.'
+                    : 'Pengajuan presensi ditolak oleh HOD.',
                 'correction' => $correction,
                 'approval_status' => $action === AttendanceCorrection::STATUS_APPROVED ? 'Disetujui' : 'Ditolak',
             ];
@@ -207,7 +212,7 @@ class AttendanceCorrectionService
 
                 return [
                     'status' => true,
-                    'message' => 'Koreksi presensi ditolak oleh HR.',
+                    'message' => 'Pengajuan presensi ditolak oleh HR.',
                     'correction' => $correction,
                     'approval_status' => 'Ditolak',
                 ];
@@ -255,7 +260,7 @@ class AttendanceCorrectionService
 
             return [
                 'status' => true,
-                'message' => 'Koreksi presensi disetujui HR dan data presensi sudah diperbarui.',
+                'message' => 'Pengajuan presensi disetujui HR dan data presensi sudah diperbarui.',
                 'correction' => $correction,
                 'approval_status' => 'Disetujui',
             ];
@@ -270,9 +275,71 @@ class AttendanceCorrectionService
         return $this->storage->storeUploadedFileAs($file, $directory, $filename);
     }
 
+    private function validateBusinessRequest(array $data, ?UploadedFile $attachment): array
+    {
+        $requestType = $data['request_type'] ?? AttendanceCorrection::REQUEST_TYPE_CORRECTION;
+
+        if ($requestType !== AttendanceCorrection::REQUEST_TYPE_PARTIAL_PERMISSION) {
+            $hasTimeChange = collect(self::ATTENDANCE_TIME_COLUMNS)
+                ->contains(fn($column) => filled($data[$column] ?? null));
+
+            if (!$hasTimeChange && blank($data['status_presensi'] ?? null)) {
+                return [
+                    'status' => false,
+                    'message' => 'Isi minimal satu jam koreksi atau status presensi yang perlu diperbaiki.',
+                ];
+            }
+
+            return ['status' => true];
+        }
+
+        $partialType = $data['partial_permission_type'] ?? null;
+
+        if (!in_array($partialType, array_keys(AttendanceCorrection::partialPermissionOptions()), true)) {
+            return [
+                'status' => false,
+                'message' => 'Kategori izin presensi parsial wajib dipilih.',
+            ];
+        }
+
+        if (filled($data['status_presensi'] ?? null)) {
+            return [
+                'status' => false,
+                'message' => 'Status harian khusus tidak digunakan untuk izin presensi parsial.',
+            ];
+        }
+
+        if ($partialType === AttendanceCorrection::PARTIAL_HALF_DAY
+            && !in_array($data['partial_permission_period'] ?? null, array_keys(AttendanceCorrection::halfDayPeriodOptions()), true)) {
+            return [
+                'status' => false,
+                'message' => 'Pilih setengah hari pagi atau setengah hari siang.',
+            ];
+        }
+
+        if ($partialType === AttendanceCorrection::PARTIAL_SICK && !$attachment) {
+            return [
+                'status' => false,
+                'message' => 'Izin sakit wajib melampirkan surat keterangan sakit.',
+            ];
+        }
+
+        return ['status' => true];
+    }
+
     private function requestedValues(string $tanggal, array $data): array
     {
-        $values = [];
+        $requestType = $data['request_type'] ?? AttendanceCorrection::REQUEST_TYPE_CORRECTION;
+        $values = [
+            'request_type' => $requestType,
+            'partial_permission_type' => $requestType === AttendanceCorrection::REQUEST_TYPE_PARTIAL_PERMISSION
+                ? ($data['partial_permission_type'] ?? null)
+                : null,
+            'partial_permission_period' => $requestType === AttendanceCorrection::REQUEST_TYPE_PARTIAL_PERMISSION
+                && ($data['partial_permission_type'] ?? null) === AttendanceCorrection::PARTIAL_HALF_DAY
+                    ? ($data['partial_permission_period'] ?? null)
+                    : null,
+        ];
 
         foreach (self::ATTENDANCE_TIME_COLUMNS as $column) {
             $values['requested_' . $column] = filled($data[$column] ?? null)
@@ -280,7 +347,9 @@ class AttendanceCorrectionService
                 : null;
         }
 
-        $statusInput = $data['status_presensi'] ?? null;
+        $statusInput = $requestType === AttendanceCorrection::REQUEST_TYPE_CORRECTION
+            ? ($data['status_presensi'] ?? null)
+            : null;
         $values['change_status_presensi'] = filled($statusInput);
         $values['requested_status_presensi'] = filled($statusInput)
             ? ($statusInput === '__clear__' ? null : $statusInput)
@@ -328,6 +397,13 @@ class AttendanceCorrectionService
             $presensi->status_presensi = $correction->requested_status_presensi;
         }
 
+        if (($correction->request_type ?: AttendanceCorrection::REQUEST_TYPE_CORRECTION) === AttendanceCorrection::REQUEST_TYPE_PARTIAL_PERMISSION) {
+            $presensi->partial_permission_type = $correction->partial_permission_type;
+            $presensi->partial_permission_period = $correction->partial_permission_period;
+            $presensi->partial_permission_note = Str::limit((string) $correction->reason, 500, '');
+            $presensi->partial_permission_correction_id = $correction->id;
+        }
+
         $presensi->save();
 
         return $presensi->fresh();
@@ -343,6 +419,10 @@ class AttendanceCorrectionService
                 'jam_kembali_istirahat' => null,
                 'jam_pulang' => null,
                 'status_presensi' => null,
+                'partial_permission_type' => null,
+                'partial_permission_period' => null,
+                'partial_permission_note' => null,
+                'partial_permission_correction_id' => null,
             ];
         }
 
@@ -353,6 +433,10 @@ class AttendanceCorrectionService
             'jam_kembali_istirahat' => $this->formatDateTime($presensi->jam_kembali_istirahat),
             'jam_pulang' => $this->formatDateTime($presensi->jam_pulang),
             'status_presensi' => $presensi->status_presensi,
+            'partial_permission_type' => $presensi->partial_permission_type,
+            'partial_permission_period' => $presensi->partial_permission_period,
+            'partial_permission_note' => $presensi->partial_permission_note,
+            'partial_permission_correction_id' => $presensi->partial_permission_correction_id,
         ];
     }
 
@@ -360,6 +444,9 @@ class AttendanceCorrectionService
     {
         $values = [
             'tanggal' => optional($correction->tanggal)->toDateString(),
+            'request_type' => $correction->request_type ?: AttendanceCorrection::REQUEST_TYPE_CORRECTION,
+            'partial_permission_type' => $correction->partial_permission_type,
+            'partial_permission_period' => $correction->partial_permission_period,
             'reason' => $correction->reason,
             'attachment' => $correction->attachment_path ? 'available' : null,
         ];

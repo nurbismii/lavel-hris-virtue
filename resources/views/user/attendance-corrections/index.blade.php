@@ -5,8 +5,8 @@
     <div class="page-inner">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
-                <h3 class="text-primary mb-1">Koreksi Presensi</h3>
-                <small class="text-muted">Riwayat pengajuan koreksi jam dan status presensi Anda.</small>
+                <h3 class="text-primary mb-1">Pengajuan Presensi</h3>
+                <small class="text-muted">Riwayat koreksi jam/status dan izin presensi parsial Anda.</small>
             </div>
             <a href="{{ route('attendance-corrections.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-1"></i> Ajukan Koreksi
@@ -15,7 +15,7 @@
 
         @if(!$isTableReady)
             <div class="alert alert-warning">
-                Fitur koreksi presensi belum aktif karena tabel <code>attendance_corrections</code> belum tersedia. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+                Fitur pengajuan presensi belum aktif lengkap. Jalankan <code>php artisan migrate</code> terlebih dahulu.
             </div>
         @else
             <div class="card">

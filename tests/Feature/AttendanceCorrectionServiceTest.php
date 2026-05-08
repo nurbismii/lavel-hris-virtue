@@ -121,6 +121,46 @@ class AttendanceCorrectionServiceTest extends TestCase
         $this->assertSame(1, AttendanceCorrection::count());
     }
 
+    public function test_hr_approval_applies_partial_permission_to_attendance(): void
+    {
+        $this->seedEmployee();
+        $service = app(AttendanceCorrectionService::class);
+
+        $submission = $service->submit($this->makeUser(), [
+            'request_type' => AttendanceCorrection::REQUEST_TYPE_PARTIAL_PERMISSION,
+            'partial_permission_type' => AttendanceCorrection::PARTIAL_HALF_DAY,
+            'partial_permission_period' => AttendanceCorrection::PERIOD_MORNING,
+            'tanggal' => '2026-05-08',
+            'reason' => 'Izin setengah hari pagi untuk keperluan keluarga mendesak.',
+        ]);
+
+        $correction = $submission['correction'];
+        $service->processHod($correction, $this->makeApprover('hod-user', 'HOD User', 'HOD'), AttendanceCorrection::STATUS_APPROVED);
+        $service->processHrd($correction->fresh(), $this->makeApprover('hr-user', 'HR User', 'HR'), AttendanceCorrection::STATUS_APPROVED);
+
+        $presensi = Presensi::where('nik_karyawan', 'EMP001')->whereDate('tanggal', '2026-05-08')->first();
+
+        $this->assertSame(AttendanceCorrection::PARTIAL_HALF_DAY, $presensi->partial_permission_type);
+        $this->assertSame(AttendanceCorrection::PERIOD_MORNING, $presensi->partial_permission_period);
+        $this->assertSame($correction->id, (int) $presensi->partial_permission_correction_id);
+    }
+
+    public function test_sick_partial_permission_requires_attachment(): void
+    {
+        $this->seedEmployee();
+
+        $result = app(AttendanceCorrectionService::class)->submit($this->makeUser(), [
+            'request_type' => AttendanceCorrection::REQUEST_TYPE_PARTIAL_PERMISSION,
+            'partial_permission_type' => AttendanceCorrection::PARTIAL_SICK,
+            'tanggal' => '2026-05-08',
+            'reason' => 'Sakit dan perlu pemeriksaan di klinik.',
+        ]);
+
+        $this->assertFalse($result['status']);
+        $this->assertSame('Izin sakit wajib melampirkan surat keterangan sakit.', $result['message']);
+        $this->assertSame(0, AttendanceCorrection::count());
+    }
+
     private function createSchema(): void
     {
         Schema::create('employees', function (Blueprint $table) {
@@ -151,6 +191,10 @@ class AttendanceCorrectionServiceTest extends TestCase
             $table->dateTime('jam_kembali_istirahat')->nullable();
             $table->dateTime('jam_pulang')->nullable();
             $table->string('status_presensi', 100)->nullable();
+            $table->string('partial_permission_type', 40)->nullable();
+            $table->string('partial_permission_period', 20)->nullable();
+            $table->string('partial_permission_note', 500)->nullable();
+            $table->unsignedBigInteger('partial_permission_correction_id')->nullable();
             $table->timestamps();
         });
 
@@ -159,6 +203,9 @@ class AttendanceCorrectionServiceTest extends TestCase
             $table->string('nik_karyawan', 32);
             $table->unsignedBigInteger('presensi_id')->nullable();
             $table->date('tanggal');
+            $table->string('request_type', 40)->default('correction');
+            $table->string('partial_permission_type', 40)->nullable();
+            $table->string('partial_permission_period', 20)->nullable();
             $table->dateTime('requested_jam_masuk')->nullable();
             $table->dateTime('requested_jam_istirahat')->nullable();
             $table->dateTime('requested_jam_kembali_istirahat')->nullable();

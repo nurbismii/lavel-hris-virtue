@@ -8,7 +8,7 @@ return [
     'approval_hr' => 'Approval HR',
     'area_distribution' => 'Distribusi Wilayah',
     'attendance' => 'Presensi',
-    'attendance_correction' => 'Koreksi Presensi',
+    'attendance_correction' => 'Pengajuan Presensi',
     'attendance_data' => 'Data Presensi',
     'attendance_location' => 'Lokasi Presensi',
     'audit_trail' => 'Audit Trail',

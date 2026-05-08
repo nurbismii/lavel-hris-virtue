@@ -27,7 +27,7 @@ return [
         'off_roster' => ['label' => 'Pengajuan OFF Roster'],
         'izin' => ['label' => 'Izin (Paid & Unpaid)'],
         'presensi' => ['label' => 'Presensi Karyawan'],
-        'attendance_correction' => ['label' => 'Koreksi Presensi'],
+        'attendance_correction' => ['label' => 'Pengajuan Presensi'],
         'approval_hod' => ['label' => 'Approval HOD'],
         'approval_hr' => ['label' => 'Approval HR'],
         'setting_hari_off' => ['label' => 'Setting Hari Off'],

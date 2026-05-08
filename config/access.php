@@ -62,7 +62,7 @@ $menus = [
         'group' => 'Self Service',
     ],
     'attendance_correction' => [
-        'label' => 'Koreksi Presensi',
+        'label' => 'Pengajuan Presensi',
         'group' => 'Self Service',
     ],
     'approval_hod' => [

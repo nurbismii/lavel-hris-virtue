@@ -8,7 +8,7 @@ return [
     'approval_hr' => 'HR 审批',
     'area_distribution' => '区域分配',
     'attendance' => '考勤',
-    'attendance_correction' => 'Koreksi Presensi',
+    'attendance_correction' => 'Pengajuan Presensi',
     'attendance_data' => '考勤数据',
     'attendance_location' => '考勤地点',
     'audit_trail' => 'Audit Trail',

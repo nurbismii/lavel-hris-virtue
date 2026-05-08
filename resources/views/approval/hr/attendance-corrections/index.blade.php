@@ -5,14 +5,14 @@
     <div class="page-inner">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="text-primary mb-1">Approval HR Koreksi Presensi</h3>
-                <small class="text-muted">Approval final HR sekaligus penerapan koreksi ke data presensi.</small>
+                <h3 class="text-primary mb-1">Approval HR Pengajuan Presensi</h3>
+                <small class="text-muted">Approval final HR sekaligus penerapan koreksi atau izin parsial ke data presensi.</small>
             </div>
         </div>
 
         @if(!$isTableReady)
             <div class="alert alert-warning">
-                Fitur koreksi presensi belum aktif karena tabel <code>attendance_corrections</code> belum tersedia. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+                Fitur pengajuan presensi belum aktif lengkap. Jalankan <code>php artisan migrate</code> terlebih dahulu.
             </div>
         @else
             <div class="card">
@@ -84,7 +84,7 @@
                                 @empty
                                     <tr>
                                         <td colspan="6" class="text-center text-muted py-4">
-                                            Tidak ada koreksi presensi yang menunggu approval HR.
+                                            Tidak ada pengajuan presensi yang menunggu approval HR.
                                         </td>
                                     </tr>
                                 @endforelse

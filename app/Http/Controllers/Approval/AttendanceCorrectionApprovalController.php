@@ -14,7 +14,7 @@ class AttendanceCorrectionApprovalController extends Controller
 {
     public function hodIndex(Request $request)
     {
-        $isTableReady = Schema::hasTable('attendance_corrections');
+        $isTableReady = $this->isFeatureReady();
         $corrections = null;
 
         if ($isTableReady) {
@@ -67,7 +67,7 @@ class AttendanceCorrectionApprovalController extends Controller
 
     public function hrdIndex(Request $request)
     {
-        $isTableReady = Schema::hasTable('attendance_corrections');
+        $isTableReady = $this->isFeatureReady();
         $corrections = null;
 
         if ($isTableReady) {
@@ -130,10 +130,17 @@ class AttendanceCorrectionApprovalController extends Controller
         $tanggal = optional($correction->tanggal)->format('d/m/Y');
 
         $user->notify(new StatusPengajuanNotification([
-            'judul' => 'Koreksi Presensi ' . $status,
-            'pesan' => 'Koreksi presensi tanggal ' . $tanggal . ' telah ' . strtolower($status) . ' oleh ' . $approverLabel . '.',
+            'judul' => 'Pengajuan Presensi ' . $status,
+            'pesan' => 'Pengajuan presensi tanggal ' . $tanggal . ' telah ' . strtolower($status) . ' oleh ' . $approverLabel . '.',
             'url' => route('attendance-corrections.index'),
-            'tipe' => 'Koreksi Presensi',
+            'tipe' => 'Pengajuan Presensi',
         ]));
+    }
+
+    private function isFeatureReady(): bool
+    {
+        return Schema::hasTable('attendance_corrections')
+            && Schema::hasColumn('attendance_corrections', 'request_type')
+            && Schema::hasColumn('absensis', 'partial_permission_type');
     }
 }
