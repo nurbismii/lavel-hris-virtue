@@ -4,6 +4,7 @@
     $activeLocale = $currentLocale ?? app()->getLocale();
     $activeLocaleMeta = $availableLocales[$activeLocale] ?? reset($availableLocales);
     $switcherClass = $class ?? '';
+    $switcherId = $id ?? 'languageSwitcherDropdown';
 @endphp
 
 @if(count($availableLocales) > 1)
@@ -11,14 +12,14 @@
         <button
             class="btn btn-light btn-sm dropdown-toggle language-switcher__toggle"
             type="button"
-            id="languageSwitcherDropdown"
+            id="{{ $switcherId }}"
             data-bs-toggle="dropdown"
             aria-expanded="false">
             <i class="fas fa-globe-asia"></i>
             <span>{{ $activeLocaleMeta['short_label'] ?? strtoupper($activeLocale) }}</span>
         </button>
 
-        <div class="dropdown-menu dropdown-menu-end shadow border-0 language-switcher__menu" aria-labelledby="languageSwitcherDropdown">
+        <div class="dropdown-menu dropdown-menu-end shadow border-0 language-switcher__menu" aria-labelledby="{{ $switcherId }}">
             @foreach($availableLocales as $localeCode => $localeMeta)
                 <form method="POST" action="{{ route('locale.update', $localeCode) }}" class="m-0">
                     @csrf

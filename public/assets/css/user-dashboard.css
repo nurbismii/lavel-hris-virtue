@@ -785,7 +785,7 @@
     }
 
     .dashboard-shell {
-        padding-top: 16px;
+        padding-top: 0;
     }
 
     .hero-body {
@@ -893,7 +893,7 @@
     }
 
     .dashboard-shell {
-        padding-top: 10px;
+        padding-top: 0;
     }
 
     /* HERO dibuat lebih pendek */

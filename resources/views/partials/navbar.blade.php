@@ -4,8 +4,8 @@
 
         <ul class="navbar-nav topbar-nav ms-md-auto align-items-center">
 
-            <li class="nav-item me-2">
-                @include('partials.language-switcher')
+            <li class="nav-item me-2 navbar-language-desktop">
+                @include('partials.language-switcher', ['id' => 'languageSwitcherDesktopDropdown'])
             </li>
 
             <li class="nav-item topbar-icon dropdown hidden-caret">

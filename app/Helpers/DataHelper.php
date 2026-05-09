@@ -77,13 +77,28 @@ if (!function_exists('versioned_asset')) {
     function versioned_asset($path)
     {
         $normalizedPath = ltrim($path, '/');
-        $fullPath = public_path($normalizedPath);
+        $pathWithoutQuery = explode('?', $normalizedPath, 2)[0];
         $assetUrl = asset($normalizedPath);
+        $configuredVersion = config('app.asset_version');
 
-        if (!file_exists($fullPath)) {
+        if ($configuredVersion !== null) {
+            $configuredVersion = trim((string) $configuredVersion);
+        }
+
+        if ($configuredVersion !== null && $configuredVersion !== '') {
+            $separator = strpos($assetUrl, '?') === false ? '?' : '&';
+
+            return $assetUrl . $separator . 'v=' . rawurlencode((string) $configuredVersion);
+        }
+
+        $fullPath = public_path($pathWithoutQuery);
+
+        if (!is_file($fullPath)) {
             return $assetUrl;
         }
 
-        return $assetUrl . '?v=' . filemtime($fullPath);
+        $separator = strpos($assetUrl, '?') === false ? '?' : '&';
+
+        return $assetUrl . $separator . 'v=' . filemtime($fullPath);
     }
 }

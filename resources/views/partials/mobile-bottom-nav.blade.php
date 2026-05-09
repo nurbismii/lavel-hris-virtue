@@ -2,9 +2,6 @@
     @php
         $mobileNavItems = [];
         $canManageOvertimeOrders = auth()->user()->hasRole(['Super Admin', 'HR', 'HOD', 'Admin Divisi']);
-        $localeService = app(\App\Services\Localization\LocaleService::class);
-        $availableLocales = $localeService->supportedLocales();
-        $activeLocale = app()->getLocale();
 
         if (auth()->user()->hasMenuAccess('dashboard_karyawan')) {
             $mobileNavItems[] = [
@@ -82,24 +79,6 @@
             ],
         ];
 
-        if (count($availableLocales) > 1) {
-            $profileIndex = count($mobileNavItems) - 1;
-            $languageItems = collect($availableLocales)
-                ->map(function ($localeMeta, $localeCode) use ($activeLocale) {
-                    return [
-                        'label' => $localeMeta['native_name'] ?? strtoupper($localeCode),
-                        'short_label' => $localeMeta['short_label'] ?? strtoupper($localeCode),
-                        'route' => route('locale.update', $localeCode),
-                        'icon' => 'fas fa-globe-asia',
-                        'action' => 'locale',
-                        'active' => $activeLocale === $localeCode,
-                    ];
-                })
-                ->values()
-                ->all();
-
-            array_splice($mobileNavItems[$profileIndex]['children'], 0, 0, $languageItems);
-        }
     @endphp
     @if(count($mobileNavItems) > 0)
     <nav class="mobile-bottom-nav" aria-label="{{ __('navigation.mobile_navigation') }}">

@@ -56,6 +56,12 @@
                     </div>
                     <!-- End Logo Header -->
                 </div>
+                <div class="mobile-top-language d-lg-none">
+                    @include('partials.language-switcher', [
+                        'class' => 'language-switcher--mobile-top',
+                        'id' => 'languageSwitcherMobileTopDropdown',
+                    ])
+                </div>
                 <!-- Navbar Header -->
                 @include('partials.navbar')
                 <!-- End Navbar -->
