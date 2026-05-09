@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use RealRashid\SweetAlert\Facades\Alert;
 use Throwable;
 
 class PresensiController extends Controller
@@ -430,7 +431,7 @@ class PresensiController extends Controller
             )->onQueue((string) config('services.presensi_face.queue', 'default'));
         }
 
-        toast()->warning('Menunggu Verifikasi', 'Status akan diperbarui otomatis setelah verifikasi wajah selesai.');
+        Alert::success('Berhasil', 'Presensi berhasil disimpan.')->autoClose(3000);    
 
         return back();
     }
@@ -438,12 +439,13 @@ class PresensiController extends Controller
     private function failPresensi(string $message, string $level = 'error')
     {
         if ($level === 'warning') {
-            toast()->warning('Peringatan', $message);
+            Alert::warning('Peringatan', $message);
         } else {
-            toast()->error('Error', $message);
+            Alert::error('Error', $message);
         }
 
-        return back()->with('error', $message);
+        Alert::error('Error', $message);
+        return back();
     }
 
     private function failPresensiValidation(string $message): void
