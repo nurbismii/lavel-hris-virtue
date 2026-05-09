@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Employee;
 use App\Models\User;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\ImportHistory\ImportHistoryService;
 use App\Services\Karyawan\EmployeeMediaService;
 use App\Support\ZipArchiveStatus;
 use Illuminate\Bus\Queueable;
@@ -37,14 +38,16 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
     protected $uploaderId;
     protected $offset;
     protected $importId;
+    protected $importHistoryId;
 
-    public function __construct(string $zipPath, string $mediaType, string $uploaderId, int $offset = 0, ?string $importId = null)
+    public function __construct(string $zipPath, string $mediaType, string $uploaderId, int $offset = 0, ?string $importId = null, ?int $importHistoryId = null)
     {
         $this->zipPath = $zipPath;
         $this->mediaType = $mediaType;
         $this->uploaderId = $uploaderId;
         $this->offset = $offset;
         $this->importId = $importId ?: (string) Str::uuid();
+        $this->importHistoryId = $importHistoryId;
         $this->onQueue(config('queue.connections.' . config('queue.default') . '.queue', 'default'));
         $this->bootstrapSummaryFile();
     }
@@ -54,6 +57,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $uploader = User::find($this->uploaderId);
         $summary = $this->defaultSummary($this->loadSummary());
         $storage = $this->importStorage();
+        $this->syncImportHistory($summary);
 
         if (!$storage->exists($this->zipPath)) {
             $summary['status'] = 'failed';
@@ -65,6 +69,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             ]];
             $summary['finished_at'] = now()->toIso8601String();
             $this->persistSummary($summary);
+            $this->syncImportHistory($summary, 'File ZIP tidak ditemukan di server.');
 
             $this->notifyResult($uploader, $this->toPublicSummary($summary), true);
 
@@ -86,6 +91,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             ]];
             $summary['finished_at'] = now()->toIso8601String();
             $this->persistSummary($summary);
+            $this->syncImportHistory($summary, ZipArchiveStatus::message($zipOpened, 'ZIP upload'));
 
             Log::warning('Employee ZIP media import rejected ZIP file.', [
                 'media_type' => $this->mediaType,
@@ -133,6 +139,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
             $summary['updated_at'] = now()->toIso8601String();
             $summary['finished_at'] = now()->toIso8601String();
             $this->persistSummary($summary);
+            $this->syncImportHistory($summary, 'ZIP ditolak karena jumlah file atau total ukuran hasil ekstrak melebihi batas keamanan.');
 
             Log::warning('Employee ZIP media import rejected oversized ZIP payload.', [
                 'media_type' => $this->mediaType,
@@ -151,6 +158,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $summary['status'] = 'processing';
         $summary['updated_at'] = now()->toIso8601String();
         $this->persistSummary($summary);
+        $this->syncImportHistory($summary);
 
         $endIndex = min($zipEntriesCount, $startIndex + $chunkSize);
         $totalEntries = (int) $summary['total_entries'];
@@ -299,8 +307,9 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 
             $summary['updated_at'] = now()->toIso8601String();
             $this->persistSummary($summary);
+            $this->syncImportHistory($summary);
 
-            self::dispatch($this->zipPath, $this->mediaType, $this->uploaderId, $endIndex, $this->importId)
+            self::dispatch($this->zipPath, $this->mediaType, $this->uploaderId, $endIndex, $this->importId, $this->importHistoryId)
                 ->onQueue($this->queue);
 
             return;
@@ -311,6 +320,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         $summary['updated_at'] = now()->toIso8601String();
         $summary['finished_at'] = now()->toIso8601String();
         $this->persistSummary($summary);
+        $this->syncImportHistory($summary);
         $publicSummary = $this->toPublicSummary($summary);
 
         Log::info('Employee ZIP media import finished.', [
@@ -354,6 +364,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
         }
 
         $this->persistSummary($summary);
+        $this->syncImportHistory($summary, $exception->getMessage());
 
         $this->notifyResult($uploader, $this->toPublicSummary($summary), true);
     }
@@ -564,6 +575,15 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
     protected function importStorage()
     {
         return Storage::disk(config('filesystems.employee_import_disk', config('filesystems.default')));
+    }
+
+    protected function syncImportHistory(array $summary, ?string $errorMessage = null): void
+    {
+        app(ImportHistoryService::class)->syncMediaSummary(
+            $this->importHistoryId,
+            $this->toPublicSummary($summary),
+            $errorMessage
+        );
     }
 
     protected function notifyResult(?User $uploader, array $summary, bool $failed): void

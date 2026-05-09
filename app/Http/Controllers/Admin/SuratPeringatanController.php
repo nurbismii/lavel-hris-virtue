@@ -3,13 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Imports\ImportResign;
 use App\Imports\ImportSuratPeringatan;
 use App\Jobs\DeleteImportedFile;
-use App\Models\Resign;
+use App\Models\ImportHistory;
 use App\Models\SuratPeringatan;
+use App\Services\ImportHistory\ImportHistoryService;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use Throwable;
 
 class SuratPeringatanController extends Controller
 {
@@ -57,11 +58,33 @@ class SuratPeringatanController extends Controller
             'file' => 'required|mimes:xlsx,csv'
         ]);
 
-        $filePath = $request->file('file')->store('imports');
+        $uploadedFile = $request->file('file');
+        $history = null;
 
-        Excel::queueImport(new ImportSuratPeringatan, storage_path('app/' . $filePath))->chain([
-            new DeleteImportedFile($filePath)
-        ]);
+        try {
+            $filePath = $uploadedFile->store('imports');
+            $history = app(ImportHistoryService::class)->createQueued([
+                'import_type' => ImportHistory::TYPE_SURAT_PERINGATAN,
+                'module' => 'surat_peringatan',
+                'source' => ImportHistory::SOURCE_EXCEL,
+                'file_name' => $uploadedFile->getClientOriginalName(),
+                'file_path' => $filePath,
+                'disk' => config('filesystems.default'),
+                'mime_type' => $uploadedFile->getClientMimeType(),
+                'file_size' => $uploadedFile->getSize(),
+                'created_by' => (string) $request->user()->id,
+            ]);
+
+            Excel::queueImport(new ImportSuratPeringatan(optional($history)->id), storage_path('app/' . $filePath))->chain([
+                new DeleteImportedFile($filePath)
+            ]);
+        } catch (Throwable $exception) {
+            app(ImportHistoryService::class)->markFailed(optional($history)->id, $exception);
+            report($exception);
+
+            toast()->error('Error', 'File import pelanggaran gagal dijadwalkan. Silakan unggah ulang file yang valid.');
+            return back();
+        }
 
         toast()->success('Success', 'Import is in progress...');
         return back();

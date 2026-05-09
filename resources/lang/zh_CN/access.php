@@ -39,6 +39,7 @@ return [
         'perusahaan' => ['label' => '公司与组织'],
         'setting_lokasi_presensi' => ['label' => '考勤地点'],
         'setting_role' => ['label' => '角色与权限'],
+        'import_history' => ['label' => 'History Import'],
         'exit_portal' => ['label' => '出入门户'],
     ],
 
@@ -178,6 +179,7 @@ return [
             'perusahaan' => '管理公司结构、部门和分部。',
             'setting_lokasi_presensi' => '管理相关分部的考勤定位点。',
             'setting_role' => '管理用户角色和菜单权限。',
+            'import_history' => 'Pantau hasil import Excel, CSV, ZIP dokumen, foto, dan referensi presensi.',
             'exit_portal' => '访问安保搜索门户和相关日志。',
         ],
     ],

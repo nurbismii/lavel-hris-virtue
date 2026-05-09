@@ -218,6 +218,12 @@ $menuCatalog = [
 'tone' => 'slate',
 'description' => 'Kelola role dan permission menu pengguna.',
 ],
+'import_history' => [
+'route_name' => 'import-histories.index',
+'icon' => 'fas fa-file-import',
+'tone' => 'amber',
+'description' => 'Pantau hasil import Excel, CSV, ZIP dokumen, foto, dan referensi presensi.',
+],
 'exit_portal' => [
 'route_name' => 'search-by-security.index',
 'icon' => 'fas fa-door-open',

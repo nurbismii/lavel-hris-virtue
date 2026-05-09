@@ -117,6 +117,10 @@ $menus = [
         'label' => 'Audit Trail',
         'group' => 'Admin Panel',
     ],
+    'import_history' => [
+        'label' => 'History Import',
+        'group' => 'Admin Panel',
+    ],
     'exit_portal' => [
         'label' => 'Exit Portal',
         'group' => 'Admin Panel',
@@ -190,6 +194,7 @@ return [
             'perusahaan',
             'leave_balance',
             'audit_trail',
+            'import_history',
             'cuti',
             'izin',
             'presensi',

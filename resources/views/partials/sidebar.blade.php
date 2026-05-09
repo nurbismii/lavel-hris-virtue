@@ -413,7 +413,7 @@
                     </li>
                 @endif
 
-                @if($can('setting_lokasi_presensi') || $can('setting_role') || $can('audit_trail') || $can('exit_portal'))
+                @if($can('setting_lokasi_presensi') || $can('setting_role') || $can('audit_trail') || $can('import_history') || $can('exit_portal'))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -445,6 +445,15 @@
                         <a href="{{ route('audit-trails.index') }}">
                             <i class="fas fa-clipboard-list"></i>
                             <p>{{ __('navigation.audit_trail') }}</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('import_history'))
+                    <li class="nav-item {{ request()->routeIs('import-histories.*') ? 'active' : '' }}">
+                        <a href="{{ route('import-histories.index') }}">
+                            <i class="fas fa-file-import"></i>
+                            <p>{{ __('navigation.import_history') }}</p>
                         </a>
                     </li>
                 @endif

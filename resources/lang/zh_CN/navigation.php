@@ -20,6 +20,7 @@ return [
     'employee_data' => '员工数据',
     'exit_portal' => '出入门户',
     'holiday_master' => '公共假日主数据',
+    'import_history' => 'History Import',
     'inbox' => '收件箱',
     'leave_balance' => 'Saldo Cuti',
     'logout' => '退出登录',

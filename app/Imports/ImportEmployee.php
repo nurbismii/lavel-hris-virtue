@@ -2,6 +2,7 @@
 
 namespace App\Imports;
 
+use App\Imports\Concerns\TracksImportHistory;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
@@ -16,9 +17,14 @@ use Maatwebsite\Excel\Concerns\WithBatchInserts;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Concerns\RegistersEventListeners;
+use Maatwebsite\Excel\Concerns\WithEvents;
 
-class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, WithBatchInserts, WithValidation, ShouldQueue
+class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, WithBatchInserts, WithValidation, WithEvents, ShouldQueue
 {
+    use RegistersEventListeners;
+    use TracksImportHistory;
+
     protected $allDepartemen;
     protected $allDivisi;
     protected $allPerusahaan;
@@ -26,7 +32,10 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
     protected $totalRows;
     protected $allKelurahan;
 
-    public function __construct() {}
+    public function __construct(?int $importHistoryId = null)
+    {
+        $this->importHistoryId = $importHistoryId;
+    }
 
     public function collection(Collection $rows)
     {
@@ -34,6 +43,8 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
 
         $newRows = [];
         $newNiks = [];
+        $skippedCount = 0;
+        $failureSamples = [];
 
         // AMBIL SELURUH KELURAHAN PADA FILE EXCEL
         $namaKelurahanUnik = collect($rows)
@@ -61,10 +72,22 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
             ->groupBy(fn($k) => strtolower(trim($k->kelurahan)));
 
         foreach ($rows as $row) {
-            $nik = $row['nik'] ?? null;
+            $nik = trim((string) ($row['nik'] ?? ''));
 
             // skip jika NIK kosong atau duplikat dalam 1 file
-            if (empty($nik) || in_array($nik, $newNiks)) {
+            if ($nik === '' || in_array($nik, $newNiks, true)) {
+                $skippedCount++;
+
+                if (count($failureSamples) < 10) {
+                    $failureSamples[] = [
+                        'status' => 'skip',
+                        'nik' => $nik ?: null,
+                        'message' => $nik === ''
+                            ? 'NIK kosong pada file import.'
+                            : "NIK {$nik} duplikat dalam chunk import.",
+                    ];
+                }
+
                 continue;
             }
 
@@ -155,9 +178,30 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
             ];
         }
 
+        $insertedCount = 0;
+        $updatedCount = 0;
+
         if (!empty($newRows)) {
+            $existingNiks = Employee::whereIn('nik', $newNiks)
+                ->pluck('nik')
+                ->map(fn($existingNik) => (string) $existingNik)
+                ->all();
+            $updatedCount = count(array_intersect($newNiks, $existingNiks));
+            $insertedCount = max(0, count($newRows) - $updatedCount);
+
             Employee::upsert($newRows, ['nik'], array_keys($newRows[0]));
         }
+
+        $this->recordImportChunk(
+            $rows->count(),
+            count($newRows),
+            $skippedCount,
+            0,
+            $failureSamples,
+            ['chunk_processed_at' => now()->toIso8601String()],
+            $insertedCount,
+            $updatedCount
+        );
     }
 
     public function chunkSize(): int

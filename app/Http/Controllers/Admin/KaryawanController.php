@@ -11,8 +11,10 @@ use App\Jobs\DeleteImportedFile;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
+use App\Models\ImportHistory;
 use App\Models\Perusahaan;
 use App\Models\WorkPattern;
+use App\Services\ImportHistory\ImportHistoryService;
 use App\Services\Recruitment\RecruitmentDocumentClient;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Http\Request;
@@ -100,16 +102,32 @@ class KaryawanController extends Controller
             'file' => 'required|mimes:xlsx'
         ]);
 
-        try {
-            $filePath = $request->file('file')->store('imports');
+        $uploadedFile = $request->file('file');
+        $history = null;
 
-            Excel::queueImport(new ImportEmployee, storage_path('app/' . $filePath))->chain([
+        try {
+            $filePath = $uploadedFile->store('imports');
+            $history = app(ImportHistoryService::class)->createQueued([
+                'import_type' => ImportHistory::TYPE_EMPLOYEE,
+                'module' => 'employee',
+                'source' => ImportHistory::SOURCE_EXCEL,
+                'file_name' => $uploadedFile->getClientOriginalName(),
+                'file_path' => $filePath,
+                'disk' => config('filesystems.default'),
+                'mime_type' => $uploadedFile->getClientMimeType(),
+                'file_size' => $uploadedFile->getSize(),
+                'created_by' => (string) $request->user()->id,
+            ]);
+
+            Excel::queueImport(new ImportEmployee(optional($history)->id), storage_path('app/' . $filePath))->chain([
                 new DeleteImportedFile($filePath)
             ]);
 
             toast()->success('Success', 'Your file is being processed in the background.');
             return back();
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
+            app(ImportHistoryService::class)->markFailed(optional($history)->id, $e);
+            report($e);
 
             toast()->error('Error', 'File kamu rusak, buat file baru dan import ulang.');
             return back();
@@ -211,11 +229,37 @@ class KaryawanController extends Controller
                 continue;
             }
 
-            $filePath = $request->file($input)->store(
+            $uploadedFile = $request->file($input);
+            $disk = config('filesystems.employee_import_disk', config('filesystems.default'));
+            $history = null;
+
+            $filePath = $uploadedFile->store(
                 'employee-zip-imports',
-                config('filesystems.employee_import_disk', config('filesystems.default'))
+                $disk
             );
-            ProcessEmployeeMediaZipUpload::dispatch($filePath, $type, $request->user()->id);
+            $history = app(ImportHistoryService::class)->createQueued([
+                'import_type' => ImportHistory::typeForMedia($type),
+                'module' => 'employee_media',
+                'source' => ImportHistory::SOURCE_ZIP,
+                'file_name' => $uploadedFile->getClientOriginalName(),
+                'file_path' => $filePath,
+                'disk' => $disk,
+                'mime_type' => $uploadedFile->getClientMimeType(),
+                'file_size' => $uploadedFile->getSize(),
+                'created_by' => (string) $request->user()->id,
+                'summary' => [
+                    'media_type' => $type,
+                ],
+            ]);
+
+            ProcessEmployeeMediaZipUpload::dispatch(
+                $filePath,
+                $type,
+                $request->user()->id,
+                0,
+                optional($history)->import_id,
+                optional($history)->id
+            );
             $queuedCount++;
         }
 

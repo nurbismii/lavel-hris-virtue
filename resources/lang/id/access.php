@@ -39,6 +39,7 @@ return [
         'perusahaan' => ['label' => 'Perusahaan & Organisasi'],
         'setting_lokasi_presensi' => ['label' => 'Lokasi Presensi'],
         'setting_role' => ['label' => 'Peran dan Akses'],
+        'import_history' => ['label' => 'History Import'],
         'exit_portal' => ['label' => 'Exit Portal'],
     ],
 
@@ -178,6 +179,7 @@ return [
             'perusahaan' => 'Kelola struktur perusahaan, departemen, dan divisi.',
             'setting_lokasi_presensi' => 'Atur titik lokasi presensi untuk divisi terkait.',
             'setting_role' => 'Kelola role dan permission menu pengguna.',
+            'import_history' => 'Pantau hasil import Excel, CSV, ZIP dokumen, foto, dan referensi presensi.',
             'exit_portal' => 'Akses portal pencarian keamanan dan log terkait.',
         ],
     ],

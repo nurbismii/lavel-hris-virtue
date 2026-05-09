@@ -20,6 +20,7 @@ return [
     'employee_data' => 'Data Karyawan',
     'exit_portal' => 'Exit Portal',
     'holiday_master' => 'Master Tanggal Merah',
+    'import_history' => 'History Import',
     'inbox' => 'Kotak Masuk',
     'leave_balance' => 'Saldo Cuti',
     'logout' => 'Keluar',

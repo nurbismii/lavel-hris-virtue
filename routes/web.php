@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ApiController;
 use App\Http\Controllers\Admin\AuditTrailController;
+use App\Http\Controllers\Admin\ImportHistoryController;
 use App\Http\Controllers\Admin\LeaveBalanceController;
 use App\Http\Controllers\Admin\NationalHolidayController;
 use App\Http\Controllers\Admin\OvertimeMasterController;
@@ -263,6 +264,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/audit-trails', [AuditTrailController::class, 'index'])
             ->middleware(['menu:audit_trail', 'role:Super Admin,HR'])
             ->name('audit-trails.index');
+        Route::get('/import-histories', [ImportHistoryController::class, 'index'])
+            ->middleware(['menu:import_history', 'role:Super Admin,HR'])
+            ->name('import-histories.index');
 
         Route::resource('/setting-role', '\App\Http\Controllers\Admin\SettingRoleController')
             ->except(['show'])

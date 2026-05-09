@@ -6,8 +6,10 @@ use App\Http\Controllers\Concerns\ValidatesZipUploads;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\EmployeeAttendanceSetting;
+use App\Models\ImportHistory;
 use App\Models\NationalHoliday;
 use App\Jobs\ProcessEmployeeMediaZipUpload;
+use App\Services\ImportHistory\ImportHistoryService;
 use App\Services\Presensi\WorkScheduleService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -268,11 +270,35 @@ class AttendanceSettingController extends Controller
             ],
         ]);
 
-        $filePath = $request->file('face_reference_zip')->store(
+        $uploadedFile = $request->file('face_reference_zip');
+        $disk = config('filesystems.employee_import_disk', config('filesystems.default'));
+        $filePath = $uploadedFile->store(
             'employee-zip-imports',
-            config('filesystems.employee_import_disk', config('filesystems.default'))
+            $disk
         );
-        ProcessEmployeeMediaZipUpload::dispatch($filePath, 'face_reference', $request->user()->id);
+        $history = app(ImportHistoryService::class)->createQueued([
+            'import_type' => ImportHistory::TYPE_FACE_REFERENCE,
+            'module' => 'attendance_setting',
+            'source' => ImportHistory::SOURCE_ZIP,
+            'file_name' => $uploadedFile->getClientOriginalName(),
+            'file_path' => $filePath,
+            'disk' => $disk,
+            'mime_type' => $uploadedFile->getClientMimeType(),
+            'file_size' => $uploadedFile->getSize(),
+            'created_by' => (string) $request->user()->id,
+            'summary' => [
+                'media_type' => 'face_reference',
+            ],
+        ]);
+
+        ProcessEmployeeMediaZipUpload::dispatch(
+            $filePath,
+            'face_reference',
+            $request->user()->id,
+            0,
+            optional($history)->import_id,
+            optional($history)->id
+        );
 
         $redirectUrl = route('set-kehadiran.index', $request->only(['periode', 'departemen', 'divisi']));
         $message = 'ZIP foto referensi sedang diproses di background. Cek notifikasi untuk hasil akhirnya.';

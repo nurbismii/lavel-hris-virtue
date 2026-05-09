@@ -2,11 +2,14 @@
 
 namespace App\Imports;
 
+use App\Imports\Concerns\TracksImportHistory;
 use App\Models\SuratPeringatan;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Maatwebsite\Excel\Concerns\RegistersEventListeners;
 use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
@@ -18,39 +21,66 @@ class ImportSuratPeringatan implements
     WithValidation,
     WithChunkReading,
     WithBatchInserts,
+    WithEvents,
     ShouldQueue
 {
+    use RegistersEventListeners;
+    use TracksImportHistory;
+
+    public function __construct(?int $importHistoryId = null)
+    {
+        $this->importHistoryId = $importHistoryId;
+    }
+
     public function collection(Collection $collection)
     {
         $datas = [];
+        $skippedCount = 0;
+        $failureSamples = [];
 
         // Ambil kombinasi nik + no_sp dari file
         $pairs = $collection->map(function ($row) {
             return [
-                'nik_karyawan' => $row['nik'],
-                'no_sp' => $row['no_sp'],
+                'nik_karyawan' => (string) ($row['nik'] ?? ''),
+                'no_sp' => (string) ($row['no_sp'] ?? ''),
             ];
-        });
+        })->filter(function ($pair) {
+            return $pair['nik_karyawan'] !== '' && $pair['no_sp'] !== '';
+        })->values();
 
         // Ambil kombinasi yang sudah ada di database
-        $existing = SuratPeringatan::where(function ($query) use ($pairs) {
-            foreach ($pairs as $pair) {
-                $query->orWhere(function ($q) use ($pair) {
-                    $q->where('nik_karyawan', $pair['nik_karyawan'])
-                        ->where('no_sp', $pair['no_sp']);
-                });
-            }
-        })->get(['nik_karyawan', 'no_sp'])
-            ->map(function ($item) {
-                return $item->nik_karyawan . '-' . $item->no_sp;
-            })
-            ->toArray();
+        $existing = [];
+
+        if ($pairs->isNotEmpty()) {
+            $existing = SuratPeringatan::where(function ($query) use ($pairs) {
+                foreach ($pairs as $pair) {
+                    $query->orWhere(function ($q) use ($pair) {
+                        $q->where('nik_karyawan', $pair['nik_karyawan'])
+                            ->where('no_sp', $pair['no_sp']);
+                    });
+                }
+            })->get(['nik_karyawan', 'no_sp'])
+                ->map(function ($item) {
+                    return $item->nik_karyawan . '-' . $item->no_sp;
+                })
+                ->toArray();
+        }
 
         foreach ($collection as $collect) {
 
             $key = $collect['nik'] . '-' . $collect['no_sp'];
 
-            if (in_array($key, $existing)) {
+            if (in_array($key, $existing, true)) {
+                $skippedCount++;
+
+                if (count($failureSamples) < 10) {
+                    $failureSamples[] = [
+                        'status' => 'skip',
+                        'nik' => (string) ($collect['nik'] ?? ''),
+                        'message' => "Pelanggaran {$key} sudah ada.",
+                    ];
+                }
+
                 continue;
             }
 
@@ -66,10 +96,23 @@ class ImportSuratPeringatan implements
             ];
         }
 
-        SuratPeringatan::upsert(
-            $datas,
-            ['nik_karyawan', 'no_sp'], // unique combination
-            ['level_sp', 'tgl_mulai', 'tgl_berakhir', 'keterangan', 'pelapor']
+        if (!empty($datas)) {
+            SuratPeringatan::upsert(
+                $datas,
+                ['nik_karyawan', 'no_sp'], // unique combination
+                ['level_sp', 'tgl_mulai', 'tgl_berakhir', 'keterangan', 'pelapor']
+            );
+        }
+
+        $this->recordImportChunk(
+            $collection->count(),
+            count($datas),
+            $skippedCount,
+            0,
+            $failureSamples,
+            ['chunk_processed_at' => now()->toIso8601String()],
+            count($datas),
+            0
         );
     }
 
