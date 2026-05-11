@@ -176,8 +176,8 @@ Route::middleware(['android.redirect'])->group(function () {
             ->middleware('menu:data_user');
         Route::resource('/slip-gaji', 'App\Http\Controllers\Admin\SlipGajiController')
             ->only(['index', 'show'])
-            ->middleware('menu:slip_gaji_admin');
-        Route::get('/slip-gaji/{id}/pdf', [SlipGajiController::class, 'exportPdf'])->middleware('menu:slip_gaji_admin')->name('slip-gaji.pdf');
+            ->middleware(['menu:slip_gaji_admin', 'role:Super Admin,HR']);
+        Route::get('/slip-gaji/{id}/pdf', [SlipGajiController::class, 'exportPdf'])->middleware(['menu:slip_gaji_admin', 'role:Super Admin,HR'])->name('slip-gaji.pdf');
         Route::get('/leave-balances', [LeaveBalanceController::class, 'index'])
             ->middleware(['menu:leave_balance', 'role:Super Admin,HR'])
             ->name('leave-balances.index');

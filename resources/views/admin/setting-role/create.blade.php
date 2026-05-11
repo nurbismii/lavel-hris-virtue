@@ -225,9 +225,13 @@
                                             <i class="fas fa-edit me-1"></i> {{ __('access.setting_role.edit') }}
                                         </button>
 
-                                        <a href="{{ route('setting-role.destroy', $role->id) }}" class="btn btn-outline-danger btn-sm btn-icon-split" data-confirm-delete="true">
-                                            <i class="fas fa-trash me-1"></i> {{ __('access.setting_role.delete') }}
-                                        </a>
+                                        @if(! $role->is_system_role)
+                                            <a href="{{ route('setting-role.destroy', $role->id) }}" class="btn btn-outline-danger btn-sm btn-icon-split" data-confirm-delete="true">
+                                                <i class="fas fa-trash me-1"></i> {{ __('access.setting_role.delete') }}
+                                            </a>
+                                        @else
+                                            <span class="badge bg-light text-muted border">Role sistem</span>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty

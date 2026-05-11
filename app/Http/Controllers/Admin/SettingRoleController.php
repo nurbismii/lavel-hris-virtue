@@ -8,6 +8,8 @@ use App\Models\Role;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class SettingRoleController extends Controller
@@ -182,11 +184,21 @@ class SettingRoleController extends Controller
     {
         $role = Role::findOrFail($id);
 
-        User::where('role_id', $role->id)->update([
-            'role_id' => NULL
-        ]);
+        if ($role->is_system_role) {
+            abort(422, 'Role sistem tidak boleh dihapus.');
+        }
 
-        $role->delete();
+        DB::transaction(function () use ($role) {
+            User::where('role_id', $role->id)->update([
+                'role_id' => null,
+            ]);
+
+            if (Schema::hasTable('role_user')) {
+                $role->additionalUsers()->detach();
+            }
+
+            $role->delete();
+        });
 
         toast()->success('success', 'Role berhasil dihapus.');
         return back();

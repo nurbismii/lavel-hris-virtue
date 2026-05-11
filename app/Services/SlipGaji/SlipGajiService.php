@@ -4,13 +4,20 @@ namespace App\Services\SlipGaji;
 
 use App\Models\Epayslip\Karyawan;
 use App\Models\Epayslip\KomponenGaji;
+use App\Models\User;
 use Yajra\DataTables\Facades\DataTables;
 
 class SlipGajiService
 {
     //
-    public function getSlipGajiData($request)
+    public function getSlipGajiData($request, ?User $user = null)
     {
+        abort_unless(
+            $user && $user->hasRole(['Super Admin', 'HR']),
+            403,
+            'Akses slip gaji admin hanya untuk Super Admin atau HR.'
+        );
+
         $slipGaji = KomponenGaji::query()
             ->join('data_karyawans', 'data_karyawans.id', '=', 'komponen_gajis.data_karyawan_id')
             ->select([

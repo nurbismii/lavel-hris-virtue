@@ -2,12 +2,8 @@
 
 namespace App\Providers;
 
-use App\Models\AttendanceCorrection;
-use App\Models\Cuti;
-use App\Models\Roster;
-use App\Models\RosterOffRequest;
+use App\Services\Approvals\ApprovalSidebarCountService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
 use Illuminate\Pagination\Paginator;
@@ -34,115 +30,15 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrap();
 
         View::composer('partials.sidebar', function ($view) {
-            $approvalHodCounts = [
-                'cuti' => 0,
-                'izin' => 0,
-                'roster' => 0,
-                'roster_off' => 0,
-                'attendance_correction' => 0,
-                'total' => 0,
-            ];
-
-            $approvalHrCounts = [
-                'cuti' => 0,
-                'izin' => 0,
-                'roster' => 0,
-                'roster_off' => 0,
-                'attendance_correction' => 0,
-                'total' => 0,
-            ];
-
             $user = Auth::user();
+            $countService = app(ApprovalSidebarCountService::class);
 
             if (!$user) {
-                $view->with(compact('approvalHodCounts', 'approvalHrCounts'));
+                $view->with($countService->defaultCounts());
                 return;
             }
 
-            if ($user->hasMenuAccess('approval_hod')) {
-                $approvalHodCounts['cuti'] = $user->applyEmployeeRelationScope(
-                    Cuti::query()
-                        ->where('tipe', 'CUTI')
-                        ->where('status_hod', 0)
-                )->count();
-
-                $approvalHodCounts['izin'] = $user->applyEmployeeRelationScope(
-                    Cuti::query()
-                        ->whereIn('tipe', ['PAID', 'UNPAID'])
-                        ->where('status_hod', 0)
-                )->count();
-
-                $approvalHodCounts['roster'] = $user->applyEmployeeRelationScope(
-                    Roster::query()
-                        ->where('status_pengajuan', 0)
-                )->count();
-
-                if (Schema::hasTable('roster_off_requests')) {
-                    $approvalHodCounts['roster_off'] = $user->applyEmployeeRelationScope(
-                        RosterOffRequest::query()
-                            ->where('status_hod', RosterOffRequest::STATUS_PENDING)
-                    )->count();
-                }
-
-                if (Schema::hasTable('attendance_corrections')) {
-                    $approvalHodCounts['attendance_correction'] = $user->applyEmployeeRelationScope(
-                        AttendanceCorrection::query()
-                            ->where('status_hod', AttendanceCorrection::STATUS_PENDING)
-                    )->count();
-                }
-
-                $approvalHodCounts['total'] = $approvalHodCounts['cuti']
-                    + $approvalHodCounts['izin']
-                    + $approvalHodCounts['roster']
-                    + $approvalHodCounts['roster_off']
-                    + $approvalHodCounts['attendance_correction'];
-            }
-
-            if ($user->hasMenuAccess('approval_hr')) {
-                $approvalHrCounts['cuti'] = $user->applyEmployeeRelationScope(
-                    Cuti::query()
-                        ->where('tipe', 'CUTI')
-                        ->where('status_hod', 1)
-                        ->where('status_hrd', 0)
-                )->count();
-
-                $approvalHrCounts['izin'] = $user->applyEmployeeRelationScope(
-                    Cuti::query()
-                        ->whereIn('tipe', ['PAID', 'UNPAID'])
-                        ->where('status_hod', 1)
-                        ->where('status_hrd', 0)
-                )->count();
-
-                $approvalHrCounts['roster'] = $user->applyEmployeeRelationScope(
-                    Roster::query()
-                        ->where('status_pengajuan', 1)
-                        ->where('status_pengajuan_hrd', 0)
-                )->count();
-
-                if (Schema::hasTable('roster_off_requests')) {
-                    $approvalHrCounts['roster_off'] = $user->applyEmployeeRelationScope(
-                        RosterOffRequest::query()
-                            ->where('status_hod', RosterOffRequest::STATUS_APPROVED)
-                            ->where('status_hrd', RosterOffRequest::STATUS_PENDING)
-                    )->count();
-                }
-
-                if (Schema::hasTable('attendance_corrections')) {
-                    $approvalHrCounts['attendance_correction'] = $user->applyEmployeeRelationScope(
-                        AttendanceCorrection::query()
-                            ->where('status_hod', AttendanceCorrection::STATUS_APPROVED)
-                            ->where('status_hrd', AttendanceCorrection::STATUS_PENDING)
-                    )->count();
-                }
-
-                $approvalHrCounts['total'] = $approvalHrCounts['cuti']
-                    + $approvalHrCounts['izin']
-                    + $approvalHrCounts['roster']
-                    + $approvalHrCounts['roster_off']
-                    + $approvalHrCounts['attendance_correction'];
-            }
-
-            $view->with(compact('approvalHodCounts', 'approvalHrCounts'));
+            $view->with($countService->countsFor($user));
         });
     }
 }

@@ -128,6 +128,8 @@ $menus = [
 ];
 
 return [
+    'approval_sidebar_cache_ttl' => env('APPROVAL_SIDEBAR_CACHE_TTL', 30),
+
     'roles' => [
         'Super Admin' => [
             'aliases' => ['Administrator'],

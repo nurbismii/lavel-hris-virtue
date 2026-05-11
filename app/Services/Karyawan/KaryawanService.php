@@ -65,16 +65,16 @@ class KaryawanService
             ->addColumn('dokumen', fn($r) => $this->renderDocumentSummary($r))
             ->addColumn('aksi', function ($r) {
                 $editButton = '
-                    <a href="' . route('karyawan.edit', $r->nik) . '" 
+                    <a href="' . e(route('karyawan.edit', $r->nik)) . '" 
                        class="btn btn-sm btn-warning me-1">
                         <i class="fa fa-edit"></i>
                     </a>
                 ';
 
                 $deleteButton = auth()->user()->canAccessAllEmployees() ? '
-                    <button class="btn btn-sm btn-danger btn-delete"
-                        data-id="' . $r->nik . '"
-                        data-nama="' . $r->nama_karyawan . '">
+                    <button type="button" class="btn btn-sm btn-danger btn-delete"
+                        data-id="' . e($r->nik) . '"
+                        data-nama="' . e($r->nama_karyawan) . '">
                         <i class="fa fa-trash"></i>
                     </button>
                 ' : '';

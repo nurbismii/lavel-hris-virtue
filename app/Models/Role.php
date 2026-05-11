@@ -44,6 +44,21 @@ class Role extends Model
         return $roleName;
     }
 
+    public static function systemRoleNames(): array
+    {
+        return array_keys(config('access.roles', []));
+    }
+
+    public function isSystemRole(): bool
+    {
+        return in_array($this->normalized_name, static::systemRoleNames(), true);
+    }
+
+    public function getIsSystemRoleAttribute(): bool
+    {
+        return $this->isSystemRole();
+    }
+
     public static function accessTranslationKey(?string $roleName): ?string
     {
         $normalized = static::normalizeRoleName($roleName);

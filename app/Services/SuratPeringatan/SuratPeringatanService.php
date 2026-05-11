@@ -52,14 +52,14 @@ class SuratPeringatanService
 
             ->addColumn('aksi', function ($r) {
                 return '
-                <a href="' . route('surat-peringatan.edit', $r->id) . '" 
+                <a href="' . e(route('surat-peringatan.edit', $r->id)) . '" 
                    class="btn btn-sm btn-warning me-1">
                     <i class="fa fa-edit"></i>
                 </a>
 
-                <button class="btn btn-sm btn-danger btn-delete"
-                    data-id="' . $r->id . '"
-                    data-nama="' . ($r->employee->nama_karyawan ?? '-') . '">
+                <button type="button" class="btn btn-sm btn-danger btn-delete"
+                    data-id="' . e($r->id) . '"
+                    data-nama="' . e($r->employee->nama_karyawan ?? '-') . '">
                     <i class="fa fa-trash"></i>
                 </button>
             ';

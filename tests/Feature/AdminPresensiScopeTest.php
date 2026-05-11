@@ -84,7 +84,39 @@ class AdminPresensiScopeTest extends TestCase
 
         $payload = $this->jsonPayload(app(PresensiController::class)->dataPresensi($request));
 
-        $this->assertSame(['HOD001', 'ADM101', 'EMP101'], collect($payload['data'])->pluck('nik_karyawan')->values()->all());
+        $this->assertSame(['ADM101', 'EMP101', 'HOD001'], collect($payload['data'])->pluck('nik_karyawan')->values()->all());
+    }
+
+    public function test_datatable_attendance_map_uses_filtered_page_employees(): void
+    {
+        DB::table('absensis')->insert([
+            'id' => 50,
+            'nik_karyawan' => 'EMP102',
+            'tanggal' => '2026-05-01',
+            'jam_masuk' => '2026-05-01 08:00:00',
+            'jam_istirahat' => null,
+            'jam_kembali_istirahat' => null,
+            'jam_pulang' => null,
+            'status_presensi' => null,
+            'status_absen' => 'verified',
+        ]);
+
+        $request = $this->scopedRequest($this->makeScopedUser('HOD', 'HOD001'), [
+            'departemen' => 10,
+            'cutoff_month' => '2026-05',
+            'start' => 0,
+            'length' => 1,
+            'search' => [
+                'value' => 'EMP102',
+            ],
+        ]);
+
+        $payload = $this->jsonPayload(app(PresensiController::class)->dataPresensi($request));
+
+        $this->assertSame(1, $payload['recordsFiltered']);
+        $this->assertSame('EMP102', $payload['data'][0]['nik_karyawan']);
+        $this->assertSame('08:00', $payload['data'][0]['tanggal_data']['2026-05-01']['m']);
+        $this->assertSame('verified', $payload['data'][0]['tanggal_data']['2026-05-01']['m_status']);
     }
 
     public function test_hod_authorized_department_also_allows_divisions_inside_that_department(): void

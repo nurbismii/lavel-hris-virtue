@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\User\SlipgajiController;
+use App\Http\Controllers\Admin\SlipGajiController as AdminSlipGajiController;
 use App\Models\User;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Schema\Blueprint;
@@ -52,6 +53,16 @@ class UserSlipGajiSecurityTest extends TestCase
         $this->assertSame(SlipgajiController::class . '@exportPdf', $route->getActionName());
         $this->assertNull(Route::getRoutes()->getByName('slipgaji.create'));
         $this->assertNull(Route::getRoutes()->getByName('slipgaji.store'));
+    }
+
+    public function test_admin_slip_gaji_routes_require_hr_or_super_admin_role(): void
+    {
+        $indexRoute = Route::getRoutes()->getByName('slip-gaji.index');
+        $pdfRoute = Route::getRoutes()->getByName('slip-gaji.pdf');
+
+        $this->assertSame(AdminSlipGajiController::class . '@index', $indexRoute->getActionName());
+        $this->assertContains('role:Super Admin,HR', $indexRoute->gatherMiddleware());
+        $this->assertContains('role:Super Admin,HR', $pdfRoute->gatherMiddleware());
     }
 
     public function test_user_can_open_only_their_own_slip_gaji(): void

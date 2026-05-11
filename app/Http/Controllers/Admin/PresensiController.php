@@ -21,7 +21,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Yajra\DataTables\Facades\DataTables;
 
 class PresensiController extends Controller
 {
@@ -403,10 +402,14 @@ class PresensiController extends Controller
             'work_pattern_start_date',
         ]);
 
-        $length = $request->length ?? 10;
-        $startPage = $request->start ?? 0;
+        $recordsTotal = (clone $baseQuery)->count('nik');
+        $filteredQuery = $this->applyDataTableEmployeeSearch(clone $baseQuery, $request);
+        $recordsFiltered = (clone $filteredQuery)->count('nik');
+        $length = min(max((int) $request->input('length', 10), 1), 100);
+        $startPage = max((int) $request->input('start', 0), 0);
 
-        $employeePage = (clone $baseQuery)
+        $employeePage = (clone $filteredQuery)
+            ->orderBy('nik')
             ->skip($startPage)
             ->take($length)
             ->with('workPattern')
@@ -464,27 +467,30 @@ class PresensiController extends Controller
             }
         }
 
-        return DataTables::of($baseQuery)
-
-            ->addColumn('nik_karyawan', fn($row) => $row->nik)
-            ->addColumn('nama_karyawan', fn($row) => $row->nama_karyawan)
-            ->addColumn('tanggal_data', function ($row) use ($tanggalHeaders, $presensiMap) {
-
+        $rows = $employeePage
+            ->map(function ($row) use ($tanggalHeaders, $presensiMap) {
                 $data = [];
 
                 foreach ($tanggalHeaders as $tgl) {
                     $data[$tgl] = $presensiMap[$row->nik][$tgl] ?? null;
                 }
 
-                return $data;
+                return [
+                    'nik_karyawan' => $row->nik,
+                    'nama_karyawan' => $row->nama_karyawan,
+                    'tanggal_data' => $data,
+                ];
             })
+            ->values();
 
-            ->with([
-                'tanggalHeaders' => $tanggalHeaders,
-                'tanggalMeta' => $tanggalMeta,
-            ])
-
-            ->make(true);
+        return response()->json([
+            'draw' => (int) $request->input('draw', 0),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $rows,
+            'tanggalHeaders' => $tanggalHeaders,
+            'tanggalMeta' => $tanggalMeta,
+        ]);
     }
 
     public function export(Request $request)
@@ -653,6 +659,20 @@ class PresensiController extends Controller
         }
 
         return $query;
+    }
+
+    private function applyDataTableEmployeeSearch($query, Request $request)
+    {
+        $search = trim((string) data_get($request->input('search'), 'value', ''));
+
+        if ($search === '') {
+            return $query;
+        }
+
+        return $query->where(function ($query) use ($search) {
+            $query->where('nik', 'like', '%' . $search . '%')
+                ->orWhere('nama_karyawan', 'like', '%' . $search . '%');
+        });
     }
 
     private function verificationStatusByType($rows): array
