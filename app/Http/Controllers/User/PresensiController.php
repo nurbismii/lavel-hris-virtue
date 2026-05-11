@@ -11,6 +11,7 @@ use App\Models\Presensi;
 use App\Services\Presensi\AttendanceSecurityService;
 use App\Services\Presensi\AttendanceDateResolverService;
 use App\Services\Presensi\AttendanceFulfillmentService;
+use App\Services\Presensi\AttendanceLocationResolverService;
 use App\Services\Presensi\ShiftAssignmentService;
 use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Presensi\OvertimeOrderService;
@@ -47,7 +48,7 @@ class PresensiController extends Controller
         $activeAttendanceDateString = $activeAttendanceContext['date'];
         $activeAttendanceDate = Carbon::parse($activeAttendanceDateString);
 
-        $lokasi = $this->resolveAttendanceLocation($karyawan->divisi_id);
+        $lokasi = app(AttendanceLocationResolverService::class)->resolveForEmployee($karyawan, $activeAttendanceDateString);
         $isLocationReady = $this->isAttendanceLocationReady($lokasi);
         $locationIssueMessage = $isLocationReady ? null : $this->attendanceLocationIssueMessage($lokasi);
         app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $activeAttendanceDateString);
@@ -190,7 +191,7 @@ class PresensiController extends Controller
 
         $request->validated();
 
-        $lokasi = $this->resolveAttendanceLocation($karyawan->divisi_id);
+        $lokasi = app(AttendanceLocationResolverService::class)->resolveForEmployee($karyawan, $attendanceDate);
 
         if (!$this->isAttendanceLocationReady($lokasi)) {
             return $this->failPresensi($this->attendanceLocationIssueMessage($lokasi));
@@ -501,7 +502,18 @@ class PresensiController extends Controller
         ]);
 
         $user = auth()->user();
-        $lokasi = $this->resolveAttendanceLocation(optional($user->employee)->divisi_id);
+        $employee = optional($user)->employee;
+        $attendanceDate = now()->toDateString();
+
+        if ($employee) {
+            try {
+                $attendanceDate = app(AttendanceDateResolverService::class)->resolve($employee, now())['date'];
+            } catch (Throwable $exception) {
+                $attendanceDate = now()->toDateString();
+            }
+        }
+
+        $lokasi = app(AttendanceLocationResolverService::class)->resolveForEmployee($employee, $attendanceDate);
 
         if (!$this->isAttendanceLocationReady($lokasi)) {
             return response()->json(['message' => $this->attendanceLocationIssueMessage($lokasi)], 422);
@@ -556,15 +568,6 @@ class PresensiController extends Controller
             'Content-Disposition' => 'inline; filename="face-reference"',
             'X-Content-Type-Options' => 'nosniff',
         ]);
-    }
-
-    private function resolveAttendanceLocation($divisiId): ?LokasiAbsen
-    {
-        if (blank($divisiId)) {
-            return null;
-        }
-
-        return LokasiAbsen::where('divisi_id', $divisiId)->first();
     }
 
     private function isAttendanceLocationReady(?LokasiAbsen $lokasi): bool

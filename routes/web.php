@@ -218,6 +218,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::resource('/setting-lokasi-presensi', 'App\Http\Controllers\Admin\SettingLokasiPresensiController')
             ->except(['show'])
             ->middleware('menu:setting_lokasi_presensi');
+        Route::post('/setting-lokasi-presensi/bulk-assign', [App\Http\Controllers\Admin\SettingLokasiPresensiController::class, 'bulkAssign'])
+            ->middleware('menu:setting_lokasi_presensi')
+            ->name('setting-lokasi-presensi.bulk-assign');
         Route::resource('/master-jadwal-kerja', WorkPatternController::class)
             ->except(['show'])
             ->middleware(['menu:jadwal_kerja', 'role:Super Admin,HR,HOD,Admin Divisi'])

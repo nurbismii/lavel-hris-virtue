@@ -70,6 +70,11 @@ class Employee extends Model
         return $this->hasMany(EmployeeShiftAssignment::class, 'employee_id', 'nik');
     }
 
+    public function attendanceLocationAssignments()
+    {
+        return $this->hasMany(EmployeeAttendanceLocationAssignment::class, 'employee_nik', 'nik');
+    }
+
     public function overtimeOrders()
     {
         return $this->hasMany(OvertimeOrder::class, 'nik_karyawan', 'nik');

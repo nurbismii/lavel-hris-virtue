@@ -20,7 +20,7 @@
                     Penambahan Lokasi Presensi
                 </h3>
                 <small class="text-muted">
-                    Tentukan titik lokasi presensi berdasarkan area/divisi
+                    Buat master titik lokasi. Pembagian karyawan dilakukan lewat assignment lokasi presensi.
                 </small>
             </div>
         </div>
@@ -31,37 +31,30 @@
                 <form action="{{ route('setting-lokasi-presensi.store') }}" method="POST">
                     @csrf
 
-                    {{-- FILTER SECTION --}}
                     <div class="row mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Area</label>
-                            <select id="filter_area" class="form-select">
-                                <option value="">Semua Area</option>
-                                @foreach ($areas as $area)
-                                <option value="{{ $area->kode_perusahaan }}">
-                                    {{ $area->kode_perusahaan }}
-                                </option>
-                                @endforeach
-                            </select>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Nama Lokasi Presensi</label>
+                            <input
+                                type="text"
+                                name="nama_lokasi"
+                                class="form-control @error('nama_lokasi') is-invalid @enderror"
+                                value="{{ old('nama_lokasi') }}"
+                                maxlength="150"
+                                placeholder="Contoh: Gate Gudang B, Office VDNI, Mess Site A">
+                            @error('nama_lokasi')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Departemen</label>
-                            <select id="filter_departemen" class="form-select" disabled>
-                                <option value="">Semua Departemen</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Divisi</label>
-                            <select id="filter_divisi" name="divisi_id" class="form-select" disabled>
-                                <option value="">Semua Divisi</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-12">
                             <label class="form-label fw-semibold">Radius (meter)</label>
-                            <input type="number" name="radius" id="radius" class="form-control" value="100" min="10" step="10">
+                            <input
+                                type="number"
+                                name="radius"
+                                id="radius"
+                                class="form-control @error('radius') is-invalid @enderror"
+                                value="{{ old('radius', 100) }}"
+                                min="10"
+                                step="10">
+                            @error('radius')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
 
@@ -93,8 +86,10 @@
                             <input type="text"
                                 name="lat"
                                 id="latitude"
-                                class="form-control"
+                                class="form-control @error('lat') is-invalid @enderror"
+                                value="{{ old('lat') }}"
                                 readonly>
+                            @error('lat')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-md-6">
@@ -102,14 +97,16 @@
                             <input type="text"
                                 name="long"
                                 id="longitude"
-                                class="form-control"
+                                class="form-control @error('long') is-invalid @enderror"
+                                value="{{ old('long') }}"
                                 readonly>
+                            @error('long')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
 
                     {{-- BUTTON SECTION --}}
                     <div class="mt-4 d-flex justify-content-end gap-2">
-                        <a href="{{ route('cuti.index') }}"
+                        <a href="{{ route('setting-lokasi-presensi.index') }}"
                             class="btn btn-light border">
                             Kembali
                         </a>
@@ -138,7 +135,7 @@
     let marker;
     let circle;
     const freeMapTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-    const freeMapAttribution = 'Tiles &copy; Esri - Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
+    const freeMapAttribution = 'Setting lokasi presensi';
 
     function radiusValue() {
         const value = parseInt(document.getElementById("radius").value, 10);
@@ -249,70 +246,18 @@
         }
     });
 
-    // ================= INIT DEFAULT =================
     document.addEventListener("DOMContentLoaded", function() {
+        const latitudeInput = document.getElementById("latitude");
+        const longitudeInput = document.getElementById("longitude");
+        const oldLatitude = parseFloat(latitudeInput.value);
+        const oldLongitude = parseFloat(longitudeInput.value);
+
+        if (Number.isFinite(oldLatitude) && Number.isFinite(oldLongitude)) {
+            initMap(oldLatitude, oldLongitude);
+            return;
+        }
+
         initMap();
-    });
-</script>
-
-<script>
-    // AREA berubah
-    $('#filter_area').on('change', function() {
-        let area = $(this).val();
-        $('#filter_departemen').html('<option value="">Loading...</option>');
-        $('#filter_divisi').html('<option value="">Semua Divisi</option>');
-
-        if (!area) {
-            $('#filter_departemen').html('<option value="">Semua Departemen</option>');
-            table.draw();
-            return;
-        }
-
-        $.get("{{ route('ajax.departemen.by.area') }}", {
-            area
-        }, function(res) {
-            let opt = '<option value="">Semua Departemen</option>';
-            res.forEach(r => {
-                opt += `<option value="${r.id}">${r.departemen}</option>`;
-            });
-            $('#filter_departemen').html(opt);
-            table.draw();
-        });
-    });
-
-    // DEPARTEMEN berubah
-    $('#filter_departemen').on('change', function() {
-        let departemen = $(this).val();
-
-        $('#filter_divisi').html('<option value="">Loading...</option>');
-
-        if (!departemen) {
-            $('#filter_divisi').html('<option value="">Semua Divisi</option>');
-            table.draw();
-            return;
-        }
-
-        $.get("{{ route('ajax.divisi.by.departemen') }}", {
-            departemen
-        }, function(res) {
-            let opt = '<option value="">Semua Divisi</option>';
-            res.forEach(r => {
-                opt += `<option value="${r.id}">${r.nama_divisi}</option>`;
-            });
-            $('#filter_divisi').html(opt);
-            table.draw();
-        });
-    });
-
-    $('#filter_departemen, #filter_divisi').prop('disabled', true);
-
-    $('#filter_area').on('change', function() {
-        $('#filter_departemen').prop('disabled', !this.value);
-        $('#filter_divisi').prop('disabled', true);
-    });
-
-    $('#filter_departemen').on('change', function() {
-        $('#filter_divisi').prop('disabled', !this.value);
     });
 </script>
 @endpush

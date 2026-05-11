@@ -20,7 +20,7 @@
                     Edit Lokasi Presensi
                 </h3>
                 <small class="text-muted">
-                    Perbarui titik dan radius lokasi presensi
+                    Perbarui nama, titik, dan radius lokasi presensi
                 </small>
             </div>
         </div>
@@ -32,44 +32,28 @@
                     @csrf
                     @method('PUT')
 
-                    {{-- FILTER --}}
                     <div class="row mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Area</label>
-                            <select id="filter_area" class="form-select">
-                                <option value="">Pilih Area</option>
-                                @foreach ($areas as $area)
-                                <option value="{{ $area->kode_perusahaan }}"
-                                    {{ $area->kode_perusahaan == $lokasi->area ? 'selected' : '' }}>
-                                    {{ $area->kode_perusahaan }}
-                                </option>
-                                @endforeach
-                            </select>
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">Nama Lokasi Presensi</label>
+                            <input
+                                type="text"
+                                name="nama_lokasi"
+                                class="form-control @error('nama_lokasi') is-invalid @enderror"
+                                value="{{ old('nama_lokasi', $lokasi->nama_lokasi ?: $lokasi->display_name) }}"
+                                maxlength="150">
+                            @error('nama_lokasi')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label fw-semibold">Departemen</label>
-                            <select id="filter_departemen" class="form-select">
-                                <option value="">Pilih Departemen</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Divisi</label>
-                            <select id="filter_divisi" name="divisi_id" class="form-select">
-                                <option value="">Pilih Divisi</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-12 mt-3">
                             <label class="form-label fw-semibold">Radius (meter)</label>
                             <input type="number"
                                 name="radius"
                                 id="radius"
-                                class="form-control"
-                                value="{{ $lokasi->radius }}"
+                                class="form-control @error('radius') is-invalid @enderror"
+                                value="{{ old('radius', $lokasi->radius) }}"
                                 min="10"
                                 step="10">
+                            @error('radius')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
 
@@ -101,9 +85,10 @@
                             <input type="text"
                                 name="lat"
                                 id="latitude"
-                                class="form-control"
-                                value="{{ $lokasi->lat }}"
+                                class="form-control @error('lat') is-invalid @enderror"
+                                value="{{ old('lat', $lokasi->lat) }}"
                                 readonly>
+                            @error('lat')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-md-6">
@@ -111,9 +96,10 @@
                             <input type="text"
                                 name="long"
                                 id="longitude"
-                                class="form-control"
-                                value="{{ $lokasi->long }}"
+                                class="form-control @error('long') is-invalid @enderror"
+                                value="{{ old('long', $lokasi->long) }}"
                                 readonly>
+                            @error('long')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
 
@@ -237,67 +223,6 @@
 
     document.addEventListener("DOMContentLoaded", function() {
         initMap();
-    });
-</script>
-
-<script>
-    // AREA berubah
-    $('#filter_area').on('change', function() {
-        let area = $(this).val();
-        $('#filter_departemen').html('<option value="">Loading...</option>');
-        $('#filter_divisi').html('<option value="">Semua Divisi</option>');
-
-        if (!area) {
-            $('#filter_departemen').html('<option value="">Semua Departemen</option>');
-            table.draw();
-            return;
-        }
-
-        $.get("{{ route('ajax.departemen.by.area') }}", {
-            area
-        }, function(res) {
-            let opt = '<option value="">Semua Departemen</option>';
-            res.forEach(r => {
-                opt += `<option value="${r.id}">${r.departemen}</option>`;
-            });
-            $('#filter_departemen').html(opt);
-            table.draw();
-        });
-    });
-
-    // DEPARTEMEN berubah
-    $('#filter_departemen').on('change', function() {
-        let departemen = $(this).val();
-
-        $('#filter_divisi').html('<option value="">Loading...</option>');
-
-        if (!departemen) {
-            $('#filter_divisi').html('<option value="">Semua Divisi</option>');
-            table.draw();
-            return;
-        }
-
-        $.get("{{ route('ajax.divisi.by.departemen') }}", {
-            departemen
-        }, function(res) {
-            let opt = '<option value="">Semua Divisi</option>';
-            res.forEach(r => {
-                opt += `<option value="${r.id}">${r.nama_divisi}</option>`;
-            });
-            $('#filter_divisi').html(opt);
-            table.draw();
-        });
-    });
-
-    $('#filter_departemen, #filter_divisi').prop('disabled', true);
-
-    $('#filter_area').on('change', function() {
-        $('#filter_departemen').prop('disabled', !this.value);
-        $('#filter_divisi').prop('disabled', true);
-    });
-
-    $('#filter_departemen').on('change', function() {
-        $('#filter_divisi').prop('disabled', !this.value);
     });
 </script>
 @endpush

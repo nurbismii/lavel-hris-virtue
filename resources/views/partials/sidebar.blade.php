@@ -4,6 +4,8 @@
     $can = fn(string $menu) => $user && $user->hasMenuAccess($menu);
     $canManageOvertimeOrders = $user && $user->hasRole(['Super Admin', 'HR', 'HOD', 'Admin Divisi']);
     $canManageOvertimeMaster = $user && $user->hasRole(['Super Admin', 'HR']);
+    $shiftMenuActive = request()->routeIs('shifts.*') || request()->routeIs('shift-settings.*');
+    $overtimeMenuActive = request()->routeIs('overtime-orders.*') || request()->routeIs('overtime-masters.*');
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -359,39 +361,67 @@
                     </li>
                 @endif
 
-                @if($can('master_shift'))
-                    <li class="nav-item {{ request()->routeIs('shifts.*') ? 'active' : '' }}">
-                        <a href="{{ route('shifts.index') }}">
+                @if($can('master_shift') || $can('pengaturan_shift'))
+                    <li class="nav-item {{ $shiftMenuActive ? 'active' : '' }}">
+                        <a data-bs-toggle="collapse" href="#operationShift"
+                            class="{{ $shiftMenuActive ? '' : 'collapsed' }}"
+                            aria-expanded="{{ $shiftMenuActive ? 'true' : 'false' }}">
                             <i class="fas fa-user-clock"></i>
-                            <p>{{ __('navigation.shift_master') }}</p>
+                            <p>{{ __('navigation.shift') }}</p>
+                            <span class="caret"></span>
                         </a>
+
+                        <div class="collapse {{ $shiftMenuActive ? 'show' : '' }}" id="operationShift">
+                            <ul class="nav nav-collapse">
+                                @if($can('master_shift'))
+                                    <li class="{{ request()->routeIs('shifts.*') ? 'active' : '' }}">
+                                        <a href="{{ route('shifts.index') }}">
+                                            <span class="sub-item">{{ __('navigation.shift_master') }}</span>
+                                        </a>
+                                    </li>
+                                @endif
+
+                                @if($can('pengaturan_shift'))
+                                    <li class="{{ request()->routeIs('shift-settings.*') ? 'active' : '' }}">
+                                        <a href="{{ route('shift-settings.index') }}">
+                                            <span class="sub-item">{{ __('navigation.shift_setting') }}</span>
+                                        </a>
+                                    </li>
+                                @endif
+                            </ul>
+                        </div>
                     </li>
                 @endif
 
-                @if($can('pengaturan_shift'))
-                    <li class="nav-item {{ request()->routeIs('shift-settings.*') ? 'active' : '' }}">
-                        <a href="{{ route('shift-settings.index') }}">
-                            <i class="fas fa-user-clock"></i>
-                            <p>{{ __('navigation.shift_setting') }}</p>
-                        </a>
-                    </li>
-                @endif
-
-                @if($can('lembur') && $canManageOvertimeOrders)
-                    <li class="nav-item {{ request()->routeIs('overtime-orders.*') ? 'active' : '' }}">
-                        <a href="{{ route('overtime-orders.index') }}">
+                @if($can('lembur') && ($canManageOvertimeOrders || $canManageOvertimeMaster))
+                    <li class="nav-item {{ $overtimeMenuActive ? 'active' : '' }}">
+                        <a data-bs-toggle="collapse" href="#operationOvertime"
+                            class="{{ $overtimeMenuActive ? '' : 'collapsed' }}"
+                            aria-expanded="{{ $overtimeMenuActive ? 'true' : 'false' }}">
                             <i class="fas fa-clock"></i>
-                            <p>{{ __('navigation.overtime_order') }}</p>
+                            <p>{{ __('navigation.overtime') }}</p>
+                            <span class="caret"></span>
                         </a>
-                    </li>
-                @endif
 
-                @if($can('lembur') && $canManageOvertimeMaster)
-                    <li class="nav-item {{ request()->routeIs('overtime-masters.*') ? 'active' : '' }}">
-                        <a href="{{ route('overtime-masters.index') }}">
-                            <i class="fas fa-calculator"></i>
-                            <p>{{ __('navigation.overtime_master') }}</p>
-                        </a>
+                        <div class="collapse {{ $overtimeMenuActive ? 'show' : '' }}" id="operationOvertime">
+                            <ul class="nav nav-collapse">
+                                @if($canManageOvertimeOrders)
+                                    <li class="{{ request()->routeIs('overtime-orders.*') ? 'active' : '' }}">
+                                        <a href="{{ route('overtime-orders.index') }}">
+                                            <span class="sub-item">{{ __('navigation.overtime_order') }}</span>
+                                        </a>
+                                    </li>
+                                @endif
+
+                                @if($canManageOvertimeMaster)
+                                    <li class="{{ request()->routeIs('overtime-masters.*') ? 'active' : '' }}">
+                                        <a href="{{ route('overtime-masters.index') }}">
+                                            <span class="sub-item">{{ __('navigation.overtime_master') }}</span>
+                                        </a>
+                                    </li>
+                                @endif
+                            </ul>
+                        </div>
                     </li>
                 @endif
 
