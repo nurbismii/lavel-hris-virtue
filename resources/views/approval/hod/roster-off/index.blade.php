@@ -23,6 +23,7 @@
                             <th>Departemen</th>
                             <th>Tanggal OFF</th>
                             <th>Alasan</th>
+                            <th>Delegasi</th>
                             <th>Status HOD</th>
                             <th>Status HR</th>
                             <th>Aksi</th>
@@ -41,6 +42,7 @@
                             <td>{{ $department ?? '-' }}</td>
                             <td>{{ formatDateIndonesia($offRequest->tanggal_off) }}</td>
                             <td>{{ $offRequest->alasan ?: '-' }}</td>
+                            <td>{!! $offRequest->status_delegate_label !!}</td>
                             <td>{!! $offRequest->status_hod_label !!}</td>
                             <td>{!! $offRequest->status_hrd_label !!}</td>
                             <td>

@@ -7,6 +7,7 @@ use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\RosterOffRequest;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
@@ -15,11 +16,17 @@ class RosterOffApprovalController extends Controller
 {
     public function hodIndex()
     {
-        $offRequests = auth()->user()->applyEmployeeRelationScope(
+        $delegationService = app(ApprovalDelegationService::class);
+        $query = $delegationService->restrictReadyForHod(
             RosterOffRequest::query()
                 ->with('employee.divisi.departemen')
                 ->orderByRaw('CASE WHEN status_hod = 0 THEN 0 WHEN status_hod = 1 THEN 1 ELSE 2 END')
-                ->latest('tanggal_off')
+                ->latest('tanggal_off'),
+            'roster_off_requests'
+        );
+
+        $offRequests = auth()->user()->applyEmployeeRelationScope(
+            $query
         )->paginate(100)->withQueryString();
 
         return view('approval.hod.roster-off.index', compact('offRequests'));
@@ -41,6 +48,13 @@ class RosterOffApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan OFF sudah diproses oleh HOD.',
+                ];
+            }
+
+            if (app(ApprovalDelegationService::class)->blocksHodApproval($offRequest, 'roster_off_requests')) {
+                return [
+                    'status' => false,
+                    'message' => 'Pengajuan OFF masih menunggu atau sudah ditolak pada tahap delegasi.',
                 ];
             }
 

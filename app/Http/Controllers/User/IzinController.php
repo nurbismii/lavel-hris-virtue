@@ -4,7 +4,10 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Izin\IzinRequest;
+use App\Models\ApprovalDelegation;
 use App\Models\Cuti;
+use App\Models\Employee;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
@@ -69,6 +72,7 @@ class IzinController extends Controller
         $STATUS_PEMOHON = 1;
 
         $data = $request->validated();
+        $user = Auth::user();
         $tanggalMulai = Carbon::parse($data['tanggal_mulai']);
         $tanggalBerakhir = Carbon::parse($data['tanggal_berakhir']);
 
@@ -85,12 +89,25 @@ class IzinController extends Controller
                 $tanggalBerakhir,
                 $jumlahHari,
                 $fotoPath,
+                $user,
                 $STATUS_PEMOHON,
                 $STATUS_HOD,
                 $STATUS_HR
             ) {
-                return Cuti::create([
-                    'nik_karyawan' => Auth::user()->nik_karyawan,
+                $employee = Employee::query()
+                    ->where('nik', $user->nik_karyawan)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $delegationService = app(ApprovalDelegationService::class);
+                $delegations = $delegationService->activeDelegationsForEmployee(
+                    $employee,
+                    ApprovalDelegation::MODULE_IZIN,
+                    $user
+                );
+
+                $izin = Cuti::create(array_merge([
+                    'nik_karyawan' => $user->nik_karyawan,
                     'tanggal' => now(),
                     'jumlah' => $jumlahHari,
                     'tanggal_mulai' => $tanggalMulai->toDateString(),
@@ -102,7 +119,11 @@ class IzinController extends Controller
                     'status_hod' => $STATUS_HOD, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
                     'status_hrd' => $STATUS_HR, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
                     'foto' => $fotoPath,
-                ]);
+                ], $delegationService->submissionPayload('cuti_izin', $delegations)));
+
+                $delegationService->createAssignments($izin, $delegations, ApprovalDelegation::MODULE_IZIN);
+
+                return $izin;
             });
         } catch (\Throwable $exception) {
             $this->deleteFotoIzin($fotoPath);
@@ -205,7 +226,9 @@ class IzinController extends Controller
 
     private function canManageIzin(Cuti $izin): bool
     {
-        return (int) $izin->status_hod === 0 && (int) $izin->status_hrd === 0;
+        return (int) $izin->status_hod === 0
+            && (int) $izin->status_hrd === 0
+            && ($izin->delegate_status === null || (int) $izin->delegate_status === 0);
     }
 
     private function resolveTipeIzin(array $data): ?string

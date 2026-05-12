@@ -171,6 +171,7 @@
                                 <tr>
                                     <th>Tanggal OFF</th>
                                     <th>Alasan</th>
+                                    <th>Status Delegasi</th>
                                     <th>Status HOD</th>
                                     <th>Status HR</th>
                                     <th>Aksi</th>
@@ -181,6 +182,7 @@
                                 <tr>
                                     <td class="fw-semibold">{{ formatDateIndonesia($offRequest->tanggal_off) }}</td>
                                     <td>{{ $offRequest->alasan ?: '-' }}</td>
+                                    <td>{!! $offRequest->status_delegate_label !!}</td>
                                     <td>{!! $offRequest->status_hod_label !!}</td>
                                     <td>{!! $offRequest->status_hrd_label !!}</td>
                                     <td>
@@ -200,7 +202,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">
+                                    <td colspan="6" class="text-center text-muted py-4">
                                         Belum ada riwayat pengajuan OFF roster.
                                     </td>
                                 </tr>

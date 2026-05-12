@@ -7,6 +7,7 @@ use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\Roster;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Storage\SensitiveFileStorageService;
@@ -17,11 +18,17 @@ class RosterApprovalController extends Controller
 {
     public function hodIndex()
     {
-        $cutis = auth()->user()->applyEmployeeScope(
+        $delegationService = app(ApprovalDelegationService::class);
+        $query = $delegationService->restrictReadyForHod(
             Roster::select('cuti_roster.*')
                 ->join('employees', 'cuti_roster.nik_karyawan', '=', 'employees.nik')
                 ->join('periode_kerja_roster', 'cuti_roster.id', '=', 'periode_kerja_roster.cuti_roster_id')
                 ->with(['employee', 'periodeKerjaRoster']),
+            'cuti_roster'
+        );
+
+        $cutis = auth()->user()->applyEmployeeScope(
+            $query,
             'employees'
         )->paginate(100)->withQueryString();
 
@@ -44,6 +51,13 @@ class RosterApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan roster sudah diproses oleh HOD.',
+                ];
+            }
+
+            if (app(ApprovalDelegationService::class)->blocksHodApproval($roster, 'cuti_roster')) {
+                return [
+                    'status' => false,
+                    'message' => 'Pengajuan roster masih menunggu atau sudah ditolak pada tahap delegasi.',
                 ];
             }
 
@@ -101,10 +115,13 @@ class RosterApprovalController extends Controller
     {
         $roster = auth()->user()
             ->applyEmployeeRelationScope(
-                Roster::query()->with([
+                app(ApprovalDelegationService::class)->restrictReadyForHod(
+                    Roster::query()->with([
                     'employee.divisi.departemen',
                     'periodeKerjaRoster'
-                ])
+                    ]),
+                    'cuti_roster'
+                )
             )
             ->findOrFail($id);
 
@@ -114,7 +131,9 @@ class RosterApprovalController extends Controller
     public function hodAttachment($id)
     {
         $roster = auth()->user()
-            ->applyEmployeeRelationScope(Roster::query())
+            ->applyEmployeeRelationScope(
+                app(ApprovalDelegationService::class)->restrictReadyForHod(Roster::query(), 'cuti_roster')
+            )
             ->findOrFail($id);
 
         return $this->serveRosterAttachment($roster);

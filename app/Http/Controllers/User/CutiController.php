@@ -133,6 +133,8 @@ class CutiController extends Controller
 
     private function canManageCuti(Cuti $cuti): bool
     {
-        return (int) $cuti->status_hod === 0 && (int) $cuti->status_hrd === 0;
+        return (int) $cuti->status_hod === 0
+            && (int) $cuti->status_hrd === 0
+            && ($cuti->delegate_status === null || (int) $cuti->delegate_status === 0);
     }
 }

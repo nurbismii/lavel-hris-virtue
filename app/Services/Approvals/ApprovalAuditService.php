@@ -76,6 +76,10 @@ class ApprovalAuditService
     private function approvalColumns(string $table): array
     {
         $commonColumns = [
+            'delegate_status',
+            'delegate_processed_by',
+            'delegate_processed_at',
+            'delegate_rejection_reason',
             'hod_processed_by',
             'hod_processed_at',
             'hod_rejection_reason',

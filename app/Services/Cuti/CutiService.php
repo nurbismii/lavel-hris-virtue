@@ -4,9 +4,12 @@ namespace App\Services\Cuti;
 
 use App\Models\Cuti;
 use App\Models\Employee;
+use App\Models\ApprovalDelegation;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\LeaveBalance\LeaveBalanceService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CutiService
 {
@@ -52,7 +55,14 @@ class CutiService
                 ];
             }
 
-            $cuti = Cuti::create([
+            $delegationService = app(ApprovalDelegationService::class);
+            $delegations = $delegationService->activeDelegationsForEmployee(
+                $employee,
+                ApprovalDelegation::MODULE_CUTI,
+                $user
+            );
+
+            $cuti = Cuti::create(array_merge([
                 'nik_karyawan' => $employee->nik,
                 'tanggal' => now()->toDateString(),
                 'tanggal_mulai' => $startDate,
@@ -64,7 +74,9 @@ class CutiService
                 'tipe' => 'CUTI',
                 'keterangan' => $data['keterangan'] ?? null,
                 'created_at' => now()
-            ]);
+            ], $delegationService->submissionPayload('cuti_izin', $delegations)));
+
+            $delegationService->createAssignments($cuti, $delegations, ApprovalDelegation::MODULE_CUTI);
 
             return [
                 'status' => true,
@@ -136,6 +148,9 @@ class CutiService
             ->when($ignoreId, fn($query) => $query->where('id', '!=', $ignoreId))
             ->whereDate('tanggal_mulai', '<=', $endDate)
             ->whereDate('tanggal_berakhir', '>=', $startDate)
+            ->when(Schema::hasColumn('cuti_izin', 'delegate_status'), function ($query) {
+                $query->where(fn($delegateQuery) => $delegateQuery->whereNull('delegate_status')->orWhere('delegate_status', '!=', 2));
+            })
             ->where(fn($query) => $query->whereNull('status_hod')->orWhere('status_hod', '!=', 2))
             ->where(fn($query) => $query->whereNull('status_hrd')->orWhere('status_hrd', '!=', 2))
             ->exists();

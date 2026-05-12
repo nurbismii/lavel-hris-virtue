@@ -15,6 +15,7 @@ class RosterOffRequest extends Model
 
     protected $casts = [
         'tanggal_off' => 'date:Y-m-d',
+        'delegate_processed_at' => 'datetime',
         'hod_processed_at' => 'datetime',
         'hrd_processed_at' => 'datetime',
     ];
@@ -34,6 +35,11 @@ class RosterOffRequest extends Model
         return $this->belongsTo(User::class, 'requested_by');
     }
 
+    public function delegateProcessor()
+    {
+        return $this->belongsTo(User::class, 'delegate_processed_by');
+    }
+
     public function scopeEffectiveForAttendance(Builder $query): Builder
     {
         return $query
@@ -51,10 +57,27 @@ class RosterOffRequest extends Model
         return $this->statusBadge((int) $this->status_hrd);
     }
 
+    public function getStatusDelegateLabelAttribute(): string
+    {
+        if ($this->delegate_status === null) {
+            return '<span class="badge bg-secondary">Tidak Ada Delegasi</span>';
+        }
+
+        switch ((int) $this->delegate_status) {
+            case self::STATUS_APPROVED:
+                return '<span class="badge bg-success">Diterima Delegasi</span>';
+            case self::STATUS_REJECTED:
+                return '<span class="badge bg-danger">Ditolak Delegasi</span>';
+            default:
+                return '<span class="badge bg-warning text-dark">Menunggu Delegasi</span>';
+        }
+    }
+
     public function getCanBeManagedByEmployeeAttribute(): bool
     {
         return (int) $this->status_hod === self::STATUS_PENDING
-            && (int) $this->status_hrd === self::STATUS_PENDING;
+            && (int) $this->status_hrd === self::STATUS_PENDING
+            && ($this->delegate_status === null || (int) $this->delegate_status === self::STATUS_PENDING);
     }
 
     public static function statusText(?int $status): string

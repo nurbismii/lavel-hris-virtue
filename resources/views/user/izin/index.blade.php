@@ -32,6 +32,7 @@
                                 <th>Tanggal Pengajuan</th>
                                 <th>Periode</th>
                                 <th>Jumlah Hari</th>
+                                <th>Status Delegasi</th>
                                 <th>Status HOD</th>
                                 <th>Status HR</th>
                                 <th>Bukti</th>
@@ -57,6 +58,7 @@
                                         {{ $row->jumlah }} Hari
                                     </span>
                                 </td>
+                                <td>{!! $row->status_delegate_label !!}</td>
                                 <td>{!! $row->status_hod_label !!}</td>
                                 <td>{!! $row->status_hrd_label !!}</td>
                                 <td>

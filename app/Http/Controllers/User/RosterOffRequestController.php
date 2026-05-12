@@ -4,11 +4,15 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roster\RosterOffRequestRequest;
+use App\Models\ApprovalDelegation;
+use App\Models\Employee;
 use App\Models\RosterOffRequest;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class RosterOffRequestController extends Controller
 {
@@ -38,6 +42,9 @@ class RosterOffRequestController extends Controller
             $activeRequestExists = RosterOffRequest::query()
                 ->where('nik_karyawan', $nikKaryawan)
                 ->whereDate('tanggal_off', Carbon::parse($validated['tanggal_off'])->toDateString())
+                ->when(Schema::hasColumn('roster_off_requests', 'delegate_status'), function ($query) {
+                    $query->where(fn($delegateQuery) => $delegateQuery->whereNull('delegate_status')->orWhere('delegate_status', '!=', RosterOffRequest::STATUS_REJECTED));
+                })
                 ->where('status_hod', '!=', RosterOffRequest::STATUS_REJECTED)
                 ->where('status_hrd', '!=', RosterOffRequest::STATUS_REJECTED)
                 ->lockForUpdate()
@@ -50,14 +57,27 @@ class RosterOffRequestController extends Controller
                 ];
             }
 
-            $offRequest = RosterOffRequest::create([
+            $employee = Employee::query()
+                ->where('nik', $nikKaryawan)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $delegationService = app(ApprovalDelegationService::class);
+            $delegations = $delegationService->activeDelegationsForEmployee(
+                $employee,
+                ApprovalDelegation::MODULE_ROSTER_OFF,
+                $request->user()
+            );
+
+            $offRequest = RosterOffRequest::create(array_merge([
                 'nik_karyawan' => $nikKaryawan,
                 'requested_by' => $request->user()->id,
                 'tanggal_off' => $validated['tanggal_off'],
                 'alasan' => $validated['alasan'] ?? null,
                 'status_hod' => RosterOffRequest::STATUS_PENDING,
                 'status_hrd' => RosterOffRequest::STATUS_PENDING,
-            ]);
+            ], $delegationService->submissionPayload('roster_off_requests', $delegations)));
+
+            $delegationService->createAssignments($offRequest, $delegations, ApprovalDelegation::MODULE_ROSTER_OFF);
 
             return [
                 'status' => true,

@@ -4,9 +4,12 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AttendanceCorrection\StoreAttendanceCorrectionRequest;
+use App\Models\ApprovalDelegation;
 use App\Models\AttendanceCorrection;
 use App\Models\Presensi;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\AttendanceCorrection\AttendanceCorrectionService;
+use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -20,7 +23,7 @@ class AttendanceCorrectionController extends Controller
 
         if ($isTableReady) {
             $corrections = AttendanceCorrection::query()
-                ->with(['employee', 'hodProcessor:id,name', 'hrdProcessor:id,name'])
+                ->with(['employee', 'delegateProcessor:id,name', 'hodProcessor:id,name', 'hrdProcessor:id,name'])
                 ->where('nik_karyawan', (string) $request->user()->nik_karyawan)
                 ->latest('tanggal')
                 ->latest('id')
@@ -79,6 +82,12 @@ class AttendanceCorrectionController extends Controller
             return back()->withInput();
         }
 
+        if (!empty($result['correction'])) {
+            app(ApprovalNotificationService::class)->notifyAttendanceCorrectionSubmitted(
+                $result['correction']->fresh(['employee'])
+            );
+        }
+
         toast()->success('Berhasil', $result['message']);
         return redirect()->route('attendance-corrections.index');
     }
@@ -109,7 +118,12 @@ class AttendanceCorrectionController extends Controller
         }
 
         if (!$user->hasMenuAccess(['approval_hod', 'approval_hr'])) {
-            return false;
+            return app(ApprovalDelegationService::class)->canProcessDelegatedModel(
+                $attendanceCorrection,
+                $user,
+                ApprovalDelegation::MODULE_ATTENDANCE_CORRECTION,
+                'attendance_corrections'
+            );
         }
 
         return $user->applyEmployeeRelationScope(

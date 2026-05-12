@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\AttendanceCorrection;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\AttendanceCorrection\AttendanceCorrectionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -20,7 +21,10 @@ class AttendanceCorrectionApprovalController extends Controller
         if ($isTableReady) {
             $corrections = $request->user()
                 ->applyEmployeeRelationScope(
-                    AttendanceCorrection::query()->with(['employee', 'requester:id,name,nik_karyawan'])
+                    app(ApprovalDelegationService::class)->restrictReadyForHod(
+                        AttendanceCorrection::query()->with(['employee', 'requester:id,name,nik_karyawan']),
+                        'attendance_corrections'
+                    )
                 )
                 ->orderBy('status_hod')
                 ->latest('created_at')
@@ -41,7 +45,10 @@ class AttendanceCorrectionApprovalController extends Controller
     ) {
         $correction = $request->user()
             ->applyEmployeeRelationScope(
-                AttendanceCorrection::query()->with(['employee', 'requester:id,name,nik_karyawan'])
+                app(ApprovalDelegationService::class)->restrictReadyForHod(
+                    AttendanceCorrection::query()->with(['employee', 'requester:id,name,nik_karyawan']),
+                    'attendance_corrections'
+                )
             )
             ->whereKey($attendanceCorrection->getKey())
             ->firstOrFail();

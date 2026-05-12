@@ -34,12 +34,12 @@ class LeaveBalanceLedger extends Model
     public static function typeLabels(): array
     {
         return [
-            self::TYPE_ANNUAL_GRANT => 'Saldo Tahunan',
-            self::TYPE_OPENING_BALANCE => 'Saldo Awal',
-            self::TYPE_CARRY_OVER => 'Carry-over',
+            self::TYPE_ANNUAL_GRANT => 'Adjustment HR (Legacy)',
+            self::TYPE_OPENING_BALANCE => 'Saldo Awal Sistem',
+            self::TYPE_CARRY_OVER => 'Adjustment HR (Legacy)',
             self::TYPE_USAGE => 'Pemakaian Cuti',
             self::TYPE_ADJUSTMENT => 'Adjustment HR',
-            self::TYPE_EXPIRED => 'Expired',
+            self::TYPE_EXPIRED => 'Adjustment HR (Legacy)',
         ];
     }
 

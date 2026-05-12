@@ -27,6 +27,7 @@
                                     <th>Tanggal</th>
                                     <th>Koreksi Diminta</th>
                                     <th>Status</th>
+                                    <th>Delegasi</th>
                                     <th>HOD</th>
                                     <th>HR</th>
                                     <th>Lampiran</th>
@@ -47,6 +48,15 @@
                                         </td>
                                         <td>
                                             <span class="badge {{ $correction->overall_badge_class }}">{{ $correction->overall_status_label }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge {{ $correction->delegate_status === null ? 'bg-secondary' : \App\Models\AttendanceCorrection::statusBadgeClass($correction->delegate_status) }}">{{ $correction->delegate_status_label }}</span>
+                                            @if($correction->delegateProcessor)
+                                                <small class="d-block text-muted mt-1">{{ $correction->delegateProcessor->name }}</small>
+                                            @endif
+                                            @if($correction->delegate_rejection_reason)
+                                                <small class="d-block text-danger mt-1">{{ $correction->delegate_rejection_reason }}</small>
+                                            @endif
                                         </td>
                                         <td>
                                             <span class="badge {{ \App\Models\AttendanceCorrection::statusBadgeClass($correction->status_hod) }}">{{ $correction->hod_status_label }}</span>
@@ -78,7 +88,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">
+                                        <td colspan="7" class="text-center text-muted py-4">
                                             Belum ada pengajuan koreksi presensi.
                                         </td>
                                     </tr>

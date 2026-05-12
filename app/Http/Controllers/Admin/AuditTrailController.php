@@ -87,6 +87,8 @@ class AuditTrailController extends Controller
         return [
             'approval.hod.approved' => 'HOD menyetujui',
             'approval.hod.rejected' => 'HOD menolak',
+            'approval.delegate.approved' => 'Delegasi menyetujui',
+            'approval.delegate.rejected' => 'Delegasi menolak',
             'approval.hrd.approved' => 'HR menyetujui',
             'approval.hrd.rejected' => 'HR menolak',
             'attendance_correction.submitted' => 'Koreksi presensi diajukan',

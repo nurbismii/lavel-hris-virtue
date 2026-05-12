@@ -2,15 +2,18 @@
 
 namespace App\Services\AttendanceCorrection;
 
+use App\Models\ApprovalDelegation;
 use App\Models\AttendanceCorrection;
 use App\Models\Employee;
 use App\Models\Presensi;
 use App\Models\User;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Audit\AuditTrailService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class AttendanceCorrectionService
@@ -64,6 +67,9 @@ class AttendanceCorrectionService
                     ->where('nik_karyawan', $employee->nik)
                     ->whereDate('tanggal', $tanggal)
                     ->whereNull('applied_at')
+                    ->when(Schema::hasColumn('attendance_corrections', 'delegate_status'), function ($query) {
+                        $query->where(fn($delegateQuery) => $delegateQuery->whereNull('delegate_status')->orWhere('delegate_status', '!=', AttendanceCorrection::STATUS_REJECTED));
+                    })
                     ->where('status_hod', '!=', AttendanceCorrection::STATUS_REJECTED)
                     ->where('status_hrd', '!=', AttendanceCorrection::STATUS_REJECTED)
                     ->lockForUpdate()
@@ -87,6 +93,13 @@ class AttendanceCorrectionService
                 }
 
                 $requestedValues = $this->requestedValues($tanggal, $data);
+                $delegationService = app(ApprovalDelegationService::class);
+                $delegations = $delegationService->activeDelegationsForEmployee(
+                    $employee,
+                    ApprovalDelegation::MODULE_ATTENDANCE_CORRECTION,
+                    $user
+                );
+
                 $correction = AttendanceCorrection::create(array_merge($requestedValues, [
                     'nik_karyawan' => $employee->nik,
                     'presensi_id' => optional($presensi)->id,
@@ -95,7 +108,13 @@ class AttendanceCorrectionService
                     'reason' => $data['reason'],
                     'attachment_path' => $attachmentPath,
                     'created_by' => (string) $user->id,
-                ]));
+                ], $delegationService->submissionPayload('attendance_corrections', $delegations)));
+
+                $delegationService->createAssignments(
+                    $correction,
+                    $delegations,
+                    ApprovalDelegation::MODULE_ATTENDANCE_CORRECTION
+                );
 
                 $this->recordAudit(
                     $correction,
@@ -466,6 +485,9 @@ class AttendanceCorrectionService
     private function approvalValues(AttendanceCorrection $correction): array
     {
         return [
+            'delegate_status' => $correction->delegate_status,
+            'delegate_processed_by' => $correction->delegate_processed_by,
+            'delegate_processed_at' => $this->formatDateTime($correction->delegate_processed_at),
             'status_hod' => (int) $correction->status_hod,
             'status_hrd' => (int) $correction->status_hrd,
             'hod_processed_by' => $correction->hod_processed_by,

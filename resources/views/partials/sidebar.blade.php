@@ -4,6 +4,8 @@
     $can = fn(string $menu) => $user && $user->hasMenuAccess($menu);
     $canManageOvertimeOrders = $user && $user->hasRole(['Super Admin', 'HR', 'HOD', 'Admin Divisi']);
     $canManageOvertimeMaster = $user && $user->hasRole(['Super Admin', 'HR']);
+    $canManageApprovalDelegations = $user && $user->hasRole(['Super Admin', 'HOD']) && $can('approval_hod');
+    $canUseDelegateApproval = $user && ($approvalDelegateAccess ?? false);
     $shiftMenuActive = request()->routeIs('shifts.*') || request()->routeIs('shift-settings.*');
     $overtimeMenuActive = request()->routeIs('overtime-orders.*') || request()->routeIs('overtime-masters.*');
 @endphp
@@ -203,6 +205,27 @@
                     </li>
                 @endif
 
+                @if($canUseDelegateApproval)
+                    <li class="nav-section">
+                        <span class="sidebar-mini-icon">
+                            <i class="fa fa-ellipsis-h"></i>
+                        </span>
+                        <div class="sidebar-section-title">
+                            <h4 class="text-section mb-0">{{ __('navigation.approval_delegate') }}</h4>
+                        </div>
+                    </li>
+
+                    <li class="nav-item {{ request()->routeIs('approval.delegate.*') ? 'active' : '' }}">
+                        <a href="{{ route('approval.delegate.index', ['module' => 'cuti']) }}" class="{{ ($approvalDelegateCounts['total'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
+                            <i class="fas fa-user-check"></i>
+                            <p>{{ __('navigation.delegated_approval') }}</p>
+                            @if(($approvalDelegateCounts['total'] ?? 0) > 0)
+                                <span class="badge badge-primary">{{ $approvalDelegateCounts['total'] }}</span>
+                            @endif
+                        </a>
+                    </li>
+                @endif
+
                 @if($can('approval_hod'))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
@@ -212,6 +235,15 @@
                             <h4 class="text-section mb-0">{{ __('navigation.approval_hod') }}</h4>
                         </div>
                     </li>
+
+                    @if($canManageApprovalDelegations)
+                    <li class="nav-item {{ request()->routeIs('approval.delegations.*') ? 'active' : '' }}">
+                        <a href="{{ route('approval.delegations.index') }}">
+                            <i class="fas fa-users-cog"></i>
+                            <p>{{ __('navigation.approval_delegation') }}</p>
+                        </a>
+                    </li>
+                    @endif
 
                     <li class="nav-item {{ request()->routeIs('approval.cuti.hod') ? 'active' : '' }}">
                         <a href="{{ route('approval.cuti.hod') }}" class="{{ ($approvalHodCounts['cuti'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">

@@ -33,19 +33,20 @@ class LeaveBalanceServiceTest extends TestCase
         $this->createSchema();
     }
 
-    public function test_manual_credit_updates_ledger_and_employee_balance(): void
+    public function test_manual_credit_is_recorded_as_hr_adjustment(): void
     {
         $employee = $this->seedEmployee(3);
         $actor = $this->makeHrUser();
 
         $ledger = app(LeaveBalanceService::class)->recordManualEntry($employee, [
             'entry_type' => LeaveBalanceLedger::TYPE_ANNUAL_GRANT,
+            'direction' => LeaveBalanceLedger::DIRECTION_CREDIT,
             'amount' => 12,
             'period_year' => 2026,
             'transaction_date' => '2026-01-01',
             'effective_date' => '2026-01-01',
             'expires_at' => '2026-12-31',
-            'note' => 'Hak cuti tahunan 2026.',
+            'note' => 'Adjustment saldo cuti 2026.',
         ], $actor);
 
         $this->assertSame(3.0, (float) $ledger->balance_before);
@@ -56,7 +57,7 @@ class LeaveBalanceServiceTest extends TestCase
         ]);
         $this->assertDatabaseHas('leave_balance_ledgers', [
             'employee_nik' => 'EMP001',
-            'entry_type' => LeaveBalanceLedger::TYPE_ANNUAL_GRANT,
+            'entry_type' => LeaveBalanceLedger::TYPE_ADJUSTMENT,
             'direction' => LeaveBalanceLedger::DIRECTION_CREDIT,
         ]);
     }
@@ -68,11 +69,12 @@ class LeaveBalanceServiceTest extends TestCase
         $this->expectException(LeaveBalanceException::class);
 
         app(LeaveBalanceService::class)->recordManualEntry($employee, [
-            'entry_type' => LeaveBalanceLedger::TYPE_EXPIRED,
+            'entry_type' => LeaveBalanceLedger::TYPE_ADJUSTMENT,
+            'direction' => LeaveBalanceLedger::DIRECTION_DEBIT,
             'amount' => 2,
             'period_year' => 2026,
             'transaction_date' => '2026-12-31',
-            'note' => 'Expired carry-over.',
+            'note' => 'Adjustment pengurangan saldo cuti.',
         ], $this->makeHrUser());
     }
 

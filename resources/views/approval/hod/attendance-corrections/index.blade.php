@@ -25,6 +25,7 @@
                                     <th>Tanggal</th>
                                     <th>Koreksi Diminta</th>
                                     <th>Alasan</th>
+                                    <th>Delegasi</th>
                                     <th>Status</th>
                                     <th>Aksi</th>
                                 </tr>
@@ -55,6 +56,11 @@
                                             @endif
                                         </td>
                                         <td>{{ \Illuminate\Support\Str::limit($correction->reason, 120) }}</td>
+                                        <td>
+                                            <span class="badge {{ $correction->delegate_status === null ? 'bg-secondary' : \App\Models\AttendanceCorrection::statusBadgeClass($correction->delegate_status) }}">
+                                                {{ $correction->delegate_status_label }}
+                                            </span>
+                                        </td>
                                         <td>
                                             <span class="badge {{ $correction->overall_badge_class }}">{{ $correction->overall_status_label }}</span>
                                         </td>
@@ -92,7 +98,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">
+                                        <td colspan="7" class="text-center text-muted py-4">
                                             Tidak ada pengajuan presensi dalam scope Anda.
                                         </td>
                                     </tr>

@@ -27,8 +27,10 @@ use App\Http\Controllers\User\SlipgajiController as UserSlipGajiController;
 use App\Http\Controllers\Admin\PresensiController as PresensiAdminController;
 use App\Http\Controllers\AdminDivisi\AttendanceSettingController;
 use App\Http\Controllers\AdminDivisi\ShiftSettingController;
+use App\Http\Controllers\Approval\ApprovalDelegationController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Approval\DelegatedApprovalController;
 use App\Http\Controllers\LocaleController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
@@ -306,6 +308,28 @@ Route::middleware(['android.redirect'])->group(function () {
     });
 
     Route::group(['prefix' => 'approval', 'middleware' => ['auth']], function () {
+
+        Route::get('/delegasi', [ApprovalDelegationController::class, 'index'])
+            ->middleware(['menu:approval_hod', 'role:Super Admin,HOD'])
+            ->name('approval.delegations.index');
+        Route::post('/delegasi', [ApprovalDelegationController::class, 'store'])
+            ->middleware(['menu:approval_hod', 'role:Super Admin,HOD'])
+            ->name('approval.delegations.store');
+        Route::get('/delegasi/kandidat', [ApprovalDelegationController::class, 'candidates'])
+            ->middleware(['menu:approval_hod', 'role:Super Admin,HOD'])
+            ->name('approval.delegations.candidates');
+        Route::post('/delegasi/{delegation}/toggle', [ApprovalDelegationController::class, 'toggle'])
+            ->middleware(['menu:approval_hod', 'role:Super Admin,HOD'])
+            ->name('approval.delegations.toggle');
+
+        Route::get('/delegasi-approval/{module?}', [DelegatedApprovalController::class, 'index'])
+            ->name('approval.delegate.index');
+        Route::get('/delegasi-approval/izin/{id}/bukti', [DelegatedApprovalController::class, 'izinProof'])
+            ->name('approval.delegate.izin.proof');
+        Route::get('/delegasi-approval/roster/{id}/attachment', [DelegatedApprovalController::class, 'rosterAttachment'])
+            ->name('approval.delegate.roster.attachment');
+        Route::post('/delegasi-approval/{module}/{id}', [DelegatedApprovalController::class, 'process'])
+            ->name('approval.delegate.process');
 
         Route::get('/hod/cuti', [CutiApprovalController::class, 'hodIndex'])->middleware('menu:approval_hod')->name('approval.cuti.hod');
         Route::post('/hod/cuti/{id}', [CutiApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.cuti.hod.process');

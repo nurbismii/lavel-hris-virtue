@@ -47,34 +47,21 @@
                     <div class="card shadow-sm border-0">
                         <div class="card-body">
                             <h5 class="mb-1">Input Transaksi HR</h5>
-                            <small class="text-muted d-block mb-3">Gunakan form ini untuk saldo tahunan, carry-over, adjustment, atau expired carry-over.</small>
+                            <small class="text-muted d-block mb-3">Gunakan form ini hanya untuk koreksi saldo oleh HR. Pemakaian cuti tetap tercatat otomatis saat approval HRD.</small>
 
                             <form action="{{ route('leave-balances.store', $employee->nik) }}" method="POST" class="row g-3">
                                 @csrf
-                                <div class="col-md-4">
-                                    <label class="form-label">Jenis Transaksi</label>
-                                    <select name="entry_type" class="form-select @error('entry_type') is-invalid @enderror" required>
-                                        <option value="">Pilih jenis</option>
-                                        @foreach($entryTypeLabels as $value => $label)
-                                            @if(!in_array($value, [\App\Models\LeaveBalanceLedger::TYPE_USAGE, \App\Models\LeaveBalanceLedger::TYPE_OPENING_BALANCE], true))
-                                                <option value="{{ $value }}" {{ old('entry_type') === $value ? 'selected' : '' }}>{{ $label }}</option>
-                                            @endif
-                                        @endforeach
-                                    </select>
-                                    @error('entry_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label class="form-label">Arah Adjustment</label>
-                                    <select name="direction" class="form-select @error('direction') is-invalid @enderror">
-                                        <option value="">Otomatis</option>
+                                    <select name="direction" class="form-select @error('direction') is-invalid @enderror" required>
+                                        <option value="">Pilih arah</option>
                                         <option value="credit" {{ old('direction') === 'credit' ? 'selected' : '' }}>Tambah saldo</option>
                                         <option value="debit" {{ old('direction') === 'debit' ? 'selected' : '' }}>Kurangi saldo</option>
                                     </select>
                                     @error('direction')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
 
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <label class="form-label">Jumlah Hari</label>
                                     <input type="number" step="1" min="1" max="365" name="amount" class="form-control @error('amount') is-invalid @enderror" value="{{ old('amount') }}" required>
                                     @error('amount')<div class="invalid-feedback">{{ $message }}</div>@enderror
@@ -92,21 +79,9 @@
                                     @error('transaction_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
 
-                                <div class="col-md-3">
-                                    <label class="form-label">Tanggal Efektif</label>
-                                    <input type="date" name="effective_date" class="form-control @error('effective_date') is-invalid @enderror" value="{{ old('effective_date') }}">
-                                    @error('effective_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
-
-                                <div class="col-md-3">
-                                    <label class="form-label">Expired</label>
-                                    <input type="date" name="expires_at" class="form-control @error('expires_at') is-invalid @enderror" value="{{ old('expires_at') }}">
-                                    @error('expires_at')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
-
                                 <div class="col-12">
                                     <label class="form-label">Catatan HR</label>
-                                    <textarea name="note" rows="3" class="form-control @error('note') is-invalid @enderror" maxlength="500" placeholder="Contoh: Hak cuti tahunan 2026 / adjustment koreksi payroll / expired carry-over 2025" required>{{ old('note') }}</textarea>
+                                    <textarea name="note" rows="3" class="form-control @error('note') is-invalid @enderror" maxlength="500" placeholder="Contoh: Koreksi saldo cuti berdasarkan verifikasi HR tanggal 12 Mei 2026" required>{{ old('note') }}</textarea>
                                     @error('note')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
 

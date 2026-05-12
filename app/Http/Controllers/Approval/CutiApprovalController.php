@@ -9,6 +9,7 @@ use App\Models\Cuti;
 use App\Models\Employee;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\LeaveBalance\LeaveBalanceService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
@@ -18,12 +19,18 @@ class CutiApprovalController extends Controller
 {
     public function hodIndex()
     {
-        $cutis = auth()->user()->applyEmployeeScope(
+        $delegationService = app(ApprovalDelegationService::class);
+        $query = $delegationService->restrictReadyForHod(
             Cuti::select('cuti_izin.*')
                 ->join('employees', 'cuti_izin.nik_karyawan', '=', 'employees.nik')
                 ->where('cuti_izin.tipe', 'CUTI')
                 ->orderByRaw("FIELD(cuti_izin.status_hod, '0', '1')")
                 ->with('employee'),
+            'cuti_izin'
+        );
+
+        $cutis = auth()->user()->applyEmployeeScope(
+            $query,
             'employees'
         )->paginate(100)->withQueryString();
 
@@ -47,6 +54,13 @@ class CutiApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan sudah diproses oleh HOD.',
+                ];
+            }
+
+            if (app(ApprovalDelegationService::class)->blocksHodApproval($cuti, 'cuti_izin')) {
+                return [
+                    'status' => false,
+                    'message' => 'Pengajuan masih menunggu atau sudah ditolak pada tahap delegasi.',
                 ];
             }
 

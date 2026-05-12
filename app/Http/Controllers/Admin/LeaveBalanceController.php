@@ -73,7 +73,6 @@ class LeaveBalanceController extends Controller
         return view('admin.leave-balances.show', [
             'employee' => $employee,
             'currentBalance' => $leaveBalanceService->currentBalance($employee),
-            'entryTypeLabels' => LeaveBalanceLedger::typeLabels(),
             'isTableReady' => Schema::hasTable('leave_balance_ledgers'),
             'ledgers' => $ledgers,
         ]);

@@ -37,6 +37,7 @@
                                     <th>Mulai cuti</th>
                                     <th>Berakhir cuti</th>
                                     <th>Jumlah Cuti</th>
+                                    <th>Status Delegasi</th>
                                     <th>Status HOD</th>
                                     <th>Status HR</th>
                                     <th>Aksi</th>
@@ -51,6 +52,7 @@
                                     <td>{{ formatDateIndonesia($c->tanggal_mulai) }}</td>
                                     <td>{{ formatDateIndonesia($c->tanggal_berakhir) }}</td>
                                     <td>{{ $c->jumlah }} Hari</td>
+                                    <td>{!! $c->status_delegate_label !!}</td>
                                     <td>{!! $c->status_hod_label !!}</td>
                                     <td>{!! $c->status_hrd_label !!}</td>
                                     <td>

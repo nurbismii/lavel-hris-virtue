@@ -4,9 +4,12 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roster\RosterRequest;
+use App\Models\ApprovalDelegation;
+use App\Models\Employee;
 use App\Models\PeriodeKerjaRoster;
 use App\Models\Roster;
 use App\Models\RosterOffRequest;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
@@ -63,6 +66,16 @@ class RosterController extends Controller
 
             $rosterNumberLockAcquired = $this->acquireRosterNumberLock((int) now()->year);
             $nomor_surat = $this->generateRosterNumber();
+            $employee = Employee::query()
+                ->where('nik', $nikKaryawan)
+                ->lockForUpdate()
+                ->firstOrFail();
+            $delegationService = app(ApprovalDelegationService::class);
+            $delegations = $delegationService->activeDelegationsForEmployee(
+                $employee,
+                ApprovalDelegation::MODULE_ROSTER,
+                Auth::user()
+            );
 
             $file_name = null;
 
@@ -75,7 +88,7 @@ class RosterController extends Controller
                 $file_name = basename($storedFilePath);
             }
 
-            $roster = Roster::create([
+            $roster = Roster::create(array_merge([
                 'nomor_surat' => $nomor_surat,
                 'nik_karyawan' => $nikKaryawan,
                 'email' => $validated['email'],
@@ -113,7 +126,9 @@ class RosterController extends Controller
                 'file' => $file_name,
                 'status_pengajuan' => $statusPengajuanHod, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
                 'status_pengajuan_hrd' => $statusPengajuanHrd // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
-            ]);
+            ], $delegationService->submissionPayload('cuti_roster', $delegations)));
+
+            $delegationService->createAssignments($roster, $delegations, ApprovalDelegation::MODULE_ROSTER);
 
             $weeklyRoster = $this->applyApprovedOffToWeeklyStatus(
                 $nikKaryawan,
@@ -472,7 +487,9 @@ class RosterController extends Controller
 
     private function canManageRoster(Roster $roster): bool
     {
-        return (int) $roster->status_pengajuan === 0 && (int) $roster->status_pengajuan_hrd === 0;
+        return (int) $roster->status_pengajuan === 0
+            && (int) $roster->status_pengajuan_hrd === 0
+            && ($roster->delegate_status === null || (int) $roster->delegate_status === 0);
     }
 
     private function serveRosterAttachment(Roster $roster)

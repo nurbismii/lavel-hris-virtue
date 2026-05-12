@@ -7,6 +7,7 @@ use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\Cuti;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
+use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
@@ -15,12 +16,18 @@ class IzinApprovalController extends Controller
 {
     public function hodIndex()
     {
-        $cutis = auth()->user()->applyEmployeeScope(
+        $delegationService = app(ApprovalDelegationService::class);
+        $query = $delegationService->restrictReadyForHod(
             Cuti::select('cuti_izin.*')
                 ->join('employees', 'cuti_izin.nik_karyawan', '=', 'employees.nik')
                 ->whereIn('cuti_izin.tipe', ['PAID', 'UNPAID'])
                 ->orderByRaw("FIELD(cuti_izin.tipe, 'UNPAID', 'PAID')")
                 ->with('employee'),
+            'cuti_izin'
+        );
+
+        $cutis = auth()->user()->applyEmployeeScope(
+            $query,
             'employees'
         )->paginate(100)->withQueryString();
 
@@ -44,6 +51,13 @@ class IzinApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan sudah diproses oleh HOD.',
+                ];
+            }
+
+            if (app(ApprovalDelegationService::class)->blocksHodApproval($cuti, 'cuti_izin')) {
+                return [
+                    'status' => false,
+                    'message' => 'Pengajuan masih menunggu atau sudah ditolak pada tahap delegasi.',
                 ];
             }
 

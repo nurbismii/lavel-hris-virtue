@@ -26,6 +26,7 @@
                             <th>Mulai</th>
                             <th>Berakhir</th>
                             <th>Kategori</th>
+                            <th>Delegasi</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -43,6 +44,7 @@
                             <td>{{ formatDateIndonesia($cuti->tgl_mulai_cuti) }}</td>
                             <td>{{ formatDateIndonesia($cuti->tgl_mulai_cuti_berakhir) }}</td>
                             <td>{!! $cuti->status_rencana_label !!}</td>
+                            <td>{!! $cuti->status_delegate_label !!}</td>
                             <td>{!! $cuti->status_hod_label !!}</td>
                             <td>
                                 <div class="d-flex gap-2 justify-content-center">

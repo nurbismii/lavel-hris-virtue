@@ -26,6 +26,7 @@
                             <th>Mulai</th>
                             <th>Berakhir</th>
                             <th>Jumlah</th>
+                            <th>Delegasi</th>
                             <th>Status</th>
                             <th>Aksi</th>
                         </tr>
@@ -43,6 +44,7 @@
                             <td>{{ formatDateIndonesia($cuti->tanggal_mulai) }}</td>
                             <td>{{ formatDateIndonesia($cuti->tanggal_berakhir)}}</td>
                             <td>{{ $cuti->jumlah }} Hari</td>
+                            <td>{!! $cuti->status_delegate_label !!}</td>
                             <td>{!! $cuti->status_hod_label !!}</td>
                             <td>
                                 @if($hodStatus === 0)

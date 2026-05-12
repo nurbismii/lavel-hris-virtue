@@ -30,6 +30,7 @@ class AttendanceCorrection extends Model
         'change_status_presensi' => 'boolean',
         'old_values' => 'array',
         'applied_values' => 'array',
+        'delegate_processed_at' => 'datetime',
         'hod_processed_at' => 'datetime',
         'hrd_processed_at' => 'datetime',
         'applied_at' => 'datetime',
@@ -59,6 +60,11 @@ class AttendanceCorrection extends Model
     public function hodProcessor()
     {
         return $this->belongsTo(User::class, 'hod_processed_by');
+    }
+
+    public function delegateProcessor()
+    {
+        return $this->belongsTo(User::class, 'delegate_processed_by');
     }
 
     public function hrdProcessor()
@@ -139,6 +145,15 @@ class AttendanceCorrection extends Model
         return self::statusLabel($this->status_hod);
     }
 
+    public function getDelegateStatusLabelAttribute(): string
+    {
+        if ($this->delegate_status === null) {
+            return 'Tidak Ada Delegasi';
+        }
+
+        return self::statusLabel($this->delegate_status);
+    }
+
     public function getHrdStatusLabelAttribute(): string
     {
         return self::statusLabel($this->status_hrd);
@@ -146,6 +161,14 @@ class AttendanceCorrection extends Model
 
     public function getOverallStatusLabelAttribute(): string
     {
+        if ($this->delegate_status !== null && (int) $this->delegate_status === self::STATUS_REJECTED) {
+            return 'Ditolak Delegasi';
+        }
+
+        if ($this->delegate_status !== null && (int) $this->delegate_status === self::STATUS_PENDING) {
+            return 'Menunggu Delegasi';
+        }
+
         if ((int) $this->status_hod === self::STATUS_REJECTED) {
             return 'Ditolak HOD';
         }
@@ -167,7 +190,9 @@ class AttendanceCorrection extends Model
 
     public function getOverallBadgeClassAttribute(): string
     {
-        if ((int) $this->status_hod === self::STATUS_REJECTED || (int) $this->status_hrd === self::STATUS_REJECTED) {
+        if (($this->delegate_status !== null && (int) $this->delegate_status === self::STATUS_REJECTED)
+            || (int) $this->status_hod === self::STATUS_REJECTED
+            || (int) $this->status_hrd === self::STATUS_REJECTED) {
             return 'bg-danger';
         }
 

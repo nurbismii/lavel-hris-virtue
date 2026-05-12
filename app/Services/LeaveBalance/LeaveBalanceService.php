@@ -37,8 +37,8 @@ class LeaveBalanceService
                 ->firstOrFail();
 
             return $this->createLedgerEntry($lockedEmployee, [
-                'entry_type' => $data['entry_type'],
-                'direction' => $this->resolveDirection($data['entry_type'], $data['direction'] ?? null),
+                'entry_type' => LeaveBalanceLedger::TYPE_ADJUSTMENT,
+                'direction' => $this->resolveDirection(LeaveBalanceLedger::TYPE_ADJUSTMENT, $data['direction'] ?? null),
                 'amount' => $data['amount'],
                 'period_year' => $data['period_year'] ?? null,
                 'transaction_date' => $data['transaction_date'],

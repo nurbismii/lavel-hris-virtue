@@ -39,6 +39,8 @@ class ApprovalSidebarCountService
         return [
             'approvalHodCounts' => self::EMPTY_COUNTS,
             'approvalHrCounts' => self::EMPTY_COUNTS,
+            'approvalDelegateCounts' => self::EMPTY_COUNTS,
+            'approvalDelegateAccess' => false,
         ];
     }
 
@@ -46,36 +48,54 @@ class ApprovalSidebarCountService
     {
         $approvalHodCounts = self::EMPTY_COUNTS;
         $approvalHrCounts = self::EMPTY_COUNTS;
+        $delegationService = app(ApprovalDelegationService::class);
+        $approvalDelegateCounts = $delegationService->countsForDelegate($user);
+        $approvalDelegateAccess = $delegationService->hasDelegateAccess($user) || $approvalDelegateCounts['total'] > 0;
 
         if ($user->hasMenuAccess('approval_hod')) {
             $approvalHodCounts['cuti'] = $user->applyEmployeeRelationScope(
-                Cuti::query()
-                    ->where('tipe', 'CUTI')
-                    ->where('status_hod', 0)
+                $delegationService->restrictReadyForHod(
+                    Cuti::query()
+                        ->where('tipe', 'CUTI')
+                        ->where('status_hod', 0),
+                    'cuti_izin'
+                )
             )->count();
 
             $approvalHodCounts['izin'] = $user->applyEmployeeRelationScope(
-                Cuti::query()
-                    ->whereIn('tipe', ['PAID', 'UNPAID'])
-                    ->where('status_hod', 0)
+                $delegationService->restrictReadyForHod(
+                    Cuti::query()
+                        ->whereIn('tipe', ['PAID', 'UNPAID'])
+                        ->where('status_hod', 0),
+                    'cuti_izin'
+                )
             )->count();
 
             $approvalHodCounts['roster'] = $user->applyEmployeeRelationScope(
-                Roster::query()
-                    ->where('status_pengajuan', 0)
+                $delegationService->restrictReadyForHod(
+                    Roster::query()
+                        ->where('status_pengajuan', 0),
+                    'cuti_roster'
+                )
             )->count();
 
             if (Schema::hasTable('roster_off_requests')) {
                 $approvalHodCounts['roster_off'] = $user->applyEmployeeRelationScope(
-                    RosterOffRequest::query()
-                        ->where('status_hod', RosterOffRequest::STATUS_PENDING)
+                    $delegationService->restrictReadyForHod(
+                        RosterOffRequest::query()
+                            ->where('status_hod', RosterOffRequest::STATUS_PENDING),
+                        'roster_off_requests'
+                    )
                 )->count();
             }
 
             if (Schema::hasTable('attendance_corrections')) {
                 $approvalHodCounts['attendance_correction'] = $user->applyEmployeeRelationScope(
-                    AttendanceCorrection::query()
-                        ->where('status_hod', AttendanceCorrection::STATUS_PENDING)
+                    $delegationService->restrictReadyForHod(
+                        AttendanceCorrection::query()
+                            ->where('status_hod', AttendanceCorrection::STATUS_PENDING),
+                        'attendance_corrections'
+                    )
                 )->count();
             }
 
@@ -122,7 +142,7 @@ class ApprovalSidebarCountService
             $approvalHrCounts['total'] = $this->sumCounts($approvalHrCounts);
         }
 
-        return compact('approvalHodCounts', 'approvalHrCounts');
+        return compact('approvalHodCounts', 'approvalHrCounts', 'approvalDelegateCounts', 'approvalDelegateAccess');
     }
 
     private function sumCounts(array $counts): int
