@@ -21,6 +21,14 @@ $menus = [
         'label' => 'Slip Gaji Admin',
         'group' => 'Data Master',
     ],
+    'electronic_contract_admin' => [
+        'label' => 'Kontrak Elektronik Admin',
+        'group' => 'Data Master',
+    ],
+    'electronic_contract_first_party_signature' => [
+        'label' => 'Tanda Tangan Pihak Pertama',
+        'group' => 'Data Master',
+    ],
     'resign' => [
         'label' => 'Resign',
         'group' => 'Data Master',
@@ -39,6 +47,10 @@ $menus = [
     ],
     'slip_gaji_user' => [
         'label' => 'Slip Gaji Karyawan',
+        'group' => 'Self Service',
+    ],
+    'electronic_contract_user' => [
+        'label' => 'Kontrak Elektronik',
         'group' => 'Self Service',
     ],
     'cuti' => [
@@ -179,6 +191,9 @@ return [
             'dashboard_admin',
             'data_karyawan',
             'data_user',
+            'electronic_contract_admin',
+            'electronic_contract_first_party_signature',
+            'electronic_contract_user',
             'resign',
             'surat_peringatan',
             'data_presensi',
@@ -200,6 +215,7 @@ return [
             'dashboard_karyawan',
             'data_karyawan',
             'slip_gaji_user',
+            'electronic_contract_user',
             'cuti',
             'izin',
             'presensi',
@@ -215,6 +231,7 @@ return [
             'dashboard_karyawan',
             'data_karyawan',
             'slip_gaji_user',
+            'electronic_contract_user',
             'cuti',
             'izin',
             'presensi',
@@ -225,6 +242,7 @@ return [
             'dashboard_karyawan',
             'data_karyawan',
             'slip_gaji_user',
+            'electronic_contract_user',
             'cuti',
             'izin',
             'presensi',
@@ -234,6 +252,7 @@ return [
         'Staff' => [
             'dashboard_karyawan',
             'slip_gaji_user',
+            'electronic_contract_user',
             'cuti',
             'izin',
             'presensi',
@@ -243,6 +262,7 @@ return [
         'Staff Roster' => [
             'dashboard_karyawan',
             'slip_gaji_user',
+            'electronic_contract_user',
             'cuti',
             'roster',
             'off_roster',
@@ -255,6 +275,7 @@ return [
             'dashboard_karyawan',
             'data_karyawan',
             'slip_gaji_user',
+            'electronic_contract_user',
             'cuti',
             'izin',
             'presensi',

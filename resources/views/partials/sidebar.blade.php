@@ -4,10 +4,12 @@
     $can = fn(string $menu) => $user && $user->hasMenuAccess($menu);
     $canManageOvertimeOrders = $user && $user->hasRole(['Super Admin', 'HR', 'HOD', 'Admin Divisi']);
     $canManageOvertimeMaster = $user && $user->hasRole(['Super Admin', 'HR']);
+    $canManageFirstPartySignature = $user && $user->hasRole(['Super Admin', 'HR']) && $can('electronic_contract_first_party_signature');
     $canManageApprovalDelegations = $user && $user->hasRole(['Super Admin', 'HOD']) && $can('approval_hod');
     $canUseDelegateApproval = $user && ($approvalDelegateAccess ?? false);
     $shiftMenuActive = request()->routeIs('shifts.*') || request()->routeIs('shift-settings.*');
     $overtimeMenuActive = request()->routeIs('overtime-orders.*') || request()->routeIs('overtime-masters.*');
+    $electronicContractAdminActive = request()->routeIs('electronic-contracts.*');
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -52,7 +54,7 @@
                     </li>
                 @endif
 
-                @if($can('data_karyawan') || $can('data_user') || $can('slip_gaji_admin') || $can('resign') || $can('surat_peringatan') || $can('data_presensi') || $can('distribusi_wilayah'))
+                @if($can('data_karyawan') || $can('data_user') || $can('slip_gaji_admin') || $can('electronic_contract_admin') || $can('resign') || $can('surat_peringatan') || $can('data_presensi') || $can('distribusi_wilayah'))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -85,6 +87,45 @@
                             <i class="fas fa-file-invoice-dollar"></i>
                             <p>{{ __('navigation.salary_slip') }}</p>
                         </a>
+                    </li>
+                @endif
+
+                @if($can('electronic_contract_admin'))
+                    <li class="nav-item {{ $electronicContractAdminActive ? 'active' : '' }}">
+                        <a data-bs-toggle="collapse" href="#electronicContractAdmin"
+                            class="{{ $electronicContractAdminActive ? '' : 'collapsed' }}"
+                            aria-expanded="{{ $electronicContractAdminActive ? 'true' : 'false' }}">
+                            <i class="fas fa-file-signature"></i>
+                            <p>{{ __('navigation.electronic_contract') }}</p>
+                            <span class="caret"></span>
+                        </a>
+
+                        <div class="collapse {{ $electronicContractAdminActive ? 'show' : '' }}" id="electronicContractAdmin">
+                            <ul class="nav nav-collapse">
+                                <li class="{{ request()->routeIs('electronic-contracts.index') || request()->routeIs('electronic-contracts.create') || request()->routeIs('electronic-contracts.show') ? 'active' : '' }}">
+                                    <a href="{{ route('electronic-contracts.index') }}">
+                                        <span class="sub-item">{{ __('navigation.electronic_contract') }}</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->routeIs('electronic-contracts.templates.*') ? 'active' : '' }}">
+                                    <a href="{{ route('electronic-contracts.templates.index') }}">
+                                        <span class="sub-item">{{ __('navigation.electronic_contract_templates') }}</span>
+                                    </a>
+                                </li>
+                                <li class="{{ request()->routeIs('electronic-contracts.clauses.*') ? 'active' : '' }}">
+                                    <a href="{{ route('electronic-contracts.clauses.index') }}">
+                                        <span class="sub-item">{{ __('navigation.electronic_contract_clauses') }}</span>
+                                    </a>
+                                </li>
+                                @if($canManageFirstPartySignature)
+                                    <li class="{{ request()->routeIs('electronic-contracts.first-party-signature.*') ? 'active' : '' }}">
+                                        <a href="{{ route('electronic-contracts.first-party-signature.edit') }}">
+                                            <span class="sub-item">{{ __('navigation.electronic_contract_first_party_signature') }}</span>
+                                        </a>
+                                    </li>
+                                @endif
+                            </ul>
+                        </div>
                     </li>
                 @endif
 
@@ -124,7 +165,7 @@
                     </li>
                 @endif
 
-                @if($can('slip_gaji_user') || $can('cuti') || $can('roster') || $can('off_roster') || $can('izin') || $can('presensi') || $can('attendance_correction') || ($can('lembur') && !$canManageOvertimeOrders))
+                @if($can('slip_gaji_user') || $can('electronic_contract_user') || $can('cuti') || $can('roster') || $can('off_roster') || $can('izin') || $can('presensi') || $can('attendance_correction') || ($can('lembur') && !$canManageOvertimeOrders))
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -138,6 +179,15 @@
                         <a href="{{ route('slipgaji.index') }}">
                             <i class="fas fa-file-invoice-dollar"></i>
                             <p>{{ __('navigation.salary_slip') }}</p>
+                        </a>
+                    </li>
+                @endif
+
+                @if($can('electronic_contract_user'))
+                    <li class="nav-item {{ request()->routeIs('user-electronic-contracts.*') ? 'active' : '' }}">
+                        <a href="{{ route('user-electronic-contracts.index') }}">
+                            <i class="fas fa-file-signature"></i>
+                            <p>{{ __('navigation.electronic_contract') }}</p>
                         </a>
                     </li>
                 @endif

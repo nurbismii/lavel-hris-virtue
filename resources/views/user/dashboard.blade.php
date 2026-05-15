@@ -101,6 +101,26 @@ $menuCatalog = [
 'tone' => 'emerald',
 'description' => 'Lihat dan kelola slip gaji karyawan.',
 ],
+'electronic_contract_admin' => [
+'route_name' => 'electronic-contracts.index',
+'icon' => 'fas fa-file-contract',
+'tone' => 'amber',
+'description' => 'Kelola template, klausul, dan kontrak elektronik karyawan.',
+'roles' => ['Super Admin', 'HR'],
+],
+'electronic_contract_first_party_signature' => [
+'route_name' => 'electronic-contracts.first-party-signature.edit',
+'icon' => 'fas fa-signature',
+'tone' => 'slate',
+'description' => 'Kelola tanda tangan master Pihak Pertama untuk kontrak elektronik.',
+'roles' => ['Super Admin', 'HR'],
+],
+'kontrak_elektronik' => [
+'route_name' => 'kontrak-elektronik.index',
+'icon' => 'fas fa-file-contract',
+'tone' => 'amber',
+'description' => 'Atur kontrak elektronik dan dokumen terkait karyawan.',
+],
 'resign' => [
 'route_name' => 'resign.index',
 'icon' => 'fas fa-user-minus',
@@ -130,6 +150,12 @@ $menuCatalog = [
 'icon' => 'fas fa-wallet',
 'tone' => 'emerald',
 'description' => 'Lihat slip gaji dan riwayat penghasilan Anda.',
+],
+'electronic_contract_user' => [
+'route_name' => 'user-electronic-contracts.index',
+'icon' => 'fas fa-file-signature',
+'tone' => 'amber',
+'description' => 'Lihat dan tanda tangani kontrak elektronik Anda.',
 ],
 'cuti' => [
 'route_name' => 'cuti.index',
@@ -303,6 +329,15 @@ if ($hour < 11) {
     'route' => route('slipgaji.index'),
     'icon' => 'fas fa-wallet',
     'tone' => 'emerald',
+    ],
+    [
+    'menu' => 'electronic_contract_first_party_signature',
+    'label' => 'Tanda Tangan Pihak Pertama',
+    'description' => 'Kelola tanda tangan master Pihak Pertama untuk kontrak elektronik.',
+    'route' => route('electronic-contracts.first-party-signature.edit'),
+    'icon' => 'fas fa-signature',
+    'tone' => 'slate',
+    'roles' => ['Super Admin', 'HR'],
     ],
     [
     'menu' => 'cuti',

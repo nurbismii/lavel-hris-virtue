@@ -2,6 +2,10 @@
 
 use App\Http\Controllers\Admin\ApiController;
 use App\Http\Controllers\Admin\AuditTrailController;
+use App\Http\Controllers\Admin\ElectronicContractAssetController;
+use App\Http\Controllers\Admin\ElectronicContractClauseController;
+use App\Http\Controllers\Admin\ElectronicContractController as AdminElectronicContractController;
+use App\Http\Controllers\Admin\ElectronicContractTemplateController;
 use App\Http\Controllers\Admin\ImportHistoryController;
 use App\Http\Controllers\Admin\LeaveBalanceController;
 use App\Http\Controllers\Admin\NationalHolidayController;
@@ -19,6 +23,7 @@ use App\Http\Controllers\Approval\RosterApprovalController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\User\AttendanceCorrectionController;
 use App\Http\Controllers\User\DashboardController;
+use App\Http\Controllers\User\ElectronicContractController as UserElectronicContractController;
 use App\Http\Controllers\User\NotificationController;
 use App\Http\Controllers\User\OvertimeOrderController as UserOvertimeOrderController;
 use App\Http\Controllers\User\PresensiController;
@@ -73,6 +78,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/attendance-corrections/{attendanceCorrection}/attachment', [AttendanceCorrectionController::class, 'attachment'])
             ->middleware('menu:attendance_correction,approval_hod,approval_hr')
             ->name('attendance-corrections.attachment');
+        Route::get('/kontrak-elektronik-assets/{asset}', [ElectronicContractAssetController::class, 'show'])
+            ->middleware('menu:electronic_contract_admin,electronic_contract_user')
+            ->name('electronic-contract-assets.show');
 
         Route::get('/email/verify', function () {
             return view('auth.verify-email');
@@ -137,6 +145,15 @@ Route::middleware(['android.redirect'])->group(function () {
             ->only(['index', 'show'])
             ->middleware('menu:slip_gaji_user');
         Route::get('/slipgaji/{id}/pdf', [UserSlipGajiController::class, 'exportPdf'])->middleware('menu:slip_gaji_user')->name('slipgaji.pdf');
+        Route::get('/kontrak-elektronik', [UserElectronicContractController::class, 'index'])
+            ->middleware('menu:electronic_contract_user')
+            ->name('user-electronic-contracts.index');
+        Route::get('/kontrak-elektronik/{contract}', [UserElectronicContractController::class, 'show'])
+            ->middleware('menu:electronic_contract_user')
+            ->name('user-electronic-contracts.show');
+        Route::post('/kontrak-elektronik/{contract}/sign', [UserElectronicContractController::class, 'sign'])
+            ->middleware('menu:electronic_contract_user')
+            ->name('user-electronic-contracts.sign');
         Route::get('/lembur', [UserOvertimeOrderController::class, 'index'])->middleware('menu:lembur')->name('lembur.index');
         Route::post('/lembur/{id}/respond', [UserOvertimeOrderController::class, 'respond'])->middleware('menu:lembur')->name('lembur.respond');
 
@@ -180,6 +197,29 @@ Route::middleware(['android.redirect'])->group(function () {
             ->only(['index', 'show'])
             ->middleware(['menu:slip_gaji_admin', 'role:Super Admin,HR']);
         Route::get('/slip-gaji/{id}/pdf', [SlipGajiController::class, 'exportPdf'])->middleware(['menu:slip_gaji_admin', 'role:Super Admin,HR'])->name('slip-gaji.pdf');
+        Route::prefix('/kontrak-elektronik')
+            ->name('electronic-contracts.')
+            ->middleware(['menu:electronic_contract_admin', 'role:Super Admin,HR'])
+            ->group(function () {
+                Route::get('/employees/search', [AdminElectronicContractController::class, 'searchEmployees'])->name('employees.search');
+                Route::post('/assets', [ElectronicContractAssetController::class, 'store'])->name('assets.store');
+                Route::get('/assets/{asset}', [ElectronicContractAssetController::class, 'show'])->name('assets.show');
+                Route::resource('/templates', ElectronicContractTemplateController::class)->except(['show']);
+                Route::resource('/clauses', ElectronicContractClauseController::class)->except(['show']);
+                Route::get('/', [AdminElectronicContractController::class, 'index'])->name('index');
+                Route::get('/create', [AdminElectronicContractController::class, 'create'])->name('create');
+                Route::post('/', [AdminElectronicContractController::class, 'store'])->name('store');
+                Route::get('/first-party-signature', [AdminElectronicContractController::class, 'editFirstPartySignature'])
+                    ->middleware(['menu:electronic_contract_first_party_signature', 'role:Super Admin,HR'])
+                    ->name('first-party-signature.edit');
+                Route::post('/first-party-signature', [AdminElectronicContractController::class, 'storeFirstPartySignature'])
+                    ->middleware(['menu:electronic_contract_first_party_signature', 'role:Super Admin,HR'])
+                    ->name('first-party-signature.store');
+                Route::get('/{contract}', [AdminElectronicContractController::class, 'show'])->name('show');
+                Route::get('/{contract}/preview', [AdminElectronicContractController::class, 'preview'])->name('preview');
+                Route::get('/{contract}/pdf', [AdminElectronicContractController::class, 'pdf'])->name('pdf');
+                Route::post('/{contract}/cancel', [AdminElectronicContractController::class, 'cancel'])->name('cancel');
+            });
         Route::get('/leave-balances', [LeaveBalanceController::class, 'index'])
             ->middleware(['menu:leave_balance', 'role:Super Admin,HR'])
             ->name('leave-balances.index');
