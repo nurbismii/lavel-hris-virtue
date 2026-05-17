@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\VhireContractSignatureController;
+use App\Http\Controllers\Api\VhireOnboardingCandidateController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,3 +19,12 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+Route::prefix('hris')
+    ->middleware('vhire.token')
+    ->group(function () {
+        Route::post('/onboarding-candidates', [VhireOnboardingCandidateController::class, 'store'])
+            ->name('api.hris.onboarding-candidates.store');
+        Route::post('/contracts/{contract}/signature-status', [VhireContractSignatureController::class, 'store'])
+            ->name('api.hris.contracts.signature-status');
+    });

@@ -41,6 +41,14 @@ return [
         'cache_ttl' => env('RECRUITMENT_DOCUMENT_CACHE_TTL', 3),
     ],
 
+    'vhire' => [
+        'base_url' => env('VHIRE_API_BASE_URL'),
+        'outbound_token' => env('VHIRE_API_TOKEN'),
+        'inbound_token' => env('VHIRE_HRIS_INBOUND_TOKEN', env('VHIRE_API_TOKEN')),
+        'timeout' => env('VHIRE_API_TIMEOUT', 15),
+        'queue' => env('VHIRE_SYNC_QUEUE', env('QUEUE_NAME', 'default')),
+    ],
+
     'presensi_face' => [
         'endpoint' => env('PRESENSI_FACE_VERIFICATION_URL'),
         'token' => env('PRESENSI_FACE_VERIFICATION_TOKEN'),

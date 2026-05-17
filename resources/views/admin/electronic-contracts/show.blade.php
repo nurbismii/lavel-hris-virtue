@@ -81,8 +81,8 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Detail Kontrak Elektronik</h4>
-                <small class="text-muted">{{ $contract->display_number }} - {{ optional($contract->employee)->nama_karyawan ?? $contract->nik }}</small>
+                <h4 class="fw-bold mb-1">Detail Kontrak</h4>
+                <small class="text-muted">{{ $contract->display_number }} - {{ $contract->display_employee_name }}</small>
             </div>
             <div class="ms-md-auto d-flex flex-wrap gap-2">
                 <a href="{{ route('electronic-contracts.index') }}" class="btn btn-light">Kembali</a>
@@ -101,17 +101,26 @@
                                 'ready' => 'warning',
                                 'signed' => 'success',
                                 'cancelled' => 'secondary',
+                                'rejected' => 'danger',
                             ][$contract->status] ?? 'secondary';
                         @endphp
                         <dl class="row mb-0">
                             <dt class="col-5">Status</dt>
                             <dd class="col-7"><span class="badge bg-{{ $badge }}">{{ $contract->status_label }}</span></dd>
+                            <dt class="col-5">Tanda Tangan</dt>
+                            <dd class="col-7">{{ $contract->signing_method_label }} / {{ $contract->signature_status_label }}</dd>
                             <dt class="col-5">Tipe</dt>
                             <dd class="col-7">{{ $contract->type_label }}</dd>
                             <dt class="col-5">NIK</dt>
-                            <dd class="col-7">{{ $contract->nik }}</dd>
+                            <dd class="col-7">{{ $contract->nik ?: '-' }}</dd>
                             <dt class="col-5">Nama</dt>
-                            <dd class="col-7">{{ optional($contract->employee)->nama_karyawan ?? '-' }}</dd>
+                            <dd class="col-7">{{ $contract->display_employee_name }}</dd>
+                            @if($contract->vhire_candidate_id)
+                                <dt class="col-5">Candidate</dt>
+                                <dd class="col-7">{{ $contract->candidate_code ?: '-' }}</dd>
+                                <dt class="col-5">No KTP</dt>
+                                <dd class="col-7">{{ $contract->masked_no_ktp }}</dd>
+                            @endif
                             <dt class="col-5">No PKWT</dt>
                             <dd class="col-7">{{ $contract->pkwt_number }}</dd>
                             <dt class="col-5">No Adendum</dt>
@@ -144,6 +153,53 @@
 
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
+                        <h5 class="mb-2">Flow Manual</h5>
+                        <p class="small text-muted mb-3">Gunakan bagian ini jika kontrak ditandatangani offline lalu arsip scan/PDF disimpan di HRIS.</p>
+
+                        @if($contract->manual_signed_file_path)
+                            <dl class="row small mb-3">
+                                <dt class="col-5">Status Review</dt>
+                                <dd class="col-7">{{ $contract->manual_verification_status_label }}</dd>
+                                <dt class="col-5">Diunggah</dt>
+                                <dd class="col-7">{{ optional($contract->manual_uploaded_at)->format('d M Y H:i') ?: '-' }}</dd>
+                            </dl>
+                            <a href="{{ route('electronic-contracts.manual-signed-file.show', $contract) }}" target="_blank" class="btn btn-outline-secondary w-100 mb-3">
+                                Buka File Manual
+                            </a>
+                        @endif
+
+                        <form action="{{ route('electronic-contracts.manual-signed-file.store', $contract) }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                            <div class="mb-2">
+                                <label class="form-label small">File PDF/JPG/PNG</label>
+                                <input type="file" name="manual_signed_file" class="form-control @error('manual_signed_file') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png">
+                                @error('manual_signed_file')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Status Review</label>
+                                <select name="manual_verification_status" class="form-select @error('manual_verification_status') is-invalid @enderror">
+                                    @foreach($manualVerificationStatusOptions as $value => $label)
+                                        <option value="{{ $value }}" {{ old('manual_verification_status', $contract->manual_verification_status ?: \App\Models\EmployeeContract::MANUAL_VERIFICATION_PENDING) === $value ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @error('manual_verification_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small">Catatan</label>
+                                <textarea name="manual_note" rows="2" class="form-control @error('manual_note') is-invalid @enderror">{{ old('manual_note', $contract->manual_note) }}</textarea>
+                                @error('manual_note')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary w-100" onclick="return confirm('Simpan arsip kontrak manual ini?')">
+                                Simpan Arsip Manual
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
                         <h5 class="mb-2">Tanda Tangan Pihak Pertama</h5>
                         <p class="small text-muted mb-3">Tanda tangan ini memakai master Pihak Pertama dan otomatis digunakan untuk semua tipe kontrak.</p>
 
@@ -167,6 +223,70 @@
                         @endif
                     </div>
                 </div>
+
+                @if($contract->vhire_candidate_id)
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <h5 class="mb-2">Integrasi V-Hire</h5>
+                            <dl class="row small mb-3">
+                                <dt class="col-5">Visible V-Hire</dt>
+                                <dd class="col-7">{{ $contract->visible_in_vhire ? 'Ya' : 'Tidak' }}</dd>
+                                <dt class="col-5">Sync Kontrak</dt>
+                                <dd class="col-7">{{ optional($contract->vhire_contract_synced_at)->format('d M Y H:i') ?: 'Belum sukses' }}</dd>
+                                <dt class="col-5">Sync Aktivasi</dt>
+                                <dd class="col-7">{{ optional($contract->vhire_activation_synced_at)->format('d M Y H:i') ?: 'Belum sukses' }}</dd>
+                            </dl>
+
+                            <form action="{{ route('electronic-contracts.retry-vhire-sync', $contract) }}" method="POST" class="mb-3">
+                                @csrf
+                                <button type="submit" class="btn btn-outline-primary w-100">
+                                    Retry Sync Kontrak ke V-Hire
+                                </button>
+                            </form>
+
+                            @if(!$contract->nik)
+                                <form action="{{ route('electronic-contracts.activate-vhire-candidate', $contract) }}" method="POST">
+                                    @csrf
+                                    <label class="form-label small">Aktivasi ke NIK HRIS</label>
+                                    <div class="input-group">
+                                        <input type="text" name="employee_nik" class="form-control @error('employee_nik') is-invalid @enderror" value="{{ old('employee_nik') }}" placeholder="Masukkan NIK employee">
+                                        <button class="btn btn-success" type="submit" onclick="return confirm('Tautkan kandidat ini ke NIK HRIS dan sembunyikan kontrak dari V-Hire?')">
+                                            Aktivasi
+                                        </button>
+                                        @error('employee_nik')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                                    </div>
+                                </form>
+                            @endif
+
+                            @if($latestVhireSyncLogs->isNotEmpty())
+                                <div class="table-responsive mt-3">
+                                    <table class="table table-sm table-bordered mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Waktu</th>
+                                                <th>Operasi</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($latestVhireSyncLogs as $syncLog)
+                                                <tr>
+                                                    <td>{{ optional($syncLog->created_at)->format('d M H:i') }}</td>
+                                                    <td>{{ $syncLog->operation }}</td>
+                                                    <td>
+                                                        <span class="badge bg-{{ $syncLog->status === 'success' ? 'success' : ($syncLog->status === 'failed' ? 'danger' : 'secondary') }}">
+                                                            {{ $syncLog->status }}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endif
 
                 @if($contract->status === \App\Models\EmployeeContract::STATUS_READY)
                     <form action="{{ route('electronic-contracts.cancel', $contract) }}" method="POST" onsubmit="return confirm('Batalkan kontrak ini?')">

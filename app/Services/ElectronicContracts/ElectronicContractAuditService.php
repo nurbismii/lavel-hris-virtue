@@ -18,7 +18,7 @@ class ElectronicContractAuditService
 
         return ElectronicContractAuditLog::create([
             'employee_contract_id' => optional($contract)->id,
-            'nik' => optional($contract)->nik,
+            'nik' => optional($contract)->nik ?: optional($contract)->employee_nik,
             'event' => $event,
             'actor_user_id' => optional($user)->id,
             'actor_name' => optional($user)->name,

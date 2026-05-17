@@ -68,5 +68,6 @@ class Kernel extends HttpKernel
         'redirect.role' => \App\Http\Middleware\RedirectIfNotAuthorized::class,
         'verify.email' => \App\Http\Middleware\EmailVerification::class,
         'android.redirect' => \App\Http\Middleware\RedirectAndroidToApp::class,
+        'vhire.token' => \App\Http\Middleware\VerifyVhireToken::class,
     ];
 }

@@ -19,8 +19,8 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Buat Kontrak Elektronik</h4>
-                <small class="text-muted">Kontrak akan tampil di menu karyawan untuk dibaca dan ditandatangani.</small>
+                <h4 class="fw-bold mb-1">Buat Kontrak</h4>
+                <small class="text-muted">Pilih metode tanda tangan elektronik atau manual sesuai proses HR.</small>
             </div>
             <div class="ms-md-auto">
                 <a href="{{ route('electronic-contracts.index') }}" class="btn btn-light">Kembali</a>
@@ -80,6 +80,18 @@
                                         @endforeach
                                     </select>
                                     @error('contract_template_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Metode Tanda Tangan</label>
+                                    <select name="signing_method" class="form-select @error('signing_method') is-invalid @enderror">
+                                        @foreach($signingMethodOptions as $value => $label)
+                                            <option value="{{ $value }}" {{ old('signing_method', \App\Models\EmployeeContract::SIGNING_METHOD_ELECTRONIC) === $value ? 'selected' : '' }}>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('signing_method')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
 
                                 <div class="col-md-4">
@@ -196,9 +208,9 @@
                         <div class="card-body">
                             <h5 class="mb-2">Catatan Alur</h5>
                             <ul class="small text-muted ps-3 mb-0">
-                                <li>Setelah kontrak dibuat, karyawan akan melihatnya pada menu Kontrak Elektronik.</li>
-                                <li>Tanda tangan dibuat langsung di halaman kontrak, bukan memakai tanda tangan master.</li>
-                                <li>PDF final baru disimpan setelah karyawan menandatangani.</li>
+                                <li>Metode elektronik membuat kontrak tampil di menu Kontrak Elektronik karyawan aktif.</li>
+                                <li>Metode manual dipakai untuk kontrak cetak lalu hasil scan diunggah kembali oleh HR.</li>
+                                <li>PDF final elektronik baru disimpan setelah karyawan menandatangani.</li>
                                 <li>Audit log mencatat pembuat kontrak, pembuka dokumen, dan tanda tangan.</li>
                             </ul>
                         </div>

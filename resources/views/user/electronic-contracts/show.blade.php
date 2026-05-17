@@ -151,7 +151,7 @@
                     </div>
                 </div>
 
-                @if($contract->status === \App\Models\EmployeeContract::STATUS_READY)
+                @if($contract->isReadyForSignature())
                     <div class="card border-0 shadow-sm">
                         <div class="card-body">
                             <h5 class="mb-2">Tanda Tangan</h5>

@@ -4,6 +4,7 @@ namespace App\Http\Requests\ElectronicContract;
 
 use App\Models\ContractClause;
 use App\Models\ContractTemplate;
+use App\Models\EmployeeContract;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -20,6 +21,7 @@ class StoreEmployeeContractRequest extends FormRequest
             'nik' => 'required|string|max:100|exists:employees,nik',
             'contract_type' => ['required', Rule::in(array_keys(ContractTemplate::typeOptions()))],
             'contract_template_id' => 'required|integer|exists:contract_templates,id',
+            'signing_method' => ['required', Rule::in(array_keys(EmployeeContract::signingMethodOptions()))],
             'contract_number' => 'nullable|string|max:120',
             'contract_code' => 'nullable|string|max:120',
             'pkwt_number' => 'required|string|max:120',
@@ -48,6 +50,7 @@ class StoreEmployeeContractRequest extends FormRequest
             'nik.required' => 'Karyawan wajib dipilih.',
             'pkwt_number.required' => 'Nomor PKWT wajib diisi.',
             'contract_template_id.required' => 'Template kontrak wajib dipilih.',
+            'signing_method.required' => 'Metode tanda tangan wajib dipilih.',
             'first_extension_duration.required_if' => 'Durasi perpanjangan wajib diisi untuk adendum.',
             'first_extension_end_date.required_if' => 'Tanggal perpanjangan pertama berakhir wajib diisi untuk adendum.',
             'clause_key.required_if' => 'Klausul wajib dipilih untuk adendum pertama. Jika adendum berikutnya, sistem otomatis memakai Klausul 2.',

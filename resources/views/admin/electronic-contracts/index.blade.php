@@ -8,7 +8,7 @@
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
                 <h4 class="fw-bold mb-1">Kontrak Elektronik</h4>
-                <small class="text-muted">Generate kontrak, pantau status tanda tangan, dan buka arsip PDF final.</small>
+                <small class="text-muted">Generate kontrak, pantau tanda tangan elektronik/manual, dan buka arsip PDF final.</small>
             </div>
             <div class="ms-md-auto d-flex flex-wrap gap-2">
                 @if($canManageFirstPartySignature)
@@ -28,9 +28,24 @@
             </div>
         @endif
 
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            @foreach($quickFilterOptions as $value => $label)
+                @php
+                    $isActiveQuickFilter = ($filters['quick_filter'] ?? 'all') === $value;
+                    $quickFilterQuery = array_merge(request()->except(['quick_filter', 'page']), ['quick_filter' => $value]);
+                @endphp
+                <a
+                    href="{{ route('electronic-contracts.index', $quickFilterQuery) }}"
+                    class="btn btn-sm {{ $isActiveQuickFilter ? 'btn-primary' : 'btn-outline-secondary' }}">
+                    {{ $label }}
+                </a>
+            @endforeach
+        </div>
+
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
+                    <input type="hidden" name="quick_filter" value="{{ $filters['quick_filter'] ?? 'all' }}">
                     <div class="col-md-3">
                         <label class="form-label">Cari</label>
                         <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="NIK, nama, nomor kontrak">
@@ -80,10 +95,18 @@
                             @forelse($contracts as $contract)
                                 <tr>
                                     <td>
-                                        <div class="fw-semibold">{{ optional($contract->employee)->nama_karyawan ?? '-' }}</div>
-                                        <small class="text-muted">{{ $contract->nik }}</small>
+                                        <div class="fw-semibold">{{ $contract->display_employee_name }}</div>
+                                        <small class="text-muted">
+                                            {{ $contract->nik ?: ('Candidate: ' . ($contract->candidate_code ?: '-')) }}
+                                        </small>
+                                        @if($contract->vhire_candidate_id)
+                                            <div><span class="badge bg-info">V-Hire</span></div>
+                                        @endif
                                     </td>
-                                    <td>{{ $contract->type_label }}</td>
+                                    <td>
+                                        {{ $contract->type_label }}
+                                        <div class="small text-muted">{{ $contract->signing_method_label }}</div>
+                                    </td>
                                     <td>
                                         <div>{{ $contract->display_number }}</div>
                                         <small class="text-muted">PKWT: {{ $contract->pkwt_number }}</small>
@@ -98,9 +121,11 @@
                                                 'ready' => 'warning',
                                                 'signed' => 'success',
                                                 'cancelled' => 'secondary',
+                                                'rejected' => 'danger',
                                             ][$contract->status] ?? 'secondary';
                                         @endphp
                                         <span class="badge bg-{{ $badge }}">{{ $contract->status_label }}</span>
+                                        <div class="small text-muted">{{ $contract->signature_status_label }}</div>
                                     </td>
                                     <td>{{ optional($contract->created_at)->format('d M Y H:i') }}</td>
                                     <td class="text-nowrap">

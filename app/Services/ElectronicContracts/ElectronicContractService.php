@@ -66,9 +66,13 @@ class ElectronicContractService
 
             $payload = [
                 'nik' => $data['nik'],
+                'employee_nik' => $data['nik'],
                 'contract_template_id' => $template->id,
                 'contract_type' => $data['contract_type'],
                 'status' => EmployeeContract::STATUS_READY,
+                'signing_method' => $data['signing_method'] ?? EmployeeContract::SIGNING_METHOD_ELECTRONIC,
+                'signature_status' => EmployeeContract::SIGNATURE_STATUS_WAITING,
+                'visible_in_vhire' => ($data['signing_method'] ?? EmployeeContract::SIGNING_METHOD_ELECTRONIC) === EmployeeContract::SIGNING_METHOD_ELECTRONIC,
                 'contract_number' => $data['contract_number'] ?? null,
                 'contract_code' => $data['contract_code'] ?? null,
                 'pkwt_number' => $data['pkwt_number'],
@@ -236,6 +240,58 @@ class ElectronicContractService
     public function saveFirstPartySignatureUpload(UploadedFile $file, EmployeeContract $contract): string
     {
         return $this->saveFirstPartySignatureUploadedFile($file, $contract);
+    }
+
+    public function storeManualSignedContract(
+        EmployeeContract $contract,
+        UploadedFile $file,
+        User $actor,
+        string $verificationStatus,
+        ?string $note = null
+    ): EmployeeContract {
+        $extension = strtolower((string) $file->getClientOriginalExtension());
+
+        if (!in_array($extension, ['pdf', 'jpg', 'jpeg', 'png'], true)) {
+            throw new \InvalidArgumentException('File kontrak manual harus berupa PDF, JPG, JPEG, atau PNG.');
+        }
+
+        $directoryKey = $contract->nik ?: ($contract->candidate_code ?: 'contract-' . $contract->id);
+        $directoryKey = preg_replace('/[^A-Za-z0-9\-]+/', '-', (string) $directoryKey);
+        $path = sprintf(
+            'employee-contracts/manual/%s/%s/%s.%s',
+            $directoryKey,
+            $contract->id,
+            Str::uuid(),
+            $extension === 'jpeg' ? 'jpg' : $extension
+        );
+
+        Storage::put($path, file_get_contents($file->getRealPath()));
+
+        $isRejected = $verificationStatus === EmployeeContract::MANUAL_VERIFICATION_REJECTED;
+
+        $contract->update([
+            'signing_method' => EmployeeContract::SIGNING_METHOD_MANUAL,
+            'signature_status' => $isRejected
+                ? EmployeeContract::SIGNATURE_STATUS_REJECTED
+                : EmployeeContract::SIGNATURE_STATUS_SIGNED,
+            'status' => $isRejected
+                ? EmployeeContract::STATUS_REJECTED
+                : EmployeeContract::STATUS_SIGNED,
+            'signed_at' => $isRejected ? null : now(),
+            'signed_by_source' => 'manual_upload',
+            'visible_in_vhire' => false,
+            'manual_signed_file_path' => $path,
+            'manual_signed_original_name' => $file->getClientOriginalName(),
+            'manual_signed_mime_type' => $file->getMimeType(),
+            'manual_signed_file_size' => $file->getSize(),
+            'manual_uploaded_by' => $actor->id,
+            'manual_uploaded_at' => now(),
+            'manual_verification_status' => $verificationStatus,
+            'manual_note' => $note,
+            'updated_by' => $actor->id,
+        ]);
+
+        return $contract->fresh();
     }
 
     public function saveMasterFirstPartySignatureUpload(UploadedFile $file): string
@@ -429,12 +485,15 @@ class ElectronicContractService
         $maritalStatus = $contract->marital_status ?: optional($employee)->status_pernikahan;
         $address = $contract->address ?: (optional($employee)->alamat_domisili ?: optional($employee)->alamat_ktp);
         $position = $contract->position ?: optional($employee)->posisi;
+        $employeeNik = $contract->nik ?: $contract->employee_nik;
+        $noKtp = optional($employee)->no_ktp ?: $contract->no_ktp;
+        $employeeName = optional($employee)->nama_karyawan ?: $contract->candidate_name;
 
         $variables = [
-            'nik' => $contract->nik,
-            'no_ktp' => optional($employee)->no_ktp,
-            'nama' => optional($employee)->nama_karyawan,
-            'nama_karyawan' => optional($employee)->nama_karyawan,
+            'nik' => $employeeNik,
+            'no_ktp' => $noKtp,
+            'nama' => $employeeName,
+            'nama_karyawan' => $employeeName,
             'jabatan' => $position,
             'alamat' => $address,
             'jenis_kelamin' => $this->genderLabel($gender),
