@@ -46,9 +46,12 @@ class VhireSyncService
     public function queueActivationSync(OnboardingCandidate $candidate, ?User $actor = null): VhireSyncLog
     {
         $idempotencyKey = 'activation:' . $candidate->id . ':' . sha1((string) $candidate->updated_at);
-        $endpoint = '/api/vhire/candidates/' . rawurlencode($candidate->vhire_candidate_id) . '/activated';
+        $endpoint = $candidate->vhire_candidate_id
+            ? '/api/vhire/candidates/' . rawurlencode($candidate->vhire_candidate_id) . '/activated'
+            : '/api/vhire/candidates/activated';
 
         $payload = [
+            'vhire_candidate_id' => $candidate->vhire_candidate_id,
             'candidate_code' => $candidate->candidate_code,
             'no_ktp' => $candidate->no_ktp,
             'employee_nik' => $candidate->employee_nik,

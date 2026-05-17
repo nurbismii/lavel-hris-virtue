@@ -115,7 +115,7 @@
                             <dd class="col-7">{{ $contract->nik ?: '-' }}</dd>
                             <dt class="col-5">Nama</dt>
                             <dd class="col-7">{{ $contract->display_employee_name }}</dd>
-                            @if($contract->vhire_candidate_id)
+                            @if($contract->vhire_candidate_id || $contract->onboarding_candidate_id)
                                 <dt class="col-5">Candidate</dt>
                                 <dd class="col-7">{{ $contract->candidate_code ?: '-' }}</dd>
                                 <dt class="col-5">No KTP</dt>
@@ -224,7 +224,7 @@
                     </div>
                 </div>
 
-                @if($contract->vhire_candidate_id)
+                @if($contract->vhire_candidate_id || $contract->onboarding_candidate_id)
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-body">
                             <h5 class="mb-2">Integrasi V-Hire</h5>

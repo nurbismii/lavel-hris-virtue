@@ -24,6 +24,7 @@ class ImportHistory extends Model
     public const TYPE_EMPLOYEE_SIM = 'employee_sim';
     public const TYPE_EMPLOYEE_SIO = 'employee_sio';
     public const TYPE_FACE_REFERENCE = 'face_reference';
+    public const TYPE_PKWT_ONE_CONTRACT = 'pkwt_one_contract';
 
     protected $guarded = [];
 
@@ -115,6 +116,7 @@ class ImportHistory extends Model
             self::TYPE_EMPLOYEE_SIM => 'Import SIM',
             self::TYPE_EMPLOYEE_SIO => 'Import SIO',
             self::TYPE_FACE_REFERENCE => 'Import Foto Referensi Presensi',
+            self::TYPE_PKWT_ONE_CONTRACT => 'Import PKWT 1 V-Hire',
         ];
     }
 

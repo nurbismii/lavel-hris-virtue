@@ -68,6 +68,39 @@ class VhireOnboardingContractService
         return $result;
     }
 
+    public function importCandidateFromExcel(array $payload, ?string $actorUserId = null, ?string $actorName = null): array
+    {
+        $normalized = $this->normalizeCandidatePayload($payload);
+
+        $result = DB::transaction(function () use ($normalized, $actorUserId, $actorName) {
+            $candidate = $this->resolveCandidate($normalized);
+            $candidate->fill($normalized);
+            $candidate->last_synced_at = now();
+            $candidate->save();
+
+            $contract = $this->createOrUpdatePkwtOneContract($candidate);
+
+            $this->recordAuditFromContext($contract, 'pkwt_excel_imported_for_vhire', [
+                'actor_user_id' => $actorUserId,
+                'actor_name' => $actorName ?: 'HRIS Excel Import',
+                'metadata' => [
+                    'candidate_code' => $candidate->candidate_code,
+                    'no_ktp' => $this->sanitizer->maskNoKtp($candidate->no_ktp),
+                    'signing_method' => $candidate->signing_method,
+                ],
+            ]);
+
+            return [
+                'candidate' => $candidate->fresh(),
+                'contract' => $contract->fresh(['onboardingCandidate']),
+            ];
+        });
+
+        $this->syncService->queueContractSync($result['contract']);
+
+        return $result;
+    }
+
     public function updateSignatureStatus(EmployeeContract $contractFromRoute, array $payload, Request $request): EmployeeContract
     {
         return DB::transaction(function () use ($contractFromRoute, $payload, $request) {
@@ -137,9 +170,9 @@ class VhireOnboardingContractService
         $candidate = DB::transaction(function () use ($contract, $employeeNik, $request) {
             $contract = EmployeeContract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
 
-            if (!$contract->onboarding_candidate_id || !$contract->vhire_candidate_id) {
+            if (!$contract->onboarding_candidate_id) {
                 throw ValidationException::withMessages([
-                    'employee_nik' => 'Kontrak ini bukan kontrak onboarding dari V-Hire.',
+                    'employee_nik' => 'Kontrak ini bukan kontrak onboarding/PKWT V-Hire.',
                 ]);
             }
 
@@ -186,7 +219,7 @@ class VhireOnboardingContractService
     {
         $durationUnit = $this->normalizeDurationUnit((string) $payload['contract_duration_unit']);
         $normalized = [
-            'vhire_candidate_id' => trim((string) $payload['vhire_candidate_id']),
+            'vhire_candidate_id' => $this->nullableString($payload['vhire_candidate_id'] ?? null),
             'candidate_code' => trim((string) $payload['candidate_code']),
             'no_ktp' => preg_replace('/\D+/', '', (string) $payload['no_ktp']),
             'nama' => trim((string) $payload['nama']),
@@ -196,6 +229,9 @@ class VhireOnboardingContractService
             'jabatan' => $this->nullableString($payload['jabatan'] ?? null),
             'tanggal_mulai_kerja' => !empty($payload['tanggal_mulai_kerja'])
                 ? Carbon::parse($payload['tanggal_mulai_kerja'])->format('Y-m-d')
+                : null,
+            'tanggal_akhir_kontrak' => !empty($payload['tanggal_akhir_kontrak'])
+                ? Carbon::parse($payload['tanggal_akhir_kontrak'])->format('Y-m-d')
                 : null,
             'departemen' => $this->nullableString($payload['departemen'] ?? null),
             'lokasi' => $this->nullableString($payload['lokasi'] ?? null),
@@ -219,9 +255,15 @@ class VhireOnboardingContractService
     private function resolveCandidate(array $payload): OnboardingCandidate
     {
         $matches = OnboardingCandidate::query()
-            ->where('vhire_candidate_id', $payload['vhire_candidate_id'])
-            ->orWhere('candidate_code', $payload['candidate_code'])
-            ->orWhere('no_ktp', $payload['no_ktp'])
+            ->where(function ($query) use ($payload) {
+                if (!empty($payload['vhire_candidate_id'])) {
+                    $query->where('vhire_candidate_id', $payload['vhire_candidate_id']);
+                }
+
+                $method = !empty($payload['vhire_candidate_id']) ? 'orWhere' : 'where';
+                $query->{$method}('candidate_code', $payload['candidate_code'])
+                    ->orWhere('no_ktp', $payload['no_ktp']);
+            })
             ->lockForUpdate()
             ->get();
 
@@ -251,7 +293,15 @@ class VhireOnboardingContractService
 
         if (!$contract) {
             $contract = EmployeeContract::query()
-                ->where('vhire_candidate_id', $candidate->vhire_candidate_id)
+                ->where(function ($query) use ($candidate) {
+                    if ($candidate->vhire_candidate_id) {
+                        $query->where('vhire_candidate_id', $candidate->vhire_candidate_id);
+                    }
+
+                    $method = $candidate->vhire_candidate_id ? 'orWhere' : 'where';
+                    $query->{$method}('candidate_code', $candidate->candidate_code)
+                        ->orWhere('no_ktp', $candidate->no_ktp);
+                })
                 ->where('contract_type', ContractTemplate::TYPE_PKWT_1)
                 ->where('status', '!=', EmployeeContract::STATUS_CANCELLED)
                 ->lockForUpdate()
@@ -267,7 +317,9 @@ class VhireOnboardingContractService
 
         if (!$isFinal) {
             $startDate = $candidate->tanggal_mulai_kerja ? Carbon::parse($candidate->tanggal_mulai_kerja) : null;
-            $endDate = $this->calculateEndDate($startDate, (int) $candidate->contract_duration_value, $candidate->contract_duration_unit);
+            $endDate = $candidate->tanggal_akhir_kontrak
+                ? Carbon::parse($candidate->tanggal_akhir_kontrak)
+                : $this->calculateEndDate($startDate, (int) $candidate->contract_duration_value, $candidate->contract_duration_unit);
             $durationLabel = $this->durationLabel((int) $candidate->contract_duration_value, $candidate->contract_duration_unit);
 
             $contract->fill([
@@ -459,6 +511,20 @@ class VhireOnboardingContractService
             'ip_address' => $request->ip(),
             'user_agent' => substr((string) $request->userAgent(), 0, 1000),
             'metadata' => $metadata,
+        ]);
+    }
+
+    private function recordAuditFromContext(?EmployeeContract $contract, string $event, array $context = []): void
+    {
+        ElectronicContractAuditLog::create([
+            'employee_contract_id' => optional($contract)->id,
+            'nik' => optional($contract)->nik ?: optional($contract)->employee_nik,
+            'event' => $event,
+            'actor_user_id' => $context['actor_user_id'] ?? null,
+            'actor_name' => $context['actor_name'] ?? 'HRIS System',
+            'ip_address' => null,
+            'user_agent' => null,
+            'metadata' => $context['metadata'] ?? [],
         ]);
     }
 }

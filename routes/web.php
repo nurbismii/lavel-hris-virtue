@@ -209,6 +209,7 @@ Route::middleware(['android.redirect'])->group(function () {
                 Route::get('/', [AdminElectronicContractController::class, 'index'])->name('index');
                 Route::get('/create', [AdminElectronicContractController::class, 'create'])->name('create');
                 Route::post('/', [AdminElectronicContractController::class, 'store'])->name('store');
+                Route::post('/import-pkwt-vhire', [AdminElectronicContractController::class, 'importPkwtVhire'])->name('import-pkwt-vhire');
                 Route::get('/first-party-signature', [AdminElectronicContractController::class, 'editFirstPartySignature'])
                     ->middleware(['menu:electronic_contract_first_party_signature', 'role:Super Admin,HR'])
                     ->name('first-party-signature.edit');

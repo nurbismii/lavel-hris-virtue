@@ -21,8 +21,12 @@ class VhireApiClient
 
     public function sendActivation(OnboardingCandidate $candidate, string $idempotencyKey): array
     {
-        $endpoint = $this->endpoint('/api/vhire/candidates/' . rawurlencode($candidate->vhire_candidate_id) . '/activated');
+        $path = $candidate->vhire_candidate_id
+            ? '/api/vhire/candidates/' . rawurlencode($candidate->vhire_candidate_id) . '/activated'
+            : '/api/vhire/candidates/activated';
+        $endpoint = $this->endpoint($path);
         $payload = [
+            'vhire_candidate_id' => $candidate->vhire_candidate_id,
             'candidate_code' => $candidate->candidate_code,
             'no_ktp' => $candidate->no_ktp,
             'employee_nik' => $candidate->employee_nik,

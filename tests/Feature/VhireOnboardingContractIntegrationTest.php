@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\SyncVhireOutbound;
+use App\Imports\ImportPkwtOneContracts;
 use App\Models\ContractTemplate;
 use App\Models\EmployeeContract;
 use App\Models\OnboardingCandidate;
@@ -170,6 +171,47 @@ class VhireOnboardingContractIntegrationTest extends TestCase
         Queue::assertPushed(SyncVhireOutbound::class);
     }
 
+    public function test_excel_pkwt_import_creates_contract_and_sends_to_vhire_by_ktp(): void
+    {
+        Queue::fake();
+
+        $import = new ImportPkwtOneContracts(
+            null,
+            EmployeeContract::SIGNING_METHOD_ELECTRONIC,
+            'hr-test',
+            'HR Test'
+        );
+
+        $import->collection(collect([
+            collect([
+                'no_ktp' => '7471072206970101',
+                'nama' => 'ARNOL',
+                'kode_kontrak' => '167016',
+                'no_pkwt' => '02-167016/VDNI/HRD/PKWT/XII/2025',
+                'jenis_kelamin' => 'LAKI-LAKI',
+                'status_pernikahan' => 'BELUM MENIKAH',
+                'alamat' => 'JL. LALONGGIDA',
+                'jabatan' => 'SAFETY MEDIS',
+                'lama_kontrak' => 2,
+                'tanggal_mulai_kontrak' => '2026-05-16',
+                'tanggal_berakhir_kontrak' => '2026-07-16',
+                'gaji' => 3073600,
+                'uang_makan' => 17500,
+            ]),
+        ]));
+
+        $candidate = OnboardingCandidate::first();
+        $contract = EmployeeContract::first();
+
+        $this->assertNull($candidate->vhire_candidate_id);
+        $this->assertSame('EXCEL-PKWT1-167016', $candidate->candidate_code);
+        $this->assertSame('7471072206970101', $candidate->no_ktp);
+        $this->assertSame('02-167016/VDNI/HRD/PKWT/XII/2025', $contract->pkwt_number);
+        $this->assertSame('167016', $contract->contract_code);
+        $this->assertTrue((bool) $contract->visible_in_vhire);
+        Queue::assertPushed(SyncVhireOutbound::class);
+    }
+
     private function candidatePayload(array $overrides = []): array
     {
         return array_merge([
@@ -182,6 +224,7 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             'alamat' => 'JL. LALONGGIDA',
             'jabatan' => 'SAFETY MEDIS',
             'tanggal_mulai_kerja' => '2026-05-16',
+            'tanggal_akhir_kontrak' => '2026-07-16',
             'departemen' => 'HSE',
             'lokasi' => 'Morosi',
             'recruitment_status' => 'accepted',
@@ -245,7 +288,7 @@ class VhireOnboardingContractIntegrationTest extends TestCase
 
         Schema::create('onboarding_candidates', function (Blueprint $table) {
             $table->id();
-            $table->string('vhire_candidate_id', 120)->unique();
+            $table->string('vhire_candidate_id', 120)->nullable()->unique();
             $table->string('candidate_code', 120)->unique();
             $table->string('no_ktp', 32);
             $table->string('nama', 180);
@@ -254,6 +297,7 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             $table->text('alamat')->nullable();
             $table->string('jabatan', 180)->nullable();
             $table->date('tanggal_mulai_kerja')->nullable();
+            $table->date('tanggal_akhir_kontrak')->nullable();
             $table->string('departemen', 180)->nullable();
             $table->string('lokasi', 180)->nullable();
             $table->string('kode_kontrak', 120)->nullable();

@@ -4,17 +4,22 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ElectronicContract\ActivateOnboardingContractRequest;
+use App\Http\Requests\ElectronicContract\ImportPkwtContractExcelRequest;
 use App\Http\Requests\ElectronicContract\StoreManualSignedContractRequest;
 use App\Http\Requests\ElectronicContract\StoreFirstPartySignatureRequest;
 use App\Http\Requests\ElectronicContract\StoreEmployeeContractRequest;
+use App\Imports\ImportPkwtOneContracts;
+use App\Jobs\DeleteImportedFile;
 use App\Models\ContractClause;
 use App\Models\ContractTemplate;
 use App\Models\Employee;
 use App\Models\EmployeeContract;
+use App\Models\ImportHistory;
 use App\Models\OnboardingCandidate;
 use App\Models\VhireSyncLog;
 use App\Services\ElectronicContracts\ElectronicContractAuditService;
 use App\Services\ElectronicContracts\ElectronicContractService;
+use App\Services\ImportHistory\ImportHistoryService;
 use App\Services\Vhire\VhireOnboardingContractService;
 use App\Services\Vhire\VhireSyncService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -24,7 +29,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\HeaderUtils;
+use Throwable;
 
 class ElectronicContractController extends Controller
 {
@@ -70,6 +77,7 @@ class ElectronicContractController extends Controller
             'contracts' => $query->paginate(20)->appends($request->query()),
             'typeOptions' => ContractTemplate::typeOptions(),
             'statusOptions' => EmployeeContract::statusOptions(),
+            'signingMethodOptions' => EmployeeContract::signingMethodOptions(),
             'quickFilterOptions' => $quickFilterOptions,
             'filters' => array_merge(
                 $request->only(['status', 'contract_type', 'search']),
@@ -192,6 +200,54 @@ class ElectronicContractController extends Controller
 
         toast()->success('Success', 'Kontrak berhasil dibuat dan siap diproses sesuai metode tanda tangan.');
         return redirect()->route('electronic-contracts.show', $contract);
+    }
+
+    public function importPkwtVhire(
+        ImportPkwtContractExcelRequest $request,
+        ImportHistoryService $importHistoryService
+    ) {
+        $uploadedFile = $request->file('file');
+        $history = null;
+
+        try {
+            $filePath = $uploadedFile->store('imports/pkwt-contracts');
+            $history = $importHistoryService->createQueued([
+                'import_type' => ImportHistory::TYPE_PKWT_ONE_CONTRACT,
+                'module' => 'electronic_contract',
+                'source' => ImportHistory::SOURCE_EXCEL,
+                'file_name' => $uploadedFile->getClientOriginalName(),
+                'file_path' => $filePath,
+                'disk' => config('filesystems.default'),
+                'mime_type' => $uploadedFile->getClientMimeType(),
+                'file_size' => $uploadedFile->getSize(),
+                'created_by' => (string) $request->user()->id,
+                'summary' => [
+                    'sync_target' => 'vhire',
+                    'signing_method' => $request->input('signing_method'),
+                ],
+            ]);
+
+            Excel::queueImport(
+                new ImportPkwtOneContracts(
+                    optional($history)->id,
+                    $request->input('signing_method'),
+                    (string) $request->user()->id,
+                    (string) $request->user()->name
+                ),
+                storage_path('app/' . $filePath)
+            )->chain([
+                new DeleteImportedFile($filePath),
+            ]);
+
+            toast()->success('Success', 'Import PKWT 1 sedang diproses. Kontrak akan dikirim ke V-Hire berdasarkan No KTP.');
+            return redirect()->route('electronic-contracts.index', ['quick_filter' => 'vhire']);
+        } catch (Throwable $exception) {
+            $importHistoryService->markFailed(optional($history)->id, $exception);
+            report($exception);
+
+            toast()->error('Error', 'Import PKWT 1 gagal dijalankan. Periksa format Excel dan coba lagi.');
+            return back();
+        }
     }
 
     public function show(Request $request, EmployeeContract $contract, ElectronicContractService $service)
@@ -409,7 +465,7 @@ class ElectronicContractController extends Controller
     )
     {
         abort_unless($request->user()->hasRole(['Super Admin', 'HR']), 403);
-        abort_unless($contract->vhire_candidate_id, 422, 'Kontrak ini tidak terhubung dengan V-Hire.');
+        abort_unless($contract->onboarding_candidate_id || $contract->vhire_candidate_id || $contract->no_ktp, 422, 'Kontrak ini tidak terhubung dengan flow PKWT V-Hire.');
 
         $syncService->queueContractSync($contract->fresh(['onboardingCandidate']), $request->user());
         $audit->record($contract, 'vhire_contract_sync_retry_queued', $request);
@@ -467,7 +523,7 @@ class ElectronicContractController extends Controller
     {
         return [
             'all' => 'Semua Kontrak',
-            'vhire' => 'Request V-Hire',
+            'vhire' => 'PKWT V-Hire',
             'waiting_signature' => 'Menunggu TTD',
             'manual' => 'Manual',
             'failed_sync' => 'Gagal Sync',
@@ -478,7 +534,10 @@ class ElectronicContractController extends Controller
     private function applyContractQuickFilter($query, string $quickFilter): void
     {
         if ($quickFilter === 'vhire') {
-            $query->whereNotNull('vhire_candidate_id');
+            $query->where(function ($vhireQuery) {
+                $vhireQuery->whereNotNull('vhire_candidate_id')
+                    ->orWhereNotNull('onboarding_candidate_id');
+            });
             return;
         }
 
@@ -513,7 +572,10 @@ class ElectronicContractController extends Controller
         }
 
         if ($quickFilter === 'waiting_activation') {
-            $query->whereNotNull('vhire_candidate_id')
+            $query->where(function ($vhireQuery) {
+                $vhireQuery->whereNotNull('vhire_candidate_id')
+                    ->orWhereNotNull('onboarding_candidate_id');
+            })
                 ->where(function ($activationQuery) {
                     $activationQuery->whereNull('nik')
                         ->orWhere('nik', '');

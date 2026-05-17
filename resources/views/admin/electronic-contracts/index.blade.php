@@ -44,6 +44,39 @@
 
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-body">
+                <form action="{{ route('electronic-contracts.import-pkwt-vhire') }}" method="POST" enctype="multipart/form-data" class="row g-3 align-items-end">
+                    @csrf
+                    <div class="col-lg-5">
+                        <label class="form-label">Import PKWT 1 untuk V-Hire</label>
+                        <input type="file" name="file" class="form-control @error('file') is-invalid @enderror" accept=".xlsx,.xls">
+                        @error('file')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <small class="text-muted">Format REGULER: NO. KTP, NAMA, KODE KONTRAK, NO PKWT, tanggal kontrak, gaji.</small>
+                    </div>
+                    <div class="col-lg-3">
+                        <label class="form-label">Metode Tanda Tangan</label>
+                        <select name="signing_method" class="form-select @error('signing_method') is-invalid @enderror">
+                            @foreach($signingMethodOptions as $value => $label)
+                                <option value="{{ $value }}" {{ old('signing_method', \App\Models\EmployeeContract::SIGNING_METHOD_ELECTRONIC) === $value ? 'selected' : '' }}>
+                                    {{ $label }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('signing_method')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="col-lg-4 d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-file-import me-1"></i> Import & Kirim ke V-Hire
+                        </button>
+                        <a href="{{ route('import-histories.index', ['import_type' => \App\Models\ImportHistory::TYPE_PKWT_ONE_CONTRACT]) }}" class="btn btn-outline-secondary">
+                            Riwayat Import
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
                     <input type="hidden" name="quick_filter" value="{{ $filters['quick_filter'] ?? 'all' }}">
                     <div class="col-md-3">
@@ -99,7 +132,7 @@
                                         <small class="text-muted">
                                             {{ $contract->nik ?: ('Candidate: ' . ($contract->candidate_code ?: '-')) }}
                                         </small>
-                                        @if($contract->vhire_candidate_id)
+                                        @if($contract->vhire_candidate_id || $contract->onboarding_candidate_id)
                                             <div><span class="badge bg-info">V-Hire</span></div>
                                         @endif
                                     </td>

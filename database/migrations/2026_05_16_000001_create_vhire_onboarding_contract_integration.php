@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::create('onboarding_candidates', function (Blueprint $table) {
             $table->id();
-            $table->string('vhire_candidate_id', 120);
+            $table->string('vhire_candidate_id', 120)->nullable();
             $table->string('candidate_code', 120);
             $table->string('no_ktp', 32);
             $table->string('nama', 180);
@@ -20,6 +20,7 @@ return new class extends Migration
             $table->text('alamat')->nullable();
             $table->string('jabatan', 180)->nullable();
             $table->date('tanggal_mulai_kerja')->nullable();
+            $table->date('tanggal_akhir_kontrak')->nullable();
             $table->string('departemen', 180)->nullable();
             $table->string('lokasi', 180)->nullable();
             $table->string('kode_kontrak', 120)->nullable();
