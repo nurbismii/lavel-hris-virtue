@@ -41,7 +41,7 @@ class VhireApiClient
         $contract->loadMissing('onboardingCandidate');
 
         return [
-            'hris_contract_id' => $contract->id,
+            'hris_contract_id' => (string) $contract->id,
             'vhire_candidate_id' => $contract->vhire_candidate_id,
             'candidate_code' => $contract->candidate_code,
             'no_ktp' => $contract->no_ktp,
