@@ -2,8 +2,36 @@
 
 @section('title', 'Kontrak Elektronik')
 
+@push('styles')
+<style>
+    .electronic-contracts-page .form-control,
+    .electronic-contracts-page .form-select {
+        min-height: 42px;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .electronic-contracts-page textarea.form-control {
+        min-height: 120px;
+    }
+
+    .electronic-contracts-page input[type="file"].form-control {
+        padding-top: 0.43rem;
+        padding-bottom: 0.43rem;
+    }
+
+    .electronic-contracts-page .btn {
+        min-height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+@endpush
+
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid electronic-contracts-page">
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
@@ -46,11 +74,10 @@
             <div class="card-body">
                 <form action="{{ route('electronic-contracts.import-pkwt-vhire') }}" method="POST" enctype="multipart/form-data" class="row g-3 align-items-end">
                     @csrf
-                    <div class="col-lg-5">
+                    <div class="col-lg-4">
                         <label class="form-label">Import PKWT 1 untuk V-Hire</label>
                         <input type="file" name="file" class="form-control @error('file') is-invalid @enderror" accept=".xlsx,.xls">
                         @error('file')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        <small class="text-muted">Format REGULER: NO. KTP, NAMA, KODE KONTRAK, NO PKWT, tanggal kontrak, gaji.</small>
                     </div>
                     <div class="col-lg-3">
                         <label class="form-label">Metode Tanda Tangan</label>
@@ -63,7 +90,10 @@
                         </select>
                         @error('signing_method')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
-                    <div class="col-lg-4 d-flex flex-wrap gap-2">
+                    <div class="col-lg-5 d-flex flex-wrap gap-2">
+                        <a href="{{ route('electronic-contracts.template-import-pkwt-vhire') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-download me-1"></i> Download Template
+                        </a>
                         <button type="submit" class="btn btn-success">
                             <i class="fas fa-file-import me-1"></i> Import & Kirim ke V-Hire
                         </button>

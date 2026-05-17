@@ -15,9 +15,15 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
 
 class VhireOnboardingContractIntegrationTest extends TestCase
@@ -209,6 +215,97 @@ class VhireOnboardingContractIntegrationTest extends TestCase
         $this->assertSame('02-167016/VDNI/HRD/PKWT/XII/2025', $contract->pkwt_number);
         $this->assertSame('167016', $contract->contract_code);
         $this->assertTrue((bool) $contract->visible_in_vhire);
+        Queue::assertPushed(SyncVhireOutbound::class);
+    }
+
+    public function test_excel_pkwt_import_reads_reguler_formula_format(): void
+    {
+        Queue::fake([SyncVhireOutbound::class]);
+
+        $path = storage_path('framework/testing/pkwt-reguler-format.xlsx');
+        File::ensureDirectoryExists(dirname($path));
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('REGULER');
+        $sheet->fromArray([
+            [
+                'NO',
+                'NO. KTP',
+                'NAMA',
+                'KODE KONTRAK',
+                'NO PKWT',
+                'JENIS KELAMIN',
+                'STATUS PERNIKAHAN',
+                'ALAMAT',
+                'JABATAN',
+                "LAMA \nKONTRAK",
+                "TANGGAL MULAI\n KONTRAK",
+                'TANGGAL BERAKHIR KONTRAK',
+                'GAJI',
+                'UANG MAKAN',
+                'HM',
+                'TUNJANGAN JABATAN',
+                'KETERANGAN KONTRAK',
+            ],
+        ], null, 'A1');
+        $sheet->setCellValue('A2', '=ROW()-1');
+        $sheet->setCellValueExplicit('B2', '7471072206970101', DataType::TYPE_STRING);
+        $sheet->setCellValue('C2', 'ARNOL');
+        $sheet->setCellValue('D2', 167016);
+        $sheet->setCellValue('E2', '="02-"&D2&"/VDNI/HRD/PKWT/"&ROMAN(MONTH(K2))&"/"&YEAR(K2)');
+        $sheet->setCellValue('F2', 'LAKI-LAKI');
+        $sheet->setCellValue('G2', 'BELUM MENIKAH');
+        $sheet->setCellValue('H2', 'JL. LALONGGIDA');
+        $sheet->setCellValue('I2', 'SAFETY MEDIS');
+        $sheet->setCellValue('J2', 2);
+        $sheet->setCellValue('K2', ExcelDate::PHPToExcel(\Carbon\Carbon::create(2025, 12, 23)));
+        $sheet->setCellValue('L2', ExcelDate::PHPToExcel(\Carbon\Carbon::create(2026, 2, 23)));
+        $sheet->setCellValue('M2', 'Rp 3,073,600');
+        $sheet->setCellValue('N2', 'Rp 17,500');
+
+        (new Xlsx($spreadsheet))->save($path);
+
+        try {
+            $loadedSheet = IOFactory::load($path)->getSheetByName('REGULER');
+            $import = new ImportPkwtOneContracts(
+                null,
+                EmployeeContract::SIGNING_METHOD_ELECTRONIC,
+                'hr-test',
+                'HR Test'
+            );
+
+            $import->collection(collect([
+                collect([
+                    'no_ktp' => $loadedSheet->getCell('B2')->getCalculatedValue(),
+                    'nama' => $loadedSheet->getCell('C2')->getCalculatedValue(),
+                    'kode_kontrak' => $loadedSheet->getCell('D2')->getCalculatedValue(),
+                    'no_pkwt' => $loadedSheet->getCell('E2')->getCalculatedValue(),
+                    'jenis_kelamin' => $loadedSheet->getCell('F2')->getCalculatedValue(),
+                    'status_pernikahan' => $loadedSheet->getCell('G2')->getCalculatedValue(),
+                    'alamat' => $loadedSheet->getCell('H2')->getCalculatedValue(),
+                    'jabatan' => $loadedSheet->getCell('I2')->getCalculatedValue(),
+                    'lama_kontrak' => $loadedSheet->getCell('J2')->getCalculatedValue(),
+                    'tanggal_mulai_kontrak' => $loadedSheet->getCell('K2')->getCalculatedValue(),
+                    'tanggal_berakhir_kontrak' => $loadedSheet->getCell('L2')->getCalculatedValue(),
+                    'gaji' => $loadedSheet->getCell('M2')->getCalculatedValue(),
+                    'uang_makan' => $loadedSheet->getCell('N2')->getCalculatedValue(),
+                ]),
+            ]));
+        } finally {
+            @unlink($path);
+        }
+
+        $candidate = OnboardingCandidate::first();
+        $contract = EmployeeContract::first();
+
+        $this->assertSame('7471072206970101', $candidate->no_ktp);
+        $this->assertSame('EXCEL-PKWT1-167016', $candidate->candidate_code);
+        $this->assertSame('02-167016/VDNI/HRD/PKWT/XII/2025', $contract->pkwt_number);
+        $this->assertSame('2025-12-23', substr((string) $candidate->tanggal_mulai_kerja, 0, 10));
+        $this->assertSame('2026-02-23', substr((string) $candidate->tanggal_akhir_kontrak, 0, 10));
+        $this->assertSame(3073600.0, (float) $candidate->gaji);
+        $this->assertSame(17500.0, (float) $candidate->uang_makan);
         Queue::assertPushed(SyncVhireOutbound::class);
     }
 

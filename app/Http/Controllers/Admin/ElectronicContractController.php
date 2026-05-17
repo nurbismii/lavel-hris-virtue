@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Exports\PkwtOneContractImportTemplateExport;
 use App\Http\Requests\ElectronicContract\ActivateOnboardingContractRequest;
 use App\Http\Requests\ElectronicContract\ImportPkwtContractExcelRequest;
 use App\Http\Requests\ElectronicContract\StoreManualSignedContractRequest;
@@ -248,6 +249,14 @@ class ElectronicContractController extends Controller
             toast()->error('Error', 'Import PKWT 1 gagal dijalankan. Periksa format Excel dan coba lagi.');
             return back();
         }
+    }
+
+    public function downloadPkwtImportTemplate()
+    {
+        return Excel::download(
+            new PkwtOneContractImportTemplateExport(),
+            'template-import-pkwt-1-vhire.xlsx'
+        );
     }
 
     public function show(Request $request, EmployeeContract $contract, ElectronicContractService $service)

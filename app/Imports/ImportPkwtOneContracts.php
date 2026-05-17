@@ -10,15 +10,17 @@ use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 use Maatwebsite\Excel\Concerns\RegistersEventListeners;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use Throwable;
 
-class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkReading, WithEvents, ShouldQueue
+class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkReading, WithEvents, WithCalculatedFormulas, ShouldQueue
 {
     use RegistersEventListeners;
     use TracksImportHistory;
@@ -125,7 +127,7 @@ class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkR
             'vhire_candidate_id' => null,
             'candidate_code' => $candidateCode,
             'no_ktp' => $noKtp,
-            'nama' => trim((string) $this->value($row, 'nama')),
+            'nama' => trim($this->plainValue($this->value($row, 'nama'))),
             'jenis_kelamin' => $this->nullableString($this->value($row, 'jenis_kelamin')),
             'status_pernikahan' => $this->nullableString($this->value($row, 'status_pernikahan')),
             'alamat' => $this->nullableString($this->value($row, 'alamat')),
@@ -199,6 +201,8 @@ class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkR
 
     private function parseDate($value): ?Carbon
     {
+        $value = $this->plainValue($value);
+
         if ($value instanceof \DateTimeInterface) {
             return Carbon::instance($value);
         }
@@ -213,8 +217,10 @@ class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkR
             return null;
         }
 
+        $normalizedDate = $this->normalizeIndonesianDateText($value);
+
         try {
-            return Carbon::parse($value);
+            return Carbon::parse($normalizedDate);
         } catch (Throwable $exception) {
             return null;
         }
@@ -242,6 +248,8 @@ class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkR
 
     private function parseMoney($value): ?float
     {
+        $value = $this->plainValue($value);
+
         if ($value === null || $value === '') {
             return null;
         }
@@ -251,22 +259,84 @@ class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkR
         }
 
         $normalized = preg_replace('/[^0-9,\.\-]+/', '', (string) $value);
-        $normalized = str_replace('.', '', $normalized);
-        $normalized = str_replace(',', '.', $normalized);
+
+        if ($normalized === '' || $normalized === '-') {
+            return null;
+        }
+
+        $lastComma = strrpos($normalized, ',');
+        $lastDot = strrpos($normalized, '.');
+
+        if ($lastComma !== false && $lastDot !== false) {
+            $normalized = $lastComma > $lastDot
+                ? str_replace(',', '.', str_replace('.', '', $normalized))
+                : str_replace(',', '', $normalized);
+        } elseif ($lastComma !== false) {
+            $normalized = preg_match('/,\d{1,2}$/', $normalized)
+                ? str_replace(',', '.', $normalized)
+                : str_replace(',', '', $normalized);
+        } elseif ($lastDot !== false && !preg_match('/\.\d{1,2}$/', $normalized)) {
+            $normalized = str_replace('.', '', $normalized);
+        }
 
         return is_numeric($normalized) ? (float) $normalized : null;
     }
 
     private function digitsOnly($value): string
     {
-        return preg_replace('/\D+/', '', (string) $value) ?: '';
+        $value = $this->plainValue($value);
+
+        if (is_int($value)) {
+            return (string) $value;
+        }
+
+        if (is_float($value)) {
+            return number_format($value, 0, '', '');
+        }
+
+        $value = trim((string) $value);
+
+        if ($value !== '' && stripos($value, 'e') !== false && is_numeric($value)) {
+            return number_format((float) $value, 0, '', '');
+        }
+
+        return preg_replace('/\D+/', '', $value) ?: '';
     }
 
     private function nullableString($value): ?string
     {
-        $value = trim((string) $value);
+        $value = trim($this->plainValue($value));
 
         return $value === '' ? null : $value;
+    }
+
+    private function plainValue($value)
+    {
+        if ($value instanceof RichText) {
+            return $value->getPlainText();
+        }
+
+        return $value;
+    }
+
+    private function normalizeIndonesianDateText(string $value): string
+    {
+        $months = [
+            'januari' => 'January',
+            'februari' => 'February',
+            'maret' => 'March',
+            'april' => 'April',
+            'mei' => 'May',
+            'juni' => 'June',
+            'juli' => 'July',
+            'agustus' => 'August',
+            'september' => 'September',
+            'oktober' => 'October',
+            'november' => 'November',
+            'desember' => 'December',
+        ];
+
+        return str_ireplace(array_keys($months), array_values($months), $value);
     }
 
     private function addFailureSample(array &$failureSamples, int $row, ?string $noKtp, string $message): void
