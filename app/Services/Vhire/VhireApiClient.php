@@ -94,19 +94,36 @@ class VhireApiClient
             throw new RuntimeException('API V-Hire tidak bisa dihubungi: ' . $exception->getMessage(), 0, $exception);
         }
 
+        $body = $this->sanitizeResponseBody((string) $response->body());
+
         if (!$response->successful()) {
             throw new RuntimeException(sprintf(
                 'API V-Hire gagal merespons. Status: %s. Body: %s',
                 $response->status(),
-                Str::limit($this->sanitizeResponseBody((string) $response->body()), 500)
+                Str::limit($body, 500)
+            ));
+        }
+
+        if ($this->isBlockedByHostingProtection($body)) {
+            throw new RuntimeException(sprintf(
+                'API V-Hire diblokir proteksi hosting. Status: %s. Body: %s',
+                $response->status(),
+                Str::limit($body, 500)
             ));
         }
 
         return [
             'http_status' => $response->status(),
-            'body' => Str::limit($this->sanitizeResponseBody((string) $response->body()), 1000),
+            'body' => Str::limit($body, 1000),
             'json' => $response->json(),
         ];
+    }
+
+    private function isBlockedByHostingProtection(string $body): bool
+    {
+        $body = Str::lower($body);
+
+        return Str::contains($body, ['imunify360', 'bot-protection']);
     }
 
     private function sanitizeResponseBody(string $body): string
