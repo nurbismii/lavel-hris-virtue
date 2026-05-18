@@ -188,6 +188,34 @@ class VhireOnboardingContractIntegrationTest extends TestCase
         $this->assertSame(1, EmployeeContract::count());
     }
 
+    public function test_signature_callback_accepts_missing_vhire_candidate_id_when_contract_has_no_external_candidate_id(): void
+    {
+        Queue::fake();
+
+        app(VhireOnboardingContractService::class)->importCandidateFromExcel($this->candidatePayload([
+            'vhire_candidate_id' => null,
+        ]));
+
+        $contract = EmployeeContract::first();
+        $this->assertNull($contract->vhire_candidate_id);
+
+        $callbackPayload = [
+            'hris_contract_id' => $contract->id,
+            'kode_kontrak' => $contract->contract_code,
+            'no_pkwt' => $contract->pkwt_number,
+            'vhire_candidate_id' => null,
+            'candidate_code' => $contract->candidate_code,
+            'no_ktp' => $contract->no_ktp,
+            'signature_status' => EmployeeContract::SIGNATURE_STATUS_SIGNED,
+            'signed_at' => '2026-05-16 09:00:00',
+            'signed_by_source' => 'vhire',
+        ];
+
+        $this->postJson('/api/hris/contracts/' . $contract->id . '/signature-status', $callbackPayload, $this->headers())
+            ->assertOk()
+            ->assertJsonPath('data.signature_status', EmployeeContract::SIGNATURE_STATUS_SIGNED);
+    }
+
     public function test_manual_upload_marks_contract_as_manual_archive(): void
     {
         Storage::fake('local');

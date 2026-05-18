@@ -403,8 +403,11 @@ class VhireOnboardingContractService
 
     private function assertContractCandidateMatches(EmployeeContract $contract, array $payload): void
     {
+        $payloadVhireCandidateId = trim((string) ($payload['vhire_candidate_id'] ?? ''));
+        $contractVhireCandidateId = trim((string) $contract->vhire_candidate_id);
+
         if (
-            (string) $contract->vhire_candidate_id !== (string) $payload['vhire_candidate_id']
+            ($payloadVhireCandidateId !== '' && $contractVhireCandidateId !== '' && $contractVhireCandidateId !== $payloadVhireCandidateId)
             || (string) $contract->candidate_code !== (string) $payload['candidate_code']
             || (string) $contract->no_ktp !== (string) $payload['no_ktp']
         ) {

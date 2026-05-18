@@ -19,7 +19,7 @@ class UpdateSignatureStatusRequest extends FormRequest
             'hris_contract_id' => 'nullable|required_without_all:kode_kontrak,no_pkwt|integer',
             'kode_kontrak' => 'nullable|required_without_all:hris_contract_id,no_pkwt|string|max:120',
             'no_pkwt' => 'nullable|required_without_all:hris_contract_id,kode_kontrak|string|max:120',
-            'vhire_candidate_id' => 'required|string|max:120',
+            'vhire_candidate_id' => 'nullable|string|max:120',
             'candidate_code' => 'required|string|max:120',
             'no_ktp' => ['required', 'string', 'regex:/^[0-9]{16}$/'],
             'signature_status' => ['required', Rule::in([
