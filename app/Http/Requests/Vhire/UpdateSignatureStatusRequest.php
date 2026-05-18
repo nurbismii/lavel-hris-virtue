@@ -31,6 +31,9 @@ class UpdateSignatureStatusRequest extends FormRequest
             'status_tanda_tangan' => 'nullable|string|max:80',
             'signed_at' => 'nullable|date',
             'signed_by_source' => ['nullable', Rule::in(['vhire', 'manual_upload', 'admin'])],
+            'employee_signature_base64' => 'nullable|string',
+            'employee_signature_mime' => ['nullable', Rule::in(['image/png', 'image/jpeg'])],
+            'employee_signature_hash' => 'nullable|string|max:128',
         ];
     }
 

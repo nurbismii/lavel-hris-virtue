@@ -156,6 +156,7 @@ class VhireOnboardingContractIntegrationTest extends TestCase
 
     public function test_signature_callback_is_idempotent(): void
     {
+        Storage::fake('local');
         Queue::fake();
 
         $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload(), $this->headers())
@@ -173,6 +174,9 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             'status_tanda_tangan' => 'Sudah ditandatangani',
             'signed_at' => '2026-05-16 09:00:00',
             'signed_by_source' => 'vhire',
+            'employee_signature_base64' => base64_encode(str_repeat('candidate-signature', 20)),
+            'employee_signature_mime' => 'image/png',
+            'employee_signature_hash' => hash('sha256', str_repeat('candidate-signature', 20)),
         ];
 
         $this->postJson('/api/hris/contracts/' . $contract->id . '/signature-status', $callbackPayload, $this->headers())
@@ -185,6 +189,8 @@ class VhireOnboardingContractIntegrationTest extends TestCase
         $contract = $contract->fresh();
         $this->assertSame(EmployeeContract::STATUS_SIGNED, $contract->status);
         $this->assertSame('vhire', $contract->signed_by_source);
+        $this->assertNotNull($contract->signature);
+        Storage::disk('local')->assertExists($contract->signature->signature_path);
         $this->assertSame(1, EmployeeContract::count());
     }
 
@@ -562,6 +568,23 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             $table->string('created_by', 64)->nullable();
             $table->string('updated_by', 64)->nullable();
             $table->timestamps();
+        });
+
+        Schema::create('employee_contract_signatures', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('employee_contract_id');
+            $table->string('nik', 100);
+            $table->string('signed_by_user_id', 64);
+            $table->string('signature_path', 500);
+            $table->timestamp('signed_at');
+            $table->string('ip_address', 64)->nullable();
+            $table->text('user_agent')->nullable();
+            $table->string('document_hash', 128)->nullable();
+            $table->text('consent_text');
+            $table->timestamps();
+
+            $table->unique('employee_contract_id');
+            $table->index(['nik', 'signed_at']);
         });
 
         Schema::create('electronic_contract_first_party_signatures', function (Blueprint $table) {

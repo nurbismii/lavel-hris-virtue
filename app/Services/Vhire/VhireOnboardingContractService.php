@@ -5,12 +5,14 @@ namespace App\Services\Vhire;
 use App\Models\ContractTemplate;
 use App\Models\ElectronicContractAuditLog;
 use App\Models\EmployeeContract;
+use App\Models\EmployeeContractSignature;
 use App\Models\OnboardingCandidate;
 use App\Models\VhireSyncLog;
 use App\Services\ElectronicContracts\ElectronicContractService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -118,6 +120,8 @@ class VhireOnboardingContractService
                 $contract->signature_status === $signatureStatus
                 && (string) $contract->signed_by_source === (string) ($payload['signed_by_source'] ?? 'vhire')
             ) {
+                $this->storeVhireEmployeeSignatureIfPresent($contract, $payload, $request);
+
                 $this->recordInboundSyncLog(
                     VhireSyncLog::OPERATION_SIGNATURE_CALLBACK,
                     $request,
@@ -142,6 +146,7 @@ class VhireOnboardingContractService
             }
 
             $contract->save();
+            $signature = $this->storeVhireEmployeeSignatureIfPresent($contract, $payload, $request);
 
             $this->recordInboundSyncLog(
                 VhireSyncLog::OPERATION_SIGNATURE_CALLBACK,
@@ -158,6 +163,7 @@ class VhireOnboardingContractService
                     'signature_status' => $contract->signature_status,
                     'signed_at' => optional($contract->signed_at)->format('Y-m-d H:i:s'),
                     'signed_by_source' => $contract->signed_by_source,
+                    'signature_id' => optional($signature)->id,
                 ],
             ]);
 
@@ -399,6 +405,104 @@ class VhireOnboardingContractService
         }
 
         return $matched->first();
+    }
+
+    private function storeVhireEmployeeSignatureIfPresent(
+        EmployeeContract $contract,
+        array $payload,
+        Request $request
+    ): ?EmployeeContractSignature {
+        if (
+            ($payload['signature_status'] ?? null) !== EmployeeContract::SIGNATURE_STATUS_SIGNED
+            || empty($payload['employee_signature_base64'])
+        ) {
+            return $contract->signature;
+        }
+
+        $mime = $payload['employee_signature_mime'] ?? 'image/png';
+        $decoded = $this->decodeSignatureImage((string) $payload['employee_signature_base64']);
+
+        if ($decoded === null) {
+            throw ValidationException::withMessages([
+                'employee_signature_base64' => 'Data gambar tanda tangan dari V-Hire tidak valid.',
+            ]);
+        }
+
+        if (!in_array($mime, ['image/png', 'image/jpeg'], true)) {
+            throw ValidationException::withMessages([
+                'employee_signature_mime' => 'Format gambar tanda tangan dari V-Hire tidak valid.',
+            ]);
+        }
+
+        if (strlen($decoded) > 1024 * 1024) {
+            throw ValidationException::withMessages([
+                'employee_signature_base64' => 'Ukuran gambar tanda tangan dari V-Hire terlalu besar.',
+            ]);
+        }
+
+        $hash = hash('sha256', $decoded);
+
+        if (
+            !empty($payload['employee_signature_hash'])
+            && !hash_equals((string) $payload['employee_signature_hash'], $hash)
+        ) {
+            throw ValidationException::withMessages([
+                'employee_signature_hash' => 'Hash tanda tangan dari V-Hire tidak cocok.',
+            ]);
+        }
+
+        $existingSignature = $contract->signature()->first();
+
+        if ($existingSignature && (string) $existingSignature->document_hash === $hash) {
+            return $existingSignature;
+        }
+
+        $extension = $mime === 'image/jpeg' ? 'jpg' : 'png';
+        $directoryKey = preg_replace('/[^A-Za-z0-9\-]+/', '-', (string) (
+            $contract->nik ?: $contract->employee_nik ?: $contract->candidate_code ?: $contract->no_ktp ?: $contract->id
+        ));
+        $path = sprintf(
+            'employee-contract-signatures/vhire/%s/%s/%s.%s',
+            $directoryKey ?: 'candidate',
+            $contract->id,
+            Str::uuid(),
+            $extension
+        );
+
+        Storage::put($path, $decoded);
+
+        $signedAt = !empty($payload['signed_at']) ? Carbon::parse($payload['signed_at']) : ($contract->signed_at ?: now());
+
+        return EmployeeContractSignature::updateOrCreate(
+            ['employee_contract_id' => $contract->id],
+            [
+                'nik' => (string) ($contract->nik ?: $contract->employee_nik ?: $contract->candidate_code ?: $contract->no_ktp),
+                'signed_by_user_id' => Str::limit('vhire:' . ($contract->vhire_candidate_id ?: $contract->candidate_code ?: $contract->id), 64, ''),
+                'signature_path' => $path,
+                'signed_at' => $signedAt,
+                'ip_address' => $request->ip(),
+                'user_agent' => substr((string) $request->userAgent(), 0, 1000),
+                'document_hash' => $hash,
+                'consent_text' => 'Tanda tangan elektronik kandidat dilakukan melalui V-Hire untuk kontrak PKWT 1 ini.',
+            ]
+        );
+    }
+
+    private function decodeSignatureImage(string $signatureData): ?string
+    {
+        if (preg_match('/^data:image\/(?:png|jpe?g);base64,/i', $signatureData, $matches)) {
+            $signatureData = substr($signatureData, strlen($matches[0]));
+        }
+
+        $signatureData = preg_replace('/\s+/', '', $signatureData);
+
+        if (!is_string($signatureData) || $signatureData === '') {
+            return null;
+        }
+
+        $decoded = base64_decode($signatureData, true);
+
+        return $decoded === false || strlen($decoded) < 100 ? null : $decoded;
     }
 
     private function assertContractCandidateMatches(EmployeeContract $contract, array $payload): void
