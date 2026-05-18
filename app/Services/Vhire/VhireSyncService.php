@@ -3,6 +3,7 @@
 namespace App\Services\Vhire;
 
 use App\Jobs\SyncVhireOutbound;
+use App\Models\ContractTemplate;
 use App\Models\EmployeeContract;
 use App\Models\OnboardingCandidate;
 use App\Models\User;
@@ -22,8 +23,9 @@ class VhireSyncService
 
     public function queueContractSync(EmployeeContract $contract, ?User $actor = null): VhireSyncLog
     {
-        $idempotencyKey = 'contract:' . $contract->id . ':' . sha1((string) $contract->updated_at);
         $payload = $this->client->contractPayload($contract);
+        $payloadJson = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $idempotencyKey = 'contract:' . $contract->id . ':' . sha1($payloadJson ?: serialize($payload));
 
         $log = VhireSyncLog::create([
             'direction' => VhireSyncLog::DIRECTION_OUTBOUND,
@@ -41,6 +43,30 @@ class VhireSyncService
         SyncVhireOutbound::dispatch($log->id)->onQueue((string) config('services.vhire.queue', 'default'));
 
         return $log;
+    }
+
+    public function queueFirstPartySignatureContractRefresh(?User $actor = null): int
+    {
+        $queued = 0;
+
+        EmployeeContract::query()
+            ->where('contract_type', ContractTemplate::TYPE_PKWT_1)
+            ->where('status', EmployeeContract::STATUS_READY)
+            ->where('signing_method', EmployeeContract::SIGNING_METHOD_ELECTRONIC)
+            ->where('visible_in_vhire', true)
+            ->whereIn('signature_status', [
+                EmployeeContract::SIGNATURE_STATUS_DRAFT,
+                EmployeeContract::SIGNATURE_STATUS_WAITING,
+            ])
+            ->orderBy('id')
+            ->chunkById(100, function ($contracts) use (&$queued, $actor): void {
+                foreach ($contracts as $contract) {
+                    $this->queueContractSync($contract, $actor);
+                    $queued++;
+                }
+            });
+
+        return $queued;
     }
 
     public function queueActivationSync(OnboardingCandidate $candidate, ?User $actor = null): VhireSyncLog

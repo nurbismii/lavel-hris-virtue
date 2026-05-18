@@ -308,7 +308,8 @@ class ElectronicContractController extends Controller
     public function storeFirstPartySignature(
         StoreFirstPartySignatureRequest $request,
         ElectronicContractService $service,
-        ElectronicContractAuditService $audit
+        ElectronicContractAuditService $audit,
+        VhireSyncService $vhireSync
     ) {
         abort_unless($request->user()->hasRole(['Super Admin', 'HR']), 403);
 
@@ -333,12 +334,19 @@ class ElectronicContractController extends Controller
             Storage::delete($oldSignaturePath);
         }
 
+        $queuedSyncCount = $vhireSync->queueFirstPartySignatureContractRefresh($request->user());
+
         $audit->record(null, 'contract_master_first_party_signature_saved', $request, [
             'signature_id' => $signature->id,
             'signature_source' => $signature->signature_source,
+            'vhire_contract_refresh_queued' => $queuedSyncCount,
         ]);
 
-        toast()->success('Success', 'Tanda tangan master Pihak Pertama berhasil disimpan dan akan dipakai untuk kontrak berikutnya.');
+        $message = $queuedSyncCount > 0
+            ? 'Tanda tangan master Pihak Pertama berhasil disimpan. ' . $queuedSyncCount . ' kontrak PKWT 1 elektronik sedang disinkronkan ulang ke V-Hire.'
+            : 'Tanda tangan master Pihak Pertama berhasil disimpan dan akan dipakai untuk kontrak berikutnya.';
+
+        toast()->success('Success', $message);
         return redirect()->route('electronic-contracts.first-party-signature.edit');
     }
 

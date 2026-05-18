@@ -4,6 +4,7 @@ namespace App\Services\Vhire;
 
 use App\Models\EmployeeContract;
 use App\Models\OnboardingCandidate;
+use App\Services\ElectronicContracts\ElectronicContractService;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -11,6 +12,13 @@ use RuntimeException;
 
 class VhireApiClient
 {
+    private ElectronicContractService $contractService;
+
+    public function __construct(ElectronicContractService $contractService)
+    {
+        $this->contractService = $contractService;
+    }
+
     public function sendContract(EmployeeContract $contract, string $idempotencyKey): array
     {
         $endpoint = $this->endpoint('/api/vhire/contracts');
@@ -61,7 +69,7 @@ class VhireApiClient
             'status_tanda_tangan' => $contract->signature_status_label,
             'signing_method' => $contract->signing_method,
             'visible_in_vhire' => (bool) $contract->visible_in_vhire,
-            'contract_content' => $contract->rendered_html,
+            'contract_content' => $this->contractService->renderContractHtmlForDisplay($contract),
         ];
     }
 

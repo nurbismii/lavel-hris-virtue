@@ -5,12 +5,15 @@ namespace Tests\Feature;
 use App\Jobs\SyncVhireOutbound;
 use App\Imports\ImportPkwtOneContracts;
 use App\Models\ContractTemplate;
+use App\Models\ElectronicContractFirstPartySignature;
 use App\Models\EmployeeContract;
 use App\Models\OnboardingCandidate;
 use App\Models\User;
 use App\Models\VhireSyncLog;
 use App\Services\ElectronicContracts\ElectronicContractService;
+use App\Services\Vhire\VhireApiClient;
 use App\Services\Vhire\VhireOnboardingContractService;
+use App\Services\Vhire\VhireSyncService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -85,6 +88,70 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             ->assertJsonValidationErrors('no_ktp');
 
         $this->assertSame(0, OnboardingCandidate::count());
+    }
+
+    public function test_vhire_contract_payload_embeds_first_party_signature(): void
+    {
+        Storage::fake('local');
+        Queue::fake();
+
+        $signaturePath = 'employee-contract-first-party-signatures/master/test.png';
+        Storage::put($signaturePath, str_repeat('first-party-signature', 20));
+
+        ElectronicContractFirstPartySignature::create([
+            'signer_key' => ElectronicContractFirstPartySignature::SIGNER_KEY,
+            'signer_name' => 'AHMAD SAEKUZEN',
+            'signer_position' => 'HRD MANAGER',
+            'signature_path' => $signaturePath,
+            'signature_source' => 'test',
+            'signed_at' => now(),
+        ]);
+
+        $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload(), $this->headers())
+            ->assertOk();
+
+        $payload = app(VhireApiClient::class)->contractPayload(EmployeeContract::first());
+
+        $this->assertStringContainsString('data-contract-signature="first_party"', $payload['contract_content']);
+        $this->assertStringContainsString('src="data:image/png;base64,', $payload['contract_content']);
+        $this->assertStringNotContainsString('{{tanda_tangan_pihak_pertama}}', $payload['contract_content']);
+    }
+
+    public function test_master_first_party_signature_refreshes_waiting_visible_pkwt_contracts(): void
+    {
+        Storage::fake('local');
+        Queue::fake([SyncVhireOutbound::class]);
+
+        $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload(), $this->headers())
+            ->assertOk();
+
+        $contract = EmployeeContract::first();
+        $initialSyncLog = VhireSyncLog::query()
+            ->where('operation', VhireSyncLog::OPERATION_CONTRACT_SYNC)
+            ->firstOrFail();
+
+        $signaturePath = 'employee-contract-first-party-signatures/master/test.png';
+        Storage::put($signaturePath, str_repeat('first-party-signature', 20));
+
+        ElectronicContractFirstPartySignature::create([
+            'signer_key' => ElectronicContractFirstPartySignature::SIGNER_KEY,
+            'signer_name' => 'AHMAD SAEKUZEN',
+            'signer_position' => 'HRD MANAGER',
+            'signature_path' => $signaturePath,
+            'signature_source' => 'test',
+            'signed_at' => now(),
+        ]);
+
+        $queued = app(VhireSyncService::class)->queueFirstPartySignatureContractRefresh($this->fakeActor());
+        $refreshSyncLog = VhireSyncLog::query()
+            ->where('operation', VhireSyncLog::OPERATION_CONTRACT_SYNC)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertSame(1, $queued);
+        $this->assertEquals($contract->id, $refreshSyncLog->related_id);
+        $this->assertNotSame($initialSyncLog->idempotency_key, $refreshSyncLog->idempotency_key);
+        Queue::assertPushed(SyncVhireOutbound::class);
     }
 
     public function test_signature_callback_is_idempotent(): void
@@ -353,7 +420,7 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             'contract_type' => ContractTemplate::TYPE_PKWT_1,
             'name' => 'PKWT 1 Test',
             'letterhead_html' => '',
-            'body_html' => '<p>{{nama_karyawan}} - {{no_ktp}} - {{durasi_kontrak}}</p>',
+            'body_html' => '<p>{{nama_karyawan}} - {{no_ktp}} - {{durasi_kontrak}}</p><div>{{tanda_tangan_pihak_pertama}}</div><strong>AHMAD SAEKUZEN</strong>',
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -449,6 +516,10 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             $table->string('signature_status', 30)->default('waiting_signature');
             $table->timestamp('signed_at')->nullable();
             $table->string('signed_by_source', 40)->nullable();
+            $table->string('first_party_signature_path', 500)->nullable();
+            $table->string('first_party_signature_source', 30)->nullable();
+            $table->string('first_party_signed_by_user_id', 64)->nullable();
+            $table->timestamp('first_party_signed_at')->nullable();
             $table->boolean('visible_in_vhire')->default(true);
             $table->string('manual_signed_file_path', 500)->nullable();
             $table->string('manual_signed_original_name', 255)->nullable();
@@ -462,6 +533,18 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             $table->timestamp('vhire_activation_synced_at')->nullable();
             $table->string('created_by', 64)->nullable();
             $table->string('updated_by', 64)->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('electronic_contract_first_party_signatures', function (Blueprint $table) {
+            $table->id();
+            $table->string('signer_key', 60)->unique();
+            $table->string('signer_name', 150);
+            $table->string('signer_position', 150)->nullable();
+            $table->string('signature_path', 500);
+            $table->string('signature_source', 30);
+            $table->string('updated_by_user_id', 64)->nullable();
+            $table->timestamp('signed_at')->nullable();
             $table->timestamps();
         });
 
