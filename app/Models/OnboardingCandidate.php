@@ -16,11 +16,15 @@ class OnboardingCandidate extends Model
     protected $casts = [
         'tanggal_mulai_kerja' => 'date',
         'tanggal_akhir_kontrak' => 'date',
+        'tanggal_lahir' => 'date',
+        'tanggal_menikah' => 'date',
         'source_updated_at' => 'datetime',
         'last_synced_at' => 'datetime',
         'activated_as_employee_at' => 'datetime',
         'gaji' => 'decimal:2',
         'uang_makan' => 'decimal:2',
+        'sisa_cuti' => 'decimal:2',
+        'sisa_cuti_covid' => 'decimal:2',
     ];
 
     public function contracts()

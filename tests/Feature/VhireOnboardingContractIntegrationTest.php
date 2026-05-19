@@ -90,6 +90,17 @@ class VhireOnboardingContractIntegrationTest extends TestCase
         $this->assertSame(0, OnboardingCandidate::count());
     }
 
+    public function test_vhire_candidate_rejects_missing_employee_import_required_area_code(): void
+    {
+        $payload = $this->candidatePayload(['kode_area_kerja' => null]);
+
+        $this->postJson('/api/hris/onboarding-candidates', $payload, $this->headers())
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('kode_area_kerja');
+
+        $this->assertSame(0, OnboardingCandidate::count());
+    }
+
     public function test_vhire_contract_payload_embeds_first_party_signature(): void
     {
         Storage::fake('local');
@@ -252,8 +263,11 @@ class VhireOnboardingContractIntegrationTest extends TestCase
     {
         Queue::fake();
 
-        $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload(), $this->headers())
-            ->assertOk();
+        $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload([
+            'no_telp' => '081299988877',
+            'alamat_ktp' => 'JL. KTP EXISTING',
+            'tanggal_lahir' => '1997-06-22',
+        ]), $this->headers())->assertOk();
 
         DB::table('employees')->insert([
             'nik' => 'EMP-0001',
@@ -274,6 +288,109 @@ class VhireOnboardingContractIntegrationTest extends TestCase
         $this->assertSame('EMP-0001', $candidate->employee_nik);
         $this->assertSame('EMP-0001', $contract->nik);
         $this->assertFalse((bool) $contract->visible_in_vhire);
+        $this->assertDatabaseHas('employees', [
+            'nik' => 'EMP-0001',
+            'no_telp' => '081299988877',
+            'alamat_ktp' => 'JL. KTP EXISTING',
+            'kode_area_kerja' => 'VDNI',
+            'departemen_id' => 10,
+            'divisi_id' => 20,
+        ]);
+        $this->assertSame('1997-06-22', substr((string) DB::table('employees')->where('nik', 'EMP-0001')->value('tgl_lahir'), 0, 10));
+
+        $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload([
+            'no_telp' => '089911112222',
+            'alamat_ktp' => 'JL. KTP UPDATED V-HIRE',
+            'tanggal_lahir' => '1998-01-15',
+            'source_updated_at' => '2026-05-17 09:00:00',
+        ]), $this->headers())->assertOk();
+
+        $this->assertDatabaseHas('employees', [
+            'nik' => 'EMP-0001',
+            'no_telp' => '089911112222',
+            'alamat_ktp' => 'JL. KTP UPDATED V-HIRE',
+        ]);
+        $this->assertSame('1998-01-15', substr((string) DB::table('employees')->where('nik', 'EMP-0001')->value('tgl_lahir'), 0, 10));
+        $this->assertTrue(VhireSyncLog::where('operation', VhireSyncLog::OPERATION_ACTIVATION_SYNC)->exists());
+        Queue::assertPushed(SyncVhireOutbound::class);
+    }
+
+    public function test_signed_pkwt_one_contract_can_generate_employee_nik_and_activate_candidate(): void
+    {
+        Queue::fake();
+
+        $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload([
+            'tanggal_mulai_kerja' => '2026-04-15',
+            'tanggal_akhir_kontrak' => '2026-06-15',
+            'nama_ibu_kandung' => 'SITI',
+            'agama' => 'ISLAM',
+            'no_kk' => '7471072206970001',
+            'status_karyawan' => 'PKWT',
+            'no_telp' => '081234567890',
+            'tanggal_lahir' => '1997-06-22',
+            'alamat_ktp' => 'JL. KTP KANDIDAT',
+            'alamat_domisili' => 'JL. DOMISILI KANDIDAT',
+            'npwp' => '12.345.678.9-012.000',
+            'bpjs_kesehatan' => 'BPJSKES-001',
+            'bpjs_tk' => 'BPJSTK-001',
+            'nama_bank' => 'BRI',
+            'no_rekening' => '1234567890',
+            'pendidikan_terakhir' => 'SMA',
+            'jurusan' => 'IPA',
+        ]), $this->headers())->assertOk();
+
+        DB::table('employees')->insert([
+            'nik' => '260443116',
+            'nama_karyawan' => 'Existing Employee',
+            'no_ktp' => '1111222233334444',
+        ]);
+
+        $contract = EmployeeContract::first();
+        $contract->update([
+            'status' => EmployeeContract::STATUS_SIGNED,
+            'signature_status' => EmployeeContract::SIGNATURE_STATUS_SIGNED,
+            'signed_at' => now(),
+        ]);
+
+        $request = Request::create('/admin/kontrak-elektronik/' . $contract->id . '/generate-nik-activation', 'POST');
+
+        $employee = app(VhireOnboardingContractService::class)->generateEmployeeNikAndActivateContract($contract->fresh(), $request);
+        $candidate = OnboardingCandidate::first()->fresh();
+        $updatedContract = $contract->fresh();
+
+        $this->assertSame('260443118', $employee->nik);
+        $this->assertDatabaseHas('employees', [
+            'nik' => '260443118',
+            'nama_karyawan' => 'ARNOL',
+            'no_ktp' => '7471072206970101',
+            'no_kk' => '7471072206970001',
+            'nama_ibu_kandung' => 'SITI',
+            'agama' => 'ISLAM',
+            'status_karyawan' => 'PKWT',
+            'no_telp' => '081234567890',
+            'alamat_ktp' => 'JL. KTP KANDIDAT',
+            'alamat_domisili' => 'JL. DOMISILI KANDIDAT',
+            'npwp' => '123456789012000',
+            'bpjs_kesehatan' => 'BPJSKES-001',
+            'bpjs_tk' => 'BPJSTK-001',
+            'nama_bank' => 'BRI',
+            'no_rekening' => '1234567890',
+            'pendidikan_terakhir' => 'SMA',
+            'jurusan' => 'IPA',
+            'kode_area_kerja' => 'VDNI',
+            'jenis_kelamin' => 'L',
+            'status_perkawinan' => 'Belum Kawin',
+            'departemen_id' => 10,
+            'divisi_id' => 20,
+            'status_resign' => 'AKTIF',
+        ]);
+        $this->assertSame('2026-04-15', substr((string) DB::table('employees')->where('nik', '260443118')->value('entry_date'), 0, 10));
+        $this->assertSame('1997-06-22', substr((string) DB::table('employees')->where('nik', '260443118')->value('tgl_lahir'), 0, 10));
+        $this->assertSame(OnboardingCandidate::STATUS_ACTIVATED, $candidate->onboarding_status);
+        $this->assertSame('260443118', $candidate->employee_nik);
+        $this->assertSame('260443118', $updatedContract->nik);
+        $this->assertSame('260443118', $updatedContract->employee_nik);
+        $this->assertFalse((bool) $updatedContract->visible_in_vhire);
         $this->assertTrue(VhireSyncLog::where('operation', VhireSyncLog::OPERATION_ACTIVATION_SYNC)->exists());
         Queue::assertPushed(SyncVhireOutbound::class);
     }
@@ -424,7 +541,9 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             'tanggal_mulai_kerja' => '2026-05-16',
             'tanggal_akhir_kontrak' => '2026-07-16',
             'departemen' => 'HSE',
+            'divisi' => 'SAFETY',
             'lokasi' => 'Morosi',
+            'kode_area_kerja' => 'VDNI',
             'recruitment_status' => 'accepted',
             'onboarding_status' => 'proses_tanda_tangan_kontrak',
             'contract_duration_value' => 2,
@@ -466,13 +585,97 @@ class VhireOnboardingContractIntegrationTest extends TestCase
         Schema::create('employees', function (Blueprint $table) {
             $table->string('nik', 100)->primary();
             $table->string('nama_karyawan')->nullable();
+            $table->string('nama_ibu_kandung')->nullable();
+            $table->string('nama_bapak')->nullable();
+            $table->string('agama')->nullable();
             $table->string('no_ktp', 32)->nullable();
+            $table->string('no_kk', 32)->nullable();
+            $table->string('kode_area_kerja')->nullable();
             $table->string('posisi')->nullable();
+            $table->string('jabatan')->nullable();
+            $table->unsignedBigInteger('departemen_id')->nullable();
+            $table->unsignedBigInteger('divisi_id')->nullable();
             $table->string('jenis_kelamin')->nullable();
+            $table->string('status_perkawinan')->nullable();
+            $table->string('status_karyawan')->nullable();
+            $table->string('no_telp')->nullable();
+            $table->date('tgl_lahir')->nullable();
             $table->string('alamat_domisili')->nullable();
             $table->string('alamat_ktp')->nullable();
+            $table->string('rt')->nullable();
+            $table->string('rw')->nullable();
+            $table->string('kode_pos')->nullable();
+            $table->string('golongan_darah')->nullable();
+            $table->date('entry_date')->nullable();
+            $table->string('npwp')->nullable();
+            $table->string('status_pajak')->nullable();
+            $table->string('bpjs_kesehatan')->nullable();
+            $table->string('bpjs_tk')->nullable();
+            $table->string('jam_kerja')->nullable();
+            $table->string('status_resign')->nullable();
+            $table->string('area_kerja')->nullable();
+            $table->string('skill')->nullable();
+            $table->string('tinggi')->nullable();
+            $table->string('berat')->nullable();
+            $table->string('hobi')->nullable();
+            $table->string('no_jamsostek')->nullable();
+            $table->string('no_asuransi')->nullable();
+            $table->string('no_kartu_asuransi')->nullable();
+            $table->string('nama_bank')->nullable();
+            $table->string('no_rekening')->nullable();
+            $table->string('nama_instansi_pendidikan')->nullable();
+            $table->string('pendidikan_terakhir')->nullable();
+            $table->string('jurusan')->nullable();
+            $table->date('tanggal_menikah')->nullable();
+            $table->decimal('sisa_cuti', 8, 2)->nullable();
+            $table->decimal('sisa_cuti_covid', 8, 2)->nullable();
             $table->timestamps();
         });
+
+        Schema::create('perusahaan', function (Blueprint $table) {
+            $table->id();
+            $table->string('kode_perusahaan')->nullable();
+            $table->string('nama_perusahaan')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('departemens', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('perusahaan_id')->nullable();
+            $table->string('departemen')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('divisis', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('departemen_id')->nullable();
+            $table->string('nama_divisi')->nullable();
+            $table->timestamps();
+        });
+
+        DB::table('perusahaan')->insert([
+            'id' => 1,
+            'kode_perusahaan' => 'VDNI',
+            'nama_perusahaan' => 'VDNI',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('departemens')->insert([
+            'id' => 10,
+            'perusahaan_id' => 1,
+            'departemen' => 'HSE',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('divisis')->insert([
+            'id' => 20,
+            'departemen_id' => 10,
+            'nama_divisi' => 'SAFETY',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         Schema::create('contract_templates', function (Blueprint $table) {
             $table->id();
@@ -490,18 +693,53 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             $table->string('candidate_code', 120)->unique();
             $table->string('no_ktp', 32);
             $table->string('nama', 180);
+            $table->string('nama_ibu_kandung', 180)->nullable();
+            $table->string('nama_bapak', 180)->nullable();
+            $table->string('agama', 50)->nullable();
+            $table->string('no_kk', 32)->nullable();
             $table->string('jenis_kelamin', 30)->nullable();
             $table->string('status_pernikahan', 60)->nullable();
+            $table->string('no_telp', 30)->nullable();
+            $table->date('tanggal_lahir')->nullable();
             $table->text('alamat')->nullable();
+            $table->text('alamat_ktp')->nullable();
+            $table->text('alamat_domisili')->nullable();
+            $table->string('rt', 10)->nullable();
+            $table->string('rw', 10)->nullable();
+            $table->string('kode_pos', 20)->nullable();
+            $table->string('golongan_darah', 10)->nullable();
             $table->string('jabatan', 180)->nullable();
+            $table->string('skill', 180)->nullable();
+            $table->string('tinggi', 20)->nullable();
+            $table->string('berat', 20)->nullable();
+            $table->string('hobi', 180)->nullable();
+            $table->string('no_jamsostek', 50)->nullable();
+            $table->string('no_asuransi', 50)->nullable();
+            $table->string('no_kartu_asuransi', 50)->nullable();
+            $table->string('nama_bank', 120)->nullable();
+            $table->string('no_rekening', 80)->nullable();
+            $table->string('nama_instansi_pendidikan', 180)->nullable();
+            $table->string('pendidikan_terakhir', 80)->nullable();
+            $table->string('jurusan', 120)->nullable();
+            $table->date('tanggal_menikah')->nullable();
+            $table->decimal('sisa_cuti', 8, 2)->nullable();
+            $table->decimal('sisa_cuti_covid', 8, 2)->nullable();
             $table->date('tanggal_mulai_kerja')->nullable();
             $table->date('tanggal_akhir_kontrak')->nullable();
             $table->string('departemen', 180)->nullable();
+            $table->string('divisi', 180)->nullable();
             $table->string('lokasi', 180)->nullable();
+            $table->string('kode_area_kerja', 50)->nullable();
+            $table->string('status_karyawan', 80)->nullable();
             $table->string('kode_kontrak', 120)->nullable();
             $table->string('no_pkwt', 120)->nullable();
             $table->decimal('gaji', 18, 2)->nullable();
             $table->decimal('uang_makan', 18, 2)->nullable();
+            $table->string('npwp', 50)->nullable();
+            $table->string('status_pajak', 50)->nullable();
+            $table->string('bpjs_kesehatan', 50)->nullable();
+            $table->string('bpjs_tk', 50)->nullable();
+            $table->string('jam_kerja', 50)->nullable();
             $table->string('recruitment_status', 80)->nullable();
             $table->string('onboarding_status', 80)->default('pending');
             $table->unsignedInteger('contract_duration_value')->nullable();

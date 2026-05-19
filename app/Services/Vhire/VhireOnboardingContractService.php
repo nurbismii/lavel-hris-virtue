@@ -3,15 +3,20 @@
 namespace App\Services\Vhire;
 
 use App\Models\ContractTemplate;
+use App\Models\Departemen;
+use App\Models\Divisi;
 use App\Models\ElectronicContractAuditLog;
+use App\Models\Employee;
 use App\Models\EmployeeContract;
 use App\Models\EmployeeContractSignature;
 use App\Models\OnboardingCandidate;
+use App\Models\Perusahaan;
 use App\Models\VhireSyncLog;
 use App\Services\ElectronicContracts\ElectronicContractService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -43,6 +48,15 @@ class VhireOnboardingContractService
             $candidate->save();
 
             $contract = $this->createOrUpdatePkwtOneContract($candidate);
+
+            if ($candidate->employee_nik) {
+                $this->syncEmployeeProfileFromContract(
+                    $contract->fresh(['onboardingCandidate']),
+                    $candidate->employee_nik,
+                    $contract->contract_start_date ? Carbon::parse($contract->contract_start_date) : now(),
+                    true
+                );
+            }
 
             $this->recordInboundSyncLog(
                 VhireSyncLog::OPERATION_ONBOARDING_CANDIDATE,
@@ -176,49 +190,357 @@ class VhireOnboardingContractService
         $candidate = DB::transaction(function () use ($contract, $employeeNik, $request) {
             $contract = EmployeeContract::query()->whereKey($contract->id)->lockForUpdate()->firstOrFail();
 
-            if (!$contract->onboarding_candidate_id) {
-                throw ValidationException::withMessages([
-                    'employee_nik' => 'Kontrak ini bukan kontrak onboarding/PKWT V-Hire.',
-                ]);
-            }
-
-            $candidate = OnboardingCandidate::query()
-                ->whereKey($contract->onboarding_candidate_id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            $candidate->update([
-                'employee_nik' => $employeeNik,
-                'onboarding_status' => OnboardingCandidate::STATUS_ACTIVATED,
-                'activated_as_employee_at' => $candidate->activated_as_employee_at ?: now(),
-            ]);
-
-            EmployeeContract::query()
-                ->where('onboarding_candidate_id', $candidate->id)
-                ->update([
-                    'nik' => $employeeNik,
-                    'employee_nik' => $employeeNik,
-                    'visible_in_vhire' => false,
-                    'updated_by' => optional($request->user())->id,
-                    'updated_at' => now(),
-                ]);
-
-            $updatedContract = $contract->fresh(['template', 'employee']);
-            $updatedContract->rendered_html = $this->contractService->renderContractHtml($updatedContract);
-            $updatedContract->save();
-
-            $this->recordAudit($updatedContract, 'vhire_candidate_activated_as_employee', $request, [
-                'vhire_candidate_id' => $candidate->vhire_candidate_id,
-                'candidate_code' => $candidate->candidate_code,
-                'employee_nik' => $employeeNik,
-            ]);
-
-            return $candidate->fresh();
+            return $this->activateLockedContract($contract, $employeeNik, $request);
         });
 
         $this->syncService->queueActivationSync($candidate, $request->user());
 
         return $candidate;
+    }
+
+    public function generateEmployeeNikAndActivateContract(EmployeeContract $contract, Request $request): Employee
+    {
+        $result = DB::transaction(function () use ($contract, $request) {
+            $contract = EmployeeContract::query()
+                ->whereKey($contract->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->assertCanGenerateEmployeeNik($contract);
+
+            $activeDate = $contract->contract_start_date
+                ? Carbon::parse($contract->contract_start_date)
+                : now();
+            $employeeNik = $this->nextGeneratedEmployeeNik($activeDate);
+
+            $employee = $this->syncEmployeeProfileFromContract(
+                $contract->fresh(['onboardingCandidate']),
+                $employeeNik,
+                $activeDate,
+                true
+            );
+
+            $candidate = $this->activateLockedContract(
+                $contract,
+                $employeeNik,
+                $request,
+                ['generated_employee_nik' => true]
+            );
+
+            return [
+                'candidate' => $candidate,
+                'employee' => $employee->fresh(),
+            ];
+        });
+
+        $this->syncService->queueActivationSync($result['candidate'], $request->user());
+
+        return $result['employee'];
+    }
+
+    private function activateLockedContract(
+        EmployeeContract $contract,
+        string $employeeNik,
+        Request $request,
+        array $auditMetadata = []
+    ): OnboardingCandidate {
+        if (!$contract->onboarding_candidate_id) {
+            throw ValidationException::withMessages([
+                'employee_nik' => 'Kontrak ini bukan kontrak onboarding/PKWT V-Hire.',
+            ]);
+        }
+
+        $candidate = OnboardingCandidate::query()
+            ->whereKey($contract->onboarding_candidate_id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        $candidate->update([
+            'employee_nik' => $employeeNik,
+            'onboarding_status' => OnboardingCandidate::STATUS_ACTIVATED,
+            'activated_as_employee_at' => $candidate->activated_as_employee_at ?: now(),
+        ]);
+
+        EmployeeContract::query()
+            ->where('onboarding_candidate_id', $candidate->id)
+            ->update([
+                'nik' => $employeeNik,
+                'employee_nik' => $employeeNik,
+                'visible_in_vhire' => false,
+                'updated_by' => optional($request->user())->id,
+                'updated_at' => now(),
+            ]);
+
+        $updatedContract = $contract->fresh(['template', 'employee']);
+        $updatedContract->rendered_html = $this->contractService->renderContractHtml($updatedContract);
+        $updatedContract->save();
+
+        $activeDate = $updatedContract->contract_start_date
+            ? Carbon::parse($updatedContract->contract_start_date)
+            : now();
+        $this->syncEmployeeProfileFromContract(
+            $updatedContract->fresh(['onboardingCandidate']),
+            $employeeNik,
+            $activeDate,
+            false
+        );
+
+        $this->recordAudit($updatedContract, 'vhire_candidate_activated_as_employee', $request, array_merge([
+            'vhire_candidate_id' => $candidate->vhire_candidate_id,
+            'candidate_code' => $candidate->candidate_code,
+            'employee_nik' => $employeeNik,
+        ], $auditMetadata));
+
+        return $candidate->fresh();
+    }
+
+    private function assertCanGenerateEmployeeNik(EmployeeContract $contract): void
+    {
+        if ($contract->contract_type !== ContractTemplate::TYPE_PKWT_1) {
+            throw ValidationException::withMessages([
+                'employee_nik' => 'Generate NIK hanya tersedia untuk kontrak PKWT 1.',
+            ]);
+        }
+
+        if ($contract->signing_method !== EmployeeContract::SIGNING_METHOD_ELECTRONIC) {
+            throw ValidationException::withMessages([
+                'employee_nik' => 'Generate NIK hanya tersedia untuk kontrak elektronik.',
+            ]);
+        }
+
+        if ($contract->signature_status !== EmployeeContract::SIGNATURE_STATUS_SIGNED) {
+            throw ValidationException::withMessages([
+                'employee_nik' => 'Kontrak harus sudah ditandatangani secara elektronik sebelum generate NIK.',
+            ]);
+        }
+
+        if ($contract->nik || $contract->employee_nik) {
+            throw ValidationException::withMessages([
+                'employee_nik' => 'Kontrak ini sudah ditautkan ke NIK HRIS.',
+            ]);
+        }
+
+        if (!$contract->onboarding_candidate_id) {
+            throw ValidationException::withMessages([
+                'employee_nik' => 'Kontrak ini bukan kontrak onboarding/PKWT V-Hire.',
+            ]);
+        }
+
+        $noKtp = (string) ($contract->no_ktp ?: optional($contract->onboardingCandidate)->no_ktp);
+
+        if ($noKtp !== '' && Employee::query()->where('no_ktp', $noKtp)->exists()) {
+            throw ValidationException::withMessages([
+                'employee_nik' => 'No KTP kandidat sudah terdaftar di master karyawan. Gunakan aktivasi ke NIK yang sudah ada.',
+            ]);
+        }
+    }
+
+    private function nextGeneratedEmployeeNik(Carbon $activeDate): string
+    {
+        $prefix = $activeDate->format('ym');
+        $largestNik = Employee::query()
+            ->lockForUpdate()
+            ->pluck('nik')
+            ->map(fn($nik) => (string) $nik)
+            ->filter(fn(string $nik) => ctype_digit($nik) && strlen($nik) > 4)
+            ->sortByDesc(fn(string $nik) => (int) $nik)
+            ->first();
+
+        $suffixLength = 5;
+        $nextSuffix = 2;
+
+        if ($largestNik) {
+            $largestSuffix = substr($largestNik, 4);
+            $suffixLength = max($suffixLength, strlen($largestSuffix));
+            $nextSuffix = ((int) $largestSuffix) + 2;
+        }
+
+        do {
+            $nik = $prefix . str_pad((string) $nextSuffix, $suffixLength, '0', STR_PAD_LEFT);
+            $nextSuffix += 2;
+        } while (Employee::query()->whereKey($nik)->exists());
+
+        return $nik;
+    }
+
+    private function syncEmployeeProfileFromContract(
+        EmployeeContract $contract,
+        string $employeeNik,
+        Carbon $activeDate,
+        bool $overwriteExisting
+    ): Employee {
+        $attributes = $this->employeeAttributesFromContract($contract, $employeeNik, $activeDate);
+        $employee = Employee::query()->whereKey($employeeNik)->lockForUpdate()->first();
+
+        if (!$employee) {
+            $this->validateEmployeeImportRequiredAttributes($attributes);
+
+            return Employee::create($attributes);
+        }
+
+        $updates = $overwriteExisting
+            ? $attributes
+            : collect($attributes)
+                ->reject(fn($value, string $column) => $column === 'nik' || $value === null || $value === '')
+                ->filter(fn($value, string $column) => blank($employee->{$column}))
+                ->all();
+
+        if ($updates) {
+            $employee->fill($updates);
+            $employee->save();
+        }
+
+        return $employee->fresh();
+    }
+
+    private function employeeAttributesFromContract(EmployeeContract $contract, string $employeeNik, Carbon $activeDate): array
+    {
+        $candidate = $contract->onboardingCandidate;
+        $kodeAreaKerja = optional($candidate)->kode_area_kerja ?: $contract->lokasi;
+        $departemenName = $contract->departemen ?: optional($candidate)->departemen;
+        $divisiName = optional($candidate)->divisi;
+        $attributes = [
+            'nik' => $employeeNik,
+            'nama_karyawan' => $contract->display_employee_name !== '-' ? $contract->display_employee_name : ($contract->candidate_name ?: optional($candidate)->nama),
+            'nama_ibu_kandung' => optional($candidate)->nama_ibu_kandung,
+            'nama_bapak' => optional($candidate)->nama_bapak,
+            'agama' => optional($candidate)->agama,
+            'no_ktp' => $contract->no_ktp ?: optional($candidate)->no_ktp,
+            'no_kk' => optional($candidate)->no_kk,
+            'kode_area_kerja' => $kodeAreaKerja,
+            'posisi' => $contract->position,
+            'jabatan' => optional($candidate)->jabatan ?: $contract->position,
+            'jenis_kelamin' => $this->employeeImportGender($contract->gender ?: optional($candidate)->jenis_kelamin),
+            'status_perkawinan' => $this->employeeImportMaritalStatus(optional($candidate)->status_pernikahan),
+            'status_karyawan' => optional($candidate)->status_karyawan ?: 'PKWT',
+            'no_telp' => optional($candidate)->no_telp,
+            'tgl_lahir' => optional($candidate)->tanggal_lahir ? Carbon::parse($candidate->tanggal_lahir)->toDateString() : null,
+            'alamat_domisili' => optional($candidate)->alamat_domisili ?: ($contract->address ?: optional($candidate)->alamat),
+            'alamat_ktp' => optional($candidate)->alamat_ktp ?: ($contract->address ?: optional($candidate)->alamat),
+            'rt' => optional($candidate)->rt,
+            'rw' => optional($candidate)->rw,
+            'kode_pos' => optional($candidate)->kode_pos,
+            'golongan_darah' => optional($candidate)->golongan_darah,
+            'entry_date' => $activeDate->toDateString(),
+            'npwp' => filled(optional($candidate)->npwp) ? preg_replace('/[^\d]/', '', (string) $candidate->npwp) : null,
+            'status_pajak' => optional($candidate)->status_pajak,
+            'bpjs_kesehatan' => optional($candidate)->bpjs_kesehatan,
+            'bpjs_tk' => optional($candidate)->bpjs_tk,
+            'jam_kerja' => optional($candidate)->jam_kerja,
+            'status_resign' => 'AKTIF',
+            'area_kerja' => $contract->lokasi,
+            'departemen_id' => $this->resolveDepartemenId($kodeAreaKerja, $departemenName),
+            'divisi_id' => $this->resolveDivisiId($divisiName),
+            'skill' => optional($candidate)->skill,
+            'tinggi' => optional($candidate)->tinggi,
+            'berat' => optional($candidate)->berat,
+            'hobi' => optional($candidate)->hobi,
+            'no_jamsostek' => optional($candidate)->no_jamsostek,
+            'no_asuransi' => optional($candidate)->no_asuransi,
+            'no_kartu_asuransi' => optional($candidate)->no_kartu_asuransi,
+            'nama_bank' => optional($candidate)->nama_bank,
+            'no_rekening' => optional($candidate)->no_rekening,
+            'nama_instansi_pendidikan' => optional($candidate)->nama_instansi_pendidikan,
+            'pendidikan_terakhir' => optional($candidate)->pendidikan_terakhir,
+            'jurusan' => optional($candidate)->jurusan,
+            'tanggal_menikah' => optional($candidate)->tanggal_menikah ? Carbon::parse($candidate->tanggal_menikah)->toDateString() : null,
+            'sisa_cuti' => optional($candidate)->sisa_cuti,
+            'sisa_cuti_covid' => optional($candidate)->sisa_cuti_covid,
+        ];
+
+        return collect($attributes)
+            ->filter(fn($value, string $column) => Schema::hasColumn('employees', $column) && $value !== null)
+            ->all();
+    }
+
+    private function validateEmployeeImportRequiredAttributes(array $attributes): void
+    {
+        $messages = [];
+
+        if (blank($attributes['nik'] ?? null)) {
+            $messages['nik'] = 'NIK karyawan harus diisi';
+        }
+
+        if (blank($attributes['status_resign'] ?? null)) {
+            $messages['status_resign'] = 'Status resign harus diisi';
+        }
+
+        if (blank($attributes['kode_area_kerja'] ?? null)) {
+            $messages['kode_area_kerja'] = 'Kode area kerja harus diisi';
+        }
+
+        if ($messages) {
+            throw ValidationException::withMessages($messages);
+        }
+    }
+
+    private function employeeImportGender(?string $value): ?string
+    {
+        $normalized = strtoupper(trim((string) $value));
+
+        if (in_array($normalized, ['L', 'LAKI-LAKI', 'LAKI LAKI', 'M', 'MALE'], true)) {
+            return 'L';
+        }
+
+        if (in_array($normalized, ['P', 'PEREMPUAN', 'WANITA', 'F', 'FEMALE'], true)) {
+            return 'P';
+        }
+
+        return $this->nullableString($value);
+    }
+
+    private function employeeImportMaritalStatus(?string $value): ?string
+    {
+        $normalized = strtoupper(trim((string) $value));
+
+        if (in_array($normalized, ['TK', 'BELUM KAWIN', 'BELUM MENIKAH', 'SINGLE'], true)) {
+            return 'Belum Kawin';
+        }
+
+        if (in_array($normalized, ['K', 'KAWIN', 'MENIKAH', 'MARRIED'], true)) {
+            return 'Kawin';
+        }
+
+        if (str_contains($normalized, 'CERAI')) {
+            return 'Cerai';
+        }
+
+        return $this->nullableString($value);
+    }
+
+    private function resolveDepartemenId(?string $kodeAreaKerja, ?string $departemen): ?int
+    {
+        if (blank($kodeAreaKerja) || blank($departemen) || !Schema::hasTable('perusahaan') || !Schema::hasTable('departemens')) {
+            return null;
+        }
+
+        $perusahaanId = Perusahaan::query()
+            ->whereRaw('LOWER(TRIM(kode_perusahaan)) = ?', [strtolower(trim((string) $kodeAreaKerja))])
+            ->value('id');
+
+        if (!$perusahaanId) {
+            return null;
+        }
+
+        $departemenId = Departemen::query()
+            ->where('perusahaan_id', $perusahaanId)
+            ->whereRaw('LOWER(TRIM(departemen)) = ?', [strtolower(trim((string) $departemen))])
+            ->value('id');
+
+        return $departemenId ? (int) $departemenId : null;
+    }
+
+    private function resolveDivisiId(?string $divisi): ?int
+    {
+        if (blank($divisi) || !Schema::hasTable('divisis')) {
+            return null;
+        }
+
+        $divisiId = Divisi::query()
+            ->whereRaw('LOWER(TRIM(nama_divisi)) = ?', [strtolower(trim((string) $divisi))])
+            ->value('id');
+
+        return $divisiId ? (int) $divisiId : null;
     }
 
     private function normalizeCandidatePayload(array $payload): array
@@ -232,6 +554,8 @@ class VhireOnboardingContractService
             'jenis_kelamin' => $this->nullableString($payload['jenis_kelamin'] ?? null),
             'status_pernikahan' => $this->nullableString($payload['status_pernikahan'] ?? null),
             'alamat' => $this->nullableString($payload['alamat'] ?? null),
+            'alamat_ktp' => $this->nullableString($payload['alamat_ktp'] ?? null),
+            'alamat_domisili' => $this->nullableString($payload['alamat_domisili'] ?? null),
             'jabatan' => $this->nullableString($payload['jabatan'] ?? null),
             'tanggal_mulai_kerja' => !empty($payload['tanggal_mulai_kerja'])
                 ? Carbon::parse($payload['tanggal_mulai_kerja'])->format('Y-m-d')
@@ -240,6 +564,7 @@ class VhireOnboardingContractService
                 ? Carbon::parse($payload['tanggal_akhir_kontrak'])->format('Y-m-d')
                 : null,
             'departemen' => $this->nullableString($payload['departemen'] ?? null),
+            'divisi' => $this->nullableString($payload['divisi'] ?? null),
             'lokasi' => $this->nullableString($payload['lokasi'] ?? null),
             'kode_kontrak' => $this->nullableString($payload['kode_kontrak'] ?? null),
             'no_pkwt' => $this->nullableString($payload['no_pkwt'] ?? null),
@@ -251,7 +576,47 @@ class VhireOnboardingContractService
             'contract_duration_unit' => $durationUnit,
             'signing_method' => (string) $payload['signing_method'],
             'source_updated_at' => !empty($payload['source_updated_at']) ? Carbon::parse($payload['source_updated_at']) : null,
+            'nama_ibu_kandung' => $this->nullableString($payload['nama_ibu_kandung'] ?? null),
+            'nama_bapak' => $this->nullableString($payload['nama_bapak'] ?? $payload['nama_suami_atau_istri'] ?? null),
+            'agama' => $this->nullableString($payload['agama'] ?? null),
+            'no_kk' => preg_replace('/\D+/', '', (string) ($payload['no_kk'] ?? '')),
+            'kode_area_kerja' => $this->nullableString($payload['kode_area_kerja'] ?? null),
+            'status_karyawan' => $this->nullableString($payload['status_karyawan'] ?? null),
+            'no_telp' => $this->nullableString($payload['no_telp'] ?? null),
+            'tanggal_lahir' => !empty($payload['tanggal_lahir'] ?? $payload['tgl_lahir'] ?? null)
+                ? Carbon::parse($payload['tanggal_lahir'] ?? $payload['tgl_lahir'])->format('Y-m-d')
+                : null,
+            'rt' => $this->nullableString($payload['rt'] ?? null),
+            'rw' => $this->nullableString($payload['rw'] ?? null),
+            'kode_pos' => $this->nullableString($payload['kode_pos'] ?? null),
+            'golongan_darah' => $this->nullableString($payload['golongan_darah'] ?? null),
+            'npwp' => preg_replace('/[^\d]/', '', (string) ($payload['npwp'] ?? '')),
+            'status_pajak' => $this->nullableString($payload['status_pajak'] ?? null),
+            'bpjs_kesehatan' => $this->nullableString($payload['bpjs_kesehatan'] ?? null),
+            'bpjs_tk' => $this->nullableString($payload['bpjs_tk'] ?? null),
+            'jam_kerja' => $this->nullableString($payload['jam_kerja'] ?? null),
+            'skill' => $this->nullableString($payload['skill'] ?? null),
+            'tinggi' => $this->nullableString($payload['tinggi'] ?? null),
+            'berat' => $this->nullableString($payload['berat'] ?? null),
+            'hobi' => $this->nullableString($payload['hobi'] ?? null),
+            'no_jamsostek' => $this->nullableString($payload['no_jamsostek'] ?? null),
+            'no_asuransi' => $this->nullableString($payload['no_asuransi'] ?? null),
+            'no_kartu_asuransi' => $this->nullableString($payload['no_kartu_asuransi'] ?? null),
+            'nama_bank' => $this->nullableString($payload['nama_bank'] ?? null),
+            'no_rekening' => $this->nullableString($payload['no_rekening'] ?? null),
+            'nama_instansi_pendidikan' => $this->nullableString($payload['nama_instansi_pendidikan'] ?? null),
+            'pendidikan_terakhir' => $this->nullableString($payload['pendidikan_terakhir'] ?? null),
+            'jurusan' => $this->nullableString($payload['jurusan'] ?? null),
+            'tanggal_menikah' => !empty($payload['tanggal_menikah'] ?? null)
+                ? Carbon::parse($payload['tanggal_menikah'])->format('Y-m-d')
+                : null,
+            'sisa_cuti' => isset($payload['sisa_cuti']) && $payload['sisa_cuti'] !== '' ? (float) $payload['sisa_cuti'] : null,
+            'sisa_cuti_covid' => isset($payload['sisa_cuti_covid']) && $payload['sisa_cuti_covid'] !== '' ? (float) $payload['sisa_cuti_covid'] : null,
         ];
+
+        foreach (['no_kk', 'npwp'] as $key) {
+            $normalized[$key] = $normalized[$key] !== '' ? $normalized[$key] : null;
+        }
 
         $normalized['source_payload_hash'] = hash('sha256', json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 

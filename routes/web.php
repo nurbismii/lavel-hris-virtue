@@ -223,6 +223,7 @@ Route::middleware(['android.redirect'])->group(function () {
                 Route::post('/{contract}/manual-signed-file', [AdminElectronicContractController::class, 'storeManualSignedContract'])->name('manual-signed-file.store');
                 Route::get('/{contract}/manual-signed-file', [AdminElectronicContractController::class, 'manualSignedFile'])->name('manual-signed-file.show');
                 Route::post('/{contract}/retry-vhire-sync', [AdminElectronicContractController::class, 'retryVhireSync'])->name('retry-vhire-sync');
+                Route::post('/{contract}/generate-nik-activation', [AdminElectronicContractController::class, 'generateNikAndActivateVhireCandidate'])->name('generate-nik-activation');
                 Route::post('/{contract}/activate-vhire-candidate', [AdminElectronicContractController::class, 'activateVhireCandidate'])->name('activate-vhire-candidate');
                 Route::post('/{contract}/cancel', [AdminElectronicContractController::class, 'cancel'])->name('cancel');
             });

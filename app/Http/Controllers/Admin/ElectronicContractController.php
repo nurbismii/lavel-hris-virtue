@@ -502,6 +502,19 @@ class ElectronicContractController extends Controller
         return redirect()->route('electronic-contracts.show', $contract);
     }
 
+    public function generateNikAndActivateVhireCandidate(
+        Request $request,
+        EmployeeContract $contract,
+        VhireOnboardingContractService $service
+    ) {
+        abort_unless($request->user()->hasRole(['Super Admin', 'HR']), 403);
+
+        $employee = $service->generateEmployeeNikAndActivateContract($contract, $request);
+
+        toast()->success('Success', 'NIK ' . $employee->nik . ' berhasil dibuat dan kandidat berhasil diaktivasi ke HRIS.');
+        return redirect()->route('electronic-contracts.show', $contract);
+    }
+
     private function buildSelectableEmployeeQuery(Request $request)
     {
         return $request->user()->applyEmployeeScope(

@@ -245,6 +245,25 @@
                             </form>
 
                             @if(!$contract->nik)
+                                @php
+                                    $canGenerateEmployeeNik = $contract->contract_type === \App\Models\ContractTemplate::TYPE_PKWT_1
+                                        && $contract->signing_method === \App\Models\EmployeeContract::SIGNING_METHOD_ELECTRONIC
+                                        && $contract->signature_status === \App\Models\EmployeeContract::SIGNATURE_STATUS_SIGNED;
+                                @endphp
+
+                                @if($canGenerateEmployeeNik)
+                                    <form action="{{ route('electronic-contracts.generate-nik-activation', $contract) }}" method="POST" class="mb-3">
+                                        @csrf
+                                        <label class="form-label small">Generate NIK Karyawan</label>
+                                        <button class="btn btn-primary w-100" type="submit" onclick="return confirm('Generate NIK baru dari NIK terbesar, buat data employee, dan aktivasi kandidat ini ke HRIS?')">
+                                            Generate NIK &amp; Aktivasi
+                                        </button>
+                                        <div class="form-text">
+                                            Format NIK memakai tahun+bulan aktif kerja, lalu sequence terbesar + 2.
+                                        </div>
+                                    </form>
+                                @endif
+
                                 <form action="{{ route('electronic-contracts.activate-vhire-candidate', $contract) }}" method="POST">
                                     @csrf
                                     <label class="form-label small">Aktivasi ke NIK HRIS</label>
