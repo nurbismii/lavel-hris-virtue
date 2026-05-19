@@ -412,7 +412,7 @@ class VhireOnboardingContractService
             'jabatan' => optional($candidate)->jabatan ?: $contract->position,
             'jenis_kelamin' => $this->employeeImportGender($contract->gender ?: optional($candidate)->jenis_kelamin),
             'status_perkawinan' => $this->employeeImportMaritalStatus(optional($candidate)->status_pernikahan),
-            'status_karyawan' => optional($candidate)->status_karyawan ?: 'PKWT',
+            'status_karyawan' => optional($candidate)->status_karyawan ?: 'PKWT 合同工',
             'no_telp' => optional($candidate)->no_telp,
             'tgl_lahir' => optional($candidate)->tanggal_lahir ? Carbon::parse($candidate->tanggal_lahir)->toDateString() : null,
             'alamat_domisili' => optional($candidate)->alamat_domisili ?: ($contract->address ?: optional($candidate)->alamat),
