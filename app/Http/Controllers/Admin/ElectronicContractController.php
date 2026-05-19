@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Exports\PkwtOneContractImportTemplateExport;
 use App\Http\Requests\ElectronicContract\ActivateOnboardingContractRequest;
+use App\Http\Requests\ElectronicContract\BulkGenerateNikActivationRequest;
 use App\Http\Requests\ElectronicContract\ImportPkwtContractExcelRequest;
 use App\Http\Requests\ElectronicContract\StoreManualSignedContractRequest;
 use App\Http\Requests\ElectronicContract\StoreFirstPartySignatureRequest;
 use App\Http\Requests\ElectronicContract\StoreEmployeeContractRequest;
 use App\Imports\ImportPkwtOneContracts;
 use App\Jobs\DeleteImportedFile;
+use App\Jobs\BulkGenerateVhireNikActivation;
 use App\Models\ContractClause;
 use App\Models\ContractTemplate;
 use App\Models\Employee;
@@ -74,15 +76,23 @@ class ElectronicContractController extends Controller
             });
         }
 
+        $perPageOptions = [20, 50, 100, 200];
+        $perPage = (int) $request->input('per_page', 20);
+
+        if (!in_array($perPage, $perPageOptions, true)) {
+            $perPage = 20;
+        }
+
         return view('admin.electronic-contracts.index', [
-            'contracts' => $query->paginate(20)->appends($request->query()),
+            'contracts' => $query->paginate($perPage)->appends($request->query()),
             'typeOptions' => ContractTemplate::typeOptions(),
             'statusOptions' => EmployeeContract::statusOptions(),
             'signingMethodOptions' => EmployeeContract::signingMethodOptions(),
             'quickFilterOptions' => $quickFilterOptions,
+            'perPageOptions' => $perPageOptions,
             'filters' => array_merge(
-                $request->only(['status', 'contract_type', 'search']),
-                ['quick_filter' => $quickFilter]
+                $request->only(['status', 'contract_type', 'search', 'per_page']),
+                ['quick_filter' => $quickFilter, 'per_page' => $perPage]
             ),
             'firstPartySignature' => $service->firstPartySignature(),
             'canManageFirstPartySignature' => $request->user()
@@ -513,6 +523,24 @@ class ElectronicContractController extends Controller
 
         toast()->success('Success', 'NIK ' . $employee->nik . ' berhasil dibuat dan kandidat berhasil diaktivasi ke HRIS.');
         return redirect()->route('electronic-contracts.show', $contract);
+    }
+
+    public function bulkGenerateNikAndActivateVhireCandidates(
+        BulkGenerateNikActivationRequest $request
+    ) {
+        $contractIds = $request->contractIds();
+
+        BulkGenerateVhireNikActivation::dispatch(
+            $contractIds,
+            (string) $request->user()->id
+        )->onQueue((string) config('services.vhire.queue', 'default'));
+
+        toast()->success(
+            'Diproses',
+            number_format(count($contractIds)) . ' kontrak masuk antrean generate NIK. Halaman akan terupdate setelah queue memprosesnya.'
+        );
+
+        return back()->with('bulk_generate_nik_queued_count', count($contractIds));
     }
 
     private function buildSelectableEmployeeQuery(Request $request)

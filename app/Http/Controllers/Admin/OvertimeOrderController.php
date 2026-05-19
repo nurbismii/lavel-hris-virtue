@@ -34,7 +34,7 @@ class OvertimeOrderController extends Controller
         }
 
         return view('admin.overtime-orders.index', [
-            'overtimeOrders' => $query->get(),
+            'overtimeOrders' => $query->paginate(50)->appends($request->query()),
             'responseOptions' => $this->responseOptions(),
         ]);
     }

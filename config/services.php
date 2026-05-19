@@ -47,6 +47,8 @@ return [
         'inbound_token' => env('VHIRE_HRIS_INBOUND_TOKEN', env('VHIRE_API_TOKEN')),
         'timeout' => env('VHIRE_API_TIMEOUT', 15),
         'queue' => env('VHIRE_SYNC_QUEUE', env('QUEUE_NAME', 'default')),
+        'max_retry_attempts' => env('VHIRE_SYNC_MAX_RETRY_ATTEMPTS', 3),
+        'bulk_generate_chunk_size' => env('VHIRE_BULK_GENERATE_CHUNK_SIZE', 25),
     ],
 
     'presensi_face' => [

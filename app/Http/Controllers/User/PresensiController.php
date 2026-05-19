@@ -285,8 +285,14 @@ class PresensiController extends Controller
         $selfiePath = null;
         $absensiId = null;
         $verificationId = null;
+        $attendanceLockName = null;
 
         try {
+            $attendanceLockName = $this->acquireAttendanceDateLock(
+                (string) $user->nik_karyawan,
+                (string) $attendanceDate
+            );
+
             DB::transaction(function () use (
                 $request,
                 $type,
@@ -306,7 +312,7 @@ class PresensiController extends Controller
                 &$verificationId
             ) {
                 $absensi = Presensi::where('nik_karyawan', $user->nik_karyawan)
-                    ->whereDate('tanggal', $attendanceDate)
+                    ->where('tanggal', $attendanceDate)
                     ->lockForUpdate()
                     ->first();
 
@@ -407,6 +413,8 @@ class PresensiController extends Controller
             $this->deleteStoredLivenessEvidence($livenessEvidencePaths);
 
             throw $exception;
+        } finally {
+            $this->releaseAttendanceDateLock($attendanceLockName);
         }
 
         if ($absensiId) {
@@ -454,6 +462,35 @@ class PresensiController extends Controller
         throw \Illuminate\Validation\ValidationException::withMessages([
             'presensi' => $message,
         ]);
+    }
+
+    private function acquireAttendanceDateLock(string $nik, string $attendanceDate): ?string
+    {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return null;
+        }
+
+        $lockName = 'hris_presensi_' . sha1($nik . '|' . $attendanceDate);
+        $result = DB::selectOne('SELECT GET_LOCK(?, 10) AS acquired', [$lockName]);
+
+        if ((int) ($result->acquired ?? 0) !== 1) {
+            $this->failPresensiValidation('Presensi Anda sedang diproses. Tunggu beberapa detik lalu coba lagi.');
+        }
+
+        return $lockName;
+    }
+
+    private function releaseAttendanceDateLock(?string $lockName): void
+    {
+        if (!$lockName || DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
+        try {
+            DB::selectOne('SELECT RELEASE_LOCK(?) AS released', [$lockName]);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     private function verificationDistance(array $serverVerification, $clientDistance)

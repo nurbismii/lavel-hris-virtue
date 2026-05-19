@@ -247,7 +247,6 @@
                             @if(!$contract->nik)
                                 @php
                                     $canGenerateEmployeeNik = $contract->contract_type === \App\Models\ContractTemplate::TYPE_PKWT_1
-                                        && $contract->signing_method === \App\Models\EmployeeContract::SIGNING_METHOD_ELECTRONIC
                                         && $contract->signature_status === \App\Models\EmployeeContract::SIGNATURE_STATUS_SIGNED;
                                 @endphp
 

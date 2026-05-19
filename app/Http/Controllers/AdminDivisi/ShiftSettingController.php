@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Schema;
 class ShiftSettingController extends Controller
 {
     private const MATRIX_EMPLOYEE_LIMIT = 500;
+    private const MAX_UPDATE_ROWS = self::MATRIX_EMPLOYEE_LIMIT * 32;
 
     public function index(Request $request)
     {
@@ -159,6 +160,13 @@ class ShiftSettingController extends Controller
                 'success' => false,
                 'message' => 'Payload pengaturan shift tidak valid.',
             ], 400);
+        }
+
+        if (count($rows) > self::MAX_UPDATE_ROWS) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data pengaturan shift terlalu banyak. Batasi perubahan maksimal ' . number_format(self::MAX_UPDATE_ROWS) . ' sel per proses.',
+            ], 422);
         }
 
         $requestedEmployeeIds = collect($rows)

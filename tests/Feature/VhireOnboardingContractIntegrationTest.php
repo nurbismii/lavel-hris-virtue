@@ -325,7 +325,7 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             'nama_ibu_kandung' => 'SITI',
             'agama' => 'ISLAM',
             'no_kk' => '7471072206970001',
-            'status_karyawan' => 'PKWT',
+            'status_karyawan' => 'PKWT 合同工',
             'no_telp' => '081234567890',
             'tanggal_lahir' => '1997-06-22',
             'alamat_ktp' => 'JL. KTP KANDIDAT',
@@ -366,7 +366,7 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             'no_kk' => '7471072206970001',
             'nama_ibu_kandung' => 'SITI',
             'agama' => 'ISLAM',
-            'status_karyawan' => 'PKWT',
+            'status_karyawan' => 'PKWT 合同工',
             'no_telp' => '081234567890',
             'alamat_ktp' => 'JL. KTP KANDIDAT',
             'alamat_domisili' => 'JL. DOMISILI KANDIDAT',
@@ -392,6 +392,109 @@ class VhireOnboardingContractIntegrationTest extends TestCase
         $this->assertSame('260443118', $updatedContract->employee_nik);
         $this->assertFalse((bool) $updatedContract->visible_in_vhire);
         $this->assertTrue(VhireSyncLog::where('operation', VhireSyncLog::OPERATION_ACTIVATION_SYNC)->exists());
+        Queue::assertPushed(SyncVhireOutbound::class);
+    }
+
+    public function test_signed_manual_pkwt_one_contract_can_generate_employee_nik_and_activate_candidate(): void
+    {
+        Queue::fake();
+
+        $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload([
+            'tanggal_mulai_kerja' => '2026-04-15',
+            'tanggal_akhir_kontrak' => '2026-06-15',
+            'signing_method' => EmployeeContract::SIGNING_METHOD_MANUAL,
+        ]), $this->headers())->assertOk();
+
+        DB::table('employees')->insert([
+            'nik' => '260443116',
+            'nama_karyawan' => 'Existing Employee',
+            'no_ktp' => '1111222233334444',
+        ]);
+
+        $contract = EmployeeContract::first();
+        $contract->update([
+            'status' => EmployeeContract::STATUS_SIGNED,
+            'signature_status' => EmployeeContract::SIGNATURE_STATUS_SIGNED,
+            'signed_at' => now(),
+            'signed_by_source' => 'manual_upload',
+        ]);
+
+        $request = Request::create('/admin/kontrak-elektronik/' . $contract->id . '/generate-nik-activation', 'POST');
+
+        $employee = app(VhireOnboardingContractService::class)->generateEmployeeNikAndActivateContract($contract->fresh(), $request);
+        $candidate = OnboardingCandidate::first()->fresh();
+        $updatedContract = $contract->fresh();
+
+        $this->assertSame('260443118', $employee->nik);
+        $this->assertSame(OnboardingCandidate::STATUS_ACTIVATED, $candidate->onboarding_status);
+        $this->assertSame('260443118', $candidate->employee_nik);
+        $this->assertSame('260443118', $updatedContract->nik);
+        $this->assertFalse((bool) $updatedContract->visible_in_vhire);
+        Queue::assertPushed(SyncVhireOutbound::class);
+    }
+
+    public function test_signed_pkwt_one_contracts_can_bulk_generate_employee_nik_and_activate_candidates(): void
+    {
+        Queue::fake();
+
+        DB::table('employees')->insert([
+            'nik' => '260443116',
+            'nama_karyawan' => 'Existing Employee',
+            'no_ktp' => '1111222233334444',
+        ]);
+
+        foreach ([
+            ['candidate_code' => 'VH-2026-BULK-001', 'no_ktp' => '7471072206970101', 'nama' => 'ARNOL', 'vhire_candidate_id' => 'vhire-bulk-1'],
+            ['candidate_code' => 'VH-2026-BULK-002', 'no_ktp' => '7471072206970102', 'nama' => 'BUDI', 'vhire_candidate_id' => 'vhire-bulk-2'],
+            ['candidate_code' => 'VH-2026-BULK-003', 'no_ktp' => '7471072206970103', 'nama' => 'CANDRA', 'vhire_candidate_id' => 'vhire-bulk-3'],
+        ] as $candidate) {
+            $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload(array_merge($candidate, [
+                'tanggal_mulai_kerja' => '2026-04-15',
+                'tanggal_akhir_kontrak' => '2026-06-15',
+            ])), $this->headers())->assertOk();
+        }
+
+        EmployeeContract::query()
+            ->whereIn('candidate_code', ['VH-2026-BULK-001', 'VH-2026-BULK-002'])
+            ->update([
+                'status' => EmployeeContract::STATUS_SIGNED,
+                'signature_status' => EmployeeContract::SIGNATURE_STATUS_SIGNED,
+                'signed_at' => now(),
+            ]);
+
+        $request = Request::create('/admin/kontrak-elektronik/bulk-generate-nik-activation', 'POST');
+        $contractIds = EmployeeContract::query()->orderBy('id')->pluck('id')->all();
+
+        $result = app(VhireOnboardingContractService::class)
+            ->bulkGenerateEmployeeNikAndActivateContracts($contractIds, $request);
+
+        $this->assertSame(2, $result['success_count']);
+        $this->assertSame(1, $result['failed_count']);
+        $this->assertSame('260443118', $result['successes'][0]['employee_nik']);
+        $this->assertSame('260443120', $result['successes'][1]['employee_nik']);
+        $this->assertStringContainsString('harus sudah ditandatangani', $result['failures'][0]['message']);
+
+        $this->assertDatabaseHas('employees', [
+            'nik' => '260443118',
+            'nama_karyawan' => 'ARNOL',
+            'no_ktp' => '7471072206970101',
+        ]);
+        $this->assertDatabaseHas('employees', [
+            'nik' => '260443120',
+            'nama_karyawan' => 'BUDI',
+            'no_ktp' => '7471072206970102',
+        ]);
+        $this->assertDatabaseHas('onboarding_candidates', [
+            'candidate_code' => 'VH-2026-BULK-001',
+            'employee_nik' => '260443118',
+            'onboarding_status' => OnboardingCandidate::STATUS_ACTIVATED,
+        ]);
+        $this->assertDatabaseHas('onboarding_candidates', [
+            'candidate_code' => 'VH-2026-BULK-002',
+            'employee_nik' => '260443120',
+            'onboarding_status' => OnboardingCandidate::STATUS_ACTIVATED,
+        ]);
+        $this->assertSame(2, VhireSyncLog::where('operation', VhireSyncLog::OPERATION_ACTIVATION_SYNC)->count());
         Queue::assertPushed(SyncVhireOutbound::class);
     }
 

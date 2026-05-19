@@ -88,6 +88,11 @@
                         </tbody>
                     </table>
                 </div>
+                @if(method_exists($overtimeOrders, 'links'))
+                    <div class="mt-3">
+                        {{ $overtimeOrders->links() }}
+                    </div>
+                @endif
             </div>
         </div>
     </div>

@@ -27,6 +27,19 @@
         align-items: center;
         justify-content: center;
     }
+
+    .electronic-contracts-page .contract-select-cell {
+        width: 44px;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .electronic-contracts-page .bulk-action-bar {
+        border: 1px solid #e9edf3;
+        border-radius: 8px;
+        background: #f8fafc;
+        padding: 0.75rem 1rem;
+    }
 </style>
 @endpush
 
@@ -53,6 +66,58 @@
         @if($canManageFirstPartySignature && !$firstPartySignature)
             <div class="alert alert-warning shadow-sm">
                 Tanda tangan master Pihak Pertama belum disimpan. Simpan sekali agar otomatis muncul pada PKWT, Translator, dan Adendum.
+            </div>
+        @endif
+
+        @if(session('bulk_generate_nik_queued_count'))
+            <div class="alert alert-info shadow-sm">
+                <div class="fw-semibold mb-1">
+                    Generate NIK massal sedang diproses di background.
+                </div>
+                <div class="small">
+                    {{ number_format(session('bulk_generate_nik_queued_count')) }} kontrak sudah masuk antrean. Refresh halaman ini beberapa saat lagi untuk melihat NIK yang sudah aktif.
+                </div>
+            </div>
+        @endif
+
+        @if(session('bulk_generate_nik_result'))
+            @php
+                $bulkResult = session('bulk_generate_nik_result');
+                $bulkSuccessSummary = collect($bulkResult['successes'] ?? [])
+                    ->take(8)
+                    ->map(function ($item) {
+                        return ($item['name'] ?: 'Kontrak #' . $item['contract_id']) . ' -> ' . $item['employee_nik'];
+                    })
+                    ->join(', ');
+                $bulkFailureSummary = collect($bulkResult['failures'] ?? [])
+                    ->take(8)
+                    ->map(function ($item) {
+                        return ($item['name'] ?: 'Kontrak #' . $item['contract_id']) . ': ' . $item['message'];
+                    })
+                    ->join(' | ');
+            @endphp
+            <div class="alert {{ $bulkResult['failed_count'] > 0 ? 'alert-warning' : 'alert-success' }} shadow-sm">
+                <div class="fw-semibold mb-1">
+                    Generate NIK massal: {{ number_format($bulkResult['success_count']) }} berhasil, {{ number_format($bulkResult['failed_count']) }} gagal/dilewati.
+                </div>
+                @if(!empty($bulkResult['successes']))
+                    <div class="small">
+                        Berhasil:
+                        {{ $bulkSuccessSummary }}
+                        @if(count($bulkResult['successes']) > 8)
+                            , dan {{ count($bulkResult['successes']) - 8 }} lainnya
+                        @endif
+                    </div>
+                @endif
+                @if(!empty($bulkResult['failures']))
+                    <div class="small mt-1">
+                        Perlu dicek:
+                        {{ $bulkFailureSummary }}
+                        @if(count($bulkResult['failures']) > 8)
+                            | dan {{ count($bulkResult['failures']) - 8 }} lainnya
+                        @endif
+                    </div>
+                @endif
             </div>
         @endif
 
@@ -113,7 +178,7 @@
                         <label class="form-label">Cari</label>
                         <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="NIK, nama, nomor kontrak">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Tipe</label>
                         <select name="contract_type" class="form-select">
                             <option value="">Semua Tipe</option>
@@ -122,12 +187,20 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-select">
                             <option value="">Semua Status</option>
                             @foreach($statusOptions as $value => $label)
                                 <option value="{{ $value }}" {{ ($filters['status'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Tampilkan</label>
+                        <select name="per_page" class="form-select">
+                            @foreach($perPageOptions as $option)
+                                <option value="{{ $option }}" {{ (int) ($filters['per_page'] ?? 20) === $option ? 'selected' : '' }}>{{ $option }} data</option>
                             @endforeach
                         </select>
                     </div>
@@ -141,69 +214,100 @@
 
         <div class="card border-0 shadow-sm">
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-bordered table-striped mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Karyawan</th>
-                                <th>Tipe</th>
-                                <th>Nomor</th>
-                                <th>Periode</th>
-                                <th>Status</th>
-                                <th>Dibuat</th>
-                                <th style="width: 180px;">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($contracts as $contract)
+                <form action="{{ route('electronic-contracts.bulk-generate-nik-activation') }}" method="POST" id="bulkGenerateNikForm">
+                    @csrf
+                    <div class="bulk-action-bar d-flex flex-wrap align-items-center gap-2 mb-3">
+                        <button type="submit" class="btn btn-success" id="bulkGenerateNikButton" disabled>
+                            <i class="fas fa-id-card me-1"></i> Generate NIK Terpilih
+                        </button>
+                        <span class="small text-muted" id="bulkGenerateNikCounter">0 kontrak dipilih</span>
+                        @error('contract_ids')
+                            <span class="text-danger small">{{ $message }}</span>
+                        @enderror
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <td>
-                                        <div class="fw-semibold">{{ $contract->display_employee_name }}</div>
-                                        <small class="text-muted">
-                                            {{ $contract->nik ?: ('Candidate: ' . ($contract->candidate_code ?: '-')) }}
-                                        </small>
-                                        @if($contract->vhire_candidate_id || $contract->onboarding_candidate_id)
-                                            <div><span class="badge bg-info">V-Hire</span></div>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        {{ $contract->type_label }}
-                                        <div class="small text-muted">{{ $contract->signing_method_label }}</div>
-                                    </td>
-                                    <td>
-                                        <div>{{ $contract->display_number }}</div>
-                                        <small class="text-muted">PKWT: {{ $contract->pkwt_number }}</small>
-                                    </td>
-                                    <td>
-                                        <div>{{ optional($contract->contract_start_date)->format('d M Y') ?: '-' }}</div>
-                                        <small class="text-muted">s/d {{ optional($contract->contract_end_date)->format('d M Y') ?: '-' }}</small>
-                                    </td>
-                                    <td>
-                                        @php
-                                            $badge = [
-                                                'ready' => 'warning',
-                                                'signed' => 'success',
-                                                'cancelled' => 'secondary',
-                                                'rejected' => 'danger',
-                                            ][$contract->status] ?? 'secondary';
-                                        @endphp
-                                        <span class="badge bg-{{ $badge }}">{{ $contract->status_label }}</span>
-                                        <div class="small text-muted">{{ $contract->signature_status_label }}</div>
-                                    </td>
-                                    <td>{{ optional($contract->created_at)->format('d M Y H:i') }}</td>
-                                    <td class="text-nowrap">
-                                        <a href="{{ route('electronic-contracts.show', $contract) }}" class="btn btn-sm btn-primary">Detail</a>
-                                        <a href="{{ route('electronic-contracts.pdf', $contract) }}" target="_blank" class="btn btn-sm btn-outline-secondary">PDF</a>
-                                    </td>
+                                    <th class="contract-select-cell">
+                                        <input type="checkbox" class="form-check-input" id="selectAllGenerateNik">
+                                    </th>
+                                    <th>Karyawan</th>
+                                    <th>Tipe</th>
+                                    <th>Nomor</th>
+                                    <th>Periode</th>
+                                    <th>Status</th>
+                                    <th>Dibuat</th>
+                                    <th style="width: 180px;">Aksi</th>
                                 </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">Belum ada kontrak elektronik.</td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                @forelse($contracts as $contract)
+                                    @php
+                                        $canBulkGenerateNik = $contract->contract_type === \App\Models\ContractTemplate::TYPE_PKWT_1
+                                            && $contract->signature_status === \App\Models\EmployeeContract::SIGNATURE_STATUS_SIGNED
+                                            && blank($contract->nik)
+                                            && blank($contract->employee_nik)
+                                            && filled($contract->onboarding_candidate_id);
+                                    @endphp
+                                    <tr>
+                                        <td class="contract-select-cell">
+                                            <input
+                                                type="checkbox"
+                                                name="contract_ids[]"
+                                                value="{{ $contract->id }}"
+                                                class="form-check-input js-bulk-generate-nik"
+                                                {{ $canBulkGenerateNik ? '' : 'disabled' }}>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold">{{ $contract->display_employee_name }}</div>
+                                            <small class="text-muted">
+                                                {{ $contract->nik ?: ('Candidate: ' . ($contract->candidate_code ?: '-')) }}
+                                            </small>
+                                            @if($contract->vhire_candidate_id || $contract->onboarding_candidate_id)
+                                                <div><span class="badge bg-info">V-Hire</span></div>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            {{ $contract->type_label }}
+                                            <div class="small text-muted">{{ $contract->signing_method_label }}</div>
+                                        </td>
+                                        <td>
+                                            <div>{{ $contract->display_number }}</div>
+                                            <small class="text-muted">PKWT: {{ $contract->pkwt_number }}</small>
+                                        </td>
+                                        <td>
+                                            <div>{{ optional($contract->contract_start_date)->format('d M Y') ?: '-' }}</div>
+                                            <small class="text-muted">s/d {{ optional($contract->contract_end_date)->format('d M Y') ?: '-' }}</small>
+                                        </td>
+                                        <td>
+                                            @php
+                                                $badge = [
+                                                    'ready' => 'warning',
+                                                    'signed' => 'success',
+                                                    'cancelled' => 'secondary',
+                                                    'rejected' => 'danger',
+                                                ][$contract->status] ?? 'secondary';
+                                            @endphp
+                                            <span class="badge bg-{{ $badge }}">{{ $contract->status_label }}</span>
+                                            <div class="small text-muted">{{ $contract->signature_status_label }}</div>
+                                        </td>
+                                        <td>{{ optional($contract->created_at)->format('d M Y H:i') }}</td>
+                                        <td class="text-nowrap">
+                                            <a href="{{ route('electronic-contracts.show', $contract) }}" class="btn btn-sm btn-primary">Detail</a>
+                                            <a href="{{ route('electronic-contracts.pdf', $contract) }}" target="_blank" class="btn btn-sm btn-outline-secondary">PDF</a>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-4">Belum ada kontrak elektronik.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
 
                 <div class="mt-3">
                     {{ $contracts->links() }}
@@ -213,3 +317,63 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('bulkGenerateNikForm');
+        const selectAll = document.getElementById('selectAllGenerateNik');
+        const button = document.getElementById('bulkGenerateNikButton');
+        const counter = document.getElementById('bulkGenerateNikCounter');
+        const checkboxes = Array.from(document.querySelectorAll('.js-bulk-generate-nik'));
+        const selectableCheckboxes = checkboxes.filter((checkbox) => !checkbox.disabled);
+
+        function updateBulkState() {
+            const checkedCount = selectableCheckboxes.filter((checkbox) => checkbox.checked).length;
+            const totalSelectable = selectableCheckboxes.length;
+
+            button.disabled = checkedCount === 0;
+            counter.textContent = checkedCount + ' kontrak dipilih';
+
+            if (!selectAll) {
+                return;
+            }
+
+            selectAll.disabled = totalSelectable === 0;
+            selectAll.checked = totalSelectable > 0 && checkedCount === totalSelectable;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < totalSelectable;
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function () {
+                selectableCheckboxes.forEach((checkbox) => {
+                    checkbox.checked = selectAll.checked;
+                });
+                updateBulkState();
+            });
+        }
+
+        checkboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', updateBulkState);
+        });
+
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                const checkedCount = selectableCheckboxes.filter((checkbox) => checkbox.checked).length;
+
+                if (checkedCount === 0) {
+                    event.preventDefault();
+                    alert('Pilih minimal satu kontrak yang sudah ditandatangani dan belum memiliki NIK.');
+                    return;
+                }
+
+                if (!confirm('Generate NIK untuk ' + checkedCount + ' kontrak terpilih?')) {
+                    event.preventDefault();
+                }
+            });
+        }
+
+        updateBulkState();
+    });
+</script>
+@endpush

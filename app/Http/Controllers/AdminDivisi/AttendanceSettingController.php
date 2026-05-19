@@ -25,6 +25,7 @@ class AttendanceSettingController extends Controller
     use ValidatesZipUploads;
 
     private const MATRIX_EMPLOYEE_LIMIT = 500;
+    private const MAX_UPDATE_ROWS = self::MATRIX_EMPLOYEE_LIMIT * 32;
 
     public function index(Request $request)
     {
@@ -185,6 +186,13 @@ class AttendanceSettingController extends Controller
                 'success' => false,
                 'message' => 'Invalid payload'
             ], 400);
+        }
+
+        if (count($rows) > self::MAX_UPDATE_ROWS) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data yang dikirim terlalu banyak. Batasi perubahan maksimal ' . number_format(self::MAX_UPDATE_ROWS) . ' sel per proses.',
+            ], 422);
         }
 
         $requestedEmployeeIds = collect($rows)

@@ -211,6 +211,7 @@ Route::middleware(['android.redirect'])->group(function () {
                 Route::post('/', [AdminElectronicContractController::class, 'store'])->name('store');
                 Route::get('/template-import-pkwt-vhire', [AdminElectronicContractController::class, 'downloadPkwtImportTemplate'])->name('template-import-pkwt-vhire');
                 Route::post('/import-pkwt-vhire', [AdminElectronicContractController::class, 'importPkwtVhire'])->name('import-pkwt-vhire');
+                Route::post('/bulk-generate-nik-activation', [AdminElectronicContractController::class, 'bulkGenerateNikAndActivateVhireCandidates'])->name('bulk-generate-nik-activation');
                 Route::get('/first-party-signature', [AdminElectronicContractController::class, 'editFirstPartySignature'])
                     ->middleware(['menu:electronic_contract_first_party_signature', 'role:Super Admin,HR'])
                     ->name('first-party-signature.edit');

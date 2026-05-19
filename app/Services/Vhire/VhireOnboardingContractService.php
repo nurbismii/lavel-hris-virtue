@@ -238,6 +238,72 @@ class VhireOnboardingContractService
         return $result['employee'];
     }
 
+    public function bulkGenerateEmployeeNikAndActivateContracts(array $contractIds, Request $request): array
+    {
+        $contractIds = collect($contractIds)
+            ->map(fn($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $contracts = EmployeeContract::query()
+            ->with(['employee:nik,nama_karyawan', 'onboardingCandidate:id,nama'])
+            ->whereIn('id', $contractIds)
+            ->orderBy('id')
+            ->get()
+            ->keyBy('id');
+
+        $result = [
+            'success_count' => 0,
+            'failed_count' => 0,
+            'successes' => [],
+            'failures' => [],
+        ];
+
+        foreach ($contractIds as $contractId) {
+            $contract = $contracts->get($contractId);
+
+            if (!$contract) {
+                $result['failed_count']++;
+                $result['failures'][] = [
+                    'contract_id' => $contractId,
+                    'name' => '-',
+                    'message' => 'Kontrak tidak ditemukan.',
+                ];
+                continue;
+            }
+
+            try {
+                $employee = $this->generateEmployeeNikAndActivateContract($contract, $request);
+                $result['success_count']++;
+                $result['successes'][] = [
+                    'contract_id' => $contract->id,
+                    'name' => $contract->display_employee_name,
+                    'employee_nik' => $employee->nik,
+                ];
+            } catch (ValidationException $exception) {
+                $result['failed_count']++;
+                $result['failures'][] = [
+                    'contract_id' => $contract->id,
+                    'name' => $contract->display_employee_name,
+                    'message' => $this->firstValidationMessage($exception),
+                ];
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                $result['failed_count']++;
+                $result['failures'][] = [
+                    'contract_id' => $contract->id,
+                    'name' => $contract->display_employee_name,
+                    'message' => Str::limit($exception->getMessage(), 180),
+                ];
+            }
+        }
+
+        return $result;
+    }
+
     private function activateLockedContract(
         EmployeeContract $contract,
         string $employeeNik,
@@ -302,15 +368,9 @@ class VhireOnboardingContractService
             ]);
         }
 
-        if ($contract->signing_method !== EmployeeContract::SIGNING_METHOD_ELECTRONIC) {
-            throw ValidationException::withMessages([
-                'employee_nik' => 'Generate NIK hanya tersedia untuk kontrak elektronik.',
-            ]);
-        }
-
         if ($contract->signature_status !== EmployeeContract::SIGNATURE_STATUS_SIGNED) {
             throw ValidationException::withMessages([
-                'employee_nik' => 'Kontrak harus sudah ditandatangani secara elektronik sebelum generate NIK.',
+                'employee_nik' => 'Kontrak PKWT 1 harus sudah ditandatangani sebelum generate NIK.',
             ]);
         }
 
@@ -330,29 +390,93 @@ class VhireOnboardingContractService
 
         if ($noKtp !== '' && Employee::query()->where('no_ktp', $noKtp)->exists()) {
             throw ValidationException::withMessages([
-                'employee_nik' => 'No KTP kandidat sudah terdaftar di master karyawan. Gunakan aktivasi ke NIK yang sudah ada.',
+                'employee_nik' => 'Pakai NIK karyawan yang sudah terdaftar, jangan buat NIK baru untuk kandidat yang No KTP-nya sudah ada di master karyawan.',
             ]);
         }
+    }
+
+    private function firstValidationMessage(ValidationException $exception): string
+    {
+        $errors = $exception->errors();
+        $firstField = array_key_first($errors);
+
+        if ($firstField && isset($errors[$firstField][0])) {
+            return (string) $errors[$firstField][0];
+        }
+
+        return 'Kontrak tidak memenuhi syarat generate NIK.';
     }
 
     private function nextGeneratedEmployeeNik(Carbon $activeDate): string
     {
         $prefix = $activeDate->format('ym');
-        $largestNik = Employee::query()
+
+        if (Schema::hasTable('employee_nik_sequences')) {
+            return $this->nextGeneratedEmployeeNikFromSequence($prefix);
+        }
+
+        return $this->nextGeneratedEmployeeNikFromEmployees($prefix);
+    }
+
+    private function nextGeneratedEmployeeNikFromSequence(string $prefix): string
+    {
+        $this->ensureEmployeeNikSequence($prefix);
+
+        $sequence = DB::table('employee_nik_sequences')
+            ->where('prefix', $prefix)
             ->lockForUpdate()
-            ->pluck('nik')
-            ->map(fn($nik) => (string) $nik)
-            ->filter(fn(string $nik) => ctype_digit($nik) && strlen($nik) > 4)
-            ->sortByDesc(fn(string $nik) => (int) $nik)
             ->first();
+
+        $lastSuffix = (int) optional($sequence)->last_suffix;
+        $suffixLength = max(5, strlen((string) max($lastSuffix, 0)));
+        $nextSuffix = $lastSuffix + 2;
+
+        if ($nextSuffix < 2) {
+            $nextSuffix = 2;
+        }
+
+        do {
+            $usedSuffix = $nextSuffix;
+            $nik = $prefix . str_pad((string) $usedSuffix, $suffixLength, '0', STR_PAD_LEFT);
+            $nextSuffix += 2;
+        } while (Employee::query()->whereKey($nik)->exists());
+
+        DB::table('employee_nik_sequences')
+            ->where('prefix', $prefix)
+            ->update([
+                'last_suffix' => $usedSuffix,
+                'updated_at' => now(),
+            ]);
+
+        return $nik;
+    }
+
+    private function ensureEmployeeNikSequence(string $prefix): void
+    {
+        if (DB::table('employee_nik_sequences')->where('prefix', $prefix)->exists()) {
+            return;
+        }
+
+        $maxSuffix = $this->largestExistingEmployeeNikSuffix($prefix);
+
+        DB::table('employee_nik_sequences')->insertOrIgnore([
+            'prefix' => $prefix,
+            'last_suffix' => $maxSuffix,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function nextGeneratedEmployeeNikFromEmployees(string $prefix): string
+    {
+        $largestSuffix = $this->largestExistingEmployeeNikSuffix($prefix, true);
 
         $suffixLength = 5;
         $nextSuffix = 2;
 
-        if ($largestNik) {
-            $largestSuffix = substr($largestNik, 4);
-            $suffixLength = max($suffixLength, strlen($largestSuffix));
-            $nextSuffix = ((int) $largestSuffix) + 2;
+        if ($largestSuffix > 0) {
+            $suffixLength = max($suffixLength, strlen((string) $largestSuffix));
+            $nextSuffix = $largestSuffix + 2;
         }
 
         do {
@@ -361,6 +485,23 @@ class VhireOnboardingContractService
         } while (Employee::query()->whereKey($nik)->exists());
 
         return $nik;
+    }
+
+    private function largestExistingEmployeeNikSuffix(string $prefix, bool $lockRows = false): int
+    {
+        $query = Employee::query()
+            ->where('nik', 'like', $prefix . '%');
+
+        if ($lockRows) {
+            $query->lockForUpdate();
+        }
+
+        return $query
+            ->pluck('nik')
+            ->map(fn($nik) => (string) $nik)
+            ->filter(fn(string $nik) => ctype_digit($nik) && Str::startsWith($nik, $prefix) && strlen($nik) > strlen($prefix))
+            ->map(fn(string $nik) => (int) substr($nik, strlen($prefix)))
+            ->max() ?: 0;
     }
 
     private function syncEmployeeProfileFromContract(
