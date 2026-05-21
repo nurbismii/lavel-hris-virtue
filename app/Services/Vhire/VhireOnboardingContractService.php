@@ -391,9 +391,9 @@ class VhireOnboardingContractService
         if (
             $noKtp !== ''
             && Employee::query()
-                ->where('no_ktp', $noKtp)
-                ->whereRaw('UPPER(TRIM(COALESCE(status_resign, ""))) = ?', ['AKTIF'])
-                ->exists()
+            ->where('no_ktp', $noKtp)
+            ->whereRaw('UPPER(TRIM(COALESCE(status_resign, ""))) = ?', ['AKTIF'])
+            ->exists()
         ) {
             throw ValidationException::withMessages([
                 'employee_nik' => 'No KTP kandidat masih terdaftar sebagai karyawan aktif. Pakai aktivasi ke NIK yang sudah ada.',
@@ -528,9 +528,9 @@ class VhireOnboardingContractService
         $updates = $overwriteExisting
             ? $attributes
             : collect($attributes)
-                ->reject(fn($value, string $column) => $column === 'nik' || $value === null || $value === '')
-                ->filter(fn($value, string $column) => blank($employee->{$column}))
-                ->all();
+            ->reject(fn($value, string $column) => $column === 'nik' || $value === null || $value === '')
+            ->filter(fn($value, string $column) => blank($employee->{$column}))
+            ->all();
 
         if ($updates) {
             $employee->fill($updates);
@@ -543,7 +543,7 @@ class VhireOnboardingContractService
     private function employeeAttributesFromContract(EmployeeContract $contract, string $employeeNik, Carbon $activeDate): array
     {
         $candidate = $contract->onboardingCandidate;
-        $kodeAreaKerja = optional($candidate)->kode_area_kerja ?: $contract->lokasi;
+        $kodeAreaKerja = '02';  // Default ke kode area kerja '02' (Site) jika tidak tersedia di kontrak atau kandidat
         $departemenName = $contract->departemen ?: optional($candidate)->departemen;
         $divisiName = optional($candidate)->divisi;
         $attributes = [

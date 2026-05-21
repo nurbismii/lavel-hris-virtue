@@ -128,7 +128,7 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
                 'agama' => $row['agama'] ?? null,
                 'no_ktp' => str_replace(["'", "`"], "", $row['no_ktp'] ?? ''),
                 'no_kk' => str_replace(["'", "`"], "", $row['no_kk'] ?? ''),
-                'kode_area_kerja' => $row['kode_area_kerja'] ?? null,
+                'kode_area_kerja' => $row['kode_area_kerja'] ?? '02',
                 'jenis_kelamin' => ($row['jenis_kelamin'] ?? '') == 'M 男' ? 'L' : 'P',
                 'status_perkawinan' => ($row['status_perkawinan'] ?? '') == 'TK' ? 'Belum Kawin' : 'Kawin',
                 'status_karyawan' => $row['status_karyawan'] ?? null,
@@ -228,7 +228,7 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
         return [
             'nik.required' => 'NIK karyawan harus diisi',
             'status_resign.required' => 'Status resign harus diisi',
-            'kode_area_kerja.required' => 'Kode area kerja harus diisi',
+            'kode_area_kerja.required' => 'Kode area kerjaKode area kerja harus diisi',
         ];
     }
 
