@@ -12,7 +12,6 @@ use App\Http\Requests\ElectronicContract\StoreFirstPartySignatureRequest;
 use App\Http\Requests\ElectronicContract\StoreEmployeeContractRequest;
 use App\Imports\ImportPkwtOneContracts;
 use App\Jobs\DeleteImportedFile;
-use App\Jobs\BulkGenerateVhireNikActivation;
 use App\Models\ContractClause;
 use App\Models\ContractTemplate;
 use App\Models\Employee;
@@ -526,21 +525,29 @@ class ElectronicContractController extends Controller
     }
 
     public function bulkGenerateNikAndActivateVhireCandidates(
-        BulkGenerateNikActivationRequest $request
+        BulkGenerateNikActivationRequest $request,
+        VhireOnboardingContractService $service
     ) {
-        $contractIds = $request->contractIds();
-
-        BulkGenerateVhireNikActivation::dispatch(
-            $contractIds,
-            (string) $request->user()->id
-        )->onQueue((string) config('services.vhire.queue', 'default'));
-
-        toast()->success(
-            'Diproses',
-            number_format(count($contractIds)) . ' kontrak masuk antrean generate NIK. Halaman akan terupdate setelah queue memprosesnya.'
+        $result = $service->bulkGenerateEmployeeNikAndActivateContracts(
+            $request->contractIds(),
+            $request
         );
 
-        return back()->with('bulk_generate_nik_queued_count', count($contractIds));
+        $message = sprintf(
+            'Generate NIK massal selesai: %s berhasil, %s gagal/dilewati.',
+            number_format($result['success_count']),
+            number_format($result['failed_count'])
+        );
+
+        if ($result['success_count'] > 0 && $result['failed_count'] === 0) {
+            toast()->success('Success', $message);
+        } elseif ($result['success_count'] > 0) {
+            toast()->warning('Sebagian Berhasil', $message);
+        } else {
+            toast()->error('Gagal', $message);
+        }
+
+        return back()->with('bulk_generate_nik_result', $result);
     }
 
     private function buildSelectableEmployeeQuery(Request $request)

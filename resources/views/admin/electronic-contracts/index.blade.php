@@ -69,17 +69,6 @@
             </div>
         @endif
 
-        @if(session('bulk_generate_nik_queued_count'))
-            <div class="alert alert-info shadow-sm">
-                <div class="fw-semibold mb-1">
-                    Generate NIK massal sedang diproses di background.
-                </div>
-                <div class="small">
-                    {{ number_format(session('bulk_generate_nik_queued_count')) }} kontrak sudah masuk antrean. Refresh halaman ini beberapa saat lagi untuk melihat NIK yang sudah aktif.
-                </div>
-            </div>
-        @endif
-
         @if(session('bulk_generate_nik_result'))
             @php
                 $bulkResult = session('bulk_generate_nik_result');
