@@ -505,7 +505,20 @@ class ElectronicContractController extends Controller
         EmployeeContract $contract,
         VhireOnboardingContractService $service
     ) {
-        $service->activateContract($contract, $request->input('employee_nik'), $request);
+        try {
+            $service->activateContract($contract, $request->input('employee_nik'), $request);
+        } catch (ValidationException $exception) {
+            toast()->error('Gagal', $this->firstValidationMessage($exception));
+
+            return back()
+                ->withErrors($exception->errors())
+                ->withInput();
+        } catch (Throwable $exception) {
+            report($exception);
+            toast()->error('Gagal', 'Aktivasi kandidat gagal diproses. Periksa log aplikasi atau coba lagi.');
+
+            return back()->withInput();
+        }
 
         toast()->success('Success', 'Kandidat berhasil ditautkan ke NIK HRIS dan update aktivasi dikirim ke V-Hire.');
         return redirect()->route('electronic-contracts.show', $contract);
@@ -518,7 +531,20 @@ class ElectronicContractController extends Controller
     ) {
         abort_unless($request->user()->hasRole(['Super Admin', 'HR']), 403);
 
-        $employee = $service->generateEmployeeNikAndActivateContract($contract, $request);
+        try {
+            $employee = $service->generateEmployeeNikAndActivateContract($contract, $request);
+        } catch (ValidationException $exception) {
+            toast()->error('Gagal', $this->firstValidationMessage($exception));
+
+            return back()
+                ->withErrors($exception->errors())
+                ->withInput();
+        } catch (Throwable $exception) {
+            report($exception);
+            toast()->error('Gagal', 'Generate NIK gagal diproses. Periksa log aplikasi atau coba lagi.');
+
+            return back()->withInput();
+        }
 
         toast()->success('Success', 'NIK ' . $employee->nik . ' berhasil dibuat dan kandidat berhasil diaktivasi ke HRIS.');
         return redirect()->route('electronic-contracts.show', $contract);
@@ -548,6 +574,17 @@ class ElectronicContractController extends Controller
         }
 
         return back()->with('bulk_generate_nik_result', $result);
+    }
+
+    private function firstValidationMessage(ValidationException $exception): string
+    {
+        foreach ($exception->errors() as $messages) {
+            if (!empty($messages[0])) {
+                return (string) $messages[0];
+            }
+        }
+
+        return 'Data tidak valid. Periksa input dan coba lagi.';
     }
 
     private function buildSelectableEmployeeQuery(Request $request)

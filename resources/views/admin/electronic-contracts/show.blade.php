@@ -91,6 +91,13 @@
             </div>
         </div>
 
+        @if($errors->any())
+            <div class="alert alert-danger shadow-sm">
+                <div class="fw-semibold mb-1">Proses gagal.</div>
+                <div class="small">{{ $errors->first() }}</div>
+            </div>
+        @endif
+
         <div class="row g-3">
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm mb-3">
