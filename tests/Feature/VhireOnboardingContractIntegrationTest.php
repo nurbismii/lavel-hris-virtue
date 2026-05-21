@@ -433,6 +433,80 @@ class VhireOnboardingContractIntegrationTest extends TestCase
         Queue::assertPushed(SyncVhireOutbound::class);
     }
 
+    public function test_generate_employee_nik_allows_duplicate_ktp_when_existing_employee_is_not_active(): void
+    {
+        Queue::fake();
+
+        $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload([
+            'tanggal_mulai_kerja' => '2026-04-15',
+            'tanggal_akhir_kontrak' => '2026-06-15',
+        ]), $this->headers())->assertOk();
+
+        DB::table('employees')->insert([
+            'nik' => '260443116',
+            'nama_karyawan' => 'Previous Employee',
+            'no_ktp' => '7471072206970101',
+            'status_resign' => 'RESIGN',
+        ]);
+
+        $contract = EmployeeContract::first();
+        $contract->update([
+            'status' => EmployeeContract::STATUS_SIGNED,
+            'signature_status' => EmployeeContract::SIGNATURE_STATUS_SIGNED,
+            'signed_at' => now(),
+        ]);
+
+        $request = Request::create('/admin/kontrak-elektronik/' . $contract->id . '/generate-nik-activation', 'POST');
+
+        $employee = app(VhireOnboardingContractService::class)->generateEmployeeNikAndActivateContract($contract->fresh(), $request);
+
+        $this->assertSame('260443118', $employee->nik);
+        $this->assertSame(2, DB::table('employees')->where('no_ktp', '7471072206970101')->count());
+        $this->assertDatabaseHas('employees', [
+            'nik' => '260443118',
+            'no_ktp' => '7471072206970101',
+            'status_resign' => 'AKTIF',
+        ]);
+        Queue::assertPushed(SyncVhireOutbound::class);
+    }
+
+    public function test_generate_employee_nik_rejects_duplicate_ktp_when_existing_employee_is_active(): void
+    {
+        Queue::fake();
+
+        $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload([
+            'tanggal_mulai_kerja' => '2026-04-15',
+            'tanggal_akhir_kontrak' => '2026-06-15',
+        ]), $this->headers())->assertOk();
+
+        DB::table('employees')->insert([
+            'nik' => '260443116',
+            'nama_karyawan' => 'Active Employee',
+            'no_ktp' => '7471072206970101',
+            'status_resign' => 'AKTIF',
+        ]);
+
+        $contract = EmployeeContract::first();
+        $contract->update([
+            'status' => EmployeeContract::STATUS_SIGNED,
+            'signature_status' => EmployeeContract::SIGNATURE_STATUS_SIGNED,
+            'signed_at' => now(),
+        ]);
+
+        $request = Request::create('/admin/kontrak-elektronik/' . $contract->id . '/generate-nik-activation', 'POST');
+        Queue::fake();
+
+        try {
+            app(VhireOnboardingContractService::class)->generateEmployeeNikAndActivateContract($contract->fresh(), $request);
+            $this->fail('Generate NIK harus ditolak jika No KTP masih aktif di master karyawan.');
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->assertStringContainsString('masih terdaftar sebagai karyawan aktif', $exception->errors()['employee_nik'][0]);
+        }
+
+        $this->assertSame(1, DB::table('employees')->where('no_ktp', '7471072206970101')->count());
+        Queue::assertNotPushed(SyncVhireOutbound::class);
+    }
+
     public function test_signed_pkwt_one_contracts_can_bulk_generate_employee_nik_and_activate_candidates(): void
     {
         Queue::fake();

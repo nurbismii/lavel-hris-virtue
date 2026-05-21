@@ -134,6 +134,14 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                                     <input type="text" class="form-control" name="nama_karyawan" value="{{ $employee->nama_karyawan }}" required>
                                                 </div>
                                                 <div class="col-md-4">
+                                                    <label class="form-label">No KTP</label>
+                                                    <input type="text" class="form-control" name="no_ktp" value="{{ $employee->no_ktp }}" required>
+                                                </div>
+                                                    <div class="col-md-4">
+                                                    <label class="form-label">No KK</label>
+                                                    <input type="text" class="form-control" name="no_kk" value="{{ $employee->no_kk ?? '' }}" required>
+                                                </div>
+                                                <div class="col-md-4">
                                                     <label class="form-label">Jenis Kelamin</label>
                                                     <select name="jenis_kelamin" class="form-select form-control">
                                                         <option value="">-- Pilih --</option>
@@ -179,6 +187,10 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                             <div class="employee-edit-section__title">Pekerjaan dan Organisasi</div>
                                             <div class="employee-edit-section__caption">Data penempatan kerja, struktur organisasi, dan status aktif karyawan.</div>
                                             <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">No SK PKWTT</label>
+                                                    <input type="text" class="form-control" name="no_sk_pkwtt" value="{{ $employee->no_sk_pkwtt }}">
+                                                </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Posisi</label>
                                                     <input type="text" class="form-control" name="posisi" value="{{ $employee->posisi }}">
@@ -248,24 +260,34 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                                         <option value="PHK MENINGGAL DUNIA" {{ old('status_resign', $employee->status_resign) == 'PHK MENINGGAL DUNIA' ? 'selected' : '' }}>PHK Meninggal Dunia</option>
                                                     </select>
                                                 </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="employee-edit-section">
+                                        <div class="employee-edit-section__card">
+                                            <div class="employee-edit-section__title">Operasional</div>
+                                            <div class="employee-edit-section__caption">Data operasional karyawan dan informasi terkait.</div>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Mulai Berlaku Pola Kerja</label>
+                                                    <input type="date" class="form-control" name="work_pattern_start_date" value="{{ old('work_pattern_start_date', optional($employee->work_pattern_start_date)->format('Y-m-d')) }}">
+                                                    @error('work_pattern_start_date')
+                                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">Master Pola Kerja</label>
                                                     <select name="work_pattern_id" class="form-select form-control">
                                                         <option value="">-- Pilih Pola Kerja --</option>
                                                         @foreach ($workPatterns as $workPattern)
-                                                            <option value="{{ $workPattern->id }}" {{ (string) old('work_pattern_id', $employee->work_pattern_id) === (string) $workPattern->id ? 'selected' : '' }}>
-                                                                {{ $workPattern->code }} - {{ $workPattern->name }} ({{ $workPattern->cycle_summary }} | {{ $workPattern->work_time_range_text }} | Istirahat: {{ $workPattern->break_time_range_text }})
-                                                            </option>
+                                                        <option value="{{ $workPattern->id }}" {{ (string) old('work_pattern_id', $employee->work_pattern_id) === (string) $workPattern->id ? 'selected' : '' }}>
+                                                            {{ $workPattern->code }} - {{ $workPattern->name }} ({{ $workPattern->cycle_summary }} | {{ $workPattern->work_time_range_text }} | Istirahat: {{ $workPattern->break_time_range_text }})
+                                                        </option>
                                                         @endforeach
                                                     </select>
                                                     @error('work_pattern_id')
-                                                    <div class="invalid-feedback d-block">{{ $message }}</div>
-                                                    @enderror
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Mulai Berlaku Pola Kerja</label>
-                                                    <input type="date" class="form-control" name="work_pattern_start_date" value="{{ old('work_pattern_start_date', optional($employee->work_pattern_start_date)->format('Y-m-d')) }}">
-                                                    @error('work_pattern_start_date')
                                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                                     @enderror
                                                 </div>

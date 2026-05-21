@@ -288,7 +288,11 @@
         form.addEventListener('submit', function (event) {
             if (!hasStroke) {
                 event.preventDefault();
-                alert('Tanda tangan wajib diisi.');
+                window.AppDialog.alert(
+                    'Tanda tangan belum diisi',
+                    'Tanda tangan wajib diisi sebelum kontrak dikirim.',
+                    'warning'
+                );
                 return;
             }
 

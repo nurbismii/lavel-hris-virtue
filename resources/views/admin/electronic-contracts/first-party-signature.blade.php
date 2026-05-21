@@ -236,7 +236,11 @@
 
             if (!hasStroke) {
                 event.preventDefault();
-                alert('Tanda tangan Pihak Pertama wajib diisi.');
+                window.AppDialog.alert(
+                    'Tanda tangan belum diisi',
+                    'Tanda tangan Pihak Pertama wajib diisi sebelum disimpan.',
+                    'warning'
+                );
                 return;
             }
 

@@ -189,6 +189,103 @@
 
     <!-- Sweet Alert -->
     <script src="{{ versioned_asset('assets/js/plugin/sweetalert/sweetalert.min.js') }}"></script>
+    <script>
+        window.AppDialog = window.AppDialog || {
+            alert: function (title, text, icon) {
+                const message = text || title;
+                const type = icon || 'warning';
+
+                if (window.Swal && typeof window.Swal.fire === 'function') {
+                    return window.Swal.fire({
+                        title: title,
+                        text: text || '',
+                        icon: type,
+                        confirmButtonText: 'OK'
+                    });
+                }
+
+                if (typeof window.swal === 'function') {
+                    return window.swal({
+                        title: title,
+                        text: text || '',
+                        icon: type,
+                        button: 'OK'
+                    });
+                }
+
+                window.alert(message);
+                return Promise.resolve();
+            },
+            confirm: function (options) {
+                const config = Object.assign({
+                    title: 'Konfirmasi',
+                    text: 'Lanjutkan proses ini?',
+                    icon: 'warning',
+                    confirmButtonText: 'Ya, lanjutkan',
+                    cancelButtonText: 'Batal',
+                    dangerMode: false
+                }, options || {});
+
+                if (window.Swal && typeof window.Swal.fire === 'function') {
+                    return window.Swal.fire({
+                        title: config.title,
+                        text: config.text,
+                        icon: config.icon,
+                        showCancelButton: true,
+                        confirmButtonText: config.confirmButtonText,
+                        cancelButtonText: config.cancelButtonText,
+                        reverseButtons: true
+                    }).then(function (result) {
+                        return !!result.isConfirmed;
+                    });
+                }
+
+                if (typeof window.swal === 'function') {
+                    return window.swal({
+                        title: config.title,
+                        text: config.text,
+                        icon: config.icon,
+                        buttons: [config.cancelButtonText, config.confirmButtonText],
+                        dangerMode: config.dangerMode
+                    }).then(function (confirmed) {
+                        return !!confirmed;
+                    });
+                }
+
+                return Promise.resolve(window.confirm(config.text || config.title));
+            },
+            confirmForm: function (form, options) {
+                return this.confirm(options).then(function (confirmed) {
+                    if (!confirmed) {
+                        return false;
+                    }
+
+                    form.dataset.swalConfirmed = '1';
+                    form.submit();
+                    return true;
+                });
+            }
+        };
+
+        document.addEventListener('submit', function (event) {
+            const form = event.target;
+
+            if (!form || !form.matches('form[data-swal-confirm]') || form.dataset.swalConfirmed === '1') {
+                return;
+            }
+
+            event.preventDefault();
+
+            window.AppDialog.confirmForm(form, {
+                title: form.dataset.swalTitle || 'Konfirmasi',
+                text: form.dataset.swalConfirm || 'Lanjutkan proses ini?',
+                icon: form.dataset.swalIcon || 'warning',
+                confirmButtonText: form.dataset.swalConfirmButton || 'Ya, lanjutkan',
+                cancelButtonText: form.dataset.swalCancelButton || 'Batal',
+                dangerMode: form.dataset.swalDanger === '1'
+            });
+        });
+    </script>
 
     <!-- Kaiadmin JS -->
     <script src="{{ versioned_asset('assets/js/kaiadmin.min.js') }}"></script>

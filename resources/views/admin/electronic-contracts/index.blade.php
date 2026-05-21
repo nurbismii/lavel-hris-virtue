@@ -363,13 +363,28 @@
 
                 if (checkedCount === 0) {
                     event.preventDefault();
-                    alert('Pilih minimal satu kontrak yang sudah ditandatangani dan belum memiliki NIK.');
+                    window.AppDialog.alert(
+                        'Tidak ada kontrak dipilih',
+                        'Pilih minimal satu kontrak PKWT 1 yang sudah ditandatangani dan belum memiliki NIK.',
+                        'warning'
+                    );
                     return;
                 }
 
-                if (!confirm('Generate NIK untuk ' + checkedCount + ' kontrak terpilih?')) {
-                    event.preventDefault();
-                }
+                event.preventDefault();
+                window.AppDialog.confirm({
+                    title: 'Generate NIK massal?',
+                    text: 'Generate NIK untuk ' + checkedCount + ' kontrak terpilih.',
+                    icon: 'warning',
+                    confirmButtonText: 'Ya, generate',
+                    cancelButtonText: 'Batal'
+                }).then(function (confirmed) {
+                    if (!confirmed) {
+                        return;
+                    }
+
+                    form.submit();
+                });
             });
         }
 

@@ -43,7 +43,14 @@
                                     <td>{{ optional($clause->updated_at)->format('d M Y H:i') }}</td>
                                     <td class="text-nowrap">
                                         <a href="{{ route('electronic-contracts.clauses.edit', $clause) }}" class="btn btn-sm btn-warning">Edit</a>
-                                        <form action="{{ route('electronic-contracts.clauses.destroy', $clause) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus klausul ini?')">
+                                        <form
+                                            action="{{ route('electronic-contracts.clauses.destroy', $clause) }}"
+                                            method="POST"
+                                            class="d-inline"
+                                            data-swal-confirm="Klausul yang dihapus tidak bisa dikembalikan."
+                                            data-swal-title="Hapus klausul?"
+                                            data-swal-confirm-button="Ya, hapus"
+                                            data-swal-danger="1">
                                             @csrf
                                             @method('DELETE')
                                             <button class="btn btn-sm btn-danger" type="submit">Hapus</button>

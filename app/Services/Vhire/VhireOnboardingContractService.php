@@ -388,9 +388,15 @@ class VhireOnboardingContractService
 
         $noKtp = (string) ($contract->no_ktp ?: optional($contract->onboardingCandidate)->no_ktp);
 
-        if ($noKtp !== '' && Employee::query()->where('no_ktp', $noKtp)->exists()) {
+        if (
+            $noKtp !== ''
+            && Employee::query()
+                ->where('no_ktp', $noKtp)
+                ->whereRaw('UPPER(TRIM(COALESCE(status_resign, ""))) = ?', ['AKTIF'])
+                ->exists()
+        ) {
             throw ValidationException::withMessages([
-                'employee_nik' => 'Pakai NIK karyawan yang sudah terdaftar, jangan buat NIK baru untuk kandidat yang No KTP-nya sudah ada di master karyawan.',
+                'employee_nik' => 'No KTP kandidat masih terdaftar sebagai karyawan aktif. Pakai aktivasi ke NIK yang sudah ada.',
             ]);
         }
     }

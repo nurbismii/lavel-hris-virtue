@@ -48,7 +48,14 @@
                                         <a href="{{ route('electronic-contracts.templates.edit', $template) }}" class="btn btn-sm btn-warning">
                                             Edit
                                         </a>
-                                        <form action="{{ route('electronic-contracts.templates.destroy', $template) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus template ini?')">
+                                        <form
+                                            action="{{ route('electronic-contracts.templates.destroy', $template) }}"
+                                            method="POST"
+                                            class="d-inline"
+                                            data-swal-confirm="Template yang dihapus tidak bisa dikembalikan."
+                                            data-swal-title="Hapus template?"
+                                            data-swal-confirm-button="Ya, hapus"
+                                            data-swal-danger="1">
                                             @csrf
                                             @method('DELETE')
                                             <button class="btn btn-sm btn-danger" type="submit">Hapus</button>

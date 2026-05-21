@@ -168,7 +168,13 @@
                             </a>
                         @endif
 
-                        <form action="{{ route('electronic-contracts.manual-signed-file.store', $contract) }}" method="POST" enctype="multipart/form-data">
+                            <form
+                                action="{{ route('electronic-contracts.manual-signed-file.store', $contract) }}"
+                                method="POST"
+                                enctype="multipart/form-data"
+                                data-swal-confirm="File kontrak manual akan disimpan sebagai arsip resmi HRIS."
+                                data-swal-title="Simpan arsip kontrak manual?"
+                                data-swal-confirm-button="Ya, simpan">
                             @csrf
                             <div class="mb-2">
                                 <label class="form-label small">File PDF/JPG/PNG</label>
@@ -191,7 +197,7 @@
                                 <textarea name="manual_note" rows="2" class="form-control @error('manual_note') is-invalid @enderror">{{ old('manual_note', $contract->manual_note) }}</textarea>
                                 @error('manual_note')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
-                            <button type="submit" class="btn btn-outline-primary w-100" onclick="return confirm('Simpan arsip kontrak manual ini?')">
+                            <button type="submit" class="btn btn-outline-primary w-100">
                                 Simpan Arsip Manual
                             </button>
                         </form>
@@ -251,10 +257,16 @@
                                 @endphp
 
                                 @if($canGenerateEmployeeNik)
-                                    <form action="{{ route('electronic-contracts.generate-nik-activation', $contract) }}" method="POST" class="mb-3">
+                                    <form
+                                        action="{{ route('electronic-contracts.generate-nik-activation', $contract) }}"
+                                        method="POST"
+                                        class="mb-3"
+                                        data-swal-confirm="Sistem akan membuat data employee, generate NIK dari sequence terbesar, dan mengaktivasi kandidat ke HRIS."
+                                        data-swal-title="Generate NIK baru?"
+                                        data-swal-confirm-button="Ya, generate">
                                         @csrf
                                         <label class="form-label small">Generate NIK Karyawan</label>
-                                        <button class="btn btn-primary w-100" type="submit" onclick="return confirm('Generate NIK baru dari NIK terbesar, buat data employee, dan aktivasi kandidat ini ke HRIS?')">
+                                        <button class="btn btn-primary w-100" type="submit">
                                             Generate NIK &amp; Aktivasi
                                         </button>
                                         <div class="form-text">
@@ -263,12 +275,17 @@
                                     </form>
                                 @endif
 
-                                <form action="{{ route('electronic-contracts.activate-vhire-candidate', $contract) }}" method="POST">
+                                <form
+                                    action="{{ route('electronic-contracts.activate-vhire-candidate', $contract) }}"
+                                    method="POST"
+                                    data-swal-confirm="Kandidat akan ditautkan ke NIK HRIS dan kontrak akan disembunyikan dari V-Hire."
+                                    data-swal-title="Aktivasi kandidat?"
+                                    data-swal-confirm-button="Ya, aktivasi">
                                     @csrf
                                     <label class="form-label small">Aktivasi ke NIK HRIS</label>
                                     <div class="input-group">
                                         <input type="text" name="employee_nik" class="form-control @error('employee_nik') is-invalid @enderror" value="{{ old('employee_nik') }}" placeholder="Masukkan NIK employee">
-                                        <button class="btn btn-success" type="submit" onclick="return confirm('Tautkan kandidat ini ke NIK HRIS dan sembunyikan kontrak dari V-Hire?')">
+                                        <button class="btn btn-success" type="submit">
                                             Aktivasi
                                         </button>
                                         @error('employee_nik')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
@@ -307,7 +324,13 @@
                 @endif
 
                 @if($contract->status === \App\Models\EmployeeContract::STATUS_READY)
-                    <form action="{{ route('electronic-contracts.cancel', $contract) }}" method="POST" onsubmit="return confirm('Batalkan kontrak ini?')">
+                    <form
+                        action="{{ route('electronic-contracts.cancel', $contract) }}"
+                        method="POST"
+                        data-swal-confirm="Kontrak akan dibatalkan dan statusnya berubah menjadi cancelled."
+                        data-swal-title="Batalkan kontrak?"
+                        data-swal-confirm-button="Ya, batalkan"
+                        data-swal-danger="1">
                         @csrf
                         <button type="submit" class="btn btn-outline-danger w-100">Batalkan Kontrak</button>
                     </form>
