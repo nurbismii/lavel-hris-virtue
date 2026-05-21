@@ -34,6 +34,14 @@ class UpdateSignatureStatusRequest extends FormRequest
             'employee_signature_base64' => 'nullable|string',
             'employee_signature_mime' => ['nullable', Rule::in(['image/png', 'image/jpeg'])],
             'employee_signature_hash' => 'nullable|string|max:128',
+            'departemen' => 'nullable|string|max:180',
+            'departemen_id' => 'nullable|integer|min:1',
+            'divisi' => 'nullable|string|max:180',
+            'divisi_id' => 'nullable|integer|min:1',
+            'provinsi_id' => 'nullable|integer|min:1',
+            'kabupaten_id' => 'nullable|integer|min:1',
+            'kecamatan_id' => 'nullable|integer|min:1',
+            'kelurahan_id' => 'nullable|integer|min:1',
         ];
     }
 

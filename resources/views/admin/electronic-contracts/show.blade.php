@@ -276,9 +276,6 @@
                                         <button class="btn btn-primary w-100" type="submit">
                                             Generate NIK &amp; Aktivasi
                                         </button>
-                                        <div class="form-text">
-                                            Format NIK memakai tahun+bulan aktif kerja, lalu sequence terbesar + 2.
-                                        </div>
                                     </form>
                                 @endif
 

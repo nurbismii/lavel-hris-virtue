@@ -122,6 +122,7 @@ class VhireOnboardingContractService
         return DB::transaction(function () use ($contractFromRoute, $payload, $request) {
             $contract = $this->resolveContractForSignature($contractFromRoute, $payload);
             $this->assertContractCandidateMatches($contract, $payload);
+            $this->syncCandidateProfileFromIntegrationPayload($contract, $payload);
 
             $signatureStatus = (string) $payload['signature_status'];
             $currentSnapshot = [
@@ -543,9 +544,16 @@ class VhireOnboardingContractService
     private function employeeAttributesFromContract(EmployeeContract $contract, string $employeeNik, Carbon $activeDate): array
     {
         $candidate = $contract->onboardingCandidate;
-        $kodeAreaKerja = '02';  // Default ke kode area kerja '02' (Site) jika tidak tersedia di kontrak atau kandidat
+        $kodeAreaKerja = optional($candidate)->kode_area_kerja ?: '02';
         $departemenName = $contract->departemen ?: optional($candidate)->departemen;
         $divisiName = optional($candidate)->divisi;
+        $areaKerja = $this->employeeAreaKerja($contract, $candidate, $kodeAreaKerja);
+        $departemenId = $this->verifiedReferenceId('departemens', optional($candidate)->departemen_id)
+            ?: $this->resolveDepartemenId($areaKerja, $departemenName);
+        $divisiId = $this->verifiedReferenceId('divisis', optional($candidate)->divisi_id)
+            ?: $this->resolveDivisiId($divisiName, $departemenId);
+        $departemenId = $departemenId ?: $this->departemenIdFromDivisi($divisiId);
+
         $attributes = [
             'nik' => $employeeNik,
             'nama_karyawan' => $contract->display_employee_name !== '-' ? $contract->display_employee_name : ($contract->candidate_name ?: optional($candidate)->nama),
@@ -564,6 +572,10 @@ class VhireOnboardingContractService
             'tgl_lahir' => optional($candidate)->tanggal_lahir ? Carbon::parse($candidate->tanggal_lahir)->toDateString() : null,
             'alamat_domisili' => optional($candidate)->alamat_domisili ?: ($contract->address ?: optional($candidate)->alamat),
             'alamat_ktp' => optional($candidate)->alamat_ktp ?: ($contract->address ?: optional($candidate)->alamat),
+            'provinsi_id' => $this->verifiedReferenceId('master_provinsi', optional($candidate)->provinsi_id),
+            'kabupaten_id' => $this->verifiedReferenceId('master_kabupaten', optional($candidate)->kabupaten_id),
+            'kecamatan_id' => $this->verifiedReferenceId('master_kecamatan', optional($candidate)->kecamatan_id),
+            'kelurahan_id' => $this->verifiedReferenceId('master_kelurahan', optional($candidate)->kelurahan_id),
             'rt' => optional($candidate)->rt,
             'rw' => optional($candidate)->rw,
             'kode_pos' => optional($candidate)->kode_pos,
@@ -575,9 +587,9 @@ class VhireOnboardingContractService
             'bpjs_tk' => optional($candidate)->bpjs_tk,
             'jam_kerja' => optional($candidate)->jam_kerja,
             'status_resign' => 'AKTIF',
-            'area_kerja' => $contract->lokasi,
-            'departemen_id' => $this->resolveDepartemenId($kodeAreaKerja, $departemenName),
-            'divisi_id' => $this->resolveDivisiId($divisiName),
+            'area_kerja' => $areaKerja,
+            'departemen_id' => $departemenId,
+            'divisi_id' => $divisiId,
             'skill' => optional($candidate)->skill,
             'tinggi' => optional($candidate)->tinggi,
             'berat' => optional($candidate)->berat,
@@ -655,14 +667,33 @@ class VhireOnboardingContractService
         return $this->nullableString($value);
     }
 
-    private function resolveDepartemenId(?string $kodeAreaKerja, ?string $departemen): ?int
+    private function employeeAreaKerja(EmployeeContract $contract, ?OnboardingCandidate $candidate, ?string $kodeAreaKerja): string
     {
-        if (blank($kodeAreaKerja) || blank($departemen) || !Schema::hasTable('perusahaan') || !Schema::hasTable('departemens')) {
+        foreach ([
+            optional($candidate)->area_kerja ?? null,
+            optional($candidate)->lokasi ?? null,
+            $contract->lokasi,
+            $kodeAreaKerja,
+            'VDNI',
+        ] as $value) {
+            $value = $this->nullableString($value);
+
+            if ($value !== null && $this->perusahaanExists($value)) {
+                return $value;
+            }
+        }
+
+        return 'VDNI';
+    }
+
+    private function resolveDepartemenId(?string $areaKerja, ?string $departemen): ?int
+    {
+        if (blank($areaKerja) || blank($departemen) || !Schema::hasTable('perusahaan') || !Schema::hasTable('departemens')) {
             return null;
         }
 
         $perusahaanId = Perusahaan::query()
-            ->whereRaw('LOWER(TRIM(kode_perusahaan)) = ?', [strtolower(trim((string) $kodeAreaKerja))])
+            ->whereRaw('LOWER(TRIM(kode_perusahaan)) = ?', [strtolower(trim((string) $areaKerja))])
             ->value('id');
 
         if (!$perusahaanId) {
@@ -677,17 +708,59 @@ class VhireOnboardingContractService
         return $departemenId ? (int) $departemenId : null;
     }
 
-    private function resolveDivisiId(?string $divisi): ?int
+    private function resolveDivisiId(?string $divisi, ?int $departemenId = null): ?int
     {
         if (blank($divisi) || !Schema::hasTable('divisis')) {
             return null;
         }
 
-        $divisiId = Divisi::query()
-            ->whereRaw('LOWER(TRIM(nama_divisi)) = ?', [strtolower(trim((string) $divisi))])
-            ->value('id');
+        $query = Divisi::query()
+            ->whereRaw('LOWER(TRIM(nama_divisi)) = ?', [strtolower(trim((string) $divisi))]);
+
+        if ($departemenId) {
+            $query->where('departemen_id', $departemenId);
+        }
+
+        $divisiId = $query->value('id');
 
         return $divisiId ? (int) $divisiId : null;
+    }
+
+    private function departemenIdFromDivisi(?int $divisiId): ?int
+    {
+        if (!$divisiId || !Schema::hasTable('divisis')) {
+            return null;
+        }
+
+        $departemenId = Divisi::query()->whereKey($divisiId)->value('departemen_id');
+
+        return $departemenId ? (int) $departemenId : null;
+    }
+
+    private function verifiedReferenceId(string $table, $id): ?int
+    {
+        $id = $this->nullableInteger($id);
+
+        if (!$id) {
+            return null;
+        }
+
+        if (!Schema::hasTable($table)) {
+            return $id;
+        }
+
+        return DB::table($table)->where('id', $id)->exists() ? $id : null;
+    }
+
+    private function perusahaanExists(string $kodePerusahaan): bool
+    {
+        if (!Schema::hasTable('perusahaan')) {
+            return false;
+        }
+
+        return Perusahaan::query()
+            ->whereRaw('LOWER(TRIM(kode_perusahaan)) = ?', [strtolower(trim($kodePerusahaan))])
+            ->exists();
     }
 
     private function normalizeCandidatePayload(array $payload): array
@@ -711,7 +784,9 @@ class VhireOnboardingContractService
                 ? Carbon::parse($payload['tanggal_akhir_kontrak'])->format('Y-m-d')
                 : null,
             'departemen' => $this->nullableString($payload['departemen'] ?? null),
+            'departemen_id' => $this->nullableInteger($payload['departemen_id'] ?? null),
             'divisi' => $this->nullableString($payload['divisi'] ?? null),
+            'divisi_id' => $this->nullableInteger($payload['divisi_id'] ?? null),
             'lokasi' => $this->nullableString($payload['lokasi'] ?? null),
             'kode_kontrak' => $this->nullableString($payload['kode_kontrak'] ?? null),
             'no_pkwt' => $this->nullableString($payload['no_pkwt'] ?? null),
@@ -733,6 +808,10 @@ class VhireOnboardingContractService
             'tanggal_lahir' => !empty($payload['tanggal_lahir'] ?? $payload['tgl_lahir'] ?? null)
                 ? Carbon::parse($payload['tanggal_lahir'] ?? $payload['tgl_lahir'])->format('Y-m-d')
                 : null,
+            'provinsi_id' => $this->nullableInteger($payload['provinsi_id'] ?? null),
+            'kabupaten_id' => $this->nullableInteger($payload['kabupaten_id'] ?? null),
+            'kecamatan_id' => $this->nullableInteger($payload['kecamatan_id'] ?? null),
+            'kelurahan_id' => $this->nullableInteger($payload['kelurahan_id'] ?? null),
             'rt' => $this->nullableString($payload['rt'] ?? null),
             'rw' => $this->nullableString($payload['rw'] ?? null),
             'kode_pos' => $this->nullableString($payload['kode_pos'] ?? null),
@@ -763,6 +842,12 @@ class VhireOnboardingContractService
 
         foreach (['no_kk', 'npwp'] as $key) {
             $normalized[$key] = $normalized[$key] !== '' ? $normalized[$key] : null;
+        }
+
+        foreach ($this->candidateProfileIntegerColumns() as $key) {
+            if (array_key_exists($key, $normalized) && !Schema::hasColumn('onboarding_candidates', $key)) {
+                unset($normalized[$key]);
+            }
         }
 
         $normalized['source_payload_hash'] = hash('sha256', json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
@@ -1017,6 +1102,69 @@ class VhireOnboardingContractService
         return $decoded === false || strlen($decoded) < 100 ? null : $decoded;
     }
 
+    private function syncCandidateProfileFromIntegrationPayload(EmployeeContract $contract, array $payload): void
+    {
+        if (!$contract->onboarding_candidate_id) {
+            return;
+        }
+
+        $candidate = OnboardingCandidate::query()
+            ->whereKey($contract->onboarding_candidate_id)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$candidate) {
+            return;
+        }
+
+        $updates = [];
+
+        foreach ($this->candidateProfileTextColumns() as $column) {
+            if (
+                array_key_exists($column, $payload)
+                && Schema::hasColumn('onboarding_candidates', $column)
+                && $this->nullableString($payload[$column]) !== null
+            ) {
+                $updates[$column] = $this->nullableString($payload[$column]);
+            }
+        }
+
+        foreach ($this->candidateProfileIntegerColumns() as $column) {
+            if (
+                array_key_exists($column, $payload)
+                && Schema::hasColumn('onboarding_candidates', $column)
+                && $this->nullableInteger($payload[$column]) !== null
+            ) {
+                $updates[$column] = $this->nullableInteger($payload[$column]);
+            }
+        }
+
+        if (!$updates) {
+            return;
+        }
+
+        $updates['last_synced_at'] = now();
+        $candidate->fill($updates);
+        $candidate->save();
+    }
+
+    private function candidateProfileTextColumns(): array
+    {
+        return ['departemen', 'divisi'];
+    }
+
+    private function candidateProfileIntegerColumns(): array
+    {
+        return [
+            'departemen_id',
+            'divisi_id',
+            'provinsi_id',
+            'kabupaten_id',
+            'kecamatan_id',
+            'kelurahan_id',
+        ];
+    }
+
     private function assertContractCandidateMatches(EmployeeContract $contract, array $payload): void
     {
         $payloadVhireCandidateId = trim((string) ($payload['vhire_candidate_id'] ?? ''));
@@ -1094,6 +1242,19 @@ class VhireOnboardingContractService
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function nullableInteger($value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_numeric($value) && (int) $value > 0) {
+            return (int) $value;
+        }
+
+        return null;
     }
 
     private function recordInboundSyncLog(

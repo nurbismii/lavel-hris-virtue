@@ -295,6 +295,10 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             'kode_area_kerja' => 'VDNI',
             'departemen_id' => 10,
             'divisi_id' => 20,
+            'provinsi_id' => 74,
+            'kabupaten_id' => 7471,
+            'kecamatan_id' => 747101,
+            'kelurahan_id' => 7471011001,
         ]);
         $this->assertSame('1997-06-22', substr((string) DB::table('employees')->where('nik', 'EMP-0001')->value('tgl_lahir'), 0, 10));
 
@@ -383,6 +387,10 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             'departemen_id' => 10,
             'divisi_id' => 20,
             'status_resign' => 'AKTIF',
+            'provinsi_id' => 74,
+            'kabupaten_id' => 7471,
+            'kecamatan_id' => 747101,
+            'kelurahan_id' => 7471011001,
         ]);
         $this->assertSame('2026-04-15', substr((string) DB::table('employees')->where('nik', '260443118')->value('entry_date'), 0, 10));
         $this->assertSame('1997-06-22', substr((string) DB::table('employees')->where('nik', '260443118')->value('tgl_lahir'), 0, 10));
@@ -393,6 +401,73 @@ class VhireOnboardingContractIntegrationTest extends TestCase
         $this->assertFalse((bool) $updatedContract->visible_in_vhire);
         $this->assertTrue(VhireSyncLog::where('operation', VhireSyncLog::OPERATION_ACTIVATION_SYNC)->exists());
         Queue::assertPushed(SyncVhireOutbound::class);
+    }
+
+    public function test_signature_callback_enriches_excel_imported_candidate_before_generate_nik(): void
+    {
+        Queue::fake();
+
+        $this->postJson('/api/hris/onboarding-candidates', $this->candidatePayload([
+            'departemen' => null,
+            'departemen_id' => null,
+            'divisi' => null,
+            'divisi_id' => null,
+            'provinsi_id' => null,
+            'kabupaten_id' => null,
+            'kecamatan_id' => null,
+            'kelurahan_id' => null,
+        ]), $this->headers())->assertOk();
+
+        DB::table('employees')->insert([
+            'nik' => '260443116',
+            'nama_karyawan' => 'Existing Employee',
+            'no_ktp' => '1111222233334444',
+        ]);
+
+        $contract = EmployeeContract::first();
+        $request = Request::create('/api/hris/contracts/' . $contract->id . '/signature-status', 'POST');
+
+        app(VhireOnboardingContractService::class)->updateSignatureStatus($contract, [
+            'hris_contract_id' => $contract->id,
+            'kode_kontrak' => $contract->contract_code,
+            'no_pkwt' => $contract->pkwt_number,
+            'vhire_candidate_id' => $contract->vhire_candidate_id,
+            'candidate_code' => $contract->candidate_code,
+            'no_ktp' => $contract->no_ktp,
+            'signature_status' => EmployeeContract::SIGNATURE_STATUS_SIGNED,
+            'status_tanda_tangan' => 'signed',
+            'signed_at' => now()->toIso8601String(),
+            'signed_by_source' => 'vhire',
+            'departemen' => 'HSE',
+            'departemen_id' => 10,
+            'divisi' => 'SAFETY',
+            'divisi_id' => 20,
+            'provinsi_id' => 74,
+            'kabupaten_id' => 7471,
+            'kecamatan_id' => 747101,
+            'kelurahan_id' => 7471011001,
+        ], $request);
+
+        $candidate = OnboardingCandidate::first()->fresh();
+        $this->assertSame(10, (int) $candidate->departemen_id);
+        $this->assertSame(20, (int) $candidate->divisi_id);
+        $this->assertSame(74, (int) $candidate->provinsi_id);
+
+        $employee = app(VhireOnboardingContractService::class)->generateEmployeeNikAndActivateContract(
+            $contract->fresh(),
+            Request::create('/admin/kontrak-elektronik/' . $contract->id . '/generate-nik-activation', 'POST')
+        );
+
+        $this->assertSame('260500002', $employee->nik);
+        $this->assertDatabaseHas('employees', [
+            'nik' => '260500002',
+            'departemen_id' => 10,
+            'divisi_id' => 20,
+            'provinsi_id' => 74,
+            'kabupaten_id' => 7471,
+            'kecamatan_id' => 747101,
+            'kelurahan_id' => 7471011001,
+        ]);
     }
 
     public function test_signed_manual_pkwt_one_contract_can_generate_employee_nik_and_activate_candidate(): void
@@ -718,9 +793,15 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             'tanggal_mulai_kerja' => '2026-05-16',
             'tanggal_akhir_kontrak' => '2026-07-16',
             'departemen' => 'HSE',
+            'departemen_id' => 10,
             'divisi' => 'SAFETY',
+            'divisi_id' => 20,
             'lokasi' => 'Morosi',
             'kode_area_kerja' => 'VDNI',
+            'provinsi_id' => 74,
+            'kabupaten_id' => 7471,
+            'kecamatan_id' => 747101,
+            'kelurahan_id' => 7471011001,
             'recruitment_status' => 'accepted',
             'onboarding_status' => 'proses_tanda_tangan_kontrak',
             'contract_duration_value' => 2,
@@ -777,6 +858,10 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             $table->string('status_karyawan')->nullable();
             $table->string('no_telp')->nullable();
             $table->date('tgl_lahir')->nullable();
+            $table->unsignedBigInteger('provinsi_id')->nullable();
+            $table->unsignedBigInteger('kabupaten_id')->nullable();
+            $table->unsignedBigInteger('kecamatan_id')->nullable();
+            $table->unsignedBigInteger('kelurahan_id')->nullable();
             $table->string('alamat_domisili')->nullable();
             $table->string('alamat_ktp')->nullable();
             $table->string('rt')->nullable();
@@ -881,6 +966,10 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             $table->text('alamat')->nullable();
             $table->text('alamat_ktp')->nullable();
             $table->text('alamat_domisili')->nullable();
+            $table->unsignedBigInteger('provinsi_id')->nullable();
+            $table->unsignedBigInteger('kabupaten_id')->nullable();
+            $table->unsignedBigInteger('kecamatan_id')->nullable();
+            $table->unsignedBigInteger('kelurahan_id')->nullable();
             $table->string('rt', 10)->nullable();
             $table->string('rw', 10)->nullable();
             $table->string('kode_pos', 20)->nullable();
@@ -904,7 +993,9 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             $table->date('tanggal_mulai_kerja')->nullable();
             $table->date('tanggal_akhir_kontrak')->nullable();
             $table->string('departemen', 180)->nullable();
+            $table->unsignedBigInteger('departemen_id')->nullable();
             $table->string('divisi', 180)->nullable();
+            $table->unsignedBigInteger('divisi_id')->nullable();
             $table->string('lokasi', 180)->nullable();
             $table->string('kode_area_kerja', 50)->nullable();
             $table->string('status_karyawan', 80)->nullable();
