@@ -787,9 +787,56 @@
         });
     }
 
+    function handleKaryawanAjaxError(xhr, fallbackMessage) {
+        let message = fallbackMessage || 'Request gagal diproses. Silakan coba lagi.';
+
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+            message = xhr.responseJSON.message;
+        }
+
+        if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+            const errors = xhr.responseJSON.errors;
+            const firstKey = Object.keys(errors)[0];
+
+            if (firstKey && errors[firstKey][0]) {
+                message = errors[firstKey][0];
+            }
+        }
+
+        if (xhr.status === 401 || xhr.status === 419) {
+            message = 'Sesi login berakhir. Silakan login ulang.';
+        }
+
+        if (xhr.status === 403) {
+            message = 'Anda tidak memiliki akses untuk melakukan tindakan ini.';
+        }
+
+        if (xhr.status === 404) {
+            message = 'Data karyawan tidak ditemukan atau URL hapus tidak valid.';
+        }
+
+        if (xhr.status === 0) {
+            message = 'Koneksi bermasalah atau request diblokir. Silakan cek jaringan Anda.';
+        }
+
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: message,
+            confirmButtonText: 'OK'
+        });
+    }
+
     $(document).on('click', '.btn-delete', function() {
-        let id = $(this).data('id');
-        let nama = $(this).data('nama');
+        const button = $(this);
+        const url = button.data('url');
+        const nama = button.data('nama');
+        const originalHtml = button.html();
+
+        if (!url) {
+            handleKaryawanAjaxError({ status: 404 }, 'URL hapus karyawan tidak tersedia.');
+            return;
+        }
 
         Swal.fire({
             title: 'Yakin?',
@@ -800,15 +847,38 @@
             cancelButtonText: 'Batal'
         }).then((result) => {
             if (result.isConfirmed) {
+                button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+
                 $.ajax({
-                    url: `admin/karyawan/${id}`,
+                    url: url,
                     type: 'DELETE',
+                    dataType: 'json',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     data: {
                         _token: "{{ csrf_token() }}"
                     },
-                    success: function() {
-                        Swal.fire('Berhasil', 'Data dihapus', 'success');
-                        table.ajax.reload(null, false);
+                    success: function(response) {
+                        if (response && response.success === false) {
+                            Swal.fire('Gagal', response.message || 'Data karyawan gagal dihapus.', 'error');
+                            return;
+                        }
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message || 'Data karyawan berhasil dihapus.',
+                            confirmButtonText: 'OK'
+                        }).then(function() {
+                            table.ajax.reload(null, false);
+                        });
+                    },
+                    error: function(xhr) {
+                        handleKaryawanAjaxError(xhr, 'Data karyawan gagal dihapus.');
+                    },
+                    complete: function() {
+                        button.prop('disabled', false).html(originalHtml);
                     }
                 });
             }

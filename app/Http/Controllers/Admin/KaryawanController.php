@@ -357,17 +357,43 @@ class KaryawanController extends Controller
         ]);
     }
 
-    public function destroy($nik)
+    public function destroy(Request $request, $nik)
     {
-        abort_unless(auth()->user()->canAccessAllEmployees(), 403, 'Akses tidak diizinkan.');
+        abort_unless($request->user()->canAccessAllEmployees(), 403, 'Akses tidak diizinkan.');
 
-        $employee = auth()->user()
+        $employee = $request->user()
             ->applyEmployeeScope(Employee::query())
             ->where('nik', $nik)
             ->firstOrFail();
-        $employee->delete();
 
-        toast('Data karyawan berhasil dihapus!', 'success');
+        try {
+            $employee->delete();
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $message = 'Data karyawan gagal dihapus. Pastikan data ini tidak masih dipakai oleh presensi, kontrak, approval, atau data terkait lain.';
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                ], 500);
+            }
+
+            toast($message, 'error');
+            return redirect()->route('karyawan.index');
+        }
+
+        $message = 'Data karyawan berhasil dihapus!';
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+            ]);
+        }
+
+        toast($message, 'success');
         return redirect()->route('karyawan.index');
     }
 

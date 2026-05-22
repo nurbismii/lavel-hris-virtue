@@ -74,6 +74,7 @@ class KaryawanService
                 $deleteButton = auth()->user()->canAccessAllEmployees() ? '
                     <button type="button" class="btn btn-sm btn-danger btn-delete"
                         data-id="' . e($r->nik) . '"
+                        data-url="' . e(route('karyawan.destroy', $r->nik)) . '"
                         data-nama="' . e($r->nama_karyawan) . '">
                         <i class="fa fa-trash"></i>
                     </button>
