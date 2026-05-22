@@ -80,12 +80,12 @@
                     <div class="table">
                         <div class="row mb-3">
                             <div class="col-md-3">
-                                <select id="filter_area" class="form-select">
-                                    <option value="">Semua Area</option>
+                                <select id="filter_area" class="form-select" multiple size="{{ min(max($areas->count(), 2), 5) }}">
                                     @foreach ($areas as $area)
                                     <option value="{{ $area->kode_perusahaan }}">{{ $area->kode_perusahaan }}</option>
                                     @endforeach
                                 </select>
+                                <small class="text-muted">Kosongkan untuk semua perusahaan. Tahan Ctrl/Cmd untuk pilih lebih dari satu.</small>
                             </div>
 
                             <div class="col-md-3">
@@ -487,6 +487,16 @@
 </script>
 
 <script>
+    function selectedAreaCodes() {
+        const value = $('#filter_area').val();
+
+        if (Array.isArray(value)) {
+            return value.filter(Boolean);
+        }
+
+        return value ? [value] : [];
+    }
+
     let table = $('#multi-filter-select').DataTable({
         processing: true,
         serverSide: true,
@@ -499,7 +509,7 @@
         ajax: {
             url: "{{ route('karyawan.index') }}",
             data: function(d) {
-                d.area = $('#filter_area').val();
+                d.area = selectedAreaCodes();
                 d.departemen = $('#filter_departemen').val();
                 d.divisi = $('#filter_divisi').val();
                 d.status_resign = $('#filter_resign').val();
@@ -546,18 +556,20 @@
 
     // AREA berubah
     $('#filter_area').on('change', function() {
-        let area = $(this).val();
+        const areas = selectedAreaCodes();
         $('#filter_departemen').html('<option value="">Loading...</option>');
         $('#filter_divisi').html('<option value="">Semua Divisi</option>');
+        $('#filter_departemen').prop('disabled', !areas.length);
+        $('#filter_divisi').prop('disabled', true);
 
-        if (!area) {
+        if (!areas.length) {
             $('#filter_departemen').html('<option value="">Semua Departemen</option>');
             table.draw();
             return;
         }
 
         $.get("{{ route('ajax.departemen.by.area') }}", {
-            area
+            area: areas
         }, function(res) {
             let opt = '<option value="">Semua Departemen</option>';
             res.forEach(r => {
@@ -598,11 +610,6 @@
     });
 
     $('#filter_departemen, #filter_divisi').prop('disabled', true);
-
-    $('#filter_area').on('change', function() {
-        $('#filter_departemen').prop('disabled', !this.value);
-        $('#filter_divisi').prop('disabled', true);
-    });
 
     $('#filter_departemen').on('change', function() {
         $('#filter_divisi').prop('disabled', !this.value);

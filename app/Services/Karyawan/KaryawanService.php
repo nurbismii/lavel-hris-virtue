@@ -41,8 +41,10 @@ class KaryawanService
 
         $user->applyEmployeeScope($query);
 
-        if ($request->area) {
-            $query->where('area_kerja', $request->area);
+        $areaCodes = $this->selectedAreaCodes($request->input('area'));
+
+        if ($areaCodes) {
+            $query->whereIn('area_kerja', $areaCodes);
         }
 
         if ($request->departemen) {
@@ -84,6 +86,16 @@ class KaryawanService
             })
             ->rawColumns(['aksi', 'dokumen'])
             ->make(true);
+    }
+
+    private function selectedAreaCodes($area): array
+    {
+        return collect((array) $area)
+            ->filter(fn($value) => filled($value))
+            ->map(fn($value) => trim((string) $value))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function renderDocumentSummary(Employee $employee): string

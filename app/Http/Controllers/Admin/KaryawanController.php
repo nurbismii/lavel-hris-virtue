@@ -399,8 +399,18 @@ class KaryawanController extends Controller
 
     public function departemenByArea(Request $request)
     {
-        $query = Departemen::whereHas('employee', function ($q) use ($request) {
-            $q->where('area_kerja', $request->area);
+        $areaCodes = collect((array) $request->input('area'))
+            ->filter(fn($value) => filled($value))
+            ->map(fn($value) => trim((string) $value))
+            ->unique()
+            ->values()
+            ->all();
+
+        $query = Departemen::whereHas('employee', function ($q) use ($request, $areaCodes) {
+            if ($areaCodes) {
+                $q->whereIn('area_kerja', $areaCodes);
+            }
+
             $request->user()->applyEmployeeScope($q);
         });
 

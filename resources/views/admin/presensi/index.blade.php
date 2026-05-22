@@ -45,12 +45,12 @@
         <form class="row g-2 mb-3 align-items-end attendance-filter presensi-filter">
             <div class="col-md-2">
                 <label class="form-label">Perusahaan</label>
-                <select id="filter_area" class="form-select form-control">
-                    <option value="">Pilih Perusahaan</option>
+                <select id="filter_area" class="form-select form-control" multiple size="{{ min(max($areas->count(), 2), 5) }}">
                     @foreach ($areas as $area)
                     <option value="{{ $area->kode_perusahaan }}">{{ $area->kode_perusahaan }}</option>
                     @endforeach
                 </select>
+                <small class="text-muted">Tahan Ctrl/Cmd untuk pilih lebih dari satu.</small>
             </div>
 
             <div class="col-md-3">

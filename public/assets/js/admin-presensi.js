@@ -99,6 +99,16 @@
         elements.divisi.html(optionsHtml).prop('disabled', disabled);
     }
 
+    function selectedAreaCodes() {
+        const value = elements.area.val();
+
+        if (Array.isArray(value)) {
+            return value.filter(Boolean);
+        }
+
+        return value ? [value] : [];
+    }
+
     function renderDateHeader(date, meta = {}) {
         const dayLabel = escapeHtml(meta.day || '');
         const holidayName = escapeHtml(meta.holiday_name || '');
@@ -376,17 +386,17 @@
         });
     }
 
-    function loadDepartmentsByArea(area) {
+    function loadDepartmentsByArea(areaCodes) {
         setDepartmentOptions('<option value="">Loading...</option>', true);
         setDivisionOptions('<option value="">Semua Divisi</option>', true);
 
-        if (!area) {
+        if (!areaCodes.length) {
             setDepartmentOptions('<option value="">Pilih Perusahaan Dahulu</option>', true);
             return;
         }
 
         $.get(areaUrl, {
-            area,
+            area: areaCodes,
         }).done(function(response) {
             let options = '<option value="">Pilih Departemen</option>';
 
@@ -446,7 +456,7 @@
     }
 
     elements.area.on('change', function() {
-        loadDepartmentsByArea(this.value);
+        loadDepartmentsByArea(selectedAreaCodes());
     });
 
     elements.departemen.on('change', function() {
