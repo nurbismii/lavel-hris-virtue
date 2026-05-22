@@ -305,17 +305,51 @@
                                                 <th>Waktu</th>
                                                 <th>Operasi</th>
                                                 <th>Status</th>
+                                                <th>HTTP</th>
+                                                <th>Detail</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach($latestVhireSyncLogs as $syncLog)
+                                                @php
+                                                    $syncDetail = trim((string) ($syncLog->error_message ?: $syncLog->response_summary));
+                                                    $syncDetail = $syncDetail !== '' ? $syncDetail : 'Belum ada detail error tersimpan. Cek laravel.log pada waktu sinkronisasi ini.';
+                                                    $isFailedSync = $syncLog->status === \App\Models\VhireSyncLog::STATUS_FAILED;
+                                                @endphp
                                                 <tr>
                                                     <td>{{ optional($syncLog->created_at)->format('d M H:i') }}</td>
-                                                    <td>{{ $syncLog->operation }}</td>
+                                                    <td>
+                                                        <div>{{ $syncLog->operation }}</div>
+                                                        <small class="text-muted">{{ $syncLog->endpoint }}</small>
+                                                    </td>
                                                     <td>
                                                         <span class="badge bg-{{ $syncLog->status === 'success' ? 'success' : ($syncLog->status === 'failed' ? 'danger' : 'secondary') }}">
                                                             {{ $syncLog->status }}
                                                         </span>
+                                                    </td>
+                                                    <td>{{ $syncLog->http_status ?: '-' }}</td>
+                                                    <td style="min-width: 260px;">
+                                                        @if($isFailedSync)
+                                                            <details>
+                                                                <summary class="text-danger fw-semibold">
+                                                                    {{ \Illuminate\Support\Str::limit($syncDetail, 90) }}
+                                                                </summary>
+                                                                <div class="small text-muted mt-2">
+                                                                    <div class="fw-semibold text-body">Error / Response</div>
+                                                                    <pre class="bg-light border rounded p-2 mb-2 text-wrap">{{ $syncDetail }}</pre>
+                                                                    @if($syncLog->idempotency_key)
+                                                                        <div><strong>Idempotency Key:</strong> {{ $syncLog->idempotency_key }}</div>
+                                                                    @endif
+                                                                    @if($syncLog->next_retry_at)
+                                                                        <div><strong>Retry berikutnya:</strong> {{ optional($syncLog->next_retry_at)->format('d M Y H:i') }}</div>
+                                                                    @endif
+                                                                </div>
+                                                            </details>
+                                                        @elseif($syncLog->response_summary)
+                                                            <span class="small text-muted">{{ \Illuminate\Support\Str::limit($syncLog->response_summary, 100) }}</span>
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             @endforeach
