@@ -21,11 +21,20 @@
         kelurahansBaseUrl: root.dataset.kelurahansBaseUrl || '',
     };
 
-    function buildOptions(defaultLabel, items, valueKey, textKey) {
-        let options = `<option value="">${defaultLabel}</option>`;
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
 
-        items.forEach((item) => {
-            options += `<option value="${item[valueKey]}">${item[textKey]}</option>`;
+    function buildOptions(defaultLabel, items, valueKey, textKey) {
+        let options = `<option value="">${escapeHtml(defaultLabel)}</option>`;
+
+        (Array.isArray(items) ? items : []).forEach((item) => {
+            options += `<option value="${escapeHtml(item[valueKey])}">${escapeHtml(item[textKey])}</option>`;
         });
 
         return options;
@@ -49,6 +58,8 @@
                 if (config.oldDepartemen && perusahaan === config.oldPerusahaan) {
                     $('#departemen_id').val(config.oldDepartemen).trigger('change');
                 }
+            }).fail(function() {
+                $('#departemen_id').html('<option value="">Departemen gagal dimuat</option>');
             });
         });
 
@@ -68,6 +79,8 @@
                 if (config.oldDivisi && departemen === config.oldDepartemen) {
                     $('#divisi_id').val(config.oldDivisi);
                 }
+            }).fail(function() {
+                $('#divisi_id').html('<option value="">Divisi gagal dimuat</option>');
             });
         });
 
@@ -140,6 +153,8 @@
             if (config.oldProvinsi) {
                 $('#provinsi_id').val(config.oldProvinsi).trigger('change');
             }
+        }).fail(function() {
+            $('#provinsi_id').html('<option value="">Provinsi gagal dimuat</option>');
         });
 
         $('#provinsi_id').on('change', function() {
@@ -159,6 +174,8 @@
                 if (config.oldKabupaten && provinsi === config.oldProvinsi) {
                     $('#kabupaten_id').val(config.oldKabupaten).trigger('change');
                 }
+            }).fail(function() {
+                $('#kabupaten_id').html('<option value="">Kabupaten gagal dimuat</option>');
             });
         });
 
@@ -178,6 +195,8 @@
                 if (config.oldKecamatan && kabupaten === config.oldKabupaten) {
                     $('#kecamatan_id').val(config.oldKecamatan).trigger('change');
                 }
+            }).fail(function() {
+                $('#kecamatan_id').html('<option value="">Kecamatan gagal dimuat</option>');
             });
         });
 
@@ -196,7 +215,29 @@
                 if (config.oldKelurahan && kecamatan === config.oldKecamatan) {
                     $('#kelurahan_id').val(config.oldKelurahan);
                 }
+            }).fail(function() {
+                $('#kelurahan_id').html('<option value="">Kelurahan gagal dimuat</option>');
             });
+        });
+    }
+
+    function bindSubmitState() {
+        const form = document.getElementById('employeeEditForm');
+        const button = document.getElementById('employeeSaveButton');
+
+        if (!form || !button) {
+            return;
+        }
+
+        form.addEventListener('submit', function() {
+            const loadingText = button.dataset.loadingText || 'Menyimpan...';
+
+            if (!button.dataset.originalText) {
+                button.dataset.originalText = button.innerHTML;
+            }
+
+            button.disabled = true;
+            button.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>${escapeHtml(loadingText)}`;
         });
     }
 
@@ -204,5 +245,6 @@
         loadCompanyHierarchy();
         loadDocumentPreview();
         loadRegionHierarchy();
+        bindSubmitState();
     });
 })(window.jQuery);

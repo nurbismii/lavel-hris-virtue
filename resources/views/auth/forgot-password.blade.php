@@ -9,7 +9,7 @@
         <div class="col-lg-7 d-none d-lg-flex align-items-center auth-brand-panel">
             <div class="brand-content">
                 <div class="brand-logo-box">
-                    <img src="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" alt="V-People">
+                    <img src="{{ asset('assets/img/kaiadmin/icon-2.PNG') }}" alt="V-People">
                 </div>
 
                 <div class="brand-badge">
@@ -55,7 +55,7 @@
                 {{-- MOBILE LOGO --}}
                 <div class="d-lg-none text-center mb-4">
                     <div class="mobile-logo">
-                        <img src="{{ asset('assets/img/kaiadmin/favicon-1.png') }}" alt="V-People">
+                        <img src="{{ asset('assets/img/kaiadmin/icon-2.PNG') }}" alt="V-People">
                     </div>
                     <h4 class="fw-bold mb-1">V-People</h4>
                     <p class="text-muted small mb-0">PT Virtue Dragon Nickel Industry</p>

@@ -42,9 +42,9 @@
 @endpush
 
 @section('content')
-<div class="container-fluid">
+<div class="container-fluid karyawan-page">
     <div class="page-inner">
-        <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
+        <div class="karyawan-page-header d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-users text-primary me-2"></i>
@@ -56,11 +56,13 @@
             </div>
 
             @if($canManageMasterData)
-            <div class="ms-md-auto py-2 py-md-0 d-flex flex-wrap gap-2">
+            <div class="karyawan-actions ms-md-auto py-2 py-md-0 d-flex flex-wrap gap-2">
                 <a class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalBulkDocuments">
+                    <i class="fas fa-folder-open me-1"></i>
                     Bulk Dokumen
                 </a>
                 <a class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalImportEmployee">
+                    <i class="fas fa-file-import me-1"></i>
                     Bulk Karyawan
                 </a>
             </div>
@@ -74,21 +76,50 @@
         @endif
 
         <div class="col-md-12">
-
-            <div class="card">
+            <div class="card karyawan-card">
                 <div class="card-body">
-                    <div class="table">
-                        <div class="row mb-3">
-                            <div class="col-md-3">
-                                <select id="filter_area" class="form-select" multiple size="{{ min(max($areas->count(), 2), 5) }}">
+                    <div class="karyawan-filter-panel">
+                        <div class="karyawan-filter-panel__header">
+                            <div>
+                                <div class="karyawan-filter-panel__title">Filter Data</div>
+                                <small class="text-muted">Pilih perusahaan, departemen, divisi, dan status karyawan.</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-light border" id="btnResetFilter">
+                                Reset
+                            </button>
+                        </div>
+
+                        <div class="row g-3 align-items-end">
+                            <div class="col-xl-3 col-md-6">
+                                <label class="form-label">Perusahaan</label>
+                                <div class="company-filter">
+                                    <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="companyFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                        <span id="filterAreaLabel">Semua perusahaan</span>
+                                    </button>
+                                    <div class="dropdown-menu company-filter__menu" aria-labelledby="companyFilterDropdown">
+                                        <div class="company-filter__menu-header">
+                                            <span>Pilih perusahaan</span>
+                                            <button type="button" class="btn btn-link btn-sm p-0" id="btnClearAreaFilter">Kosongkan</button>
+                                        </div>
+                                        @forelse ($areas as $area)
+                                        <label class="company-filter__option">
+                                            <input type="checkbox" class="form-check-input filter-area-check" value="{{ $area->kode_perusahaan }}">
+                                            <span>{{ $area->kode_perusahaan }}</span>
+                                        </label>
+                                        @empty
+                                        <div class="company-filter__empty">Tidak ada perusahaan tersedia.</div>
+                                        @endforelse
+                                    </div>
+                                </div>
+                                <select id="filter_area" class="d-none" multiple aria-hidden="true">
                                     @foreach ($areas as $area)
                                     <option value="{{ $area->kode_perusahaan }}">{{ $area->kode_perusahaan }}</option>
                                     @endforeach
                                 </select>
-                                <small class="text-muted">Kosongkan untuk semua perusahaan. Tahan Ctrl/Cmd untuk pilih lebih dari satu.</small>
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-xl-3 col-md-6">
+                                <label class="form-label" for="filter_departemen">Departemen</label>
                                 <select id="filter_departemen" class="form-select">
                                     <option value="">Semua Departemen</option>
                                     @php
@@ -108,7 +139,8 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-xl-3 col-md-6">
+                                <label class="form-label" for="filter_divisi">Divisi</label>
                                 <select id="filter_divisi" class="form-select">
                                     <option value="">Semua Divisi</option>
                                     @foreach ($divisis as $v)
@@ -117,7 +149,8 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-xl-3 col-md-6">
+                                <label class="form-label" for="filter_resign">Status</label>
                                 <select id="filter_resign" class="form-select">
                                     <option value="">Semua Kategori Resign</option>
                                     <option value="AKTIF" selected>Aktif</option>
@@ -136,7 +169,9 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
 
+                    <div class="karyawan-table-section">
                         <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                             <thead>
                                 <tr>
@@ -488,19 +523,71 @@
 
 <script>
     function selectedAreaCodes() {
-        const value = $('#filter_area').val();
+        return $('.filter-area-check:checked').map(function() {
+            return this.value;
+        }).get();
+    }
 
-        if (Array.isArray(value)) {
-            return value.filter(Boolean);
+    function syncAreaFilter() {
+        const areas = selectedAreaCodes();
+        const label = areas.length
+            ? (areas.length <= 2 ? areas.join(', ') : `${areas.length} perusahaan dipilih`)
+            : 'Semua perusahaan';
+
+        $('#filter_area').val(areas);
+        $('#filterAreaLabel').text(label);
+        $('#companyFilterDropdown').toggleClass('is-active', areas.length > 0);
+    }
+
+    function resetDepartmentAndDivision(disableDepartment = true) {
+        $('#filter_departemen')
+            .html('<option value="">Semua Departemen</option>')
+            .val('')
+            .prop('disabled', disableDepartment);
+
+        $('#filter_divisi')
+            .html('<option value="">Semua Divisi</option>')
+            .val('')
+            .prop('disabled', true);
+    }
+
+    function reloadDepartmentsForSelectedAreas() {
+        const areas = selectedAreaCodes();
+
+        resetDepartmentAndDivision(!areas.length);
+
+        if (!areas.length) {
+            table.draw();
+            return;
         }
 
-        return value ? [value] : [];
+        $('#filter_departemen').html('<option value="">Loading...</option>');
+
+        $.get("{{ route('ajax.departemen.by.area') }}", {
+            area: areas
+        }, function(res) {
+            let opt = '<option value="">Semua Departemen</option>';
+            res.forEach(r => {
+                opt += `<option value="${r.id}">${r.departemen}</option>`;
+            });
+            $('#filter_departemen').html(opt).prop('disabled', false);
+            table.draw();
+        }).fail(function() {
+            resetDepartmentAndDivision(true);
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: 'Departemen gagal dimuat. Silakan coba lagi.',
+                confirmButtonText: 'OK'
+            });
+        });
     }
 
     let table = $('#multi-filter-select').DataTable({
         processing: true,
         serverSide: true,
         responsive: true,
+        autoWidth: false,
 
         dom: "<'row mb-2'<'col-md-6'l><'col-md-6 text-end'f>>" +
             "<'table-scroll-wrapper'tr>" +
@@ -554,40 +641,31 @@
         ]
     });
 
-    // AREA berubah
-    $('#filter_area').on('change', function() {
-        const areas = selectedAreaCodes();
-        $('#filter_departemen').html('<option value="">Loading...</option>');
-        $('#filter_divisi').html('<option value="">Semua Divisi</option>');
-        $('#filter_departemen').prop('disabled', !areas.length);
-        $('#filter_divisi').prop('disabled', true);
+    syncAreaFilter();
+    resetDepartmentAndDivision(true);
 
-        if (!areas.length) {
-            $('#filter_departemen').html('<option value="">Semua Departemen</option>');
-            table.draw();
-            return;
-        }
-
-        $.get("{{ route('ajax.departemen.by.area') }}", {
-            area: areas
-        }, function(res) {
-            let opt = '<option value="">Semua Departemen</option>';
-            res.forEach(r => {
-                opt += `<option value="${r.id}">${r.departemen}</option>`;
-            });
-            $('#filter_departemen').html(opt);
-            table.draw();
-        });
+    $('.filter-area-check').on('change', function() {
+        syncAreaFilter();
+        $('#filter_area').trigger('change');
     });
 
-    // DEPARTEMEN berubah
+    $('#btnClearAreaFilter').on('click', function() {
+        $('.filter-area-check').prop('checked', false);
+        syncAreaFilter();
+        $('#filter_area').trigger('change');
+    });
+
+    $('#filter_area').on('change', function() {
+        reloadDepartmentsForSelectedAreas();
+    });
+
     $('#filter_departemen').on('change', function() {
         let departemen = $(this).val();
 
-        $('#filter_divisi').html('<option value="">Loading...</option>');
+        $('#filter_divisi').html('<option value="">Loading...</option>').prop('disabled', true);
 
         if (!departemen) {
-            $('#filter_divisi').html('<option value="">Semua Divisi</option>');
+            $('#filter_divisi').html('<option value="">Semua Divisi</option>').prop('disabled', true);
             table.draw();
             return;
         }
@@ -599,20 +677,29 @@
             res.forEach(r => {
                 opt += `<option value="${r.id}">${r.nama_divisi}</option>`;
             });
-            $('#filter_divisi').html(opt);
+            $('#filter_divisi').html(opt).prop('disabled', false);
             table.draw();
+        }).fail(function() {
+            $('#filter_divisi').html('<option value="">Divisi gagal dimuat</option>').prop('disabled', true);
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: 'Divisi gagal dimuat. Silakan coba lagi.',
+                confirmButtonText: 'OK'
+            });
         });
     });
 
-    // DIVISI & STATUS
     $('#filter_divisi, #filter_resign').on('change', function() {
         table.draw();
     });
 
-    $('#filter_departemen, #filter_divisi').prop('disabled', true);
-
-    $('#filter_departemen').on('change', function() {
-        $('#filter_divisi').prop('disabled', !this.value);
+    $('#btnResetFilter').on('click', function() {
+        $('.filter-area-check').prop('checked', false);
+        syncAreaFilter();
+        resetDepartmentAndDivision(true);
+        $('#filter_resign').val('AKTIF');
+        table.draw();
     });
 
     const documentPreviewModalEl = document.getElementById('modalDocumentPreview');

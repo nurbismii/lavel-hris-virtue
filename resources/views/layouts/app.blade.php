@@ -7,7 +7,7 @@
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="app-fonts-url" content="{{ versioned_asset('assets/css/fonts.min.css') }}">
-    <link rel="icon" href="{{ versioned_asset('assets/img/kaiadmin/favicon-1.png') }}" type="image/x-icon" />
+    <link rel="icon" href="{{ versioned_asset('assets/img/kaiadmin/icon-2.PNG') }}" type="image/x-icon" />
 
     <!-- DataTables Responsive CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
@@ -27,9 +27,9 @@
 
 <body>
     @php
-        $appHomeUrl = auth()->check()
-            ? route(auth()->user()->preferredHomeRouteName())
-            : url('/');
+    $appHomeUrl = auth()->check()
+    ? route(auth()->user()->preferredHomeRouteName())
+    : url('/');
     @endphp
     <div class="wrapper">
         <!-- Sidebar -->
@@ -42,7 +42,7 @@
                     <!-- Logo Header -->
                     <div class="logo-header" data-background-color="white">
                         <a href="{{ $appHomeUrl }}" class="logo app-brand app-brand--header text-decoration-none" aria-label="V-People">
-                            <img src="{{ versioned_asset('assets/img/kaiadmin/favicon-1.png') }}" alt="" class="navbar-brand app-brand__icon" />
+                            <img src="{{ versioned_asset('assets/img/kaiadmin/icon-2.PNG') }}" alt="" class="navbar-brand app-brand__icon" />
                             <span class="app-brand__text">V-People</span>
                         </a>
                         <div class="nav-toggle">
@@ -58,8 +58,8 @@
                 </div>
                 <div class="mobile-top-language d-lg-none">
                     @include('partials.language-switcher', [
-                        'class' => 'language-switcher--mobile-top',
-                        'id' => 'languageSwitcherMobileTopDropdown',
+                    'class' => 'language-switcher--mobile-top',
+                    'id' => 'languageSwitcherMobileTopDropdown',
                     ])
                 </div>
                 <!-- Navbar Header -->
@@ -117,8 +117,7 @@
                         class="form-control"
                         rows="4"
                         maxlength="500"
-                        placeholder="Contoh: Dokumen pendukung belum sesuai atau periode pengajuan perlu diperbaiki."
-                    ></textarea>
+                        placeholder="Contoh: Dokumen pendukung belum sesuai atau periode pengajuan perlu diperbaiki."></textarea>
                     <div class="invalid-feedback">
                         Alasan penolakan wajib diisi.
                     </div>
@@ -191,7 +190,7 @@
     <script src="{{ versioned_asset('assets/js/plugin/sweetalert/sweetalert.min.js') }}"></script>
     <script>
         window.AppDialog = window.AppDialog || {
-            alert: function (title, text, icon) {
+            alert: function(title, text, icon) {
                 const message = text || title;
                 const type = icon || 'warning';
 
@@ -216,7 +215,7 @@
                 window.alert(message);
                 return Promise.resolve();
             },
-            confirm: function (options) {
+            confirm: function(options) {
                 const config = Object.assign({
                     title: 'Konfirmasi',
                     text: 'Lanjutkan proses ini?',
@@ -235,7 +234,7 @@
                         confirmButtonText: config.confirmButtonText,
                         cancelButtonText: config.cancelButtonText,
                         reverseButtons: true
-                    }).then(function (result) {
+                    }).then(function(result) {
                         return !!result.isConfirmed;
                     });
                 }
@@ -247,15 +246,15 @@
                         icon: config.icon,
                         buttons: [config.cancelButtonText, config.confirmButtonText],
                         dangerMode: config.dangerMode
-                    }).then(function (confirmed) {
+                    }).then(function(confirmed) {
                         return !!confirmed;
                     });
                 }
 
                 return Promise.resolve(window.confirm(config.text || config.title));
             },
-            confirmForm: function (form, options) {
-                return this.confirm(options).then(function (confirmed) {
+            confirmForm: function(form, options) {
+                return this.confirm(options).then(function(confirmed) {
                     if (!confirmed) {
                         return false;
                     }
@@ -267,7 +266,7 @@
             }
         };
 
-        document.addEventListener('submit', function (event) {
+        document.addEventListener('submit', function(event) {
             const form = event.target;
 
             if (!form || !form.matches('form[data-swal-confirm]') || form.dataset.swalConfirmed === '1') {
@@ -338,9 +337,9 @@
 
             const openBootstrapModal = function(element) {
                 if (window.bootstrap && bootstrap.Modal) {
-                    const instance = bootstrap.Modal.getOrCreateInstance
-                        ? bootstrap.Modal.getOrCreateInstance(element)
-                        : new bootstrap.Modal(element);
+                    const instance = bootstrap.Modal.getOrCreateInstance ?
+                        bootstrap.Modal.getOrCreateInstance(element) :
+                        new bootstrap.Modal(element);
 
                     instance.show();
 
@@ -514,6 +513,7 @@
             });
         })();
     </script>
+    <script src="{{ versioned_asset('assets/js/action-state.js') }}"></script>
 
     @auth
     <script>
@@ -527,8 +527,8 @@
             latestUrl: @json(route('notifications.latest')),
             fallbackInterval: 60000,
             inboxUrl: @json(route('kotak-masuk.index')),
-            desktopIconUrl: @json(url(versioned_asset('assets/img/kaiadmin/favicon-1.png'))),
-            desktopBadgeUrl: @json(url(versioned_asset('assets/img/kaiadmin/favicon-1.png'))),
+            desktopIconUrl: @json(url(versioned_asset('assets/img/kaiadmin/icon-2.PNG'))),
+            desktopBadgeUrl: @json(url(versioned_asset('assets/img/kaiadmin/icon-2.PNG'))),
         };
     </script>
     @endauth

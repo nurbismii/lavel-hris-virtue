@@ -65,6 +65,8 @@ return array_merge($document, [
 
 $uploadedDocumentCount = $documentFields->filter(fn($document) => filled($document['path']))->count() + (filled($employee->face_reference_path) ? 1 : 0);
 $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondary';
+$nameParts = preg_split('/\s+/', trim((string) $employee->nama_karyawan), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+$employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($part, 0, 1))->implode('') ?: 'KR';
 @endphp
 
 <div class="container-fluid employee-edit-shell"
@@ -82,23 +84,33 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
     data-kecamatans-base-url="{{ url('/wilayah/kecamatans') }}"
     data-kelurahans-base-url="{{ url('/wilayah/kelurahans') }}">
     <div class="page-inner">
-        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 pt-2 pb-4">
-            <div>
-                <h3 class="fw-bold mb-1">Edit Karyawan</h3>
-                <small class="text-muted">Kelola data inti, alamat dan dokumen karyawan.</small>
+        <div class="employee-edit-header d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 pt-2 pb-4">
+            <div class="employee-edit-header__identity">
+                <div class="employee-edit-header__avatar">{{ strtoupper($employeeInitials) }}</div>
+                <div>
+                    <div class="employee-edit-header__eyebrow">Edit Data Karyawan</div>
+                    <h3 class="fw-bold mb-1">{{ $employee->nama_karyawan ?: 'Karyawan' }}</h3>
+                    <div class="employee-edit-header__meta">
+                        <span>{{ $employee->nik }}</span>
+                        <span>{{ $employee->area_kerja ?: 'Area belum diatur' }}</span>
+                        <span class="text-{{ $statusBadgeClass }}">{{ $employee->status_resign ?: 'Status belum diatur' }}</span>
+                    </div>
+                </div>
             </div>
-            <a href="{{ route('karyawan.index') }}" class="btn btn-sm btn-light">
-                <i class="fas fa-arrow-left me-1"></i>Kembali
-            </a>
+            <div class="employee-edit-header__actions">
+                <a href="{{ route('karyawan.index') }}" class="btn btn-sm btn-light border">
+                    <i class="fas fa-arrow-left me-1"></i>Kembali
+                </a>
+            </div>
         </div>
 
-        <form action="{{ route('karyawan.update', $employee->nik) }}" method="POST" enctype="multipart/form-data" data-auto-compress-images="true">
+        <form id="employeeEditForm" action="{{ route('karyawan.update', $employee->nik) }}" method="POST" enctype="multipart/form-data" data-auto-compress-images="true">
             @csrf
             @method('PUT')
 
             <div class="row g-4">
                 <div class="col-xl-8">
-                    <div class="card border-0">
+                    <div class="card employee-form-card border-0">
                         <div class="card-body p-4">
                             <ul class="nav nav-pills employee-edit-tabs" id="employeeEditTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
@@ -224,7 +236,7 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                                                         <option value="">-- Pilih Departemen --</option>
                                                         @foreach ($departemens as $departemen)
                                                         <option value="{{ $departemen->id }}" {{ old('departemen_id', $employee->departemen_id) == $departemen->id ? 'selected' : '' }}>
-                                                            {{ $departemen->nama_departemen }}
+                                                            {{ $departemen->departemen }}
                                                         </option>
                                                         @endforeach
                                                     </select>
@@ -504,8 +516,13 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                     <div class="employee-action-card d-flex flex-column gap-4">
                         <div class="card employee-summary-card border-0">
                             <div class="card-body p-4">
-                                <div class="employee-summary-card__name">{{ $employee->nama_karyawan }}</div>
-                                <div class="employee-summary-card__nik mb-3">{{ $employee->nik }}</div>
+                                <div class="employee-summary-card__top">
+                                    <div class="employee-summary-card__avatar">{{ strtoupper($employeeInitials) }}</div>
+                                    <div>
+                                        <div class="employee-summary-card__name">{{ $employee->nama_karyawan }}</div>
+                                        <div class="employee-summary-card__nik">{{ $employee->nik }}</div>
+                                    </div>
+                                </div>
                                 <div class="d-flex flex-wrap gap-2 mb-4">
                                     <span class="badge bg-{{ $statusBadgeClass }}">{{ $employee->status_resign ?: 'Belum diatur' }}</span>
                                     @if($employee->area_kerja)
@@ -550,12 +567,12 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
                             </div>
                         </div>
 
-                        <div class="card border-0">
+                        <div class="card employee-save-card border-0">
                             <div class="card-body p-4">
                                 <div class="employee-edit-section__title">Aksi</div>
                                 <div class="employee-edit-section__caption">Simpan perubahan setelah seluruh data dan dokumen diperiksa kembali.</div>
                                 <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-primary">
+                                    <button type="submit" class="btn btn-primary" id="employeeSaveButton" data-loading-text="Menyimpan...">
                                         <i class="fas fa-save me-1"></i> Simpan Perubahan
                                     </button>
                                     <a href="{{ route('karyawan.index') }}" class="btn btn-outline-secondary">
