@@ -7,7 +7,7 @@
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="app-fonts-url" content="{{ versioned_asset('assets/css/fonts.min.css') }}">
-    <link rel="icon" href="{{ versioned_asset('assets/img/kaiadmin/icon-2.PNG') }}" type="image/x-icon" />
+    <link rel="icon" href="{{ versioned_asset('assets/img/kaiadmin/icon-2.png') }}" type="image/x-icon" />
 
     <!-- DataTables Responsive CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
@@ -42,7 +42,7 @@
                     <!-- Logo Header -->
                     <div class="logo-header" data-background-color="white">
                         <a href="{{ $appHomeUrl }}" class="logo app-brand app-brand--header text-decoration-none" aria-label="V-People">
-                            <img src="{{ versioned_asset('assets/img/kaiadmin/icon-2.PNG') }}" alt="" class="navbar-brand app-brand__icon" />
+                            <img src="{{ versioned_asset('assets/img/kaiadmin/icon-2.png') }}" alt="" class="navbar-brand app-brand__icon" />
                             <span class="app-brand__text">V-People</span>
                         </a>
                         <div class="nav-toggle">
@@ -519,7 +519,7 @@
     <script>
         window.AppRealtimeNotifications = {
             enabled: @json(config('broadcasting.default') === 'pusher' && filled(config('broadcasting.connections.pusher.key'))),
-            userId: @json((string) auth()->id()),
+            userId: @json((string) auth() - > id()),
             pusherKey: @json(config('broadcasting.connections.pusher.key')),
             pusherCluster: @json(config('broadcasting.connections.pusher.options.cluster')),
             forceTLS: @json((bool) data_get(config('broadcasting.connections.pusher.options'), 'useTLS', true)),
@@ -527,8 +527,8 @@
             latestUrl: @json(route('notifications.latest')),
             fallbackInterval: 60000,
             inboxUrl: @json(route('kotak-masuk.index')),
-            desktopIconUrl: @json(url(versioned_asset('assets/img/kaiadmin/icon-2.PNG'))),
-            desktopBadgeUrl: @json(url(versioned_asset('assets/img/kaiadmin/icon-2.PNG'))),
+            desktopIconUrl: @json(url(versioned_asset('assets/img/kaiadmin/icon-2.png'))),
+            desktopBadgeUrl: @json(url(versioned_asset('assets/img/kaiadmin/icon-2.png'))),
         };
     </script>
     @endauth

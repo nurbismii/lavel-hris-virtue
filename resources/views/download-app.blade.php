@@ -14,7 +14,7 @@
 
     <div class="card">
 
-        <img src="{{ asset('assets/img/kaiadmin/icon-2.PNG') }}" class="logo">
+        <img src="{{ asset('assets/img/kaiadmin/icon-2.png') }}" class="logo">
 
         <h2>Gunakan Aplikasi Resmi V-People</h2>
 

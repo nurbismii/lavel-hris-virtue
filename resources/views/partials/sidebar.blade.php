@@ -16,7 +16,7 @@ $electronicContractAdminActive = request()->routeIs('electronic-contracts.*');
     <div class="sidebar-logo">
         <div class="logo-header" data-background-color="white">
             <a href="{{ $homeUrl }}" class="logo app-brand app-brand--sidebar text-decoration-none" aria-label="V-People">
-                <img src="{{ asset('assets/img/kaiadmin/icon-2.PNG')}}" alt="" class="navbar-brand app-brand__icon" height="80" />
+                <img src="{{ asset('assets/img/kaiadmin/icon-2.png')}}" alt="" class="navbar-brand app-brand__icon" height="80" />
                 <span class="app-brand__text">V-People</span>
             </a>
             <div class="nav-toggle">
