@@ -519,7 +519,7 @@
     <script>
         window.AppRealtimeNotifications = {
             enabled: @json(config('broadcasting.default') === 'pusher' && filled(config('broadcasting.connections.pusher.key'))),
-            userId: @json((string) auth() - > id()),
+            userId: @json((string) auth()->id()),
             pusherKey: @json(config('broadcasting.connections.pusher.key')),
             pusherCluster: @json(config('broadcasting.connections.pusher.options.cluster')),
             forceTLS: @json((bool) data_get(config('broadcasting.connections.pusher.options'), 'useTLS', true)),
