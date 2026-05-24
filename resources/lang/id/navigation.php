@@ -15,6 +15,7 @@ return [
     'attendance_location' => 'Lokasi Presensi',
     'audit_trail' => 'Audit Trail',
     'company' => 'Perusahaan',
+    'contract_renewal' => 'Perpanjangan Kontrak',
     'dashboard' => 'Dashboard',
     'dashboard_employee' => 'Dashboard Karyawan',
     'day_off_setting' => 'Setting Hari Off',

@@ -24,10 +24,13 @@ use Illuminate\Validation\Rule;
 
 class PresensiController extends Controller
 {
+    private const ATTENDANCE_COMPANY_CODES = ['VDNI', 'VDNIP'];
+
     public function index(Request $request)
     {
         $scopeQuery = $request->user()->applyEmployeeScope(
             Employee::query()->where('status_resign', 'AKTIF')
+                ->whereIn('area_kerja', self::ATTENDANCE_COMPANY_CODES)
         );
         $departemenIds = (clone $scopeQuery)->select('departemen_id')->distinct()->pluck('departemen_id')->filter();
         $divisiIds = (clone $scopeQuery)->select('divisi_id')->distinct()->pluck('divisi_id')->filter();
@@ -39,7 +42,10 @@ class PresensiController extends Controller
             ->get();
 
         $divisis = Divisi::whereIn('id', $divisiIds)->orderBy('nama_divisi')->get();
-        $areas = Perusahaan::whereIn('kode_perusahaan', $areaCodes)->orderBy('kode_perusahaan')->get();
+        $areas = Perusahaan::whereIn('kode_perusahaan', $areaCodes)
+            ->whereIn('kode_perusahaan', self::ATTENDANCE_COMPANY_CODES)
+            ->orderBy('kode_perusahaan')
+            ->get();
 
         return view('admin.presensi.index', compact(
             'departemens',
@@ -650,6 +656,7 @@ class PresensiController extends Controller
         $query = Employee::query()
             ->select($columns)
             ->where('status_resign', 'AKTIF')
+            ->whereIn('area_kerja', self::ATTENDANCE_COMPANY_CODES)
             ->where('departemen_id', $request->departemen);
 
         $request->user()->applyEmployeeScope($query);

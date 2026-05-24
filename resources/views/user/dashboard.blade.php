@@ -115,6 +115,13 @@ $menuCatalog = [
 'description' => 'Kelola tanda tangan master Pihak Pertama untuk kontrak elektronik.',
 'roles' => ['Super Admin', 'HR'],
 ],
+'contract_renewal' => [
+'route_name' => 'contract-renewals.index',
+'icon' => 'fas fa-file-contract',
+'tone' => 'violet',
+'description' => 'Kelola reminder, penilaian, approval, dan penerbitan adendum perpanjangan kontrak.',
+'roles' => ['Super Admin', 'HR', 'HOD', 'Admin Divisi'],
+],
 'kontrak_elektronik' => [
 'route_name' => 'kontrak-elektronik.index',
 'icon' => 'fas fa-file-contract',

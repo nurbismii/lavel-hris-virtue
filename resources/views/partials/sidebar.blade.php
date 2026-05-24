@@ -10,6 +10,7 @@ $canUseDelegateApproval = $user && ($approvalDelegateAccess ?? false);
 $shiftMenuActive = request()->routeIs('shifts.*') || request()->routeIs('shift-settings.*');
 $overtimeMenuActive = request()->routeIs('overtime-orders.*') || request()->routeIs('overtime-masters.*');
 $electronicContractAdminActive = request()->routeIs('electronic-contracts.*');
+$contractRenewalActive = request()->routeIs('contract-renewals.*');
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -54,7 +55,7 @@ $electronicContractAdminActive = request()->routeIs('electronic-contracts.*');
                 </li>
                 @endif
 
-                @if($can('data_karyawan') || $can('data_user') || $can('slip_gaji_admin') || $can('electronic_contract_admin') || $can('resign') || $can('surat_peringatan') || $can('data_presensi') || $can('distribusi_wilayah'))
+                @if($can('data_karyawan') || $can('data_user') || $can('slip_gaji_admin') || $can('electronic_contract_admin') || $can('contract_renewal') || $can('resign') || $can('surat_peringatan') || $can('data_presensi') || $can('distribusi_wilayah'))
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
@@ -126,6 +127,15 @@ $electronicContractAdminActive = request()->routeIs('electronic-contracts.*');
                             @endif
                         </ul>
                     </div>
+                </li>
+                @endif
+
+                @if($can('contract_renewal'))
+                <li class="nav-item {{ $contractRenewalActive ? 'active' : '' }}">
+                    <a href="{{ route('contract-renewals.index') }}">
+                        <i class="fas fa-file-contract"></i>
+                        <p>{{ __('navigation.contract_renewal') }}</p>
+                    </a>
                 </li>
                 @endif
 

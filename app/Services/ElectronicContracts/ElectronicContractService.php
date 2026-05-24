@@ -7,12 +7,14 @@ use App\Models\ContractTemplate;
 use App\Models\ContractTemplateAsset;
 use App\Models\ElectronicContractFirstPartySignature;
 use App\Models\EmployeeContract;
+use App\Models\EmployeeContractHistory;
 use App\Models\EmployeeContractSignature;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -99,8 +101,14 @@ class ElectronicContractService
                     ->orderByDesc('addendum_sequence')
                     ->lockForUpdate()
                     ->first(['addendum_sequence']);
+                $latestHistorySequence = Schema::hasTable('employee_contract_histories')
+                    ? (int) EmployeeContractHistory::query()
+                        ->where('nik', $data['nik'])
+                        ->where('history_type', ContractTemplate::TYPE_ADDENDUM_PKWT)
+                        ->max('history_sequence')
+                    : 0;
 
-                $sequence = ((int) optional($latestAddendum)->addendum_sequence) + 1;
+                $sequence = max((int) optional($latestAddendum)->addendum_sequence, $latestHistorySequence) + 1;
 
                 $payload['addendum_sequence'] = $sequence;
                 $payload['addendum_number'] = $this->makeAddendumNumber(

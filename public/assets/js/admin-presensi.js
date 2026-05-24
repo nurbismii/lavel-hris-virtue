@@ -109,6 +109,19 @@
         return value ? [value] : [];
     }
 
+    function initCompanySelect() {
+        if (!$.fn.select2 || !elements.area.length || elements.area.data('select2')) {
+            return;
+        }
+
+        elements.area.select2({
+            placeholder: elements.area.data('placeholder') || 'Pilih perusahaan',
+            width: '100%',
+            closeOnSelect: false,
+            allowClear: true,
+        });
+    }
+
     function renderDateHeader(date, meta = {}) {
         const dayLabel = escapeHtml(meta.day || '');
         const holidayName = escapeHtml(meta.holiday_name || '');
@@ -468,6 +481,7 @@
     elements.exportButton.on('click', exportData);
 
     $(document).ready(function() {
+        initCompanySelect();
         elements.cutoff.val(formatMonthValue(new Date()));
         updateCutoffLabel();
     });

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ApiController;
 use App\Http\Controllers\Admin\AuditTrailController;
+use App\Http\Controllers\Admin\ContractRenewalController;
 use App\Http\Controllers\Admin\ElectronicContractAssetController;
 use App\Http\Controllers\Admin\ElectronicContractClauseController;
 use App\Http\Controllers\Admin\ElectronicContractController as AdminElectronicContractController;
@@ -227,6 +228,25 @@ Route::middleware(['android.redirect'])->group(function () {
                 Route::post('/{contract}/generate-nik-activation', [AdminElectronicContractController::class, 'generateNikAndActivateVhireCandidate'])->name('generate-nik-activation');
                 Route::post('/{contract}/activate-vhire-candidate', [AdminElectronicContractController::class, 'activateVhireCandidate'])->name('activate-vhire-candidate');
                 Route::post('/{contract}/cancel', [AdminElectronicContractController::class, 'cancel'])->name('cancel');
+            });
+
+        Route::prefix('/perpanjangan-kontrak')
+            ->name('contract-renewals.')
+            ->group(function () {
+                Route::get('/', [ContractRenewalController::class, 'index'])->name('index');
+                Route::post('/import-history', [ContractRenewalController::class, 'importHistory'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('import-history');
+                Route::post('/bulk', [ContractRenewalController::class, 'bulkStore'])->name('bulk-store');
+                Route::post('/', [ContractRenewalController::class, 'store'])->name('store');
+                Route::post('/{renewal}/delegate', [ContractRenewalController::class, 'delegate'])->name('delegate');
+                Route::post('/{renewal}/assessment', [ContractRenewalController::class, 'assess'])->name('assessment');
+                Route::post('/{renewal}/hod', [ContractRenewalController::class, 'hodProcess'])
+                    ->middleware('role:Super Admin,HOD')
+                    ->name('hod.process');
+                Route::post('/{renewal}/hrd', [ContractRenewalController::class, 'hrdProcess'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('hrd.process');
             });
         Route::get('/leave-balances', [LeaveBalanceController::class, 'index'])
             ->middleware(['menu:leave_balance', 'role:Super Admin,HR'])
