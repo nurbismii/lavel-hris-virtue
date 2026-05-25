@@ -10,7 +10,7 @@ return [
     'approval_delegation' => 'Delegasi Approval',
     'area_distribution' => 'Distribusi Wilayah',
     'attendance' => 'Presensi',
-    'attendance_correction' => 'Pengajuan Presensi',
+    'attendance_correction' => 'Koreksi Presensi',
     'attendance_data' => 'Data Presensi',
     'attendance_location' => 'Lokasi Presensi',
     'audit_trail' => 'Audit Trail',

@@ -137,10 +137,10 @@ class AttendanceCorrectionApprovalController extends Controller
         $tanggal = optional($correction->tanggal)->format('d/m/Y');
 
         $user->notify(new StatusPengajuanNotification([
-            'judul' => 'Pengajuan Presensi ' . $status,
-            'pesan' => 'Pengajuan presensi tanggal ' . $tanggal . ' telah ' . strtolower($status) . ' oleh ' . $approverLabel . '.',
+            'judul' => 'Koreksi Presensi ' . $status,
+            'pesan' => 'Koreksi Presensi tanggal ' . $tanggal . ' telah ' . strtolower($status) . ' oleh ' . $approverLabel . '.',
             'url' => route('attendance-corrections.index'),
-            'tipe' => 'Pengajuan Presensi',
+            'tipe' => 'Koreksi Presensi',
         ]));
     }
 

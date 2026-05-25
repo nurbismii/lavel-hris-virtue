@@ -11,26 +11,38 @@ use App\Models\EmployeeContract;
 use App\Models\EmployeeContractHistory;
 use App\Models\EmployeeContractRenewal;
 use App\Models\Perusahaan;
+use App\Models\Resign;
 use App\Models\User;
 use App\Notifications\ContractRenewalReadyNotification;
+use App\Notifications\ContractRenewalTerminatedNotification;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Audit\AuditTrailService;
 use App\Services\ElectronicContracts\ElectronicContractService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class ContractRenewalService
 {
     public const ALLOWED_COMPANY_CODES = ['VDNI', 'VDNIP'];
+    private const TERMINATION_STATUS = 'PUTUS KONTRAK';
 
     private ElectronicContractService $contractService;
+    private AuditTrailService $auditTrail;
+    private ContractRenewalSalaryService $salaryService;
 
-    public function __construct(ElectronicContractService $contractService)
-    {
+    public function __construct(
+        ElectronicContractService $contractService,
+        AuditTrailService $auditTrail,
+        ContractRenewalSalaryService $salaryService
+    ) {
         $this->contractService = $contractService;
+        $this->auditTrail = $auditTrail;
+        $this->salaryService = $salaryService;
     }
 
     public function upcomingHistoriesQuery(User $user, int $days = 30): Builder
@@ -329,11 +341,7 @@ class ContractRenewalService
             ]);
         }
 
-        if ($months < 1 || $months > 12) {
-            throw ValidationException::withMessages([
-                'assessment_months' => 'Durasi perpanjangan harus 1 sampai 12 bulan.',
-            ]);
-        }
+        $this->assertValidAssessmentDecision($months);
 
         $renewal->update([
             'assessment_months' => $months,
@@ -344,7 +352,12 @@ class ContractRenewalService
             'updated_by' => (string) $actor->id,
         ]);
 
-        $this->notifyHodUsers($renewal->fresh(['employee']), 'Penilaian perpanjangan kontrak menunggu approval HOD.');
+        $this->notifyHodUsers(
+            $renewal->fresh(['employee']),
+            $months === EmployeeContractRenewal::ASSESSMENT_TERMINATE_CONTRACT
+                ? 'Keputusan putus kontrak menunggu approval HOD.'
+                : 'Penilaian perpanjangan kontrak menunggu approval HOD.'
+        );
 
         return $renewal->fresh();
     }
@@ -368,11 +381,7 @@ class ContractRenewalService
             ]);
         }
 
-        if ($months < 1 || $months > 12) {
-            throw ValidationException::withMessages([
-                'assessment_months' => 'Durasi perpanjangan harus 1 sampai 12 bulan.',
-            ]);
-        }
+        $this->assertValidAssessmentDecision($months);
 
         $renewal->update([
             'delegate_user_id' => null,
@@ -390,7 +399,12 @@ class ContractRenewalService
             'updated_by' => (string) $actor->id,
         ]);
 
-        $this->notifyHrUsers($renewal->fresh(['employee']), 'Perpanjangan kontrak sudah dinilai HOD dan menunggu approval HRD.');
+        $this->notifyHrUsers(
+            $renewal->fresh(['employee']),
+            $months === EmployeeContractRenewal::ASSESSMENT_TERMINATE_CONTRACT
+                ? 'Keputusan putus kontrak sudah disetujui HOD dan menunggu approval HRD.'
+                : 'Perpanjangan kontrak sudah dinilai HOD dan menunggu approval HRD.'
+        );
 
         return $renewal->fresh();
     }
@@ -433,7 +447,12 @@ class ContractRenewalService
             'updated_by' => (string) $actor->id,
         ]);
 
-        $this->notifyHrUsers($renewal->fresh(['employee']), 'Perpanjangan kontrak menunggu approval HRD.');
+        $this->notifyHrUsers(
+            $renewal->fresh(['employee']),
+            $renewal->isTerminationDecision()
+                ? 'Keputusan putus kontrak menunggu approval HRD.'
+                : 'Perpanjangan kontrak menunggu approval HRD.'
+        );
 
         return $renewal->fresh();
     }
@@ -469,6 +488,23 @@ class ContractRenewalService
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            if ($lockedRenewal->isTerminationDecision()) {
+                $lockedRenewal->update([
+                    'hrd_status' => EmployeeContractRenewal::APPROVAL_APPROVED,
+                    'hrd_approved_by_user_id' => (string) $actor->id,
+                    'hrd_approved_at' => now(),
+                    'hrd_rejection_reason' => null,
+                    'generated_contract_id' => null,
+                    'employee_notified_at' => now(),
+                    'status' => EmployeeContractRenewal::STATUS_CONTRACT_TERMINATED,
+                    'updated_by' => (string) $actor->id,
+                ]);
+
+                $this->notifyEmployeeContractTerminated($lockedRenewal->fresh(['employee']));
+
+                return $lockedRenewal->fresh(['generatedContract']);
+            }
+
             if ($lockedRenewal->generated_contract_id) {
                 return $lockedRenewal->fresh();
             }
@@ -490,6 +526,111 @@ class ContractRenewalService
             $this->notifyEmployeeContractReady($lockedRenewal->fresh(['employee', 'generatedContract']));
 
             return $lockedRenewal->fresh(['generatedContract']);
+        });
+    }
+
+    public function reviseTerminationToRenewal(EmployeeContractRenewal $renewal, int $months, string $revisionNote, User $actor): EmployeeContractRenewal
+    {
+        if (!$actor->hasRole(['Super Admin', 'HR'])) {
+            abort(403, 'Revisi putus kontrak hanya tersedia untuk HR.');
+        }
+
+        if ($months < 1 || $months > 12) {
+            throw ValidationException::withMessages([
+                'assessment_months' => 'Durasi perpanjangan hasil revisi hanya boleh 1 sampai 12 bulan.',
+            ]);
+        }
+
+        $revisionNote = trim($revisionNote);
+
+        if ($revisionNote === '') {
+            throw ValidationException::withMessages([
+                'revision_note' => 'Alasan revisi putus kontrak wajib diisi.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($renewal, $months, $revisionNote, $actor) {
+            $lockedRenewal = EmployeeContractRenewal::query()
+                ->with(['employee', 'currentHistory', 'generatedContract'])
+                ->whereKey($renewal->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedRenewal->status !== EmployeeContractRenewal::STATUS_CONTRACT_TERMINATED
+                || !$lockedRenewal->isTerminationDecision()) {
+                throw ValidationException::withMessages([
+                    'revision_note' => 'Hanya workflow PUTUS KONTRAK final yang bisa direvisi menjadi perpanjangan.',
+                ]);
+            }
+
+            if ($lockedRenewal->generated_contract_id) {
+                throw ValidationException::withMessages([
+                    'revision_note' => 'Workflow ini sudah memiliki kontrak elektronik dan tidak bisa direvisi dari putus kontrak.',
+                ]);
+            }
+
+            $this->assertCanManageEmployee($actor, $lockedRenewal->employee);
+
+            $oldRenewalValues = $this->renewalAuditValues($lockedRenewal);
+            $employeeSync = $this->restoreEmployeeForTerminationRevision($lockedRenewal, $revisionNote);
+
+            $lockedRenewal->forceFill([
+                'assessment_months' => $months,
+                'assessment_note' => $revisionNote,
+                'assessed_by_user_id' => (string) $actor->id,
+                'assessed_at' => now(),
+                'hod_status' => EmployeeContractRenewal::APPROVAL_APPROVED,
+                'hod_approved_by_user_id' => (string) $actor->id,
+                'hod_approved_at' => now(),
+                'hod_rejection_reason' => null,
+                'hrd_status' => EmployeeContractRenewal::APPROVAL_APPROVED,
+                'hrd_approved_by_user_id' => (string) $actor->id,
+                'hrd_approved_at' => now(),
+                'hrd_rejection_reason' => null,
+                'termination_revised_at' => now(),
+                'termination_revised_by_user_id' => (string) $actor->id,
+                'termination_revision_note' => $revisionNote,
+                'employee_status_sync_note' => 'Putus kontrak dibatalkan melalui revisi perpanjangan kontrak.',
+                'updated_by' => (string) $actor->id,
+            ]);
+
+            $contract = $this->generateElectronicAddendum($lockedRenewal, $actor);
+            $this->recordGeneratedHistory($lockedRenewal, $contract, $actor);
+
+            $lockedRenewal->forceFill([
+                'generated_contract_id' => $contract->id,
+                'employee_notified_at' => now(),
+                'status' => EmployeeContractRenewal::STATUS_CONTRACT_GENERATED,
+            ])->save();
+
+            $this->auditTrail->record([
+                'event' => 'contract_renewal.termination_revised_to_renewal',
+                'module' => 'contract_renewal',
+                'auditable_type' => EmployeeContractRenewal::class,
+                'auditable_id' => (string) $lockedRenewal->id,
+                'reference_table' => 'employee_contract_renewals',
+                'reference_id' => (string) $lockedRenewal->id,
+                'employee_nik' => (string) $lockedRenewal->employee_nik,
+                'actor' => $actor,
+                'old_values' => [
+                    'renewal' => $oldRenewalValues,
+                    'employee' => $employeeSync['old_values'],
+                ],
+                'new_values' => [
+                    'renewal' => $this->renewalAuditValues($lockedRenewal->fresh()),
+                    'employee' => $employeeSync['new_values'],
+                    'generated_contract_id' => $contract->id,
+                ],
+                'metadata' => [
+                    'new_assessment_months' => $months,
+                    'employee_status_restored' => $employeeSync['changed'],
+                ],
+                'note' => $revisionNote,
+            ]);
+
+            $this->notifyEmployeeContractReady($lockedRenewal->fresh(['employee', 'generatedContract']));
+
+            return $lockedRenewal->fresh(['employee', 'generatedContract']);
         });
     }
 
@@ -549,10 +690,138 @@ class ContractRenewalService
             ->values();
     }
 
+    private function restoreEmployeeForTerminationRevision(EmployeeContractRenewal $renewal, string $revisionNote): array
+    {
+        $employee = $renewal->employee;
+
+        if (!$employee) {
+            return [
+                'changed' => false,
+                'old_values' => [],
+                'new_values' => [],
+            ];
+        }
+
+        $oldValues = $this->employeeStatusAuditValues($employee);
+        $endDate = Carbon::parse($renewal->current_contract_end_date)->format('Y-m-d');
+        $status = strtoupper(trim((string) $employee->status_resign));
+
+        $this->markMatchingResignRecordAsRevised($renewal, $revisionNote);
+
+        if ($status === '' || $status === 'AKTIF') {
+            return [
+                'changed' => false,
+                'old_values' => $oldValues,
+                'new_values' => $oldValues,
+            ];
+        }
+
+        if ($status !== self::TERMINATION_STATUS) {
+            throw ValidationException::withMessages([
+                'revision_note' => 'Status karyawan sudah ' . $employee->status_resign . ', sehingga revisi otomatis tidak bisa mengubahnya menjadi AKTIF.',
+            ]);
+        }
+
+        $employeeResignDate = $employee->tgl_resign
+            ? Carbon::parse($employee->tgl_resign)->format('Y-m-d')
+            : null;
+
+        if ($employeeResignDate && $employeeResignDate !== $endDate) {
+            throw ValidationException::withMessages([
+                'revision_note' => 'Tanggal resign karyawan tidak sama dengan tanggal akhir kontrak workflow ini. Revisi perlu diproses manual oleh HRD.',
+            ]);
+        }
+
+        $employee->forceFill([
+            'status_resign' => 'AKTIF',
+            'tgl_resign' => null,
+            'alasan_resign' => null,
+            'kategori_keluar' => null,
+        ])->save();
+
+        return [
+            'changed' => true,
+            'old_values' => $oldValues,
+            'new_values' => $this->employeeStatusAuditValues($employee->fresh()),
+        ];
+    }
+
+    private function markMatchingResignRecordAsRevised(EmployeeContractRenewal $renewal, string $revisionNote): void
+    {
+        if (!Schema::hasTable('resign')) {
+            return;
+        }
+
+        $endDate = Carbon::parse($renewal->current_contract_end_date)->format('Y-m-d');
+
+        $resign = Resign::query()
+            ->where('nik_karyawan', $renewal->employee_nik)
+            ->whereDate('tanggal_keluar', $endDate)
+            ->whereRaw('UPPER(TRIM(COALESCE(tipe, ""))) = ?', [self::TERMINATION_STATUS])
+            ->lockForUpdate()
+            ->first();
+
+        if (!$resign) {
+            return;
+        }
+
+        $payload = [
+            'alasan_keluar' => Str::limit('DIBATALKAN KARENA REVISI PERPANJANGAN KONTRAK: ' . $revisionNote, 500, ''),
+        ];
+
+        if (Schema::hasColumn('resign', 'flg_kirim')) {
+            $payload['flg_kirim'] = 1;
+        }
+
+        $resign->forceFill($payload)->save();
+    }
+
+    private function employeeStatusAuditValues(?Employee $employee): array
+    {
+        if (!$employee) {
+            return [];
+        }
+
+        return [
+            'status_resign' => $employee->status_resign,
+            'tgl_resign' => optional($employee->tgl_resign)->format('Y-m-d'),
+            'alasan_resign' => $employee->alasan_resign,
+            'kategori_keluar' => $employee->kategori_keluar,
+        ];
+    }
+
+    private function renewalAuditValues(?EmployeeContractRenewal $renewal): array
+    {
+        if (!$renewal) {
+            return [];
+        }
+
+        return [
+            'status' => $renewal->status,
+            'assessment_months' => $renewal->assessment_months,
+            'assessment_note' => $renewal->assessment_note,
+            'hod_status' => $renewal->hod_status,
+            'hrd_status' => $renewal->hrd_status,
+            'generated_contract_id' => $renewal->generated_contract_id,
+            'employee_notified_at' => optional($renewal->employee_notified_at)->format('Y-m-d H:i:s'),
+            'employee_status_synced_at' => optional($renewal->employee_status_synced_at)->format('Y-m-d H:i:s'),
+            'employee_status_sync_note' => $renewal->employee_status_sync_note,
+            'termination_revised_at' => optional($renewal->termination_revised_at)->format('Y-m-d H:i:s'),
+            'termination_revised_by_user_id' => $renewal->termination_revised_by_user_id,
+            'termination_revision_note' => $renewal->termination_revision_note,
+        ];
+    }
+
     private function generateElectronicAddendum(EmployeeContractRenewal $renewal, User $actor): EmployeeContract
     {
         $renewal->loadMissing(['employee', 'currentHistory']);
         $employee = $renewal->employee;
+
+        if (!$renewal->isRenewalDecision()) {
+            throw ValidationException::withMessages([
+                'action' => 'Adendum elektronik hanya bisa dibuat untuk keputusan perpanjangan 1 sampai 12 bulan.',
+            ]);
+        }
 
         if (!$employee) {
             throw ValidationException::withMessages([
@@ -587,7 +856,7 @@ class ContractRenewalService
             'contract_end_date' => $currentEndDate->format('Y-m-d'),
             'first_extension_duration' => (int) $renewal->assessment_months . ' bulan',
             'first_extension_end_date' => $newEndDate->format('Y-m-d'),
-            'salary' => 0,
+            'salary' => $this->salaryService->resolveSalary($renewal),
             'meal_allowance' => 0,
             'clause_key' => ContractClause::KEY_CLAUSE_1,
         ], $actor);
@@ -637,6 +906,17 @@ class ContractRenewalService
         }
     }
 
+    private function notifyEmployeeContractTerminated(EmployeeContractRenewal $renewal): void
+    {
+        $user = User::query()
+            ->where('nik_karyawan', $renewal->employee_nik)
+            ->first();
+
+        if ($user) {
+            $user->notify(new ContractRenewalTerminatedNotification($renewal->id));
+        }
+    }
+
     private function notifyHodUsers(EmployeeContractRenewal $renewal, string $message): void
     {
         $this->notifyScopedApprovers($renewal, ['HOD', 'Super Admin'], 'Approval HOD Perpanjangan Kontrak', $message);
@@ -671,6 +951,15 @@ class ContractRenewalService
                     'tipe' => 'Perpanjangan Kontrak',
                 ]));
             });
+    }
+
+    private function assertValidAssessmentDecision(int $months): void
+    {
+        if ($months < EmployeeContractRenewal::ASSESSMENT_TERMINATE_CONTRACT || $months > 12) {
+            throw ValidationException::withMessages([
+                'assessment_months' => 'Pilihan hanya boleh 1 sampai 12 bulan atau PUTUS KONTRAK.',
+            ]);
+        }
     }
 
     private function assertCanManageEmployee(User $user, ?Employee $employee): void

@@ -27,7 +27,7 @@ class ApprovalDelegation extends Model
             self::MODULE_IZIN => 'Izin Paid/Unpaid',
             self::MODULE_ROSTER => 'Cuti/Insentif Roster',
             self::MODULE_ROSTER_OFF => 'OFF Roster',
-            self::MODULE_ATTENDANCE_CORRECTION => 'Pengajuan Presensi',
+            self::MODULE_ATTENDANCE_CORRECTION => 'Koreksi Presensi',
         ];
     }
 

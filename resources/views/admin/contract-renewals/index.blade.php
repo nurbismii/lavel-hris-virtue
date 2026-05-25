@@ -35,6 +35,10 @@
     $canImportHistory = $canManageRenewalWorkflow && $currentUser && $currentUser->hasRole(['Super Admin', 'HR']);
     $canApproveHod = $currentUser && $currentUser->hasRole(['Super Admin', 'HOD']);
     $canApproveHrd = $currentUser && $currentUser->hasRole(['Super Admin', 'HR']);
+    $assessmentDecisionOptions = \App\Models\EmployeeContractRenewal::assessmentDecisionOptions();
+    $renewalDurationOptions = collect($assessmentDecisionOptions)
+        ->filter(fn($label, $value) => (int) $value > 0)
+        ->all();
 @endphp
 
 <div class="container-fluid">
@@ -42,7 +46,7 @@
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
                 <h3 class="text-primary mb-1">Perpanjangan Kontrak</h3>
-                <small class="text-muted">Pantau kontrak yang akan berakhir, lakukan penilaian HOD atau delegasikan penilaian, lalu terbitkan adendum elektronik setelah approval HRD.</small>
+                <small class="text-muted">Pantau kontrak yang akan berakhir, lakukan penilaian HOD atau delegasikan penilaian, lalu HRD menyetujui perpanjangan atau putus kontrak.</small>
             </div>
             <form method="GET" action="{{ route('contract-renewals.index') }}" class="d-flex flex-wrap gap-2 justify-content-md-end">
                 <select name="area" class="form-select form-select-sm js-contract-area-filter" style="width: 190px;">
@@ -168,16 +172,16 @@
                                     @endif
                                 </select>
                             </div>
-                            <div class="col-lg-2 col-md-6">
-                                <label class="form-label small mb-1">Durasi HOD</label>
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label small mb-1">Keputusan HOD</label>
                                 <select name="assessment_months" class="form-select form-select-sm js-bulk-hod-field">
-                                    <option value="">Pilih bulan</option>
-                                    @for($month = 1; $month <= 12; $month++)
-                                        <option value="{{ $month }}">{{ $month }} bulan</option>
-                                    @endfor
+                                    <option value="">Pilih keputusan</option>
+                                    @foreach($assessmentDecisionOptions as $value => $label)
+                                        <option value="{{ $value }}">{{ $label }}</option>
+                                    @endforeach
                                 </select>
                             </div>
-                            <div class="col-lg-4 col-md-8">
+                            <div class="col-lg-3 col-md-8">
                                 <label class="form-label small mb-1">Catatan HOD</label>
                                 <input type="text" name="assessment_note" class="form-control form-control-sm js-bulk-hod-field" placeholder="Opsional untuk penilaian HOD kolektif">
                             </div>
@@ -273,7 +277,7 @@
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                     <div>
                         <h5 class="fw-semibold mb-1">Workflow Perpanjangan</h5>
-                        <p class="text-muted small mb-0">Urutan: HOD menilai langsung atau delegasi penilaian, approval HRD, lalu kontrak elektronik muncul di self service karyawan.</p>
+                        <p class="text-muted small mb-0">Urutan: HOD menilai langsung atau delegasi penilaian, approval HRD, lalu kontrak elektronik muncul di self service hanya jika kontrak diperpanjang.</p>
                     </div>
                     <span class="badge bg-light text-dark border">{{ $renewals->total() }} workflow</span>
                 </div>
@@ -295,7 +299,9 @@
                                 @php
                                     $employee = optional($renewal->employee);
                                     $delegate = optional($renewal->delegate);
-                                    $newEndDate = $renewal->assessment_months && $renewal->current_contract_end_date
+                                    $isTerminationDecision = $renewal->isTerminationDecision();
+                                    $isRenewalDecision = $renewal->isRenewalDecision();
+                                    $newEndDate = $isRenewalDecision && $renewal->current_contract_end_date
                                         ? $renewal->current_contract_end_date->copy()->addMonthsNoOverflow((int) $renewal->assessment_months)
                                         : null;
                                     $options = $delegateOptions[$renewal->id] ?? collect();
@@ -305,6 +311,12 @@
                                         \App\Models\EmployeeContractRenewal::STATUS_PENDING_DELEGATION,
                                         \App\Models\EmployeeContractRenewal::STATUS_WAITING_DELEGATE_ASSESSMENT,
                                     ], true);
+                                    $hrdApproveConfirm = $isTerminationDecision
+                                        ? 'Setujui keputusan PUTUS KONTRAK untuk karyawan ini? Tidak ada kontrak elektronik yang akan dibuat.'
+                                        : 'Setujui dan buat adendum elektronik untuk karyawan ini?';
+                                    $hrdApproveLoading = $isTerminationDecision ? 'Memproses...' : 'Membuat kontrak...';
+                                    $hrdApproveButtonClass = $isTerminationDecision ? 'btn-danger' : 'btn-primary';
+                                    $hrdApproveButtonText = $isTerminationDecision ? 'Approve HRD & Putus Kontrak' : 'Approve HRD & Buat Kontrak';
                                 @endphp
                                 <tr>
                                     <td>
@@ -322,11 +334,37 @@
                                                 {{ $renewal->generatedContract->display_number }}
                                             </a>
                                         @endif
+                                        @if($renewal->status === \App\Models\EmployeeContractRenewal::STATUS_CONTRACT_TERMINATED)
+                                            @if($renewal->employee_status_synced_at)
+                                                <small class="d-block text-muted mt-1">
+                                                    Status karyawan tersinkron: {{ $renewal->employee_status_synced_at->format('d M Y H:i') }}
+                                                </small>
+                                            @else
+                                                <small class="d-block text-muted mt-1">
+                                                    Status karyawan otomatis H+1 tanggal akhir kontrak.
+                                                </small>
+                                            @endif
+                                        @endif
+                                        @if($renewal->termination_revised_at)
+                                            <small class="d-block text-muted mt-1">
+                                                Revisi putus kontrak: {{ $renewal->termination_revised_at->format('d M Y H:i') }}
+                                            </small>
+                                            @if($renewal->termination_revision_note)
+                                                <small class="d-block text-muted">
+                                                    {{ \Illuminate\Support\Str::limit($renewal->termination_revision_note, 90) }}
+                                                </small>
+                                            @endif
+                                        @endif
                                     </td>
                                     <td>
-                                        @if($renewal->assessment_months)
-                                            <strong>{{ $renewal->assessment_months }} bulan</strong>
-                                            <small class="d-block text-muted">Sampai {{ optional($newEndDate)->format('d M Y') ?: '-' }}</small>
+                                        @if($renewal->assessment_months !== null)
+                                            @if($isTerminationDecision)
+                                                <strong class="text-danger">{{ $renewal->assessment_label }}</strong>
+                                                <small class="d-block text-muted">Tidak diperpanjang setelah tanggal akhir saat ini.</small>
+                                            @else
+                                                <strong>{{ $renewal->assessment_label }}</strong>
+                                                <small class="d-block text-muted">Sampai {{ optional($newEndDate)->format('d M Y') ?: '-' }}</small>
+                                            @endif
                                             <small class="d-block text-muted">
                                                 Penilai: {{ optional(optional($assessor)->employee)->nama_karyawan ?: $assessor->name ?: '-' }}
                                             </small>
@@ -367,18 +405,18 @@
                                         @endif
 
                                         @if($isAssignedDelegate && $renewal->status === \App\Models\EmployeeContractRenewal::STATUS_WAITING_DELEGATE_ASSESSMENT)
-                                            <form method="POST" action="{{ route('contract-renewals.assessment', $renewal) }}" data-confirm-message="Kirim hasil penilaian perpanjangan kontrak ke HOD?" data-loading-text="Mengirim...">
+                                            <form method="POST" action="{{ route('contract-renewals.assessment', $renewal) }}" data-confirm-message="Kirim hasil penilaian kontrak ke HOD?" data-loading-text="Mengirim...">
                                                 @csrf
                                                 <div class="row g-2">
-                                                    <div class="col-5">
+                                                    <div class="col-12">
                                                         <select name="assessment_months" class="form-select form-select-sm" required>
-                                                            <option value="">Bulan</option>
-                                                            @for($month = 1; $month <= 12; $month++)
-                                                                <option value="{{ $month }}">{{ $month }}</option>
-                                                            @endfor
+                                                            <option value="">Keputusan</option>
+                                                            @foreach($assessmentDecisionOptions as $value => $label)
+                                                                <option value="{{ $value }}">{{ $label }}</option>
+                                                            @endforeach
                                                         </select>
                                                     </div>
-                                                    <div class="col-7">
+                                                    <div class="col-12">
                                                         <input type="text" name="assessment_note" class="form-control form-control-sm" placeholder="Catatan delegasi">
                                                     </div>
                                                     <div class="col-12">
@@ -394,19 +432,19 @@
                                         <small class="d-block text-muted mb-2">HOD: {{ $renewal->hod_status === 1 ? 'Disetujui' : ($renewal->hod_status === 2 ? 'Ditolak' : 'Menunggu') }}</small>
 
                                         @if($canApproveHod && $canChooseAssessmentPath)
-                                            <form method="POST" action="{{ route('contract-renewals.assessment', $renewal) }}" data-confirm-message="Simpan penilaian dan approve HOD untuk pengajuan ini?" data-loading-text="Menyimpan...">
+                                            <form method="POST" action="{{ route('contract-renewals.assessment', $renewal) }}" data-confirm-message="Simpan keputusan penilaian dan approve HOD untuk pengajuan ini?" data-loading-text="Menyimpan...">
                                                 @csrf
                                                 <input type="hidden" name="assessment_mode" value="hod_direct">
                                                 <div class="row g-2">
-                                                    <div class="col-5">
+                                                    <div class="col-12">
                                                         <select name="assessment_months" class="form-select form-select-sm" required>
-                                                            <option value="">Bulan</option>
-                                                            @for($month = 1; $month <= 12; $month++)
-                                                                <option value="{{ $month }}">{{ $month }}</option>
-                                                            @endfor
+                                                            <option value="">Keputusan</option>
+                                                            @foreach($assessmentDecisionOptions as $value => $label)
+                                                                <option value="{{ $value }}">{{ $label }}</option>
+                                                            @endforeach
                                                         </select>
                                                     </div>
-                                                    <div class="col-7">
+                                                    <div class="col-12">
                                                         <input type="text" name="assessment_note" class="form-control form-control-sm" placeholder="Catatan HOD">
                                                     </div>
                                                     <div class="col-12">
@@ -418,12 +456,12 @@
 
                                         @if($canApproveHod && $renewal->status === \App\Models\EmployeeContractRenewal::STATUS_WAITING_HOD_APPROVAL)
                                             <div class="d-flex flex-column gap-2">
-                                                <form method="POST" action="{{ route('contract-renewals.hod.process', $renewal) }}" data-confirm-message="Setujui rekomendasi perpanjangan kontrak ini di level HOD?" data-loading-text="Memproses...">
+                                                <form method="POST" action="{{ route('contract-renewals.hod.process', $renewal) }}" data-confirm-message="Setujui rekomendasi penilaian kontrak ini di level HOD?" data-loading-text="Memproses...">
                                                     @csrf
                                                     <input type="hidden" name="action" value="1">
                                                     <button class="btn btn-success btn-sm w-100">Approve HOD</button>
                                                 </form>
-                                                <form method="POST" action="{{ route('contract-renewals.hod.process', $renewal) }}" data-confirm-message="Tolak perpanjangan kontrak ini di level HOD?" data-loading-text="Memproses...">
+                                                <form method="POST" action="{{ route('contract-renewals.hod.process', $renewal) }}" data-confirm-message="Tolak rekomendasi penilaian kontrak ini di level HOD?" data-loading-text="Memproses...">
                                                     @csrf
                                                     <input type="hidden" name="action" value="2">
                                                     <div class="input-group input-group-sm">
@@ -441,12 +479,12 @@
 
                                         @if($canApproveHrd && $renewal->status === \App\Models\EmployeeContractRenewal::STATUS_WAITING_HRD_APPROVAL)
                                             <div class="d-flex flex-column gap-2">
-                                                <form method="POST" action="{{ route('contract-renewals.hrd.process', $renewal) }}" data-confirm-message="Setujui dan buat adendum elektronik untuk karyawan ini?" data-loading-text="Membuat kontrak...">
+                                                <form method="POST" action="{{ route('contract-renewals.hrd.process', $renewal) }}" data-confirm-message="{{ $hrdApproveConfirm }}" data-loading-text="{{ $hrdApproveLoading }}">
                                                     @csrf
                                                     <input type="hidden" name="action" value="1">
-                                                    <button class="btn btn-primary btn-sm w-100">Approve HRD & Buat Kontrak</button>
+                                                    <button class="btn {{ $hrdApproveButtonClass }} btn-sm w-100">{{ $hrdApproveButtonText }}</button>
                                                 </form>
-                                                <form method="POST" action="{{ route('contract-renewals.hrd.process', $renewal) }}" data-confirm-message="Tolak perpanjangan kontrak ini di level HRD?" data-loading-text="Memproses...">
+                                                <form method="POST" action="{{ route('contract-renewals.hrd.process', $renewal) }}" data-confirm-message="Tolak rekomendasi penilaian kontrak ini di level HRD?" data-loading-text="Memproses...">
                                                     @csrf
                                                     <input type="hidden" name="action" value="2">
                                                     <div class="input-group input-group-sm">
@@ -455,6 +493,31 @@
                                                     </div>
                                                 </form>
                                             </div>
+                                        @elseif($canApproveHrd && $renewal->status === \App\Models\EmployeeContractRenewal::STATUS_CONTRACT_TERMINATED)
+                                            <form
+                                                method="POST"
+                                                action="{{ route('contract-renewals.revise-termination', $renewal) }}"
+                                                data-confirm-message="Revisi PUTUS KONTRAK menjadi perpanjangan kontrak? Jika status karyawan sudah tersinkron, sistem akan mengembalikannya ke AKTIF bila datanya cocok."
+                                                data-loading-text="Merevisi..."
+                                            >
+                                                @csrf
+                                                <div class="row g-2">
+                                                    <div class="col-12">
+                                                        <select name="assessment_months" class="form-select form-select-sm" required>
+                                                            <option value="">Durasi baru</option>
+                                                            @foreach($renewalDurationOptions as $value => $label)
+                                                                <option value="{{ $value }}">{{ $label }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <input type="text" name="revision_note" class="form-control form-control-sm" placeholder="Alasan revisi" required>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <button class="btn btn-warning btn-sm w-100">Revisi ke Perpanjangan</button>
+                                                    </div>
+                                                </div>
+                                            </form>
                                         @else
                                             <small class="text-muted">Tidak ada aksi HRD.</small>
                                         @endif

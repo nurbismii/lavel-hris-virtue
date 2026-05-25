@@ -40,7 +40,7 @@ class AttendanceCorrectionController extends Controller
     public function create(Request $request)
     {
         if (!$this->isFeatureReady()) {
-            toast()->warning('Peringatan', 'Fitur pengajuan presensi belum aktif lengkap. Jalankan migrasi database terlebih dahulu.');
+            toast()->warning('Peringatan', 'Fitur Koreksi Presensi belum aktif lengkap. Jalankan migrasi database terlebih dahulu.');
             return redirect()->route('attendance-corrections.index');
         }
 
@@ -67,7 +67,7 @@ class AttendanceCorrectionController extends Controller
     public function store(StoreAttendanceCorrectionRequest $request, AttendanceCorrectionService $service)
     {
         if (!$this->isFeatureReady()) {
-            toast()->warning('Peringatan', 'Fitur pengajuan presensi belum aktif lengkap. Jalankan migrasi database terlebih dahulu.');
+            toast()->warning('Peringatan', 'Fitur Koreksi Presensi belum aktif lengkap. Jalankan migrasi database terlebih dahulu.');
             return back()->withInput();
         }
 
@@ -112,8 +112,10 @@ class AttendanceCorrectionController extends Controller
     {
         $user = $request->user();
 
-        if ((string) $attendanceCorrection->created_by === (string) $user->id
-            || (string) $attendanceCorrection->nik_karyawan === (string) $user->nik_karyawan) {
+        if (
+            (string) $attendanceCorrection->created_by === (string) $user->id
+            || (string) $attendanceCorrection->nik_karyawan === (string) $user->nik_karyawan
+        ) {
             return true;
         }
 

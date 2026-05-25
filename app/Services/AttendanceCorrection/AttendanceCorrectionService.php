@@ -127,7 +127,7 @@ class AttendanceCorrectionService
 
                 return [
                     'status' => true,
-                    'message' => 'Pengajuan presensi berhasil dikirim.',
+                    'message' => 'Koreksi Presensi berhasil dikirim.',
                     'correction' => $correction,
                 ];
             });
@@ -178,8 +178,8 @@ class AttendanceCorrectionService
             return [
                 'status' => true,
                 'message' => $action === AttendanceCorrection::STATUS_APPROVED
-                    ? 'Pengajuan presensi disetujui oleh HOD dan menunggu HR.'
-                    : 'Pengajuan presensi ditolak oleh HOD.',
+                    ? 'Koreksi Presensi disetujui oleh HOD dan menunggu HR.'
+                    : 'Koreksi Presensi ditolak oleh HOD.',
                 'correction' => $correction,
                 'approval_status' => $action === AttendanceCorrection::STATUS_APPROVED ? 'Disetujui' : 'Ditolak',
             ];
@@ -231,7 +231,7 @@ class AttendanceCorrectionService
 
                 return [
                     'status' => true,
-                    'message' => 'Pengajuan presensi ditolak oleh HR.',
+                    'message' => 'Koreksi Presensi ditolak oleh HR.',
                     'correction' => $correction,
                     'approval_status' => 'Ditolak',
                 ];
@@ -279,7 +279,7 @@ class AttendanceCorrectionService
 
             return [
                 'status' => true,
-                'message' => 'Pengajuan presensi disetujui HR dan data presensi sudah diperbarui.',
+                'message' => 'Koreksi Presensi disetujui HR dan data presensi sudah diperbarui.',
                 'correction' => $correction,
                 'approval_status' => 'Disetujui',
             ];
@@ -328,8 +328,10 @@ class AttendanceCorrectionService
             ];
         }
 
-        if ($partialType === AttendanceCorrection::PARTIAL_HALF_DAY
-            && !in_array($data['partial_permission_period'] ?? null, array_keys(AttendanceCorrection::halfDayPeriodOptions()), true)) {
+        if (
+            $partialType === AttendanceCorrection::PARTIAL_HALF_DAY
+            && !in_array($data['partial_permission_period'] ?? null, array_keys(AttendanceCorrection::halfDayPeriodOptions()), true)
+        ) {
             return [
                 'status' => false,
                 'message' => 'Pilih setengah hari pagi atau setengah hari siang.',
@@ -356,8 +358,8 @@ class AttendanceCorrectionService
                 : null,
             'partial_permission_period' => $requestType === AttendanceCorrection::REQUEST_TYPE_PARTIAL_PERMISSION
                 && ($data['partial_permission_type'] ?? null) === AttendanceCorrection::PARTIAL_HALF_DAY
-                    ? ($data['partial_permission_period'] ?? null)
-                    : null,
+                ? ($data['partial_permission_period'] ?? null)
+                : null,
         ];
 
         foreach (self::ATTENDANCE_TIME_COLUMNS as $column) {

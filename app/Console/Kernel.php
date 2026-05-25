@@ -26,6 +26,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('update.resign:cron')->everyMinute();
         $schedule->command('vhire:retry-failed-syncs --limit=50')->everyFiveMinutes()->withoutOverlapping();
         $schedule->command('contracts:notify-renewal-due --days=30 --limit=200')->dailyAt('07:00')->withoutOverlapping();
+        $schedule->command('contracts:sync-terminated-employees --limit=500')->dailyAt('00:10')->withoutOverlapping();
     }
 
     /**

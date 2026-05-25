@@ -89,13 +89,61 @@
         width: 100%;
     }
 
+    .contract-consent-check {
+        align-items: flex-start;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-width: 0;
+        padding-left: 0;
+    }
+
+    .contract-consent-check .form-check-input {
+        flex: 0 0 auto;
+        float: none;
+        margin-left: 0;
+        margin-top: 3px;
+    }
+
+    .contract-consent-check .form-check-label {
+        display: block;
+        flex: 1 1 auto;
+        line-height: 1.45;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        word-break: normal;
+    }
+
+    .contract-consent-check .invalid-feedback {
+        flex-basis: 100%;
+        margin-left: 28px;
+    }
+
     @media (max-width: 576px) {
+        .secure-contract-viewer {
+            margin-left: -6px;
+            margin-right: -6px;
+            overflow-x: auto;
+            padding: 8px;
+        }
+
         .secure-contract-page {
-            padding: 22px;
+            min-width: 0;
+            padding: 16px;
+            width: 100%;
         }
 
         .secure-contract-page::before {
             font-size: 22px;
+        }
+
+        .contract-signature-card .card-body {
+            padding: 16px;
+        }
+
+        .signature-pad {
+            height: 180px;
         }
     }
 </style>
@@ -122,10 +170,10 @@
                             {!! $html !!}
 
                             @if($contract->signature)
-                                <hr>
-                                <div class="alert alert-success mb-0">
-                                    Kontrak ini telah ditandatangani pada {{ optional($contract->signature->signed_at)->format('d M Y H:i') }}.
-                                </div>
+                            <hr>
+                            <div class="alert alert-success mb-0">
+                                Kontrak ini telah ditandatangani pada {{ optional($contract->signature->signed_at)->format('d M Y H:i') }}.
+                            </div>
                             @endif
                         </div>
                     </div>
@@ -152,55 +200,55 @@
                 </div>
 
                 @if($contract->isReadyForSignature())
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h5 class="mb-2">Tanda Tangan</h5>
-                            <p class="small text-muted">Gunakan jari atau mouse di area tanda tangan. Tanda tangan ini hanya berlaku untuk kontrak ini.</p>
+                <div class="card border-0 shadow-sm contract-signature-card">
+                    <div class="card-body">
+                        <h5 class="mb-2">Tanda Tangan</h5>
+                        <p class="small text-muted">Gunakan jari atau mouse di area tanda tangan. Tanda tangan ini hanya berlaku untuk kontrak ini.</p>
 
-                            <form action="{{ route('user-electronic-contracts.sign', $contract) }}" method="POST" id="signatureForm">
-                                @csrf
-                                <canvas id="signaturePad" class="signature-pad"></canvas>
-                                <input type="hidden" name="signature_data" id="signatureData">
-                                @error('signature_data')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
+                        <form action="{{ route('user-electronic-contracts.sign', $contract) }}" method="POST" id="signatureForm">
+                            @csrf
+                            <canvas id="signaturePad" class="signature-pad"></canvas>
+                            <input type="hidden" name="signature_data" id="signatureData">
+                            @error('signature_data')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
 
-                                <div class="d-flex gap-2 mt-2">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSignature">
-                                        Bersihkan
-                                    </button>
-                                </div>
-
-                                <div class="form-check mt-3">
-                                    <input class="form-check-input @error('consent') is-invalid @enderror" type="checkbox" name="consent" value="1" id="consent">
-                                    <label class="form-check-label small" for="consent">
-                                        {{ $consentText }}
-                                    </label>
-                                    @error('consent')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                </div>
-
-                                <button type="submit" class="btn btn-primary w-100 mt-3">
-                                    Tandatangani Kontrak
+                            <div class="d-flex gap-2 mt-2">
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSignature">
+                                    Bersihkan
                                 </button>
-                            </form>
-                        </div>
+                            </div>
+
+                            <div class="form-check mt-3 contract-consent-check">
+                                <input class="form-check-input @error('consent') is-invalid @enderror" type="checkbox" name="consent" value="1" id="consent">
+                                <label class="form-check-label small" for="consent">
+                                    {{ $consentText }}
+                                </label>
+                                @error('consent')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 mt-3">
+                                Tandatangani Kontrak
+                            </button>
+                        </form>
                     </div>
+                </div>
                 @elseif($contract->signature)
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h5 class="mb-2">Bukti Tanda Tangan</h5>
-                            <dl class="row mb-0">
-                                <dt class="col-5">Waktu</dt>
-                                <dd class="col-7">{{ optional($contract->signature->signed_at)->format('d M Y H:i') }}</dd>
-                                <dt class="col-5">IP</dt>
-                                <dd class="col-7">{{ $contract->signature->ip_address ?: '-' }}</dd>
-                                <dt class="col-5">Hash</dt>
-                                <dd class="col-7 small text-break">{{ $contract->pdf_hash ?: '-' }}</dd>
-                            </dl>
-                        </div>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="mb-2">Bukti Tanda Tangan</h5>
+                        <dl class="row mb-0">
+                            <dt class="col-5">Waktu</dt>
+                            <dd class="col-7">{{ optional($contract->signature->signed_at)->format('d M Y H:i') }}</dd>
+                            <dt class="col-5">IP</dt>
+                            <dd class="col-7">{{ $contract->signature->ip_address ?: '-' }}</dd>
+                            <dt class="col-5">Hash</dt>
+                            <dd class="col-7 small text-break">{{ $contract->pdf_hash ?: '-' }}</dd>
+                        </dl>
                     </div>
+                </div>
                 @else
-                    <div class="alert alert-secondary">
-                        Kontrak ini tidak tersedia untuk tanda tangan.
-                    </div>
+                <div class="alert alert-secondary">
+                    Kontrak ini tidak tersedia untuk tanda tangan.
+                </div>
                 @endif
             </div>
         </div>
@@ -210,7 +258,7 @@
 
 @push('scripts')
 <script>
-    (function () {
+    (function() {
         const canvas = document.getElementById('signaturePad');
         const form = document.getElementById('signatureForm');
 
@@ -276,16 +324,22 @@
         canvas.addEventListener('mousemove', move);
         canvas.addEventListener('mouseup', end);
         canvas.addEventListener('mouseleave', end);
-        canvas.addEventListener('touchstart', start, { passive: false });
-        canvas.addEventListener('touchmove', move, { passive: false });
-        canvas.addEventListener('touchend', end, { passive: false });
+        canvas.addEventListener('touchstart', start, {
+            passive: false
+        });
+        canvas.addEventListener('touchmove', move, {
+            passive: false
+        });
+        canvas.addEventListener('touchend', end, {
+            passive: false
+        });
 
-        document.getElementById('clearSignature').addEventListener('click', function () {
+        document.getElementById('clearSignature').addEventListener('click', function() {
             context.clearRect(0, 0, canvas.width, canvas.height);
             hasStroke = false;
         });
 
-        form.addEventListener('submit', function (event) {
+        form.addEventListener('submit', function(event) {
             if (!hasStroke) {
                 event.preventDefault();
                 window.AppDialog.alert(

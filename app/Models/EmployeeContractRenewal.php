@@ -13,10 +13,13 @@ class EmployeeContractRenewal extends Model
     public const STATUS_REJECTED_BY_HOD = 'rejected_by_hod';
     public const STATUS_REJECTED_BY_HRD = 'rejected_by_hrd';
     public const STATUS_CONTRACT_GENERATED = 'contract_generated';
+    public const STATUS_CONTRACT_TERMINATED = 'contract_terminated';
 
     public const APPROVAL_PENDING = 0;
     public const APPROVAL_APPROVED = 1;
     public const APPROVAL_REJECTED = 2;
+
+    public const ASSESSMENT_TERMINATE_CONTRACT = 0;
 
     protected $guarded = [];
 
@@ -30,6 +33,8 @@ class EmployeeContractRenewal extends Model
         'hrd_status' => 'integer',
         'hrd_approved_at' => 'datetime',
         'employee_notified_at' => 'datetime',
+        'employee_status_synced_at' => 'datetime',
+        'termination_revised_at' => 'datetime',
     ];
 
     public static function statusLabels(): array
@@ -42,6 +47,7 @@ class EmployeeContractRenewal extends Model
             self::STATUS_REJECTED_BY_HOD => 'Ditolak HOD',
             self::STATUS_REJECTED_BY_HRD => 'Ditolak HRD',
             self::STATUS_CONTRACT_GENERATED => 'Kontrak dibuat',
+            self::STATUS_CONTRACT_TERMINATED => 'Putus Kontrak',
         ];
     }
 
@@ -55,7 +61,51 @@ class EmployeeContractRenewal extends Model
             self::STATUS_REJECTED_BY_HOD => 'danger',
             self::STATUS_REJECTED_BY_HRD => 'danger',
             self::STATUS_CONTRACT_GENERATED => 'success',
+            self::STATUS_CONTRACT_TERMINATED => 'dark',
         ];
+    }
+
+    public static function assessmentDecisionOptions(): array
+    {
+        $options = [
+            self::ASSESSMENT_TERMINATE_CONTRACT => 'PUTUS KONTRAK',
+        ];
+
+        foreach (range(1, 12) as $month) {
+            $options[$month] = $month . ' bulan';
+        }
+
+        return $options;
+    }
+
+    public static function assessmentDecisionValues(): array
+    {
+        return array_map('strval', array_keys(self::assessmentDecisionOptions()));
+    }
+
+    public static function assessmentDecisionLabel(?int $months): string
+    {
+        if ($months === null) {
+            return 'Belum dinilai';
+        }
+
+        if ((int) $months === self::ASSESSMENT_TERMINATE_CONTRACT) {
+            return 'PUTUS KONTRAK';
+        }
+
+        return (int) $months . ' bulan';
+    }
+
+    public function isTerminationDecision(): bool
+    {
+        return $this->assessment_months !== null
+            && (int) $this->assessment_months === self::ASSESSMENT_TERMINATE_CONTRACT;
+    }
+
+    public function isRenewalDecision(): bool
+    {
+        return $this->assessment_months !== null
+            && (int) $this->assessment_months > self::ASSESSMENT_TERMINATE_CONTRACT;
     }
 
     public function employee()
@@ -93,6 +143,11 @@ class EmployeeContractRenewal extends Model
         return $this->belongsTo(User::class, 'assessed_by_user_id');
     }
 
+    public function terminationRevisedBy()
+    {
+        return $this->belongsTo(User::class, 'termination_revised_by_user_id');
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return self::statusLabels()[$this->status] ?? $this->status;
@@ -101,5 +156,10 @@ class EmployeeContractRenewal extends Model
     public function getStatusBadgeClassAttribute(): string
     {
         return self::statusBadgeClasses()[$this->status] ?? 'secondary';
+    }
+
+    public function getAssessmentLabelAttribute(): string
+    {
+        return self::assessmentDecisionLabel($this->assessment_months);
     }
 }

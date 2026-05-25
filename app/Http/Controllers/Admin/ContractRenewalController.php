@@ -7,6 +7,7 @@ use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Http\Requests\ContractRenewal\AssessContractRenewalRequest;
 use App\Http\Requests\ContractRenewal\BulkStoreContractRenewalRequest;
 use App\Http\Requests\ContractRenewal\DelegateContractRenewalRequest;
+use App\Http\Requests\ContractRenewal\ReviseTerminatedContractRenewalRequest;
 use App\Http\Requests\ContractRenewal\StoreContractRenewalRequest;
 use App\Http\Requests\ElectronicContract\ImportContractHistoryRequest;
 use App\Imports\ImportEmployeeContractHistories;
@@ -186,7 +187,8 @@ class ContractRenewalController extends Controller
         $message = "Diproses {$summary['total']} kontrak. Workflow baru: {$summary['created']}, sudah ada: {$summary['existing']}";
 
         if ($assessmentMonths !== null) {
-            $message .= ", dinilai HOD: {$summary['assessed']}";
+            $decisionLabel = EmployeeContractRenewal::assessmentDecisionLabel($assessmentMonths);
+            $message .= ", dinilai HOD ({$decisionLabel}): {$summary['assessed']}";
         }
 
         if ($summary['failed'] > 0) {
@@ -285,8 +287,10 @@ class ContractRenewalController extends Controller
         EmployeeContractRenewal $renewal,
         ContractRenewalService $service
     ) {
+        $processedRenewal = null;
+
         try {
-            $service->processHrd(
+            $processedRenewal = $service->processHrd(
                 $renewal,
                 (int) $request->input('action'),
                 $request->input('note'),
@@ -297,15 +301,44 @@ class ContractRenewalController extends Controller
             return back()->withErrors($exception->errors());
         } catch (Throwable $exception) {
             report($exception);
-            toast()->error('Gagal', 'Approval HRD gagal diproses. Periksa template adendum dan coba lagi.');
+            toast()->error('Gagal', 'Approval HRD gagal diproses. Periksa data workflow dan coba lagi.');
             return back();
         }
 
-        $message = (int) $request->input('action') === EmployeeContractRenewal::APPROVAL_APPROVED
-            ? 'Approval HRD berhasil. Kontrak elektronik sudah dibuat dan dikirim ke karyawan.'
-            : 'Approval HRD berhasil diproses.';
+        if ((int) $request->input('action') === EmployeeContractRenewal::APPROVAL_APPROVED) {
+            $message = $processedRenewal && $processedRenewal->status === EmployeeContractRenewal::STATUS_CONTRACT_TERMINATED
+                ? 'Approval HRD berhasil. Workflow ditutup sebagai PUTUS KONTRAK dan notifikasi dikirim ke karyawan.'
+                : 'Approval HRD berhasil. Kontrak elektronik sudah dibuat dan dikirim ke karyawan.';
+        } else {
+            $message = 'Approval HRD berhasil diproses.';
+        }
 
         toast()->success('Success', $message);
+        return back();
+    }
+
+    public function reviseTermination(
+        ReviseTerminatedContractRenewalRequest $request,
+        EmployeeContractRenewal $renewal,
+        ContractRenewalService $service
+    ) {
+        try {
+            $service->reviseTerminationToRenewal(
+                $renewal,
+                (int) $request->input('assessment_months'),
+                $request->input('revision_note'),
+                $request->user()
+            );
+        } catch (ValidationException $exception) {
+            toast()->error('Gagal', $this->firstValidationMessage($exception));
+            return back()->withErrors($exception->errors());
+        } catch (Throwable $exception) {
+            report($exception);
+            toast()->error('Gagal', 'Revisi putus kontrak gagal diproses. Periksa data karyawan dan template adendum.');
+            return back();
+        }
+
+        toast()->success('Success', 'Revisi putus kontrak berhasil. Status karyawan dikoreksi bila diperlukan, kontrak elektronik dibuat, dan karyawan mendapat notifikasi.');
         return back();
     }
 

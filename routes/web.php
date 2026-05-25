@@ -247,6 +247,9 @@ Route::middleware(['android.redirect'])->group(function () {
                 Route::post('/{renewal}/hrd', [ContractRenewalController::class, 'hrdProcess'])
                     ->middleware('role:Super Admin,HR')
                     ->name('hrd.process');
+                Route::post('/{renewal}/revise-termination', [ContractRenewalController::class, 'reviseTermination'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('revise-termination');
             });
         Route::get('/leave-balances', [LeaveBalanceController::class, 'index'])
             ->middleware(['menu:leave_balance', 'role:Super Admin,HR'])

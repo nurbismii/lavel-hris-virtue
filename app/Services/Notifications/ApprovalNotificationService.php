@@ -280,7 +280,7 @@ class ApprovalNotificationService
         }
 
         $payload = [
-            'judul' => 'Pengajuan Presensi Baru',
+            'judul' => 'Koreksi Presensi Baru',
             'pesan' => $this->employeeName($employee) . ' mengajukan koreksi/izin presensi tanggal ' . optional($correction->tanggal)->format('d M Y') . '.',
             'url' => route('approval.attendance-corrections.hod'),
             'tipe' => 'Approval HOD',
@@ -304,8 +304,8 @@ class ApprovalNotificationService
         $this->sendToUsers(
             $this->hodRecipients($employee),
             [
-                'judul' => 'Pengajuan Presensi Menunggu Approval HOD',
-                'pesan' => 'Pengajuan presensi ' . $this->employeeName($employee) . ' sudah diverifikasi delegasi dan menunggu keputusan HOD.',
+                'judul' => 'Koreksi Presensi Menunggu Approval HOD',
+                'pesan' => 'Koreksi Presensi ' . $this->employeeName($employee) . ' sudah diverifikasi delegasi dan menunggu keputusan HOD.',
                 'url' => route('approval.attendance-corrections.hod'),
                 'tipe' => 'Approval HOD',
             ]
@@ -374,8 +374,10 @@ class ApprovalNotificationService
 
     private function notifyDelegatesIfNeeded(Model $model, string $module, array $hodPayload): bool
     {
-        if ($model->getAttribute('delegate_status') === null
-            || (int) $model->getAttribute('delegate_status') !== 0) {
+        if (
+            $model->getAttribute('delegate_status') === null
+            || (int) $model->getAttribute('delegate_status') !== 0
+        ) {
             return false;
         }
 
