@@ -183,11 +183,11 @@
                                 <table class="table table-bordered table-striped mb-0">
                                     <thead>
                                         <tr>
-                                            <th>Range</th>
-                                            <th>Durasi</th>
-                                            <th>Pengali</th>
-                                            <th>Dasar Hukum</th>
-                                            <th class="text-end">Nominal</th>
+                                            <th>{{ __('tables.range') }}</th>
+                                            <th>{{ __('tables.duration') }}</th>
+                                            <th>{{ __('tables.multiplier') }}</th>
+                                            <th>{{ __('tables.legal_basis') }}</th>
+                                            <th class="text-end">{{ __('tables.nominal') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -214,14 +214,14 @@
                             <table class="table table-bordered table-striped mb-0">
                                 <thead>
                                     <tr>
-                                        <th>Kode</th>
-                                        <th>Pola</th>
-                                        <th>Jenis Hari</th>
-                                        <th>Jam</th>
-                                        <th>Pengali</th>
-                                        <th>Status</th>
-                                        <th>Dasar Hukum</th>
-                                        <th>Aksi</th>
+                                        <th>{{ __('tables.code') }}</th>
+                                        <th>{{ __('tables.pattern') }}</th>
+                                        <th>{{ __('tables.day_type') }}</th>
+                                        <th>{{ __('tables.hour') }}</th>
+                                        <th>{{ __('tables.multiplier') }}</th>
+                                        <th>{{ __('tables.status') }}</th>
+                                        <th>{{ __('tables.legal_basis') }}</th>
+                                        <th>{{ __('tables.action') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>

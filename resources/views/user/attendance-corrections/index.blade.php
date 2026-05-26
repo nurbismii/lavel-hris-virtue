@@ -24,13 +24,13 @@
                     <table class="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
-                                <th>Koreksi Diminta</th>
-                                <th>Status</th>
-                                <th>Delegasi</th>
-                                <th>HOD</th>
-                                <th>HR</th>
-                                <th>Lampiran</th>
+                                <th>{{ __('tables.date') }}</th>
+                                <th>{{ __('tables.requested_correction') }}</th>
+                                <th>{{ __('tables.status') }}</th>
+                                <th>{{ __('tables.delegation') }}</th>
+                                <th>{{ __('tables.hod') }}</th>
+                                <th>{{ __('tables.hr') }}</th>
+                                <th>{{ __('tables.attachment') }}</th>
                             </tr>
                         </thead>
                         <tbody>

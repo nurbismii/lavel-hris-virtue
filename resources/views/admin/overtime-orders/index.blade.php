@@ -40,13 +40,13 @@
                     <table class="table table-bordered table-striped mb-0">
                         <thead>
                             <tr>
-                                <th>Tanggal</th>
-                                <th>Karyawan</th>
-                                <th>Tipe</th>
-                                <th>Jam</th>
-                                <th>Respons</th>
-                                <th>Pembuat</th>
-                                <th>Aksi</th>
+                                <th>{{ __('tables.date') }}</th>
+                                <th>{{ __('tables.employee') }}</th>
+                                <th>{{ __('tables.type') }}</th>
+                                <th>{{ __('tables.hour') }}</th>
+                                <th>{{ __('tables.response') }}</th>
+                                <th>{{ __('tables.creator') }}</th>
+                                <th>{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>

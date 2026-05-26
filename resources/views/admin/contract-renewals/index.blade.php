@@ -206,11 +206,11 @@
                                         <input type="checkbox" class="form-check-input js-select-all-contracts" aria-label="Pilih semua kontrak pada halaman ini">
                                     </th>
                                 @endif
-                                <th>Karyawan</th>
-                                <th>Kontrak Terakhir</th>
-                                <th>History</th>
-                                <th>Tanggal Akhir</th>
-                                <th style="width: 170px;">Aksi</th>
+                                <th>{{ __('tables.employee') }}</th>
+                                <th>{{ __('tables.last_contract') }}</th>
+                                <th>{{ __('tables.history') }}</th>
+                                <th>{{ __('tables.end_date') }}</th>
+                                <th style="width: 170px;">{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -286,12 +286,12 @@
                     <table class="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th>Karyawan</th>
-                                <th>Status</th>
-                                <th>Penilaian</th>
-                                <th style="min-width: 260px;">Delegasi Penilaian</th>
-                                <th style="min-width: 260px;">Penilaian / Approval HOD</th>
-                                <th style="min-width: 240px;">Approval HRD</th>
+                                <th>{{ __('tables.employee') }}</th>
+                                <th>{{ __('tables.status') }}</th>
+                                <th>{{ __('tables.assessment') }}</th>
+                                <th style="min-width: 260px;">{{ __('tables.assessment_delegation') }}</th>
+                                <th style="min-width: 260px;">{{ __('tables.hod_assessment_approval') }}</th>
+                                <th style="min-width: 240px;">{{ __('tables.hrd_approval') }}</th>
                             </tr>
                         </thead>
                         <tbody>

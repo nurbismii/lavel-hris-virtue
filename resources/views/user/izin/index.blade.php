@@ -27,16 +27,16 @@
                     <table id="table-izin" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                         <thead class="table-light">
                             <tr>
-                                <th>No</th>
-                                <th>Tipe</th>
-                                <th>Tanggal Pengajuan</th>
-                                <th>Periode</th>
-                                <th>Jumlah Hari</th>
-                                <th>Status Delegasi</th>
-                                <th>Status HOD</th>
-                                <th>Status HR</th>
-                                <th>Bukti</th>
-                                <th>Aksi</th>
+                                <th>{{ __('tables.no') }}</th>
+                                <th>{{ __('tables.type') }}</th>
+                                <th>{{ __('tables.submission_date') }}</th>
+                                <th>{{ __('tables.period') }}</th>
+                                <th>{{ __('tables.day_count') }}</th>
+                                <th>{{ __('tables.delegate_status') }}</th>
+                                <th>{{ __('tables.hod_status') }}</th>
+                                <th>{{ __('tables.hr_status') }}</th>
+                                <th>{{ __('tables.proof') }}</th>
+                                <th>{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>

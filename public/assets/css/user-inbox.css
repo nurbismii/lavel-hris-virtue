@@ -115,6 +115,12 @@
         border: 1px solid rgba(255, 255, 255, 0.16);
     }
 
+    .inbox-page .inbox-button--danger {
+        background: rgba(220, 38, 38, 0.18);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.18);
+    }
+
     .inbox-page .inbox-stats {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -296,10 +302,45 @@
         font-weight: 600;
     }
 
-    .inbox-page .inbox-item__chevron {
-        color: #cbd5e1;
-        font-size: 0.95rem;
-        padding-top: 0.2rem;
+    .inbox-page .inbox-item__actions {
+        position: relative;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .inbox-page .inbox-icon-button {
+        width: 38px;
+        height: 38px;
+        border: 1px solid #dbe4f0;
+        border-radius: 12px;
+        background: #fff;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .inbox-page .inbox-icon-button:hover,
+    .inbox-page .inbox-icon-button:focus {
+        background: #eff6ff;
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+        text-decoration: none;
+    }
+
+    .inbox-page .inbox-icon-button--danger {
+        color: #b91c1c;
+    }
+
+    .inbox-page .inbox-icon-button--danger:hover,
+    .inbox-page .inbox-icon-button--danger:focus {
+        background: #fef2f2;
+        border-color: #fecaca;
+        color: #991b1b;
     }
 
     .inbox-page .inbox-empty {
@@ -395,8 +436,9 @@
             grid-template-columns: auto minmax(0, 1fr);
         }
 
-        .inbox-page .inbox-item__chevron {
-            display: none;
+        .inbox-page .inbox-item__actions {
+            grid-column: 2;
+            justify-content: flex-end;
         }
     }
 

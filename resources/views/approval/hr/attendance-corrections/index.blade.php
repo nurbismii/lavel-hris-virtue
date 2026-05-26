@@ -21,12 +21,12 @@
                     <table class="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th>Karyawan</th>
-                                <th>Tanggal</th>
-                                <th>Koreksi Diminta</th>
-                                <th>Alasan</th>
-                                <th>Status HR</th>
-                                <th>Aksi</th>
+                                <th>{{ __('tables.employee') }}</th>
+                                <th>{{ __('tables.date') }}</th>
+                                <th>{{ __('tables.requested_correction') }}</th>
+                                <th>{{ __('tables.reason') }}</th>
+                                <th>{{ __('tables.hr_status') }}</th>
+                                <th>{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>

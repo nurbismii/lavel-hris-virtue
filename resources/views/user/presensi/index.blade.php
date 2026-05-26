@@ -453,14 +453,14 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 <table id="table-presensi" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                     <thead class="table-light">
                         <tr>
-                            <th>Tanggal</th>
-                            <th>Verifikasi Terakhir</th>
-                            <th>Status</th>
-                            <th>Shift</th>
-                            <th>Masuk</th>
-                            <th>Istirahat</th>
-                            <th>Kembali</th>
-                            <th>Pulang</th>
+                            <th>{{ __('tables.date') }}</th>
+                            <th>{{ __('tables.last_verification') }}</th>
+                            <th>{{ __('tables.status') }}</th>
+                            <th>{{ __('tables.shift') }}</th>
+                            <th>{{ __('tables.clock_in') }}</th>
+                            <th>{{ __('tables.break') }}</th>
+                            <th>{{ __('tables.return_from_break') }}</th>
+                            <th>{{ __('tables.clock_out') }}</th>
                         </tr>
                     </thead>
                     <tbody>

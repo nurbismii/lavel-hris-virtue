@@ -92,27 +92,27 @@
     {{-- INFO KARYAWAN --}}
     <table>
         <tr>
-            <th width="25%">NIK</th>
+            <th width="25%">{{ __('tables.nik') }}</th>
             <td width="25%">{{ $slip->karyawan->nik ?? '-' }}</td>
-            <th width="25%">Nama</th>
+            <th width="25%">{{ __('tables.name') }}</th>
             <td width="25%">{{ $slip->karyawan->nama ?? '-' }}</td>
         </tr>
         <tr>
-            <th>Departemen</th>
+            <th>{{ __('tables.department') }}</th>
             <td>{{ $slip->departemen ?? '-' }}</td>
-            <th>Divisi</th>
+            <th>{{ __('tables.division') }}</th>
             <td>{{ $slip->divisi ?? '-' }}</td>
         </tr>
         <tr>
-            <th>Posisi</th>
+            <th>{{ __('tables.position') }}</th>
             <td>{{ $slip->posisi ?? '-' }}</td>
-            <th>Jumlah Kehadiran</th>
+            <th>{{ __('tables.total_attendance') }}</th>
             <td>{{ $slip->jml_hari_kerja ?? '-' }}</td>
         </tr>
         <tr>
-            <th>Hour Machine</th>
+            <th>{{ __('tables.machine_hour') }}</th>
             <td>{{ $slip->jml_hour_machine ?? '-' }}</td>
-            <th>Durasi SP</th>
+            <th>{{ __('tables.warning_duration') }}</th>
             <td>{{ empty($slip->durasi_sp) || $slip->durasi_sp == '0000-00-00' ? '-'  : $slip->durasi_sp }}</td>
         </tr>
     </table>

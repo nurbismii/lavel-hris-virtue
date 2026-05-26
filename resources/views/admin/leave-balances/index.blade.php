@@ -54,13 +54,13 @@
                     <table class="table table-bordered table-striped table-sm align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 130px;">NIK</th>
-                                <th>Nama</th>
-                                <th style="width: 110px;">Perusahaan</th>
-                                <th>Departemen</th>
-                                <th>Divisi</th>
-                                <th style="width: 130px;">Saldo</th>
-                                <th style="width: 130px;">Aksi</th>
+                                <th style="width: 130px;">{{ __('tables.nik') }}</th>
+                                <th>{{ __('tables.name') }}</th>
+                                <th style="width: 110px;">{{ __('tables.company') }}</th>
+                                <th>{{ __('tables.department') }}</th>
+                                <th>{{ __('tables.division') }}</th>
+                                <th style="width: 130px;">{{ __('tables.balance') }}</th>
+                                <th style="width: 130px;">{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>

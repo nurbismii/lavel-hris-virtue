@@ -323,14 +323,14 @@
                 <table id="wilayah-aggregate-table" class="table table-bordered table-striped align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>#</th>
-                            <th>Provinsi</th>
-                            <th>Kabupaten</th>
-                            <th>Kecamatan</th>
-                            <th>Kelurahan</th>
-                            <th class="text-end">L</th>
-                            <th class="text-end">P</th>
-                            <th class="text-end">Total</th>
+                            <th>{{ __('tables.hash') }}</th>
+                            <th>{{ __('tables.province') }}</th>
+                            <th>{{ __('tables.regency') }}</th>
+                            <th>{{ __('tables.district') }}</th>
+                            <th>{{ __('tables.village') }}</th>
+                            <th class="text-end">{{ __('tables.male') }}</th>
+                            <th class="text-end">{{ __('tables.female') }}</th>
+                            <th class="text-end">{{ __('tables.total') }}</th>
                         </tr>
                     </thead>
                     <tbody>

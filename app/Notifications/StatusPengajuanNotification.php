@@ -35,7 +35,7 @@ class StatusPengajuanNotification extends Notification
 
     public function toBroadcast($notifiable)
     {
-        return (new BroadcastMessage($this->payload()))->onConnection('sync');
+        return new BroadcastMessage($this->payload());
     }
 
     public function toArray($notifiable)

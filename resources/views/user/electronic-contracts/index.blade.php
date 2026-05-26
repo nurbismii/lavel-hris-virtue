@@ -18,12 +18,12 @@
                     <table class="table table-bordered table-striped mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Tipe</th>
-                                <th>Nomor</th>
-                                <th>Periode</th>
-                                <th>Status</th>
-                                <th>Dibuat</th>
-                                <th style="width: 120px;">Aksi</th>
+                                <th>{{ __('tables.type') }}</th>
+                                <th>{{ __('tables.number') }}</th>
+                                <th>{{ __('tables.period') }}</th>
+                                <th>{{ __('tables.status') }}</th>
+                                <th>{{ __('tables.created') }}</th>
+                                <th style="width: 120px;">{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>

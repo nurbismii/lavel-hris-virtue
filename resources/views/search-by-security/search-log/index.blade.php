@@ -22,11 +22,11 @@
                 <table id="table-logs" class="table table-bordered table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th width="5%">#</th>
-                            <th>User</th>
-                            <th>Keyword</th>
-                            <th>IP Address</th>
-                            <th>Waktu</th>
+                            <th width="5%">{{ __('tables.hash') }}</th>
+                            <th>{{ __('tables.user') }}</th>
+                            <th>{{ __('tables.keyword') }}</th>
+                            <th>{{ __('tables.ip_address') }}</th>
+                            <th>{{ __('tables.time') }}</th>
                         </tr>
                     </thead>
                     <tbody>

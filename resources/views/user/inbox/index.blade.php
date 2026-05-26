@@ -34,9 +34,41 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                         @if($unreadNotifications > 0)
                         <form action="{{ route('notif.readAll') }}" method="POST" class="m-0">
                             @csrf
-                            <button type="submit" class="inbox-button inbox-button--ghost">
+                            <button type="submit" class="inbox-button inbox-button--ghost" data-loading-text="Menandai...">
                                 <i class="fas fa-check-double"></i>
                                 Baca semua
+                            </button>
+                        </form>
+                        @endif
+
+                        @if($readNotifications > 0)
+                        <form
+                            action="{{ route('notif.destroyRead') }}"
+                            method="POST"
+                            class="m-0"
+                            data-confirm-title="Hapus notifikasi dibaca?"
+                            data-confirm-text="Semua notifikasi yang sudah dibaca pada akun Anda akan dihapus.">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="inbox-button inbox-button--ghost inbox-button--danger" data-loading-text="Menghapus...">
+                                <i class="fas fa-trash-alt"></i>
+                                Hapus dibaca
+                            </button>
+                        </form>
+                        @endif
+
+                        @if($totalNotifications > 0)
+                        <form
+                            action="{{ route('notif.destroyAll') }}"
+                            method="POST"
+                            class="m-0"
+                            data-confirm-title="Hapus semua notifikasi?"
+                            data-confirm-text="Semua notifikasi pada akun Anda akan dihapus permanen, termasuk yang belum dibaca.">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="inbox-button inbox-button--ghost inbox-button--danger" data-loading-text="Menghapus...">
+                                <i class="fas fa-trash"></i>
+                                Hapus semua
                             </button>
                         </form>
                         @endif
@@ -91,7 +123,6 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                 @php
                 $title = $notif->data['judul'] ?? 'Notifikasi';
                 $message = $notif->data['pesan'] ?? 'Belum ada detail pesan.';
-                $targetUrl = $notif->data['url'] ?? route('kotak-masuk.index');
                 $isUnread = is_null($notif->read_at);
                 @endphp
 
@@ -126,18 +157,34 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                         </div>
                     </div>
 
-                    <div class="inbox-item__chevron">
-                        <i class="fas fa-chevron-right"></i>
+                    <div class="inbox-item__actions">
+                        <a
+                            href="{{ route('notif.baca', $notif->id) }}"
+                            class="inbox-icon-button"
+                            title="Buka notifikasi"
+                            aria-label="Buka notifikasi {{ $title }}"
+                            data-loading-text="Membuka...">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+
+                        <form
+                            action="{{ route('notif.destroy', $notif->id) }}"
+                            method="POST"
+                            class="m-0"
+                            data-confirm-title="Hapus notifikasi?"
+                            data-confirm-text="Notifikasi ini akan dihapus dari akun Anda.">
+                            @csrf
+                            @method('DELETE')
+                            <button
+                                type="submit"
+                                class="inbox-icon-button inbox-icon-button--danger"
+                                title="Hapus notifikasi"
+                                aria-label="Hapus notifikasi {{ $title }}"
+                                data-loading-text="Menghapus...">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
                     </div>
-
-                    <a
-                        href="{{ $targetUrl }}"
-                        class="stretched-link"
-                        aria-label="Buka notifikasi {{ $title }}"
-                        onclick="event.preventDefault(); document.getElementById('mark-{{ $notif->id }}').submit();">
-                    </a>
-
-                    <form id="mark-{{ $notif->id }}" action="{{ route('notif.baca', $notif->id) }}" method="GET" class="d-none"></form>
                 </article>
                 @empty
                 <div class="inbox-empty">
@@ -162,3 +209,43 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('submit', function (event) {
+        const form = event.target;
+
+        if (!form || !form.matches('form[data-confirm-title]') || form.dataset.confirmed === '1') {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const submitConfirmed = function () {
+            form.dataset.confirmed = '1';
+            form.submit();
+        };
+
+        if (window.AppDialog && typeof window.AppDialog.confirm === 'function') {
+            window.AppDialog.confirm({
+                title: form.dataset.confirmTitle || 'Hapus notifikasi?',
+                text: form.dataset.confirmText || 'Notifikasi akan dihapus dari akun Anda.',
+                icon: 'warning',
+                confirmButtonText: 'Ya, hapus',
+                cancelButtonText: 'Batal'
+            }).then(function (confirmed) {
+                if (confirmed) {
+                    submitConfirmed();
+                }
+            });
+
+            return;
+        }
+
+        if (window.confirm(form.dataset.confirmText || 'Hapus notifikasi ini?')) {
+            submitConfirmed();
+        }
+    }, true);
+</script>
+@endpush

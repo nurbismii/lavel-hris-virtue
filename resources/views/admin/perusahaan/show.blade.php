@@ -35,19 +35,19 @@
             <div class="card-body">
                 <table class="table table-borderless table-sm mb-0">
                     <tr>
-                        <th width="25%">Kode Perusahaan</th>
+                        <th width="25%">{{ __('tables.company_code') }}</th>
                         <td>: {{ $perusahaan->kode_perusahaan }}</td>
                     </tr>
                     <tr>
-                        <th>Nama Perusahaan</th>
+                        <th>{{ __('tables.company_name') }}</th>
                         <td>: {{ $perusahaan->nama_perusahaan }}</td>
                     </tr>
                     <tr>
-                        <th>Alamat</th>
+                        <th>{{ __('tables.address') }}</th>
                         <td>: {{ $perusahaan->alamat ?? '-' }}</td>
                     </tr>
                     <tr>
-                        <th>Keterangan</th>
+                        <th>{{ __('tables.information') }}</th>
                         <td>: {{ $perusahaan->keterangan ?? '-' }}</td>
                     </tr>
                 </table>
@@ -125,9 +125,9 @@
                                             <th width="40">
                                                 <input type="checkbox" id="checkAllDivisi">
                                             </th>
-                                            <th>Divisi</th>
-                                            <th width="150" class="text-center">Jumlah Karyawan</th>
-                                            <th>Aksi</th>
+                                            <th>{{ __('tables.division') }}</th>
+                                            <th width="150" class="text-center">{{ __('tables.employee_count') }}</th>
+                                            <th>{{ __('tables.action') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody>

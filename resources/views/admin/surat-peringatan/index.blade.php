@@ -60,12 +60,12 @@
                         class="table table-bordered table-striped table-sm nowrap w-100">
                         <thead class="table-light">
                             <tr>
-                                <th>NIK</th>
-                                <th>Nama</th>
-                                <th>SP</th>
-                                <th>Mulai</th>
-                                <th>Berakhir</th>
-                                <th width="120">Aksi</th>
+                                <th>{{ __('tables.nik') }}</th>
+                                <th>{{ __('tables.name') }}</th>
+                                <th>{{ __('tables.warning_letter') }}</th>
+                                <th>{{ __('tables.start') }}</th>
+                                <th>{{ __('tables.end') }}</th>
+                                <th width="120">{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                     </table>

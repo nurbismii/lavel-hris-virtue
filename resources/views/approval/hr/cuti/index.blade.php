@@ -20,13 +20,13 @@
                 <table id="table-approval-cuti" class="table table-bordered">
                     <thead>
                         <tr>
-                            <th>Nama</th>
-                            <th>Tanggal Pengajuan</th>
-                            <th>Mulai</th>
-                            <th>Berakhir</th>
-                            <th>Jumlah</th>
-                            <th>Status</th>
-                            <th>Aksi</th>
+                            <th>{{ __('tables.name') }}</th>
+                            <th>{{ __('tables.submission_date') }}</th>
+                            <th>{{ __('tables.start') }}</th>
+                            <th>{{ __('tables.end') }}</th>
+                            <th>{{ __('tables.amount') }}</th>
+                            <th>{{ __('tables.status') }}</th>
+                            <th>{{ __('tables.action') }}</th>
                         </tr>
                     </thead>
                     <tbody>

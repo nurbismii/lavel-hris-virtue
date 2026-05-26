@@ -22,10 +22,10 @@
                         <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                             <thead>
                                 <tr>
-                                    <th>No</th>
-                                    <th>Kode</th>
-                                    <th>Perusahaan</th>
-                                    <th>Aksi</th>
+                                    <th>{{ __('tables.no') }}</th>
+                                    <th>{{ __('tables.code') }}</th>
+                                    <th>{{ __('tables.company') }}</th>
+                                    <th>{{ __('tables.action') }}</th>
                                 </tr>
                             </thead>
                             <tbody>

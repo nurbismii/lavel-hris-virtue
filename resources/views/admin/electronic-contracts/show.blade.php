@@ -302,11 +302,11 @@
                                     <table class="table table-sm table-bordered mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th>Waktu</th>
-                                                <th>Operasi</th>
-                                                <th>Status</th>
-                                                <th>HTTP</th>
-                                                <th>Detail</th>
+                                                <th>{{ __('tables.time') }}</th>
+                                                <th>{{ __('tables.operation') }}</th>
+                                                <th>{{ __('tables.status') }}</th>
+                                                <th>{{ __('tables.http') }}</th>
+                                                <th>{{ __('tables.detail') }}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -397,10 +397,10 @@
                             <table class="table table-sm table-bordered mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Waktu</th>
-                                        <th>Event</th>
-                                        <th>Aktor</th>
-                                        <th>IP</th>
+                                        <th>{{ __('tables.time') }}</th>
+                                        <th>{{ __('tables.event') }}</th>
+                                        <th>{{ __('tables.actor') }}</th>
+                                        <th>{{ __('tables.ip') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>

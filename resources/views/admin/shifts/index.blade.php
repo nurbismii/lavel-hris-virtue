@@ -23,14 +23,14 @@
                     <table class="table table-bordered table-striped mb-0">
                         <thead>
                             <tr>
-                                <th>Kode</th>
-                                <th>Nama</th>
-                                <th>Tipe</th>
-                                <th>Jam Kerja</th>
-                                <th>Status</th>
-                                <th>Dipakai</th>
-                                <th>Keterangan</th>
-                                <th>Aksi</th>
+                                <th>{{ __('tables.code') }}</th>
+                                <th>{{ __('tables.name') }}</th>
+                                <th>{{ __('tables.type') }}</th>
+                                <th>{{ __('tables.working_hours') }}</th>
+                                <th>{{ __('tables.status') }}</th>
+                                <th>{{ __('tables.used') }}</th>
+                                <th>{{ __('tables.information') }}</th>
+                                <th>{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>

@@ -110,14 +110,14 @@
                         <table class="table table-bordered table-striped table-sm align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 120px;">Tanggal</th>
-                                    <th style="width: 150px;">Jenis</th>
-                                    <th style="width: 110px;">Debit</th>
-                                    <th style="width: 110px;">Kredit</th>
-                                    <th style="width: 120px;">Saldo</th>
-                                    <th style="width: 110px;">Periode</th>
-                                    <th>Catatan</th>
-                                    <th style="width: 150px;">Dicatat Oleh</th>
+                                    <th style="width: 120px;">{{ __('tables.date') }}</th>
+                                    <th style="width: 150px;">{{ __('tables.type_kind') }}</th>
+                                    <th style="width: 110px;">{{ __('tables.debit') }}</th>
+                                    <th style="width: 110px;">{{ __('tables.credit') }}</th>
+                                    <th style="width: 120px;">{{ __('tables.balance') }}</th>
+                                    <th style="width: 110px;">{{ __('tables.period') }}</th>
+                                    <th>{{ __('tables.note') }}</th>
+                                    <th style="width: 150px;">{{ __('tables.recorded_by') }}</th>
                                 </tr>
                             </thead>
                             <tbody>

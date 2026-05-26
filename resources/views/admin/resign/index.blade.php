@@ -69,13 +69,13 @@
                         class="table table-bordered table-striped table-sm nowrap w-100">
                         <thead class="table-light">
                             <tr>
-                                <th>NIK</th>
-                                <th>Nama</th>
-                                <th>Tanggal Resign</th>
-                                <th>Tipe</th>
-                                <th>Periode Awal</th>
-                                <th>Periode Akhir</th>
-                                <th width="120">Aksi</th>
+                                <th>{{ __('tables.nik') }}</th>
+                                <th>{{ __('tables.name') }}</th>
+                                <th>{{ __('tables.resign_date') }}</th>
+                                <th>{{ __('tables.type') }}</th>
+                                <th>{{ __('tables.start_period') }}</th>
+                                <th>{{ __('tables.end_period') }}</th>
+                                <th width="120">{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                     </table>

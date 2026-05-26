@@ -175,15 +175,15 @@
                         <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                             <thead>
                                 <tr>
-                                    <th>NIK</th>
-                                    <th>Nama</th>
-                                    <th>Area</th>
-                                    <th>Departemen</th>
-                                    <th>Divisi</th>
-                                    <th>Posisi</th>
-                                    <th>Status</th>
-                                    <th>Dokumen</th>
-                                    <th>Aksi</th>
+                                    <th>{{ __('tables.nik') }}</th>
+                                    <th>{{ __('tables.name') }}</th>
+                                    <th>{{ __('tables.area') }}</th>
+                                    <th>{{ __('tables.department') }}</th>
+                                    <th>{{ __('tables.division') }}</th>
+                                    <th>{{ __('tables.position') }}</th>
+                                    <th>{{ __('tables.status') }}</th>
+                                    <th>{{ __('tables.document') }}</th>
+                                    <th>{{ __('tables.action') }}</th>
                                 </tr>
                             </thead>
                         </table>

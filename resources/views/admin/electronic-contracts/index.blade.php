@@ -222,13 +222,13 @@
                                     <th class="contract-select-cell">
                                         <input type="checkbox" class="form-check-input" id="selectAllGenerateNik">
                                     </th>
-                                    <th>Karyawan</th>
-                                    <th>Tipe</th>
-                                    <th>Nomor</th>
-                                    <th>Periode</th>
-                                    <th>Status</th>
-                                    <th>Dibuat</th>
-                                    <th style="width: 180px;">Aksi</th>
+                                    <th>{{ __('tables.employee') }}</th>
+                                    <th>{{ __('tables.type') }}</th>
+                                    <th>{{ __('tables.number') }}</th>
+                                    <th>{{ __('tables.period') }}</th>
+                                    <th>{{ __('tables.status') }}</th>
+                                    <th>{{ __('tables.created') }}</th>
+                                    <th style="width: 180px;">{{ __('tables.action') }}</th>
                                 </tr>
                             </thead>
                             <tbody>

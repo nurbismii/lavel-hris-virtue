@@ -44,6 +44,44 @@ class NotificationController extends Controller
         return back();
     }
 
+    public function destroy(Request $request, string $id)
+    {
+        $notification = $request->user()
+            ->notifications()
+            ->whereKey($id)
+            ->firstOrFail();
+
+        $notification->delete();
+
+        return $this->deleteResponse($request, 'Notifikasi berhasil dihapus.');
+    }
+
+    public function destroyRead(Request $request)
+    {
+        $deleted = $request->user()
+            ->readNotifications()
+            ->delete();
+
+        $message = $deleted > 0
+            ? $deleted . ' notifikasi yang sudah dibaca berhasil dihapus.'
+            : 'Tidak ada notifikasi yang sudah dibaca untuk dihapus.';
+
+        return $this->deleteResponse($request, $message, ['deleted' => $deleted]);
+    }
+
+    public function destroyAll(Request $request)
+    {
+        $deleted = $request->user()
+            ->notifications()
+            ->delete();
+
+        $message = $deleted > 0
+            ? $deleted . ' notifikasi berhasil dihapus.'
+            : 'Tidak ada notifikasi untuk dihapus.';
+
+        return $this->deleteResponse($request, $message, ['deleted' => $deleted]);
+    }
+
     public function read(Request $request, string $id)
     {
         $notification = $request->user()
@@ -53,5 +91,20 @@ class NotificationController extends Controller
         $notification->markAsRead();
 
         return redirect()->to($notification->data['url'] ?? route('kotak-masuk.index'));
+    }
+
+    private function deleteResponse(Request $request, string $message, array $data = [])
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'data' => $data,
+            ]);
+        }
+
+        toast()->success('Berhasil', $message);
+
+        return back();
     }
 }

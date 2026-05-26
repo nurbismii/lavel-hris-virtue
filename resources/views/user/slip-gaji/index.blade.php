@@ -22,11 +22,11 @@
                         <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm">
                             <thead>
                                 <tr>
-                                    <th>NIK</th>
-                                    <th>Nama</th>
-                                    <th>Periode</th>
-                                    <th>Total Gaji</th>
-                                    <th>Aksi</th>
+                                    <th>{{ __('tables.nik') }}</th>
+                                    <th>{{ __('tables.name') }}</th>
+                                    <th>{{ __('tables.period') }}</th>
+                                    <th>{{ __('tables.total_salary') }}</th>
+                                    <th>{{ __('tables.action') }}</th>
                                 </tr>
                             </thead>
                         </table>

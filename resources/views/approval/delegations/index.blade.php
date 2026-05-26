@@ -156,11 +156,11 @@
                             <table class="table table-hover align-middle">
                                 <thead>
                                     <tr>
-                                        <th>Delegasi</th>
-                                        <th>Scope</th>
-                                        <th>Modul</th>
-                                        <th>Status</th>
-                                        <th>Aksi</th>
+                                        <th>{{ __('tables.delegation') }}</th>
+                                        <th>{{ __('tables.scope') }}</th>
+                                        <th>{{ __('tables.module') }}</th>
+                                        <th>{{ __('tables.status') }}</th>
+                                        <th>{{ __('tables.action') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>

@@ -49,6 +49,11 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(60);
         });
 
+        RateLimiter::for('mobile-app-version', function (Request $request) {
+            return Limit::perMinute((int) config('hris.mobile_app.rate_limit_per_minute', 600))
+                ->by($request->ip());
+        });
+
         RateLimiter::for('presensi', function (Request $request) {
             return Limit::perMinute(8)->by(optional($request->user())->id ?: $request->ip());
         });

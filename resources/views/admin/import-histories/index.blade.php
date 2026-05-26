@@ -113,13 +113,13 @@
                         <table class="table table-bordered table-striped table-sm import-history-table mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 145px;">Waktu</th>
-                                    <th style="width: 210px;">Jenis</th>
-                                    <th style="width: 260px;">File</th>
-                                    <th style="width: 170px;">Status</th>
-                                    <th style="width: 220px;">Ringkasan</th>
-                                    <th style="width: 190px;">Aktor</th>
-                                    <th>Catatan</th>
+                                    <th style="width: 145px;">{{ __('tables.time') }}</th>
+                                    <th style="width: 210px;">{{ __('tables.type_kind') }}</th>
+                                    <th style="width: 260px;">{{ __('tables.file') }}</th>
+                                    <th style="width: 170px;">{{ __('tables.status') }}</th>
+                                    <th style="width: 220px;">{{ __('tables.summary') }}</th>
+                                    <th style="width: 190px;">{{ __('tables.actor') }}</th>
+                                    <th>{{ __('tables.note') }}</th>
                                 </tr>
                             </thead>
                             <tbody>

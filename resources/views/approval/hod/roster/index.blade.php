@@ -20,15 +20,15 @@
                 <table id="table-approval-roster" class="table table-bordered">
                     <thead>
                         <tr>
-                            <th>NIK</th>
-                            <th>Nama</th>
-                            <th>Pengajuan</th>
-                            <th>Mulai</th>
-                            <th>Berakhir</th>
-                            <th>Kategori</th>
-                            <th>Delegasi</th>
-                            <th>Status</th>
-                            <th>Aksi</th>
+                            <th>{{ __('tables.nik') }}</th>
+                            <th>{{ __('tables.name') }}</th>
+                            <th>{{ __('tables.submission') }}</th>
+                            <th>{{ __('tables.start') }}</th>
+                            <th>{{ __('tables.end') }}</th>
+                            <th>{{ __('tables.category') }}</th>
+                            <th>{{ __('tables.delegation') }}</th>
+                            <th>{{ __('tables.status') }}</th>
+                            <th>{{ __('tables.action') }}</th>
                         </tr>
                     </thead>
                     <tbody>

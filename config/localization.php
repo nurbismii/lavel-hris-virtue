@@ -10,8 +10,8 @@ return [
         ],
         'zh_CN' => [
             'name' => 'Simplified Chinese',
-            'native_name' => 'Simplified Chinese',
-            'short_label' => '中',
+            'native_name' => '简体中文',
+            'short_label' => 'CN',
             'html_lang' => 'zh-CN',
         ],
     ],

@@ -160,9 +160,9 @@
                             <table class="table table-sm align-middle">
                                 <thead>
                                     <tr>
-                                        <th>Tanggal</th>
-                                        <th>Status</th>
-                                        <th>Jam</th>
+                                        <th>{{ __('tables.date') }}</th>
+                                        <th>{{ __('tables.status') }}</th>
+                                        <th>{{ __('tables.hour') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>

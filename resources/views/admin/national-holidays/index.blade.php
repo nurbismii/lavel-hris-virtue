@@ -74,10 +74,10 @@
                             <table class="table table-bordered table-striped table-sm align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th class="national-holidays-table__no">No</th>
-                                        <th class="national-holidays-table__date">Tanggal</th>
-                                        <th>Nama Libur Nasional</th>
-                                        <th class="national-holidays-table__action">Aksi</th>
+                                        <th class="national-holidays-table__no">{{ __('tables.no') }}</th>
+                                        <th class="national-holidays-table__date">{{ __('tables.date') }}</th>
+                                        <th>{{ __('tables.national_holiday_name') }}</th>
+                                        <th class="national-holidays-table__action">{{ __('tables.action') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>

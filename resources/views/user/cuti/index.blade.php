@@ -31,16 +31,16 @@
                         <table id="table-cuti" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Pengajuan cuti</th>
-                                    <th>NIK</th>
-                                    <th>Nama</th>
-                                    <th>Mulai cuti</th>
-                                    <th>Berakhir cuti</th>
-                                    <th>Jumlah Cuti</th>
-                                    <th>Status Delegasi</th>
-                                    <th>Status HOD</th>
-                                    <th>Status HR</th>
-                                    <th>Aksi</th>
+                                    <th>{{ __('tables.leave_submission') }}</th>
+                                    <th>{{ __('tables.nik') }}</th>
+                                    <th>{{ __('tables.name') }}</th>
+                                    <th>{{ __('tables.leave_start') }}</th>
+                                    <th>{{ __('tables.leave_end') }}</th>
+                                    <th>{{ __('tables.leave_amount') }}</th>
+                                    <th>{{ __('tables.delegate_status') }}</th>
+                                    <th>{{ __('tables.hod_status') }}</th>
+                                    <th>{{ __('tables.hr_status') }}</th>
+                                    <th>{{ __('tables.action') }}</th>
                                 </tr>
                             </thead>
                             <tbody>

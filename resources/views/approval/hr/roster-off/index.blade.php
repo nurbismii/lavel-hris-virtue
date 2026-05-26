@@ -18,14 +18,14 @@
                 <table id="table-approval-roster-off" class="table table-bordered table-sm align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>NIK</th>
-                            <th>Nama</th>
-                            <th>Departemen</th>
-                            <th>Tanggal OFF</th>
-                            <th>Alasan</th>
-                            <th>Status HOD</th>
-                            <th>Status HR</th>
-                            <th>Aksi</th>
+                            <th>{{ __('tables.nik') }}</th>
+                            <th>{{ __('tables.name') }}</th>
+                            <th>{{ __('tables.department') }}</th>
+                            <th>{{ __('tables.off_date') }}</th>
+                            <th>{{ __('tables.reason') }}</th>
+                            <th>{{ __('tables.hod_status') }}</th>
+                            <th>{{ __('tables.hr_status') }}</th>
+                            <th>{{ __('tables.action') }}</th>
                         </tr>
                     </thead>
                     <tbody>

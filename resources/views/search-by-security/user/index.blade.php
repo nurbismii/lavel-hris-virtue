@@ -29,10 +29,10 @@
                         <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                             <thead>
                                 <tr>
-                                    <th>NIK</th>
-                                    <th>Email</th>
-                                    <th>Tanggal Lahir</th>
-                                    <th>Aksi</th>
+                                    <th>{{ __('tables.nik') }}</th>
+                                    <th>{{ __('tables.email') }}</th>
+                                    <th>{{ __('tables.birth_date') }}</th>
+                                    <th>{{ __('tables.action') }}</th>
                                 </tr>
                             </thead>
                             <tbody>

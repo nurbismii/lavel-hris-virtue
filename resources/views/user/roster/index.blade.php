@@ -25,16 +25,16 @@
                 <table id="table-approval-roster" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                     <thead class="table-light">
                         <tr>
-                            <th>Pengajuan</th>
-                            <th>NIK</th>
-                            <th>Nama</th>
-                            <th>Mulai</th>
-                            <th>Berakhir</th>
-                            <th>Kategori</th>
-                            <th>Status Delegasi</th>
-                            <th>Status HOD</th>
-                            <th>Status HR</th>
-                            <th>Aksi</th>
+                            <th>{{ __('tables.submission') }}</th>
+                            <th>{{ __('tables.nik') }}</th>
+                            <th>{{ __('tables.name') }}</th>
+                            <th>{{ __('tables.start') }}</th>
+                            <th>{{ __('tables.end') }}</th>
+                            <th>{{ __('tables.category') }}</th>
+                            <th>{{ __('tables.delegate_status') }}</th>
+                            <th>{{ __('tables.hod_status') }}</th>
+                            <th>{{ __('tables.hr_status') }}</th>
+                            <th>{{ __('tables.action') }}</th>
                         </tr>
                     </thead>
                     <tbody>

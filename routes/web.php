@@ -166,6 +166,9 @@ Route::middleware(['android.redirect'])->group(function () {
             ->only(['index']);
         Route::get('/notifications/latest', [NotificationController::class, 'latest'])->name('notifications.latest');
         Route::post('/notif/read-all', [NotificationController::class, 'readAll'])->name('notif.readAll');
+        Route::delete('/notif/read', [NotificationController::class, 'destroyRead'])->name('notif.destroyRead');
+        Route::delete('/notif', [NotificationController::class, 'destroyAll'])->name('notif.destroyAll');
+        Route::delete('/notif/{id}', [NotificationController::class, 'destroy'])->name('notif.destroy');
         Route::get('/notif/{id}/baca', [NotificationController::class, 'read'])->name('notif.baca');
     });
 

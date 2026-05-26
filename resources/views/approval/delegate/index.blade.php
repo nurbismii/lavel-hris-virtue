@@ -43,11 +43,11 @@
                     <table class="table table-hover align-middle">
                         <thead>
                             <tr>
-                                <th>Karyawan</th>
-                                <th>Detail Pengajuan</th>
-                                <th>Periode/Tanggal</th>
-                                <th>Status</th>
-                                <th>Aksi</th>
+                                <th>{{ __('tables.employee') }}</th>
+                                <th>{{ __('tables.submission_detail') }}</th>
+                                <th>{{ __('tables.period_date') }}</th>
+                                <th>{{ __('tables.status') }}</th>
+                                <th>{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>

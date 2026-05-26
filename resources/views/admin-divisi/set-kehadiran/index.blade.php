@@ -135,9 +135,9 @@
                     <table id="table-set-kehadiran" class="table table-bordered table-sm align-middle mb-0 attendance-matrix-table">
                         <thead>
                             <tr>
-                                <th class="sticky-col sticky-no text-center">No</th>
-                                <th class="sticky-col sticky-name">Karyawan</th>
-                                <th class="sticky-col sticky-pattern">Pola</th>
+                                <th class="sticky-col sticky-no text-center">{{ __('tables.no') }}</th>
+                                <th class="sticky-col sticky-name">{{ __('tables.employee') }}</th>
+                                <th class="sticky-col sticky-pattern">{{ __('tables.pattern') }}</th>
 
                                 @foreach($dates as $date)
                                 @php

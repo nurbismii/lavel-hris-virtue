@@ -169,12 +169,12 @@
                         <table class="table table-sm roster-off-table mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Tanggal OFF</th>
-                                    <th>Alasan</th>
-                                    <th>Status Delegasi</th>
-                                    <th>Status HOD</th>
-                                    <th>Status HR</th>
-                                    <th>Aksi</th>
+                                    <th>{{ __('tables.off_date') }}</th>
+                                    <th>{{ __('tables.reason') }}</th>
+                                    <th>{{ __('tables.delegate_status') }}</th>
+                                    <th>{{ __('tables.hod_status') }}</th>
+                                    <th>{{ __('tables.hr_status') }}</th>
+                                    <th>{{ __('tables.action') }}</th>
                                 </tr>
                             </thead>
                             <tbody>

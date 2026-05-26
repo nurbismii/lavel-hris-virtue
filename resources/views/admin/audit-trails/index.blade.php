@@ -101,13 +101,13 @@
                         <table class="table table-bordered table-striped table-sm audit-trail-table mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 145px;">Waktu</th>
-                                    <th style="width: 180px;">Event</th>
-                                    <th style="width: 150px;">Referensi</th>
-                                    <th style="width: 120px;">NIK</th>
-                                    <th style="width: 190px;">Aktor</th>
-                                    <th>Catatan</th>
-                                    <th style="width: 260px;">Perubahan</th>
+                                    <th style="width: 145px;">{{ __('tables.time') }}</th>
+                                    <th style="width: 180px;">{{ __('tables.event') }}</th>
+                                    <th style="width: 150px;">{{ __('tables.reference') }}</th>
+                                    <th style="width: 120px;">{{ __('tables.nik') }}</th>
+                                    <th style="width: 190px;">{{ __('tables.actor') }}</th>
+                                    <th>{{ __('tables.note') }}</th>
+                                    <th style="width: 260px;">{{ __('tables.changes') }}</th>
                                 </tr>
                             </thead>
                             <tbody>

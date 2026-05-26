@@ -215,11 +215,11 @@
                             <table class="table table-sm table-bordered align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th>NIK</th>
-                                        <th>Nama</th>
-                                        <th>Departemen</th>
-                                        <th>Divisi</th>
-                                        <th>Assignment Aktif Sekarang</th>
+                                        <th>{{ __('tables.nik') }}</th>
+                                        <th>{{ __('tables.name') }}</th>
+                                        <th>{{ __('tables.department') }}</th>
+                                        <th>{{ __('tables.division') }}</th>
+                                        <th>{{ __('tables.assignment_active_now') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -287,16 +287,16 @@
                     <table id="table-lokasi-presensi" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
                         <thead>
                             <tr>
-                                <th>No</th>
-                                <th>Nama Lokasi</th>
-                                <th>Area</th>
-                                <th>Departemen</th>
-                                <th>Default Divisi Lama</th>
-                                <th>Latitude</th>
-                                <th>Longitude</th>
-                                <th>Radius <sup>m</sup></th>
-                                <th>Assignment Aktif</th>
-                                <th>Aksi</th>
+                                <th>{{ __('tables.no') }}</th>
+                                <th>{{ __('tables.location_name') }}</th>
+                                <th>{{ __('tables.area') }}</th>
+                                <th>{{ __('tables.department') }}</th>
+                                <th>{{ __('tables.old_default_division') }}</th>
+                                <th>{{ __('tables.latitude') }}</th>
+                                <th>{{ __('tables.longitude') }}</th>
+                                <th>{{ __('tables.radius_meter') }}</th>
+                                <th>{{ __('tables.assignment_active') }}</th>
+                                <th>{{ __('tables.action') }}</th>
                             </tr>
                         </thead>
                         <tbody>
