@@ -44,12 +44,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/mobile-logout', function () {
+    return redirect('/login?app=V-PEOPLE');
+});
+
+Route::post('/mobile-logout', function () {
     Auth::logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
 
     return redirect('/login?app=V-PEOPLE');
-});
+})->middleware('auth')->name('mobile.logout');
 
 Route::post('/locale/{locale}', [LocaleController::class, 'update'])->name('locale.update');
 

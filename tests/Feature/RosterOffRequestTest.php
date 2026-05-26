@@ -95,7 +95,7 @@ class RosterOffRequestTest extends TestCase
                 'nik_karyawan' => 'EMP001',
                 'tanggal_off' => '2026-05-10',
                 'status_hod' => RosterOffRequest::STATUS_APPROVED,
-                'status_hrd' => RosterOffRequest::STATUS_PENDING,
+                'status_hrd' => RosterOffRequest::STATUS_APPROVED,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -104,6 +104,14 @@ class RosterOffRequestTest extends TestCase
                 'tanggal_off' => '2026-05-12',
                 'status_hod' => RosterOffRequest::STATUS_APPROVED,
                 'status_hrd' => RosterOffRequest::STATUS_REJECTED,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'nik_karyawan' => 'EMP001',
+                'tanggal_off' => '2026-05-14',
+                'status_hod' => RosterOffRequest::STATUS_APPROVED,
+                'status_hrd' => RosterOffRequest::STATUS_PENDING,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -121,7 +129,7 @@ class RosterOffRequestTest extends TestCase
         $this->assertSame(['2026-05-10'], collect($payload['data'])->pluck('date')->all());
     }
 
-    public function test_hod_approval_makes_roster_off_effective_for_attendance_status(): void
+    public function test_hrd_approval_makes_roster_off_effective_for_attendance_status(): void
     {
         DB::table('roster_off_requests')->insert([
             'id' => 1,
@@ -142,6 +150,17 @@ class RosterOffRequestTest extends TestCase
             'id' => 1,
             'status_hod' => RosterOffRequest::STATUS_APPROVED,
         ]);
+        $this->assertDatabaseMissing('absensis', [
+            'nik_karyawan' => 'EMP001',
+            'tanggal' => '2026-05-10',
+            'status_presensi' => 'Off',
+        ]);
+
+        app(RosterOffApprovalController::class)->hrdProcess(
+            $this->approvalRequest($this->makeUser('HOD', 'HOD001'), RosterOffRequest::STATUS_APPROVED),
+            1
+        );
+
         $this->assertDatabaseHas('absensis', [
             'nik_karyawan' => 'EMP001',
             'tanggal' => '2026-05-10',
@@ -167,6 +186,8 @@ class RosterOffRequestTest extends TestCase
             $table->string('nama_karyawan');
             $table->unsignedInteger('departemen_id')->nullable();
             $table->unsignedInteger('divisi_id')->nullable();
+            $table->unsignedInteger('work_pattern_id')->nullable();
+            $table->date('work_pattern_start_date')->nullable();
         });
 
         Schema::create('users', function (Blueprint $table) {
@@ -201,6 +222,63 @@ class RosterOffRequestTest extends TestCase
             $table->dateTime('jam_kembali_istirahat')->nullable();
             $table->dateTime('jam_pulang')->nullable();
             $table->string('status_presensi')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('cuti_izin', function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('nik_karyawan');
+            $table->date('tanggal_mulai')->nullable();
+            $table->date('tanggal_berakhir')->nullable();
+            $table->string('tipe')->nullable();
+            $table->unsignedTinyInteger('status_hod')->default(0);
+            $table->unsignedTinyInteger('status_hrd')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::create('cuti_roster', function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('nik_karyawan');
+            $table->date('tgl_mulai_cuti')->nullable();
+            $table->date('tgl_mulai_cuti_berakhir')->nullable();
+            $table->date('tgl_mulai_cuti_tahunan')->nullable();
+            $table->date('tgl_mulai_cuti_tahunan_berakhir')->nullable();
+            $table->unsignedTinyInteger('status_pengajuan')->default(0);
+            $table->unsignedTinyInteger('status_pengajuan_hrd')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::create('periode_kerja_roster', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('cuti_roster_id');
+            $table->unsignedTinyInteger('tipe_rencana')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::create('overtime_orders', function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('nik_karyawan');
+            $table->date('overtime_date')->nullable();
+            $table->string('employee_response_status')->default('PENDING');
+            $table->string('requested_by_user_id')->nullable();
+            $table->time('start_time')->nullable();
+            $table->time('end_time')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('employee_attendance_settings', function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('employee_id');
+            $table->date('tanggal');
+            $table->string('status')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('work_patterns', function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('name')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->boolean('national_holiday_as_off')->default(true);
             $table->timestamps();
         });
     }

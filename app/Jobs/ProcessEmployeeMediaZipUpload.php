@@ -245,6 +245,8 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                     continue;
                 }
 
+                $path = null;
+
                 try {
                     $uploadedFile = new UploadedFile(
                         $temporaryFile,
@@ -255,8 +257,26 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                     );
 
                     $replacedExisting = false;
-                    $path = $mediaService->storeUploadedFile($employee, $uploadedFile, $this->mediaType, false, $replacedExisting);
+                    $replacedPath = null;
+                    $path = $mediaService->storeUploadedFile(
+                        $employee,
+                        $uploadedFile,
+                        $this->mediaType,
+                        false,
+                        $replacedExisting,
+                        false,
+                        $replacedPath
+                    );
                     $employee->forceFill([$column => $path])->save();
+
+                    if ($replacedPath) {
+                        try {
+                            $mediaService->deleteRelativePath($replacedPath);
+                        } catch (Throwable $deleteException) {
+                            report($deleteException);
+                        }
+                    }
+
                     $summary['processed_niks'][$nik] = true;
                     $summary['success_count']++;
                     $message = $replacedExisting
@@ -264,6 +284,10 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
                         : "Berhasil dipasangkan ke {$employee->nama_karyawan} ({$employee->nik}).";
                     $this->rememberItem($summary, 'success', $basename, $message);
                 } catch (Throwable $exception) {
+                    if ($path) {
+                        $mediaService->deleteRelativePath($path);
+                    }
+
                     $summary['skipped_count']++;
                     $this->rememberItem($summary, 'skip', $basename, 'Gagal menyimpan file ke data karyawan.');
 

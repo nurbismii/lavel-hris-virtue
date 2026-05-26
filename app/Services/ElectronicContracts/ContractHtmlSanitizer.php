@@ -165,6 +165,10 @@ class ContractHtmlSanitizer
             return false;
         }
 
+        if (strpos($url, '//') === 0) {
+            return false;
+        }
+
         if (preg_match('/^https?:\/\//i', $url)) {
             $urlHost = parse_url($url, PHP_URL_HOST);
             $allowedHosts = array_filter([

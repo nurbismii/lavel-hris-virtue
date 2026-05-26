@@ -18,6 +18,7 @@ use App\Services\ImportHistory\ImportHistoryService;
 use App\Services\Recruitment\RecruitmentDocumentClient;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
@@ -159,22 +160,59 @@ class KaryawanController extends Controller
             'face_reference' => 'face_reference',
         ];
         $replacedDocuments = 0;
+        $storedNewPaths = [];
+        $replacedPaths = [];
 
-        foreach ($fileInputs as $input => $type) {
-            if (!$request->hasFile($input)) {
-                continue;
+        try {
+            foreach ($fileInputs as $input => $type) {
+                if (!$request->hasFile($input)) {
+                    continue;
+                }
+
+                $column = $mediaService->getColumnForType($type);
+                $replacedExisting = false;
+                $replacedPath = null;
+                $path = $mediaService->storeUploadedFile(
+                    $employee,
+                    $request->file($input),
+                    $type,
+                    true,
+                    $replacedExisting,
+                    false,
+                    $replacedPath
+                );
+
+                $storedNewPaths[] = $path;
+                $validatedData[$column] = $path;
+                $employee->{$column} = $path;
+                $replacedDocuments += $replacedExisting ? 1 : 0;
+
+                if ($replacedPath) {
+                    $replacedPaths[] = $replacedPath;
+                }
             }
 
-            $column = $mediaService->getColumnForType($type);
-            $replacedExisting = false;
-            $path = $mediaService->storeUploadedFile($employee, $request->file($input), $type, true, $replacedExisting);
+            DB::transaction(function () use ($employee, $validatedData) {
+                $employee->update($validatedData);
+            });
+        } catch (Throwable $exception) {
+            foreach ($storedNewPaths as $storedPath) {
+                $mediaService->deleteRelativePath($storedPath);
+            }
 
-            $validatedData[$column] = $path;
-            $employee->{$column} = $path;
-            $replacedDocuments += $replacedExisting ? 1 : 0;
+            report($exception);
+            toast('Data karyawan gagal diperbarui. Periksa kembali data dan file dokumen, lalu coba lagi.', 'error');
+
+            return back()->withInput();
         }
 
-        $employee->update($validatedData);
+        foreach (array_unique($replacedPaths) as $replacedPath) {
+            try {
+                $mediaService->deleteRelativePath($replacedPath);
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
 
         $message = $replacedDocuments > 0
             ? "Data karyawan berhasil diperbarui. {$replacedDocuments} file lama ditimpa dengan file baru."

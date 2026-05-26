@@ -453,7 +453,6 @@ class PresensiController extends Controller
             Alert::error('Error', $message);
         }
 
-        Alert::error('Error', $message);
         return back();
     }
 

@@ -115,7 +115,7 @@ class AttendanceStatusService
         $cuti = Cuti::query()
             ->where('nik_karyawan', $nikKaryawan)
             ->where('status_hod', 1)
-            ->where('status_hrd', '!=', 2)
+            ->where('status_hrd', 1)
             ->whereDate('tanggal_mulai', '<=', $dateString)
             ->whereDate('tanggal_berakhir', '>=', $dateString)
             ->latest('id')
@@ -186,7 +186,7 @@ class AttendanceStatusService
             ->join('periode_kerja_roster', 'periode_kerja_roster.cuti_roster_id', '=', 'cuti_roster.id')
             ->where('cuti_roster.nik_karyawan', $nikKaryawan)
             ->where('cuti_roster.status_pengajuan', 1)
-            ->where('cuti_roster.status_pengajuan_hrd', '!=', 2)
+            ->where('cuti_roster.status_pengajuan_hrd', 1)
             ->where('periode_kerja_roster.tipe_rencana', 1)
             ->where(function ($query) use ($tanggal) {
                 $query->where(function ($range) use ($tanggal) {

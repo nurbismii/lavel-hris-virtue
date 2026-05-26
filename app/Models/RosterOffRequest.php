@@ -44,7 +44,7 @@ class RosterOffRequest extends Model
     {
         return $query
             ->where('status_hod', self::STATUS_APPROVED)
-            ->where('status_hrd', '!=', self::STATUS_REJECTED);
+            ->where('status_hrd', self::STATUS_APPROVED);
     }
 
     public function getStatusHodLabelAttribute(): string
