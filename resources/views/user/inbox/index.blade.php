@@ -167,23 +167,6 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                             <i class="fas fa-chevron-right"></i>
                         </a>
 
-                        <form
-                            action="{{ route('notif.destroy', $notif->id) }}"
-                            method="POST"
-                            class="m-0"
-                            data-confirm-title="Hapus notifikasi?"
-                            data-confirm-text="Notifikasi ini akan dihapus dari akun Anda.">
-                            @csrf
-                            @method('DELETE')
-                            <button
-                                type="submit"
-                                class="inbox-icon-button inbox-icon-button--danger"
-                                title="Hapus notifikasi"
-                                aria-label="Hapus notifikasi {{ $title }}"
-                                data-loading-text="Menghapus...">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </form>
                     </div>
                 </article>
                 @empty
@@ -209,43 +192,3 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
     </div>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-    document.addEventListener('submit', function (event) {
-        const form = event.target;
-
-        if (!form || !form.matches('form[data-confirm-title]') || form.dataset.confirmed === '1') {
-            return;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        const submitConfirmed = function () {
-            form.dataset.confirmed = '1';
-            form.submit();
-        };
-
-        if (window.AppDialog && typeof window.AppDialog.confirm === 'function') {
-            window.AppDialog.confirm({
-                title: form.dataset.confirmTitle || 'Hapus notifikasi?',
-                text: form.dataset.confirmText || 'Notifikasi akan dihapus dari akun Anda.',
-                icon: 'warning',
-                confirmButtonText: 'Ya, hapus',
-                cancelButtonText: 'Batal'
-            }).then(function (confirmed) {
-                if (confirmed) {
-                    submitConfirmed();
-                }
-            });
-
-            return;
-        }
-
-        if (window.confirm(form.dataset.confirmText || 'Hapus notifikasi ini?')) {
-            submitConfirmed();
-        }
-    }, true);
-</script>
-@endpush
