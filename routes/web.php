@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ApiController;
+use App\Http\Controllers\Admin\AttendanceAnomalyDashboardController;
 use App\Http\Controllers\Admin\AuditTrailController;
 use App\Http\Controllers\Admin\ContractRenewalController;
 use App\Http\Controllers\Admin\AttendancePeriodLockController;
@@ -376,6 +377,12 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::post('/data-presensi/review-wajah/{verification}/decision', [PresensiAdminController::class, 'decideFaceReview'])
             ->middleware(['menu:data_presensi', 'role:Super Admin,HR'])
             ->name('data-presensi.face-review.decide');
+        Route::get('/anomali-presensi', [AttendanceAnomalyDashboardController::class, 'index'])
+            ->middleware(['menu:attendance_anomaly', 'role:Super Admin,HR'])
+            ->name('attendance-anomalies.index');
+        Route::get('/anomali-presensi/data', [AttendanceAnomalyDashboardController::class, 'data'])
+            ->middleware(['menu:attendance_anomaly', 'role:Super Admin,HR'])
+            ->name('attendance-anomalies.data');
 
         Route::resource('/data-presensi', 'App\Http\Controllers\Admin\PresensiController')
             ->only(['index'])

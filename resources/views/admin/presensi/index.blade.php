@@ -30,6 +30,12 @@
 
             <div class="ms-md-auto pt-3 pt-md-0">
                 @if(auth()->user()->hasRole(['Super Admin', 'HR']))
+                @if(auth()->user()->hasMenuAccess('attendance_anomaly'))
+                <a href="{{ route('attendance-anomalies.index') }}" class="btn btn-outline-warning btn-sm me-2">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Anomali
+                </a>
+                @endif
                 @if(auth()->user()->hasMenuAccess('attendance_period_lock'))
                 <a href="{{ route('attendance-period-locks.index') }}" class="btn btn-outline-danger btn-sm me-2">
                     <i class="fas fa-lock me-1"></i>

@@ -1,0 +1,93 @@
+.attendance-anomaly-page .form-label {
+    font-size: .78rem;
+    font-weight: 600;
+}
+
+.anomaly-summary-card {
+    border: 1px solid #e5e7eb;
+    border-left-width: 4px;
+    border-radius: 8px;
+    background: #fff;
+    padding: .85rem;
+    min-height: 82px;
+}
+
+.anomaly-summary-card span {
+    display: block;
+    color: #6b7280;
+    font-size: .78rem;
+    line-height: 1.25;
+}
+
+.anomaly-summary-card strong {
+    display: block;
+    color: #111827;
+    font-size: 1.35rem;
+    line-height: 1.2;
+    margin-top: .35rem;
+}
+
+.anomaly-summary-card--primary {
+    border-left-color: #2563eb;
+}
+
+.anomaly-summary-card--danger {
+    border-left-color: #dc2626;
+}
+
+.anomaly-summary-card--warning {
+    border-left-color: #d97706;
+}
+
+.anomaly-summary-card--secondary {
+    border-left-color: #6b7280;
+}
+
+.anomaly-clock-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3px 8px;
+    font-size: .78rem;
+    line-height: 1.25;
+}
+
+.anomaly-clock-grid span {
+    white-space: nowrap;
+}
+
+.anomaly-clock-label {
+    color: #6b7280;
+    font-weight: 700;
+    margin-right: 3px;
+}
+
+.anomaly-badge-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.anomaly-badge-list .badge {
+    font-size: .72rem;
+    white-space: normal;
+    text-align: left;
+}
+
+.anomaly-org-cell,
+.anomaly-gps-cell {
+    font-size: .78rem;
+    line-height: 1.3;
+}
+
+.anomaly-device-meta {
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .attendance-anomaly-page .dataTables_wrapper .row {
+        row-gap: .75rem;
+    }
+}

@@ -12,6 +12,7 @@ return [
     'attendance' => '考勤',
     'attendance_correction' => '考勤更正',
     'attendance_data' => '考勤数据',
+    'attendance_anomaly' => '考勤异常',
     'attendance_location' => '考勤地点',
     'attendance_period_lock' => '考勤结账',
     'audit_trail' => '审计日志',

@@ -12,6 +12,7 @@ return [
     'attendance' => 'Presensi',
     'attendance_correction' => 'Koreksi Presensi',
     'attendance_data' => 'Data Presensi',
+    'attendance_anomaly' => 'Anomali Presensi',
     'attendance_location' => 'Lokasi Presensi',
     'attendance_period_lock' => 'Closing Presensi',
     'audit_trail' => 'Audit Trail',

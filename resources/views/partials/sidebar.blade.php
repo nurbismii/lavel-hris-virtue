@@ -11,6 +11,7 @@ $shiftMenuActive = request()->routeIs('shifts.*') || request()->routeIs('shift-s
 $overtimeMenuActive = request()->routeIs('overtime-orders.*') || request()->routeIs('overtime-masters.*');
 $electronicContractAdminActive = request()->routeIs('electronic-contracts.*');
 $contractRenewalActive = request()->routeIs('contract-renewals.*');
+$attendanceAnomalyActive = request()->routeIs('attendance-anomalies.*');
 $attendancePeriodLockActive = request()->routeIs('attendance-period-locks.*');
 @endphp
 
@@ -56,7 +57,7 @@ $attendancePeriodLockActive = request()->routeIs('attendance-period-locks.*');
                 </li>
                 @endif
 
-                @if($can('data_karyawan') || $can('data_user') || $can('slip_gaji_admin') || $can('electronic_contract_admin') || $can('contract_renewal') || $can('resign') || $can('surat_peringatan') || $can('data_presensi') || $can('distribusi_wilayah'))
+                @if($can('data_karyawan') || $can('data_user') || $can('slip_gaji_admin') || $can('electronic_contract_admin') || $can('contract_renewal') || $can('resign') || $can('surat_peringatan') || $can('data_presensi') || $can('attendance_anomaly') || $can('distribusi_wilayah'))
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
@@ -163,6 +164,15 @@ $attendancePeriodLockActive = request()->routeIs('attendance-period-locks.*');
                     <a href="{{ route('data-presensi.index') }}">
                         <i class="fas fa-check"></i>
                         <p>{{ __('navigation.attendance_data') }}</p>
+                    </a>
+                </li>
+                @endif
+
+                @if($can('attendance_anomaly'))
+                <li class="nav-item {{ $attendanceAnomalyActive ? 'active' : '' }}">
+                    <a href="{{ route('attendance-anomalies.index') }}">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>{{ __('navigation.attendance_anomaly') }}</p>
                     </a>
                 </li>
                 @endif

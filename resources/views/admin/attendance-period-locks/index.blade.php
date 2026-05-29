@@ -122,7 +122,7 @@
                 <div class="card-body">
                     <h5 class="mb-1">Tutup Periode</h5>
                     <p class="text-muted small mb-3">
-                        Setelah dikunci, perubahan presensi, cuti, izin, roster, koreksi presensi, review wajah, dan lembur pada periode ini akan ditolak oleh backend.
+                        Setelah dikunci, perubahan presensi, cuti, izin, roster, koreksi presensi, review wajah, dan lembur pada periode ini akan ditolak oleh sistem.
                     </p>
                     <form method="POST" action="{{ route('attendance-period-locks.store') }}" class="js-lock-action">
                         @csrf
