@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use RuntimeException;
 
 class ShiftSettingController extends Controller
 {
@@ -234,6 +235,11 @@ class ShiftSettingController extends Controller
                     );
                 }
             });
+        } catch (RuntimeException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
         } catch (\Throwable $exception) {
             report($exception);
 

@@ -12,6 +12,7 @@ use App\Models\RosterOffRequest;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -81,6 +82,15 @@ class DelegatedApprovalController extends Controller
                 ->whereKey($id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            $periodLockMessage = $this->periodLockMessageForModel($model, $module);
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
+                ];
+            }
 
             return $service->processDelegateApproval(
                 $model,
@@ -162,6 +172,33 @@ class DelegatedApprovalController extends Controller
             'url' => route($target['route']),
             'tipe' => $label,
         ]));
+    }
+
+    private function periodLockMessageForModel(Model $model, string $module): ?string
+    {
+        $lockService = app(AttendancePeriodLockService::class);
+
+        if ($model instanceof Cuti) {
+            return $lockService->guardRange(
+                $model->tanggal_mulai,
+                $model->tanggal_berakhir,
+                'Approval delegasi'
+            );
+        }
+
+        if ($model instanceof Roster) {
+            return $lockService->guardRoster($model, 'Approval delegasi');
+        }
+
+        if ($model instanceof RosterOffRequest) {
+            return $lockService->guardDate($model->tanggal_off, 'Approval delegasi');
+        }
+
+        if ($model instanceof AttendanceCorrection) {
+            return $lockService->guardDate($model->tanggal, 'Approval delegasi');
+        }
+
+        return null;
     }
 
     private function applicantUser(Model $model)

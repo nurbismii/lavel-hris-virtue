@@ -12,6 +12,7 @@ use App\Services\Presensi\AttendanceSecurityService;
 use App\Services\Presensi\AttendanceDateResolverService;
 use App\Services\Presensi\AttendanceFulfillmentService;
 use App\Services\Presensi\AttendanceLocationResolverService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Presensi\ShiftAssignmentService;
 use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Presensi\OvertimeOrderService;
@@ -173,6 +174,12 @@ class PresensiController extends Controller
         $now = Carbon::now();
         $attendanceContext = app(AttendanceDateResolverService::class)->resolve($karyawan, $now);
         $attendanceDate = $attendanceContext['date'];
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate($attendanceDate, 'Presensi tanggal ' . formatDateIndonesia($attendanceDate));
+
+        if ($periodLockMessage) {
+            return $this->failPresensi($periodLockMessage, 'warning');
+        }
 
         if (
             $type === 'masuk'

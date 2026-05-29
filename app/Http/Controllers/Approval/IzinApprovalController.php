@@ -9,6 +9,7 @@ use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
 
@@ -58,6 +59,19 @@ class IzinApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan masih menunggu atau sudah ditolak pada tahap delegasi.',
+                ];
+            }
+
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+                $cuti->tanggal_mulai,
+                $cuti->tanggal_berakhir,
+                'Approval izin'
+            );
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
                 ];
             }
 
@@ -148,6 +162,19 @@ class IzinApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan sudah diproses oleh HR.',
+                ];
+            }
+
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+                $cuti->tanggal_mulai,
+                $cuti->tanggal_berakhir,
+                'Approval izin'
+            );
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
                 ];
             }
 

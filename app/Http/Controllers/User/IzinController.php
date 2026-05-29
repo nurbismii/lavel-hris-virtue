@@ -9,6 +9,7 @@ use App\Models\Cuti;
 use App\Models\Employee;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -75,6 +76,17 @@ class IzinController extends Controller
         $user = Auth::user();
         $tanggalMulai = Carbon::parse($data['tanggal_mulai']);
         $tanggalBerakhir = Carbon::parse($data['tanggal_berakhir']);
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+            $tanggalMulai,
+            $tanggalBerakhir,
+            'Pengajuan izin'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
+            return back()->withInput();
+        }
 
         $jumlahHari = $tanggalMulai->diffInDays($tanggalBerakhir) + 1;
 
@@ -151,6 +163,29 @@ class IzinController extends Controller
         $data = $request->validated();
         $tanggalMulai = Carbon::parse($data['tanggal_mulai']);
         $tanggalBerakhir = Carbon::parse($data['tanggal_berakhir']);
+
+        $existingPeriodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+            $izin->tanggal_mulai,
+            $izin->tanggal_berakhir,
+            'Perubahan pengajuan izin'
+        );
+
+        if ($existingPeriodLockMessage) {
+            toast()->warning('Peringatan', $existingPeriodLockMessage);
+            return redirect()->route('izin.index');
+        }
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+            $tanggalMulai,
+            $tanggalBerakhir,
+            'Perubahan pengajuan izin'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
+            return back()->withInput();
+        }
+
         $jumlahHari = $tanggalMulai->diffInDays($tanggalBerakhir) + 1;
         $oldFotoPath = $izin->foto;
         $hasNewFoto = $request->hasFile('foto');
@@ -195,6 +230,17 @@ class IzinController extends Controller
 
         if (!$this->canManageIzin($izin)) {
             toast()->warning('Warning', 'Pengajuan izin yang sudah diproses tidak dapat dihapus');
+            return redirect()->route('izin.index');
+        }
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+            $izin->tanggal_mulai,
+            $izin->tanggal_berakhir,
+            'Penghapusan pengajuan izin'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
             return redirect()->route('izin.index');
         }
 

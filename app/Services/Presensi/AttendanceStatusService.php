@@ -71,6 +71,14 @@ class AttendanceStatusService
         }
 
         $dateString = Carbon::parse($tanggal)->toDateString();
+
+        if (app(AttendancePeriodLockService::class)->lockedPeriodForDate($dateString)) {
+            return optional(Presensi::query()
+                ->where('nik_karyawan', $nikKaryawan)
+                ->whereDate('tanggal', $dateString)
+                ->first())->status_presensi;
+        }
+
         $status = $this->resolveStatusForDate($nikKaryawan, $dateString);
         $presensi = Presensi::firstOrNew([
             'nik_karyawan' => $nikKaryawan,

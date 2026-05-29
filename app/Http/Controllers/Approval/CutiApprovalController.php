@@ -12,6 +12,7 @@ use App\Services\Approvals\ApprovalAuditService;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\LeaveBalance\LeaveBalanceService;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
 
@@ -61,6 +62,19 @@ class CutiApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan masih menunggu atau sudah ditolak pada tahap delegasi.',
+                ];
+            }
+
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+                $cuti->tanggal_mulai,
+                $cuti->tanggal_berakhir,
+                'Approval cuti'
+            );
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
                 ];
             }
 
@@ -150,6 +164,19 @@ class CutiApprovalController extends Controller
                     return [
                         'status' => false,
                         'message' => 'Pengajuan sudah diproses oleh HR.',
+                    ];
+                }
+
+                $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+                    $cuti->tanggal_mulai,
+                    $cuti->tanggal_berakhir,
+                    'Approval cuti'
+                );
+
+                if ($periodLockMessage) {
+                    return [
+                        'status' => false,
+                        'message' => $periodLockMessage,
                     ];
                 }
 

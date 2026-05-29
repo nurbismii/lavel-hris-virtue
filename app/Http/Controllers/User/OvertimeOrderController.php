@@ -5,6 +5,7 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\OvertimeOrder;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Presensi\AttendancePeriodLockService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -38,6 +39,16 @@ class OvertimeOrderController extends Controller
 
         if ($overtimeOrder->isPastDate()) {
             toast()->warning('Peringatan', 'Perintah lembur ini sudah melewati tanggal pelaksanaan dan tidak dapat direspons lagi.');
+            return redirect()->route('lembur.index');
+        }
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate(
+            $overtimeOrder->overtime_date,
+            'Respons perintah lembur'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
             return redirect()->route('lembur.index');
         }
 

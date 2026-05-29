@@ -11,6 +11,7 @@ $shiftMenuActive = request()->routeIs('shifts.*') || request()->routeIs('shift-s
 $overtimeMenuActive = request()->routeIs('overtime-orders.*') || request()->routeIs('overtime-masters.*');
 $electronicContractAdminActive = request()->routeIs('electronic-contracts.*');
 $contractRenewalActive = request()->routeIs('contract-renewals.*');
+$attendancePeriodLockActive = request()->routeIs('attendance-period-locks.*');
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -417,7 +418,7 @@ $contractRenewalActive = request()->routeIs('contract-renewals.*');
                 </li>
                 @endif
 
-                @if($can('setting_hari_off') || $can('master_tanggal_merah') || $can('jadwal_kerja') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan') || $can('leave_balance'))
+                @if($can('setting_hari_off') || $can('master_tanggal_merah') || $can('jadwal_kerja') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan') || $can('leave_balance') || $can('attendance_period_lock'))
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
@@ -531,6 +532,15 @@ $contractRenewalActive = request()->routeIs('contract-renewals.*');
                     <a href="{{ route('leave-balances.index') }}">
                         <i class="fas fa-calendar-check"></i>
                         <p>{{ __('navigation.leave_balance') }}</p>
+                    </a>
+                </li>
+                @endif
+
+                @if($can('attendance_period_lock'))
+                <li class="nav-item {{ $attendancePeriodLockActive ? 'active' : '' }}">
+                    <a href="{{ route('attendance-period-locks.index') }}">
+                        <i class="fas fa-lock"></i>
+                        <p>{{ __('navigation.attendance_period_lock') }}</p>
                     </a>
                 </li>
                 @endif

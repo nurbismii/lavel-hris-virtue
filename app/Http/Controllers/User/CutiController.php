@@ -7,6 +7,7 @@ use App\Http\Requests\Cuti\CutiRequest;
 use App\Models\Cuti;
 use App\Models\Employee;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use Illuminate\Support\Facades\Auth;
 
 class CutiController extends Controller
@@ -115,6 +116,17 @@ class CutiController extends Controller
 
         if (!$this->canManageCuti($cuti)) {
             toast()->warning('Warning', 'Pengajuan cuti yang sudah diproses tidak dapat dihapus');
+            return redirect()->route('cuti.index');
+        }
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+            $cuti->tanggal_mulai,
+            $cuti->tanggal_berakhir,
+            'Penghapusan pengajuan cuti'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
             return redirect()->route('cuti.index');
         }
 

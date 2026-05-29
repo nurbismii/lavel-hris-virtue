@@ -74,6 +74,12 @@ class WorkScheduleService
     public function applyManualOverride(Employee $employee, $tanggal, string $desiredStatus): void
     {
         $dateString = Carbon::parse($tanggal)->toDateString();
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate($dateString, 'Pengaturan hari off');
+
+        if ($periodLockMessage) {
+            throw new RuntimeException($periodLockMessage);
+        }
+
         $periode = Carbon::parse($dateString)->format('Y-m');
         $autoStatus = $this->resolveAutoStatus($employee, $dateString);
         $supportsStatusColumn = EmployeeAttendanceSetting::supportsStatusColumn();

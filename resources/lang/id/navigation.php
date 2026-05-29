@@ -13,6 +13,7 @@ return [
     'attendance_correction' => 'Koreksi Presensi',
     'attendance_data' => 'Data Presensi',
     'attendance_location' => 'Lokasi Presensi',
+    'attendance_period_lock' => 'Closing Presensi',
     'audit_trail' => 'Audit Trail',
     'company' => 'Perusahaan',
     'contract_renewal' => 'Perpanjangan Kontrak',

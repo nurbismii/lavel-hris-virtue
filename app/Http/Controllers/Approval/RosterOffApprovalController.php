@@ -9,6 +9,7 @@ use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
 
@@ -55,6 +56,18 @@ class RosterOffApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan OFF masih menunggu atau sudah ditolak pada tahap delegasi.',
+                ];
+            }
+
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate(
+                $offRequest->tanggal_off,
+                'Approval OFF roster'
+            );
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
                 ];
             }
 
@@ -145,6 +158,18 @@ class RosterOffApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan OFF sudah diproses oleh HR.',
+                ];
+            }
+
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate(
+                $offRequest->tanggal_off,
+                'Approval OFF roster'
+            );
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
                 ];
             }
 

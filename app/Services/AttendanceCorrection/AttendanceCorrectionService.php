@@ -9,6 +9,7 @@ use App\Models\Presensi;
 use App\Models\User;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Audit\AuditTrailService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
@@ -57,6 +58,15 @@ class AttendanceCorrectionService
                 }
 
                 $tanggal = Carbon::parse($data['tanggal'])->toDateString();
+                $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate($tanggal, 'Pengajuan koreksi presensi');
+
+                if ($periodLockMessage) {
+                    return [
+                        'status' => false,
+                        'message' => $periodLockMessage,
+                    ];
+                }
+
                 $businessValidation = $this->validateBusinessRequest($data, $attachment);
 
                 if (!$businessValidation['status']) {
@@ -148,6 +158,18 @@ class AttendanceCorrectionService
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate(
+                $correction->tanggal,
+                'Approval koreksi presensi'
+            );
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
+                ];
+            }
+
             if ((int) $correction->status_hod !== AttendanceCorrection::STATUS_PENDING) {
                 return [
                     'status' => false,
@@ -193,6 +215,18 @@ class AttendanceCorrectionService
                 ->whereKey($correction->getKey())
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate(
+                $correction->tanggal,
+                'Approval koreksi presensi'
+            );
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
+                ];
+            }
 
             if ((int) $correction->status_hod !== AttendanceCorrection::STATUS_APPROVED) {
                 return [

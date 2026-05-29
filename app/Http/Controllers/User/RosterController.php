@@ -11,6 +11,7 @@ use App\Models\Roster;
 use App\Models\RosterOffRequest;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +55,17 @@ class RosterController extends Controller
     public function store(RosterRequest $request)
     {
         $validated = $request->validated();
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+            $validated['periode_awal'],
+            $validated['periode_akhir'],
+            'Pengajuan roster'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
+            return back()->withInput();
+        }
 
         $statusPengajuanHod = 0;
         $statusPengajuanHrd = 0;
@@ -196,6 +208,27 @@ class RosterController extends Controller
             return redirect()->route('roster.index');
         }
 
+        $existingPeriodLockMessage = app(AttendancePeriodLockService::class)->guardRoster(
+            $roster,
+            'Perubahan pengajuan roster'
+        );
+
+        if ($existingPeriodLockMessage) {
+            toast()->warning('Peringatan', $existingPeriodLockMessage);
+            return redirect()->route('roster.index');
+        }
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+            $validated['periode_awal'],
+            $validated['periode_akhir'],
+            'Perubahan pengajuan roster'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
+            return back()->withInput();
+        }
+
         $nikKaryawan = Auth::user()->nik_karyawan;
         $newStoredFilePath = null;
         $oldFilePath = $roster->file
@@ -301,6 +334,16 @@ class RosterController extends Controller
 
         if (!$this->canManageRoster($roster)) {
             toast()->warning('Peringatan', 'Pengajuan roster yang sudah diproses tidak dapat dihapus');
+            return redirect()->route('roster.index');
+        }
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardRoster(
+            $roster,
+            'Penghapusan pengajuan roster'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
             return redirect()->route('roster.index');
         }
 

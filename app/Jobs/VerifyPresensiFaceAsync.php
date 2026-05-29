@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Presensi;
 use App\Models\PresensiVerification;
 use App\Models\User;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Presensi\ServerSideFaceVerificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -126,6 +127,10 @@ class VerifyPresensiFaceAsync implements ShouldQueue
                 return;
             }
 
+            if ($this->targetPeriodLocked($verificationRecord)) {
+                return;
+            }
+
             if ($verificationRecord) {
                 if (
                     $verificationRecord->status !== Presensi::STATUS_ABSEN_PENDING_REVIEW
@@ -196,6 +201,10 @@ class VerifyPresensiFaceAsync implements ShouldQueue
             $verificationRecord = $this->lockedVerificationRecord();
 
             if ($this->presensiVerificationId && !$verificationRecord) {
+                return;
+            }
+
+            if ($this->targetPeriodLocked($verificationRecord)) {
                 return;
             }
 
@@ -333,6 +342,17 @@ class VerifyPresensiFaceAsync implements ShouldQueue
             'presensi_verification_id' => $verification->id,
             'attendance_type' => $verification->attendance_type,
         ];
+    }
+
+    protected function targetPeriodLocked(?PresensiVerification $verification): bool
+    {
+        $tanggal = $verification && $verification->tanggal
+            ? $verification->tanggal
+            : Presensi::query()->whereKey($this->presensiId)->value('tanggal');
+
+        return $tanggal
+            ? app(AttendancePeriodLockService::class)->lockedPeriodForDate($tanggal) !== null
+            : false;
     }
 
     protected function cleanupLivenessEvidence(): void

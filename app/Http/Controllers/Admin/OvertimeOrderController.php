@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\OvertimeOrder;
 use App\Models\Presensi;
 use App\Notifications\StatusPengajuanNotification;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Presensi\OvertimeOrderService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -103,6 +104,17 @@ class OvertimeOrderController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateRequest($request);
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate(
+            $validated['overtime_date'],
+            'Perintah lembur'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
+            return back()->withInput();
+        }
+
         $employee = $this->buildSelectableEmployeeQuery($request)
             ->where('nik', $validated['nik_karyawan'])
             ->first();
@@ -163,6 +175,16 @@ class OvertimeOrderController extends Controller
 
         if ($overtimeOrder->employee_response_status !== OvertimeOrder::RESPONSE_PENDING) {
             toast()->warning('Peringatan', 'Perintah lembur yang sudah direspons tidak dapat dihapus.');
+            return redirect()->route('overtime-orders.index');
+        }
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate(
+            $overtimeOrder->overtime_date,
+            'Pembatalan perintah lembur'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
             return redirect()->route('overtime-orders.index');
         }
 

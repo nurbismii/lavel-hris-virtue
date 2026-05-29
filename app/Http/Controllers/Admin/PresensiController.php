@@ -14,6 +14,7 @@ use App\Models\Perusahaan;
 use App\Models\Presensi;
 use App\Models\PresensiVerification;
 use App\Models\LogPresensi;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Presensi\OvertimeOrderService;
 use App\Services\Presensi\WorkScheduleService;
 use App\Services\Storage\SensitiveFileStorageService;
@@ -153,6 +154,16 @@ class PresensiController extends Controller
     public function decideFaceReview(Request $request, PresensiVerification $verification)
     {
         $this->authorizeFaceReviewAccess($request, $verification);
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate(
+            $verification->tanggal,
+            'Review wajah presensi'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
+            return back();
+        }
 
         $validated = $request->validate([
             'decision' => ['required', Rule::in([

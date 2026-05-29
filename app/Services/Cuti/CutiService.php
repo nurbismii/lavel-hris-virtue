@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\ApprovalDelegation;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\LeaveBalance\LeaveBalanceService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -35,9 +36,31 @@ class CutiService
                 ];
             }
 
+            $existingPeriodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+                $cuti->tanggal_mulai,
+                $cuti->tanggal_berakhir,
+                'Perubahan pengajuan cuti'
+            );
+
+            if ($existingPeriodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $existingPeriodLockMessage,
+                ];
+            }
+
             $startDate = Carbon::parse($data['tanggal_mulai'])->toDateString();
             $endDate = Carbon::parse($data['tanggal_berakhir'])->toDateString();
             $jumlahHari = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
+
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange($startDate, $endDate, 'Pengajuan cuti');
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
+                ];
+            }
 
             if ($this->hasActiveOverlap($employee->nik, $startDate, $endDate)) {
                 return [
@@ -106,6 +129,15 @@ class CutiService
             $startDate = Carbon::parse($data['tanggal_mulai'])->toDateString();
             $endDate = Carbon::parse($data['tanggal_berakhir'])->toDateString();
             $jumlahHari = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
+
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange($startDate, $endDate, 'Perubahan pengajuan cuti');
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
+                ];
+            }
 
             if ($this->hasActiveOverlap($employee->nik, $startDate, $endDate, $cuti->id)) {
                 return [

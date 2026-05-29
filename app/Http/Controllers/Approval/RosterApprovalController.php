@@ -9,6 +9,7 @@ use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Support\Facades\DB;
@@ -58,6 +59,15 @@ class RosterApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan roster masih menunggu atau sudah ditolak pada tahap delegasi.',
+                ];
+            }
+
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardRoster($roster, 'Approval roster');
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
                 ];
             }
 
@@ -196,6 +206,15 @@ class RosterApprovalController extends Controller
                 return [
                     'status' => false,
                     'message' => 'Pengajuan roster sudah diproses oleh HR.',
+                ];
+            }
+
+            $periodLockMessage = app(AttendancePeriodLockService::class)->guardRoster($roster, 'Approval roster');
+
+            if ($periodLockMessage) {
+                return [
+                    'status' => false,
+                    'message' => $periodLockMessage,
                 ];
             }
 

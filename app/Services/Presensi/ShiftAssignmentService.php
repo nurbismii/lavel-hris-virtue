@@ -8,6 +8,7 @@ use App\Models\Shift;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
+use RuntimeException;
 
 class ShiftAssignmentService
 {
@@ -90,6 +91,11 @@ class ShiftAssignmentService
     public function applyAssignment(Employee $employee, $date, $shiftId, ?string $assignedBy = null): void
     {
         $dateString = Carbon::parse($date)->toDateString();
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate($dateString, 'Pengaturan shift');
+
+        if ($periodLockMessage) {
+            throw new RuntimeException($periodLockMessage);
+        }
 
         if (blank($shiftId)) {
             EmployeeShiftAssignment::query()

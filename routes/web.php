@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ApiController;
 use App\Http\Controllers\Admin\AuditTrailController;
 use App\Http\Controllers\Admin\ContractRenewalController;
+use App\Http\Controllers\Admin\AttendancePeriodLockController;
 use App\Http\Controllers\Admin\ElectronicContractAssetController;
 use App\Http\Controllers\Admin\ElectronicContractClauseController;
 use App\Http\Controllers\Admin\ElectronicContractController as AdminElectronicContractController;
@@ -347,6 +348,15 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/audit-trails', [AuditTrailController::class, 'index'])
             ->middleware(['menu:audit_trail', 'role:Super Admin,HR'])
             ->name('audit-trails.index');
+        Route::get('/closing-presensi', [AttendancePeriodLockController::class, 'index'])
+            ->middleware(['menu:attendance_period_lock', 'role:Super Admin,HR'])
+            ->name('attendance-period-locks.index');
+        Route::post('/closing-presensi', [AttendancePeriodLockController::class, 'store'])
+            ->middleware(['menu:attendance_period_lock', 'role:Super Admin,HR'])
+            ->name('attendance-period-locks.store');
+        Route::post('/closing-presensi/{attendancePeriodLock}/reopen', [AttendancePeriodLockController::class, 'reopen'])
+            ->middleware(['menu:attendance_period_lock', 'role:Super Admin,HR'])
+            ->name('attendance-period-locks.reopen');
         Route::get('/import-histories', [ImportHistoryController::class, 'index'])
             ->middleware(['menu:import_history', 'role:Super Admin,HR'])
             ->name('import-histories.index');

@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\RosterOffRequest;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Presensi\AttendancePeriodLockService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,11 +38,22 @@ class RosterOffRequestController extends Controller
     {
         $validated = $request->validated();
         $nikKaryawan = $request->user()->nik_karyawan;
+        $tanggalOff = Carbon::parse($validated['tanggal_off'])->toDateString();
 
-        $result = DB::transaction(function () use ($request, $validated, $nikKaryawan) {
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate(
+            $tanggalOff,
+            'Pengajuan OFF roster'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
+            return back()->withInput();
+        }
+
+        $result = DB::transaction(function () use ($request, $validated, $nikKaryawan, $tanggalOff) {
             $activeRequestExists = RosterOffRequest::query()
                 ->where('nik_karyawan', $nikKaryawan)
-                ->whereDate('tanggal_off', Carbon::parse($validated['tanggal_off'])->toDateString())
+                ->whereDate('tanggal_off', $tanggalOff)
                 ->when(Schema::hasColumn('roster_off_requests', 'delegate_status'), function ($query) {
                     $query->where(fn($delegateQuery) => $delegateQuery->whereNull('delegate_status')->orWhere('delegate_status', '!=', RosterOffRequest::STATUS_REJECTED));
                 })
@@ -107,6 +119,16 @@ class RosterOffRequestController extends Controller
 
         if (!$rosterOff->can_be_managed_by_employee) {
             toast()->warning('Peringatan', 'Pengajuan OFF yang sudah diproses tidak dapat dihapus.');
+            return redirect()->route('roster-off.index');
+        }
+
+        $periodLockMessage = app(AttendancePeriodLockService::class)->guardDate(
+            $rosterOff->tanggal_off,
+            'Penghapusan pengajuan OFF roster'
+        );
+
+        if ($periodLockMessage) {
+            toast()->warning('Peringatan', $periodLockMessage);
             return redirect()->route('roster-off.index');
         }
 

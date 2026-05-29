@@ -45,6 +45,10 @@ $menus = [
         'label' => 'Data Presensi',
         'group' => 'Data Master',
     ],
+    'attendance_period_lock' => [
+        'label' => 'Closing Presensi',
+        'group' => 'Operasional',
+    ],
     'distribusi_wilayah' => [
         'label' => 'Distribusi Wilayah',
         'group' => 'Data Master',
@@ -202,6 +206,7 @@ return [
             'resign',
             'surat_peringatan',
             'data_presensi',
+            'attendance_period_lock',
             'distribusi_wilayah',
             'approval_hod',
             'approval_hr',
