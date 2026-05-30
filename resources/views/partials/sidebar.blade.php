@@ -13,6 +13,7 @@ $electronicContractAdminActive = request()->routeIs('electronic-contracts.*');
 $contractRenewalActive = request()->routeIs('contract-renewals.*');
 $attendanceAnomalyActive = request()->routeIs('attendance-anomalies.*');
 $attendancePeriodLockActive = request()->routeIs('attendance-period-locks.*');
+$approvalSlaActive = request()->routeIs('approval-sla.*');
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -293,6 +294,24 @@ $attendancePeriodLockActive = request()->routeIs('attendance-period-locks.*');
                         @if(($approvalDelegateCounts['total'] ?? 0) > 0)
                         <span class="badge badge-primary">{{ $approvalDelegateCounts['total'] }}</span>
                         @endif
+                    </a>
+                </li>
+                @endif
+
+                @if($can('approval_sla'))
+                <li class="nav-section">
+                    <span class="sidebar-mini-icon">
+                        <i class="fa fa-ellipsis-h"></i>
+                    </span>
+                    <div class="sidebar-section-title">
+                        <h4 class="text-section mb-0">{{ __('navigation.approval_sla') }}</h4>
+                    </div>
+                </li>
+
+                <li class="nav-item {{ $approvalSlaActive ? 'active' : '' }}">
+                    <a href="{{ route('approval-sla.index') }}">
+                        <i class="fas fa-stopwatch"></i>
+                        <p>{{ __('navigation.approval_sla') }}</p>
                     </a>
                 </li>
                 @endif

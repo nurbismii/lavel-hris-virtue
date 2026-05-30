@@ -109,6 +109,38 @@
         return getDefaultSubmitter(form);
     }
 
+    function ensureSubmitterValue(form, submitter) {
+        if (!(form instanceof HTMLFormElement) || !submitter || !submitter.name) {
+            return;
+        }
+
+        const tagName = submitter.tagName;
+        const type = (submitter.getAttribute('type') || '').toLowerCase();
+        const isSubmitControl = tagName === 'BUTTON' ||
+            (tagName === 'INPUT' && ['submit', 'image'].includes(type));
+
+        if (!isSubmitControl) {
+            return;
+        }
+
+        let field = Array.prototype.find.call(
+            form.querySelectorAll('input[type="hidden"][data-action-state-submitter="1"]'),
+            function(input) {
+                return input.name === submitter.name;
+            }
+        );
+
+        if (!field) {
+            field = document.createElement('input');
+            field.type = 'hidden';
+            field.name = submitter.name;
+            field.setAttribute('data-action-state-submitter', '1');
+            form.appendChild(field);
+        }
+
+        field.value = submitter.value;
+    }
+
     function shouldSkipForm(form) {
         if (!(form instanceof HTMLFormElement)) {
             return true;
@@ -358,6 +390,7 @@
         }
 
         const trigger = submitter || getDefaultSubmitter(form);
+        ensureSubmitterValue(form, trigger);
         rememberLastAction(trigger || form);
 
         return start(trigger, options || {
@@ -416,6 +449,7 @@
         }
 
         const submitter = getSubmitter(event, form);
+        ensureSubmitterValue(form, submitter);
         rememberLastAction(submitter || form);
 
         const token = start(submitter, {

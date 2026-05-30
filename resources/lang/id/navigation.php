@@ -8,6 +8,7 @@ return [
     'approval_hr' => 'Approval HR',
     'approval_delegate' => 'Approval Delegasi',
     'approval_delegation' => 'Delegasi Approval',
+    'approval_sla' => 'SLA Approval',
     'area_distribution' => 'Distribusi Wilayah',
     'attendance' => 'Presensi',
     'attendance_correction' => 'Koreksi Presensi',

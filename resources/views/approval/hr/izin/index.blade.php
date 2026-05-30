@@ -8,10 +8,12 @@
             <div>
                 <h3 class="text-primary">Approval Izin (Paid/Unpaid)</h3>
                 <small class="text-muted">
-                    Persetujuan HOD untuk karyawan pengajuan izin (paid/unpaid)
+                    Persetujuan HR untuk pengajuan izin paid/unpaid
                 </small>
             </div>
         </div>
+
+        @include('approval.partials.feedback-alerts')
 
         <div class="card">
             <div class="card-body">
@@ -42,9 +44,9 @@
                             <td>{!! $cuti->status_hrd_label !!}</td>
                             <td>
                                 @if($hrdStatus === 0)
-                                <form action="{{ route('approval.izin.hrd.process', $cuti->id) }}" method="POST">
+                                <form action="{{ route('approval.izin.hrd.process', $cuti->id) }}" method="POST" data-approval-confirm-message="Setujui pengajuan izin ini?" data-loading-text="Memproses approval...">
                                     @csrf
-                                    <button name="action" value="1" class="btn btn-success btn-sm">
+                                    <button type="submit" name="action" value="1" class="btn btn-success btn-sm" data-loading-text="Menyetujui...">
                                         Approve
                                     </button>
                                     <button type="button" name="action" value="2" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">

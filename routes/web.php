@@ -36,6 +36,7 @@ use App\Http\Controllers\Admin\PresensiController as PresensiAdminController;
 use App\Http\Controllers\AdminDivisi\AttendanceSettingController;
 use App\Http\Controllers\AdminDivisi\ShiftSettingController;
 use App\Http\Controllers\Approval\ApprovalDelegationController;
+use App\Http\Controllers\Approval\ApprovalSlaController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Approval\DelegatedApprovalController;
@@ -403,6 +404,13 @@ Route::middleware(['android.redirect'])->group(function () {
     });
 
     Route::group(['prefix' => 'approval', 'middleware' => ['auth']], function () {
+
+        Route::get('/sla', [ApprovalSlaController::class, 'index'])
+            ->middleware(['menu:approval_sla', 'role:Super Admin,HR'])
+            ->name('approval-sla.index');
+        Route::post('/sla/escalate', [ApprovalSlaController::class, 'escalate'])
+            ->middleware(['menu:approval_sla', 'role:Super Admin,HR'])
+            ->name('approval-sla.escalate');
 
         Route::get('/delegasi', [ApprovalDelegationController::class, 'index'])
             ->middleware(['menu:approval_hod', 'role:Super Admin,HOD'])

@@ -97,6 +97,10 @@ $menus = [
         'label' => 'Approval HR',
         'group' => 'Approval',
     ],
+    'approval_sla' => [
+        'label' => 'SLA Approval',
+        'group' => 'Approval',
+    ],
     'setting_hari_off' => [
         'label' => 'Setting Hari Off',
         'group' => 'Operasional',
@@ -215,6 +219,7 @@ return [
             'distribusi_wilayah',
             'approval_hod',
             'approval_hr',
+            'approval_sla',
             'setting_hari_off',
             'master_tanggal_merah',
             'jadwal_kerja',

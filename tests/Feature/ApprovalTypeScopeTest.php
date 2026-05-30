@@ -8,6 +8,8 @@ use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Notifications\ApprovalNotificationService;
+use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
@@ -87,16 +89,15 @@ class ApprovalTypeScopeTest extends TestCase
             'updated_at' => now(),
         ]);
 
-        try {
-            app(IzinApprovalController::class)->hrdProcess(
-                $this->approvalRequest($this->makeHrUser(), 1),
-                11
-            );
+        app(IzinApprovalController::class)->hrdProcess(
+            $this->approvalRequest($this->makeHrUser(), 1),
+            11
+        );
 
-            $this->fail('Cuti must not be processable through the izin approval endpoint.');
-        } catch (ModelNotFoundException $exception) {
-            $this->assertTrue(true);
-        }
+        $this->assertSame(
+            'Pengajuan izin tidak ditemukan atau berada di luar akses Anda.',
+            session('warning')
+        );
 
         $this->assertDatabaseHas('employees', [
             'nik' => 'EMP001',
@@ -106,6 +107,80 @@ class ApprovalTypeScopeTest extends TestCase
             'id' => 11,
             'status_hrd' => 0,
         ]);
+    }
+
+    public function test_paid_izin_can_be_approved_by_hod_endpoint(): void
+    {
+        Notification::fake();
+
+        $this->mock(AttendanceStatusService::class, function ($mock) {
+            $mock->shouldReceive('refreshIzin')->once();
+        });
+
+        $this->mock(ApprovalNotificationService::class, function ($mock) {
+            $mock->shouldReceive('notifyIzinWaitingForHr')->once();
+        });
+
+        DB::table('cuti_izin')->insert([
+            'id' => 12,
+            'nik_karyawan' => 'EMP001',
+            'tipe' => 'PAID',
+            'tanggal' => '2026-05-01',
+            'tanggal_mulai' => '2026-05-02',
+            'tanggal_berakhir' => '2026-05-03',
+            'jumlah' => 2,
+            'status_hod' => 0,
+            'status_hrd' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(IzinApprovalController::class)->hodProcess(
+            $this->approvalRequest($this->makeHodUser(), 1),
+            12
+        );
+
+        $this->assertDatabaseHas('cuti_izin', [
+            'id' => 12,
+            'status_hod' => 1,
+            'status_hrd' => 0,
+        ]);
+        $this->assertSame('Izin telah disetujui oleh HOD.', session('success'));
+    }
+
+    public function test_paid_izin_can_be_approved_by_hr_endpoint(): void
+    {
+        Notification::fake();
+
+        $this->mock(AttendanceStatusService::class, function ($mock) {
+            $mock->shouldReceive('refreshIzin')->once();
+        });
+
+        DB::table('cuti_izin')->insert([
+            'id' => 13,
+            'nik_karyawan' => 'EMP001',
+            'tipe' => 'PAID',
+            'tanggal' => '2026-05-01',
+            'tanggal_mulai' => '2026-05-02',
+            'tanggal_berakhir' => '2026-05-03',
+            'jumlah' => 2,
+            'status_hod' => 1,
+            'status_hrd' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        app(IzinApprovalController::class)->hrdProcess(
+            $this->approvalRequest($this->makeHrUser(), 1),
+            13
+        );
+
+        $this->assertDatabaseHas('cuti_izin', [
+            'id' => 13,
+            'status_hod' => 1,
+            'status_hrd' => 1,
+        ]);
+        $this->assertSame('Izin telah disetujui oleh HR.', session('success'));
     }
 
     private function createSchema(): void
@@ -130,6 +205,9 @@ class ApprovalTypeScopeTest extends TestCase
             $table->increments('id');
             $table->string('nik_karyawan');
             $table->string('tipe');
+            $table->date('tanggal')->nullable();
+            $table->date('tanggal_mulai')->nullable();
+            $table->date('tanggal_berakhir')->nullable();
             $table->integer('jumlah')->default(1);
             $table->unsignedTinyInteger('status_hod')->default(0);
             $table->unsignedTinyInteger('status_hrd')->default(0);
@@ -164,6 +242,19 @@ class ApprovalTypeScopeTest extends TestCase
         $user->name = 'HR User';
         $user->email = 'hr@example.test';
         $user->setRelation('role', new Role(['permission_role' => 'HR']));
+
+        return $user;
+    }
+
+    private function makeHodUser(): User
+    {
+        $user = new User();
+        $user->id = 'user-hod';
+        $user->name = 'HOD User';
+        $user->email = 'hod@example.test';
+        $user->authorized_departemen_ids = [1];
+        $user->authorized_divisi_ids = [1];
+        $user->setRelation('role', new Role(['permission_role' => 'HOD']));
 
         return $user;
     }

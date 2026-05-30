@@ -12,6 +12,7 @@ use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Presensi\AttendanceStatusService;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class IzinApprovalController extends Controller
 {
@@ -40,89 +41,109 @@ class IzinApprovalController extends Controller
         $validated = $request->validated();
         $action = (int) $validated['action'];
 
-        $result = DB::transaction(function () use ($request, $id, $action, $validated) {
-            $cuti = $request->user()
-                ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
-                ->whereIn('tipe', ['PAID', 'UNPAID'])
-                ->whereKey($id)
-                ->lockForUpdate()
-                ->firstOrFail();
+        try {
+            $result = DB::transaction(function () use ($request, $id, $action, $validated) {
+                $cuti = $request->user()
+                    ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
+                    ->whereIn('tipe', ['PAID', 'UNPAID'])
+                    ->whereKey($id)
+                    ->lockForUpdate()
+                    ->first();
 
-            if ((int) $cuti->status_hod !== 0) {
+                if (!$cuti) {
+                    return [
+                        'status' => false,
+                        'message' => 'Pengajuan izin tidak ditemukan atau berada di luar akses Anda.',
+                    ];
+                }
+
+                if ((int) $cuti->status_hod !== 0) {
+                    return [
+                        'status' => false,
+                        'message' => 'Pengajuan sudah diproses oleh HOD.',
+                    ];
+                }
+
+                if (app(ApprovalDelegationService::class)->blocksHodApproval($cuti, 'cuti_izin')) {
+                    return [
+                        'status' => false,
+                        'message' => 'Pengajuan masih menunggu atau sudah ditolak pada tahap delegasi.',
+                    ];
+                }
+
+                $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+                    $cuti->tanggal_mulai,
+                    $cuti->tanggal_berakhir,
+                    'Approval izin'
+                );
+
+                if ($periodLockMessage) {
+                    return [
+                        'status' => false,
+                        'message' => $periodLockMessage,
+                    ];
+                }
+
+                $auditService = app(ApprovalAuditService::class);
+                $oldValues = $auditService->approvalValues('cuti_izin', $cuti);
+
+                $cuti->update(array_merge([
+                    'status_hod' => $action,
+                ], $auditService->payload(
+                    'cuti_izin',
+                    'hod',
+                    $action,
+                    $request->user(),
+                    $validated['note'] ?? null
+                )));
+
+                $cuti = $cuti->fresh(['user', 'employee']);
+
+                $auditService->record(
+                    'cuti_izin',
+                    $cuti,
+                    'hod',
+                    $action,
+                    $request->user(),
+                    $validated['note'] ?? null,
+                    $oldValues
+                );
+
                 return [
-                    'status' => false,
-                    'message' => 'Pengajuan sudah diproses oleh HOD.',
+                    'status' => true,
+                    'cuti' => $cuti,
+                    'approval_status' => $action === 1 ? 'Disetujui' : 'Ditolak',
                 ];
-            }
+            });
+        } catch (Throwable $exception) {
+            report($exception);
 
-            if (app(ApprovalDelegationService::class)->blocksHodApproval($cuti, 'cuti_izin')) {
-                return [
-                    'status' => false,
-                    'message' => 'Pengajuan masih menunggu atau sudah ditolak pada tahap delegasi.',
-                ];
-            }
-
-            $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
-                $cuti->tanggal_mulai,
-                $cuti->tanggal_berakhir,
-                'Approval izin'
+            return $this->approvalFailureResponse(
+                'Approval izin gagal diproses. Silakan coba lagi atau hubungi admin sistem.'
             );
-
-            if ($periodLockMessage) {
-                return [
-                    'status' => false,
-                    'message' => $periodLockMessage,
-                ];
-            }
-
-            $auditService = app(ApprovalAuditService::class);
-            $oldValues = $auditService->approvalValues('cuti_izin', $cuti);
-
-            $cuti->update(array_merge([
-                'status_hod' => $action,
-            ], $auditService->payload(
-                'cuti_izin',
-                'hod',
-                $action,
-                $request->user(),
-                $validated['note'] ?? null
-            )));
-
-            $cuti = $cuti->fresh(['user', 'employee']);
-
-            $auditService->record(
-                'cuti_izin',
-                $cuti,
-                'hod',
-                $action,
-                $request->user(),
-                $validated['note'] ?? null,
-                $oldValues
-            );
-
-            return [
-                'status' => true,
-                'cuti' => $cuti,
-                'approval_status' => $action === 1 ? 'Disetujui' : 'Ditolak',
-            ];
-        });
+        }
 
         if (!$result['status']) {
-            toast()->warning('Peringatan', $result['message']);
-            return back();
+            return $this->approvalWarningResponse($result['message']);
         }
 
         $cuti = $result['cuti'];
-        app(AttendanceStatusService::class)->refreshIzin($cuti);
+        try {
+            app(AttendanceStatusService::class)->refreshIzin($cuti);
+            $this->notifyApplicant($cuti, $result['approval_status'], 'HOD');
 
-        $this->notifyApplicant($cuti, $result['approval_status'], 'HOD');
+            if ($action === 1) {
+                app(ApprovalNotificationService::class)->notifyIzinWaitingForHr($cuti);
+            }
+        } catch (Throwable $exception) {
+            report($exception);
 
-        if ($action === 1) {
-            app(ApprovalNotificationService::class)->notifyIzinWaitingForHr($cuti);
+            return $this->approvalWarningResponse(
+                'Approval izin tersimpan, tetapi sinkronisasi presensi atau notifikasi perlu dicek admin.'
+            );
         }
 
-        toast()->success('Success', 'Izin telah ' . strtolower($result['approval_status']) . ' oleh HOD');
-        return back()->with('success', 'Berhasil diproses');
+        return $this->approvalSuccessResponse('Izin telah ' . strtolower($result['approval_status']) . ' oleh HOD.');
     }
 
     public function hrdIndex()
@@ -143,85 +164,126 @@ class IzinApprovalController extends Controller
         $validated = $request->validated();
         $action = (int) $validated['action'];
 
-        $result = DB::transaction(function () use ($request, $id, $action, $validated) {
-            $cuti = $request->user()
-                ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
-                ->whereIn('tipe', ['PAID', 'UNPAID'])
-                ->whereKey($id)
-                ->lockForUpdate()
-                ->firstOrFail();
+        try {
+            $result = DB::transaction(function () use ($request, $id, $action, $validated) {
+                $cuti = $request->user()
+                    ->applyEmployeeRelationScope(Cuti::query()->with(['user', 'employee']))
+                    ->whereIn('tipe', ['PAID', 'UNPAID'])
+                    ->whereKey($id)
+                    ->lockForUpdate()
+                    ->first();
 
-            if ((int) $cuti->status_hod !== 1) {
+                if (!$cuti) {
+                    return [
+                        'status' => false,
+                        'message' => 'Pengajuan izin tidak ditemukan atau berada di luar akses Anda.',
+                    ];
+                }
+
+                if ((int) $cuti->status_hod !== 1) {
+                    return [
+                        'status' => false,
+                        'message' => 'Pengajuan belum disetujui HOD.',
+                    ];
+                }
+
+                if ((int) $cuti->status_hrd !== 0) {
+                    return [
+                        'status' => false,
+                        'message' => 'Pengajuan sudah diproses oleh HR.',
+                    ];
+                }
+
+                $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
+                    $cuti->tanggal_mulai,
+                    $cuti->tanggal_berakhir,
+                    'Approval izin'
+                );
+
+                if ($periodLockMessage) {
+                    return [
+                        'status' => false,
+                        'message' => $periodLockMessage,
+                    ];
+                }
+
+                $auditService = app(ApprovalAuditService::class);
+                $oldValues = $auditService->approvalValues('cuti_izin', $cuti);
+
+                $cuti->update(array_merge([
+                    'status_hrd' => $action,
+                ], $auditService->payload(
+                    'cuti_izin',
+                    'hrd',
+                    $action,
+                    $request->user(),
+                    $validated['note'] ?? null
+                )));
+
+                $cuti = $cuti->fresh(['user', 'employee']);
+
+                $auditService->record(
+                    'cuti_izin',
+                    $cuti,
+                    'hrd',
+                    $action,
+                    $request->user(),
+                    $validated['note'] ?? null,
+                    $oldValues
+                );
+
                 return [
-                    'status' => false,
-                    'message' => 'Pengajuan belum disetujui HOD.',
+                    'status' => true,
+                    'cuti' => $cuti,
+                    'approval_status' => $action === 1 ? 'Disetujui' : 'Ditolak',
                 ];
-            }
+            });
+        } catch (Throwable $exception) {
+            report($exception);
 
-            if ((int) $cuti->status_hrd !== 0) {
-                return [
-                    'status' => false,
-                    'message' => 'Pengajuan sudah diproses oleh HR.',
-                ];
-            }
-
-            $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange(
-                $cuti->tanggal_mulai,
-                $cuti->tanggal_berakhir,
-                'Approval izin'
+            return $this->approvalFailureResponse(
+                'Approval izin gagal diproses. Silakan coba lagi atau hubungi admin sistem.'
             );
-
-            if ($periodLockMessage) {
-                return [
-                    'status' => false,
-                    'message' => $periodLockMessage,
-                ];
-            }
-
-            $auditService = app(ApprovalAuditService::class);
-            $oldValues = $auditService->approvalValues('cuti_izin', $cuti);
-
-            $cuti->update(array_merge([
-                'status_hrd' => $action,
-            ], $auditService->payload(
-                'cuti_izin',
-                'hrd',
-                $action,
-                $request->user(),
-                $validated['note'] ?? null
-            )));
-
-            $cuti = $cuti->fresh(['user', 'employee']);
-
-            $auditService->record(
-                'cuti_izin',
-                $cuti,
-                'hrd',
-                $action,
-                $request->user(),
-                $validated['note'] ?? null,
-                $oldValues
-            );
-
-            return [
-                'status' => true,
-                'cuti' => $cuti,
-                'approval_status' => $action === 1 ? 'Disetujui' : 'Ditolak',
-            ];
-        });
+        }
 
         if (!$result['status']) {
-            toast()->warning('Peringatan', $result['message']);
-            return back();
+            return $this->approvalWarningResponse($result['message']);
         }
 
         $cuti = $result['cuti'];
-        app(AttendanceStatusService::class)->refreshIzin($cuti);
+        try {
+            app(AttendanceStatusService::class)->refreshIzin($cuti);
+            $this->notifyApplicant($cuti, $result['approval_status'], 'HR');
+        } catch (Throwable $exception) {
+            report($exception);
 
-        $this->notifyApplicant($cuti, $result['approval_status'], 'HR');
+            return $this->approvalWarningResponse(
+                'Approval izin tersimpan, tetapi sinkronisasi presensi atau notifikasi perlu dicek admin.'
+            );
+        }
 
-        toast()->success('Success', 'Izin telah ' . strtolower($result['approval_status']) . ' oleh HR');
-        return back();
+        return $this->approvalSuccessResponse('Izin telah ' . strtolower($result['approval_status']) . ' oleh HR.');
+    }
+
+    private function approvalSuccessResponse(string $message)
+    {
+        toast()->success('Success', $message);
+
+        return back()->with('success', $message);
+    }
+
+    private function approvalWarningResponse(string $message)
+    {
+        toast()->warning('Peringatan', $message);
+
+        return back()->with('warning', $message);
+    }
+
+    private function approvalFailureResponse(string $message)
+    {
+        toast()->error('Gagal', $message);
+
+        return back()->withInput()->with('error', $message);
     }
 
     private function notifyApplicant(Cuti $cuti, string $status, string $approverLabel): void
