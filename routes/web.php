@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\ApiController;
 use App\Http\Controllers\Admin\AttendanceAnomalyDashboardController;
 use App\Http\Controllers\Admin\AuditTrailController;
+use App\Http\Controllers\Admin\CentralMonitorController;
 use App\Http\Controllers\Admin\ContractRenewalController;
 use App\Http\Controllers\Admin\AttendancePeriodLockController;
 use App\Http\Controllers\Admin\ElectronicContractAssetController;
@@ -184,6 +185,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->middleware('menu:dashboard_admin')->name('home');
         Route::get('/home/upload-progress', [App\Http\Controllers\HomeController::class, 'uploadProgress'])->middleware('menu:dashboard_admin')->name('home.upload-progress');
         Route::delete('/home/upload-progress/{importId}', [App\Http\Controllers\HomeController::class, 'destroyUploadProgress'])->middleware('menu:dashboard_admin')->name('home.upload-progress.destroy');
+        Route::get('/monitor-terpusat', [CentralMonitorController::class, 'index'])
+            ->middleware(['menu:central_monitor', 'role:Super Admin,HR'])
+            ->name('central-monitor.index');
 
         Route::post('/karyawan/bulk-upload-documents', [App\Http\Controllers\Admin\KaryawanController::class, 'bulkUploadDocuments'])
             ->middleware('menu:data_karyawan')

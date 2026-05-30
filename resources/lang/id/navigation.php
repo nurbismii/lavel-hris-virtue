@@ -17,6 +17,7 @@ return [
     'attendance_location' => 'Lokasi Presensi',
     'attendance_period_lock' => 'Closing Presensi',
     'audit_trail' => 'Audit Trail',
+    'central_monitor' => 'Monitor Terpusat',
     'company' => 'Perusahaan',
     'contract_renewal' => 'Perpanjangan Kontrak',
     'dashboard' => 'Dashboard',

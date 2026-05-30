@@ -13,6 +13,7 @@ return [
 
     'menus' => [
         'dashboard_admin' => ['label' => '管理员仪表板'],
+        'central_monitor' => ['label' => 'Central Monitor'],
         'dashboard_karyawan' => ['label' => '员工仪表板'],
         'data_karyawan' => ['label' => '员工数据'],
         'data_user' => ['label' => '用户数据'],
@@ -163,6 +164,7 @@ return [
         'overtime_staff_description' => '查看并响应分配给您的加班指令。',
         'menu_descriptions' => [
             'dashboard_admin' => '监控主要摘要和运营统计。',
+            'central_monitor' => 'Monitor approval, attendance, import, queue, and audit from one page.',
             'dashboard_karyawan' => '返回员工主仪表板。',
             'data_karyawan' => '根据权限查看和管理员工数据。',
             'data_user' => '管理用户账号和登录权限。',

@@ -5,6 +5,10 @@ $menus = [
         'label' => 'Dashboard Admin',
         'group' => 'Dashboard',
     ],
+    'central_monitor' => [
+        'label' => 'Monitor Terpusat',
+        'group' => 'Dashboard',
+    ],
     'dashboard_karyawan' => [
         'label' => 'Dashboard Karyawan',
         'group' => 'Dashboard',
@@ -205,6 +209,7 @@ return [
         'Super Admin' => array_keys($menus),
         'HR' => [
             'dashboard_admin',
+            'central_monitor',
             'data_karyawan',
             'data_user',
             'electronic_contract_admin',

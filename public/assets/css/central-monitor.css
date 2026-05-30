@@ -1,0 +1,176 @@
+.central-monitor-page {
+    color: #243042;
+}
+
+.central-monitor-period {
+    min-width: 150px;
+}
+
+.central-monitor-health,
+.central-monitor-card,
+.central-monitor-panel {
+    background: #fff;
+    border: 1px solid #e6eaf0;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(31, 45, 61, 0.06);
+}
+
+.central-monitor-health {
+    align-items: center;
+    display: flex;
+    gap: 14px;
+    padding: 16px 18px;
+}
+
+.central-monitor-health__icon {
+    align-items: center;
+    border-radius: 8px;
+    display: flex;
+    flex: 0 0 44px;
+    height: 44px;
+    justify-content: center;
+}
+
+.central-monitor-health--success .central-monitor-health__icon {
+    background: #e9f7ef;
+    color: #198754;
+}
+
+.central-monitor-health--warning .central-monitor-health__icon {
+    background: #fff4db;
+    color: #b56b00;
+}
+
+.central-monitor-health--danger .central-monitor-health__icon {
+    background: #fde8e8;
+    color: #c0392b;
+}
+
+.central-monitor-health__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.central-monitor-health__stats span {
+    background: #f6f8fb;
+    border-radius: 6px;
+    color: #4f5f73;
+    font-size: 12px;
+    padding: 6px 8px;
+}
+
+.central-monitor-card,
+.central-monitor-panel {
+    height: 100%;
+    padding: 18px;
+}
+
+.central-monitor-card {
+    border-top: 4px solid #6c757d;
+}
+
+.central-monitor-card--success {
+    border-top-color: #198754;
+}
+
+.central-monitor-card--warning {
+    border-top-color: #d18b00;
+}
+
+.central-monitor-card--danger {
+    border-top-color: #c0392b;
+}
+
+.central-monitor-card__title {
+    color: #4f5f73;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.central-monitor-card__value {
+    color: #1f2d3d;
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-top: 6px;
+}
+
+.central-monitor-card__icon {
+    align-items: center;
+    background: #f6f8fb;
+    border-radius: 8px;
+    color: #4f5f73;
+    display: inline-flex;
+    height: 40px;
+    justify-content: center;
+    width: 40px;
+}
+
+.central-monitor-card__description {
+    color: #526174;
+    font-size: 13px;
+    min-height: 38px;
+}
+
+.central-monitor-metrics {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 14px;
+}
+
+.central-monitor-metric {
+    background: #f8fafc;
+    border: 1px solid #edf1f6;
+    border-radius: 6px;
+    padding: 8px;
+}
+
+.central-monitor-metric span {
+    color: #6a7788;
+    display: block;
+    font-size: 12px;
+    line-height: 1.25;
+}
+
+.central-monitor-metric strong {
+    color: #243042;
+    display: block;
+    font-size: 18px;
+    line-height: 1.2;
+    margin-top: 3px;
+}
+
+.central-monitor-metric--ok strong {
+    color: #198754;
+}
+
+.central-monitor-metric--warning strong {
+    color: #b56b00;
+}
+
+.central-monitor-metric--critical strong {
+    color: #c0392b;
+}
+
+.central-monitor-file {
+    max-width: 260px;
+}
+
+@media (max-width: 575.98px) {
+    .central-monitor-health {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .central-monitor-health__stats {
+        margin-left: 0;
+    }
+
+    .central-monitor-metrics {
+        grid-template-columns: 1fr;
+    }
+}

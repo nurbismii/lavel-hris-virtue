@@ -13,6 +13,7 @@ return [
 
     'menus' => [
         'dashboard_admin' => ['label' => 'Dashboard Admin'],
+        'central_monitor' => ['label' => 'Monitor Terpusat'],
         'dashboard_karyawan' => ['label' => 'Dashboard Karyawan'],
         'data_karyawan' => ['label' => 'Data Karyawan'],
         'data_user' => ['label' => 'Data User'],
@@ -163,6 +164,7 @@ return [
         'overtime_staff_description' => 'Buka dan respons perintah lembur yang ditujukan kepada Anda.',
         'menu_descriptions' => [
             'dashboard_admin' => 'Pantau ringkasan utama dan statistik operasional.',
+            'central_monitor' => 'Pantau approval, presensi, import, queue, dan audit dari satu halaman.',
             'dashboard_karyawan' => 'Kembali ke dashboard utama karyawan.',
             'data_karyawan' => 'Kelola dan lihat data karyawan sesuai akses Anda.',
             'data_user' => 'Atur akun pengguna dan hak akses login.',

@@ -14,6 +14,7 @@ $contractRenewalActive = request()->routeIs('contract-renewals.*');
 $attendanceAnomalyActive = request()->routeIs('attendance-anomalies.*');
 $attendancePeriodLockActive = request()->routeIs('attendance-period-locks.*');
 $approvalSlaActive = request()->routeIs('approval-sla.*');
+$centralMonitorActive = request()->routeIs('central-monitor.*');
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -54,6 +55,15 @@ $approvalSlaActive = request()->routeIs('approval-sla.*');
                     <a href="{{ route('home') }}">
                         <i class="fas fa-home"></i>
                         <p>{{ __('navigation.dashboard') }}</p>
+                    </a>
+                </li>
+                @endif
+
+                @if($can('central_monitor'))
+                <li class="nav-item {{ $centralMonitorActive ? 'active' : '' }}">
+                    <a href="{{ route('central-monitor.index') }}">
+                        <i class="fas fa-desktop"></i>
+                        <p>{{ __('navigation.central_monitor') }}</p>
                     </a>
                 </li>
                 @endif

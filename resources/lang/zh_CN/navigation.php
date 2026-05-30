@@ -9,6 +9,7 @@ return [
     'approval_delegate' => '委托审批',
     'approval_delegation' => '审批委托',
     'approval_sla' => 'SLA Approval',
+    'central_monitor' => 'Central Monitor',
     'area_distribution' => '区域分配',
     'attendance' => '考勤',
     'attendance_correction' => '考勤更正',

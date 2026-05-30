@@ -77,6 +77,13 @@ $menuCatalog = [
 'tone' => 'primary',
 'description' => 'Pantau ringkasan utama dan statistik operasional.',
 ],
+'central_monitor' => [
+'route_name' => 'central-monitor.index',
+'icon' => 'fas fa-desktop',
+'tone' => 'slate',
+'description' => 'Pantau approval, presensi, import, queue, dan audit dari satu halaman.',
+'roles' => ['Super Admin', 'HR'],
+],
 'dashboard_karyawan' => [
 'route_name' => 'dashboard.karyawan',
 'icon' => 'fas fa-home',
