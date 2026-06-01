@@ -28,4 +28,12 @@ class HrDefaultMenuPermissionTest extends TestCase
             $this->assertNotContains($menu, $hrMenus);
         }
     }
+
+    public function test_hod_default_menu_can_access_employee_movement_submission(): void
+    {
+        $hodMenus = config('access.default_menu_permissions.HOD', []);
+
+        $this->assertContains('employee_movement', $hodMenus);
+        $this->assertContains('approval_hod', $hodMenus);
+    }
 }

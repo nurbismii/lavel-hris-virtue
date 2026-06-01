@@ -77,6 +77,7 @@ class AuditTrailController extends Controller
             'moduleOptions' => [
                 'approval' => 'Approval',
                 'attendance_correction' => 'Koreksi Presensi',
+                'employee_movement' => 'Transisi Karyawan',
                 'leave_balance' => 'Saldo Cuti',
             ],
         ]);
@@ -97,6 +98,12 @@ class AuditTrailController extends Controller
             'attendance_correction.hrd.approved' => 'Koreksi presensi disetujui HR',
             'attendance_correction.hrd.rejected' => 'Koreksi presensi ditolak HR',
             'attendance_correction.applied' => 'Koreksi presensi diterapkan',
+            'employee.movement.submitted' => 'Transisi Karyawan diajukan',
+            'employee.movement.hod.approved' => 'Transisi Karyawan disetujui HOD',
+            'employee.movement.hod.rejected' => 'Transisi Karyawan ditolak HOD',
+            'employee.movement.hrd.approved' => 'Transisi Karyawan disetujui HRD',
+            'employee.movement.hrd.rejected' => 'Transisi Karyawan ditolak HRD',
+            'employee.movement.applied' => 'Transisi Karyawan diterapkan',
             'leave_balance.manual.credit' => 'Saldo cuti ditambah HR',
             'leave_balance.manual.debit' => 'Saldo cuti dikurangi HR',
             'leave_balance.usage.recorded' => 'Pemakaian cuti dicatat',

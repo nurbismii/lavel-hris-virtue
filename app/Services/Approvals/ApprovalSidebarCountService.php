@@ -2,8 +2,10 @@
 
 namespace App\Services\Approvals;
 
+use App\Models\ApprovalDelegation;
 use App\Models\AttendanceCorrection;
 use App\Models\Cuti;
+use App\Models\EmployeeMovement;
 use App\Models\Roster;
 use App\Models\RosterOffRequest;
 use App\Models\User;
@@ -18,6 +20,7 @@ class ApprovalSidebarCountService
         'roster' => 0,
         'roster_off' => 0,
         'attendance_correction' => 0,
+        'employee_movement' => 0,
         'total' => 0,
     ];
 
@@ -41,6 +44,7 @@ class ApprovalSidebarCountService
             'approvalHrCounts' => self::EMPTY_COUNTS,
             'approvalDelegateCounts' => self::EMPTY_COUNTS,
             'approvalDelegateAccess' => false,
+            'employeeMovementDelegateAccess' => false,
         ];
     }
 
@@ -51,6 +55,10 @@ class ApprovalSidebarCountService
         $delegationService = app(ApprovalDelegationService::class);
         $approvalDelegateCounts = $delegationService->countsForDelegate($user);
         $approvalDelegateAccess = $delegationService->hasDelegateAccess($user) || $approvalDelegateCounts['total'] > 0;
+        $employeeMovementDelegateAccess = $delegationService->hasDelegateAccess(
+            $user,
+            ApprovalDelegation::MODULE_EMPLOYEE_MOVEMENT
+        );
 
         if ($user->hasMenuAccess('approval_hod')) {
             $approvalHodCounts['cuti'] = $user->applyEmployeeRelationScope(
@@ -99,6 +107,14 @@ class ApprovalSidebarCountService
                 )->count();
             }
 
+            if (Schema::hasTable('employee_movements') && $user->hasRole(['Super Admin', 'HOD'])) {
+                $approvalHodCounts['employee_movement'] = $user->applyEmployeeRelationScope(
+                    EmployeeMovement::query()
+                        ->where('status', EmployeeMovement::STATUS_PENDING_HOD)
+                        ->where('hod_status', EmployeeMovement::APPROVAL_PENDING)
+                )->count();
+            }
+
             $approvalHodCounts['total'] = $this->sumCounts($approvalHodCounts);
         }
 
@@ -139,10 +155,24 @@ class ApprovalSidebarCountService
                 )->count();
             }
 
+            if (Schema::hasTable('employee_movements')) {
+                $approvalHrCounts['employee_movement'] = EmployeeMovement::query()
+                    ->where('status', EmployeeMovement::STATUS_PENDING_HRD)
+                    ->where('hod_status', EmployeeMovement::APPROVAL_APPROVED)
+                    ->where('hrd_status', EmployeeMovement::APPROVAL_PENDING)
+                    ->count();
+            }
+
             $approvalHrCounts['total'] = $this->sumCounts($approvalHrCounts);
         }
 
-        return compact('approvalHodCounts', 'approvalHrCounts', 'approvalDelegateCounts', 'approvalDelegateAccess');
+        return compact(
+            'approvalHodCounts',
+            'approvalHrCounts',
+            'approvalDelegateCounts',
+            'approvalDelegateAccess',
+            'employeeMovementDelegateAccess'
+        );
     }
 
     private function sumCounts(array $counts): int
@@ -151,7 +181,8 @@ class ApprovalSidebarCountService
             + $counts['izin']
             + $counts['roster']
             + $counts['roster_off']
-            + $counts['attendance_correction'];
+            + $counts['attendance_correction']
+            + $counts['employee_movement'];
     }
 
     private function cacheKey(User $user): string

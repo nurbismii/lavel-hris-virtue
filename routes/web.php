@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\ElectronicContractAssetController;
 use App\Http\Controllers\Admin\ElectronicContractClauseController;
 use App\Http\Controllers\Admin\ElectronicContractController as AdminElectronicContractController;
 use App\Http\Controllers\Admin\ElectronicContractTemplateController;
+use App\Http\Controllers\Admin\EmployeeMovementController;
 use App\Http\Controllers\Admin\ImportHistoryController;
 use App\Http\Controllers\Admin\LeaveBalanceController;
 use App\Http\Controllers\Admin\NationalHolidayController;
@@ -204,6 +205,17 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController')
             ->only(['index', 'store', 'edit', 'update', 'destroy'])
             ->middleware('menu:data_karyawan');
+
+        Route::prefix('/pergerakan-karyawan')
+            ->name('employee-movements.')
+            ->group(function () {
+                Route::get('/employees/search', [EmployeeMovementController::class, 'searchEmployees'])->name('employees.search');
+                Route::get('/', [EmployeeMovementController::class, 'index'])->name('index');
+                Route::get('/create', [EmployeeMovementController::class, 'create'])->name('create');
+                Route::post('/', [EmployeeMovementController::class, 'store'])->name('store');
+                Route::post('/approval/hod/{movement}', [EmployeeMovementController::class, 'hodProcess'])->name('hod.process');
+                Route::post('/approval/hrd/{movement}', [EmployeeMovementController::class, 'hrdProcess'])->name('hrd.process');
+            });
 
         Route::resource('/user', 'App\Http\Controllers\Admin\UserController')
             ->only(['index', 'edit', 'update', 'destroy'])

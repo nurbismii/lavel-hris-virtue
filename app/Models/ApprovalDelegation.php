@@ -12,6 +12,7 @@ class ApprovalDelegation extends Model
     public const MODULE_ROSTER = 'roster';
     public const MODULE_ROSTER_OFF = 'roster_off';
     public const MODULE_ATTENDANCE_CORRECTION = 'attendance_correction';
+    public const MODULE_EMPLOYEE_MOVEMENT = 'employee_movement';
 
     protected $guarded = [];
 
@@ -28,6 +29,7 @@ class ApprovalDelegation extends Model
             self::MODULE_ROSTER => 'Cuti/Insentif Roster',
             self::MODULE_ROSTER_OFF => 'OFF Roster',
             self::MODULE_ATTENDANCE_CORRECTION => 'Koreksi Presensi',
+            self::MODULE_EMPLOYEE_MOVEMENT => 'Transisi Karyawan',
         ];
     }
 

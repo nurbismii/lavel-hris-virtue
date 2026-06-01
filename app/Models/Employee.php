@@ -84,4 +84,9 @@ class Employee extends Model
     {
         return $this->hasMany(LeaveBalanceLedger::class, 'employee_nik', 'nik');
     }
+
+    public function movements()
+    {
+        return $this->hasMany(EmployeeMovement::class, 'employee_nik', 'nik');
+    }
 }

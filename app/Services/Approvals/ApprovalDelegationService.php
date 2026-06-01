@@ -30,7 +30,10 @@ class ApprovalDelegationService
     public function approvableModules(): array
     {
         return collect($this->availableModules())
-            ->except(ApprovalDelegation::MODULE_ALL)
+            ->except([
+                ApprovalDelegation::MODULE_ALL,
+                ApprovalDelegation::MODULE_EMPLOYEE_MOVEMENT,
+            ])
             ->all();
     }
 
@@ -378,16 +381,21 @@ class ApprovalDelegationService
         return $counts;
     }
 
-    public function hasDelegateAccess(User $user): bool
+    public function hasDelegateAccess(User $user, ?string $module = null): bool
     {
         if (!Schema::hasTable('approval_delegations')) {
             return false;
         }
 
-        return ApprovalDelegation::query()
+        $query = ApprovalDelegation::query()
             ->where('delegate_user_id', (string) $user->id)
-            ->where('is_active', true)
-            ->exists();
+            ->where('is_active', true);
+
+        if ($module) {
+            $query->whereIn('module', [$module, ApprovalDelegation::MODULE_ALL]);
+        }
+
+        return $query->exists();
     }
 
     public function canManageScope(User $user, ?string $departemenId, ?string $divisiId): bool

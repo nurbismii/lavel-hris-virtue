@@ -7,6 +7,7 @@ $canManageOvertimeMaster = $user && $user->hasRole(['Super Admin', 'HR']);
 $canManageFirstPartySignature = $user && $user->hasRole(['Super Admin', 'HR']) && $can('electronic_contract_first_party_signature');
 $canManageApprovalDelegations = $user && $user->hasRole(['Super Admin', 'HOD']) && $can('approval_hod');
 $canUseDelegateApproval = $user && ($approvalDelegateAccess ?? false);
+$canUseEmployeeMovement = $user && ($can('employee_movement') || ($employeeMovementDelegateAccess ?? false));
 $shiftMenuActive = request()->routeIs('shifts.*') || request()->routeIs('shift-settings.*');
 $overtimeMenuActive = request()->routeIs('overtime-orders.*') || request()->routeIs('overtime-masters.*');
 $electronicContractAdminActive = request()->routeIs('electronic-contracts.*');
@@ -15,6 +16,7 @@ $attendanceAnomalyActive = request()->routeIs('attendance-anomalies.*');
 $attendancePeriodLockActive = request()->routeIs('attendance-period-locks.*');
 $approvalSlaActive = request()->routeIs('approval-sla.*');
 $centralMonitorActive = request()->routeIs('central-monitor.*');
+$employeeMovementActive = request()->routeIs('employee-movements.*');
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -68,7 +70,7 @@ $centralMonitorActive = request()->routeIs('central-monitor.*');
                 </li>
                 @endif
 
-                @if($can('data_karyawan') || $can('data_user') || $can('slip_gaji_admin') || $can('electronic_contract_admin') || $can('contract_renewal') || $can('resign') || $can('surat_peringatan') || $can('data_presensi') || $can('attendance_anomaly') || $can('distribusi_wilayah'))
+                @if($can('data_karyawan') || $canUseEmployeeMovement || $can('data_user') || $can('slip_gaji_admin') || $can('electronic_contract_admin') || $can('contract_renewal') || $can('resign') || $can('surat_peringatan') || $can('data_presensi') || $can('attendance_anomaly') || $can('distribusi_wilayah'))
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
@@ -82,6 +84,19 @@ $centralMonitorActive = request()->routeIs('central-monitor.*');
                     <a href="{{ route('karyawan.index') }}">
                         <i class="fas fa-users"></i>
                         <p>{{ __('navigation.employee_data') }}</p>
+                    </a>
+                </li>
+                @endif
+
+                @if($canUseEmployeeMovement)
+                <li class="nav-item {{ $employeeMovementActive ? 'active' : '' }}">
+                    <a href="{{ route('employee-movements.index') }}" class="{{ (($approvalHodCounts['employee_movement'] ?? 0) + ($approvalHrCounts['employee_movement'] ?? 0)) > 0 ? 'has-sidebar-badge' : '' }}">
+                        <i class="fas fa-user-tag"></i>
+                        <p>{{ __('navigation.employee_movement') }}</p>
+                        @php($employeeMovementBadge = ($approvalHodCounts['employee_movement'] ?? 0) + ($approvalHrCounts['employee_movement'] ?? 0))
+                        @if($employeeMovementBadge > 0)
+                        <span class="badge badge-primary">{{ $employeeMovementBadge }}</span>
+                        @endif
                     </a>
                 </li>
                 @endif

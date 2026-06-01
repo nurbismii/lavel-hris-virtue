@@ -39,6 +39,8 @@ class DelegatedApprovalController extends Controller
         );
 
         $target = $service->targetForModule($module);
+        abort_unless($target, 404);
+
         $items = $service->restrictPendingForDelegate(
             $service->queryForModule($module),
             $request->user(),
@@ -70,6 +72,7 @@ class DelegatedApprovalController extends Controller
         $validated = $request->validated();
         $action = (int) $validated['action'];
         $target = $service->targetForModule($module);
+        abort_unless($target, 404);
 
         $result = DB::transaction(function () use ($request, $service, $module, $id, $target, $action, $validated) {
             $model = $service->restrictPendingForDelegate(

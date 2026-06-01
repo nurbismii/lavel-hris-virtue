@@ -17,6 +17,10 @@ $menus = [
         'label' => 'Data Karyawan',
         'group' => 'Data Master',
     ],
+    'employee_movement' => [
+        'label' => 'Transisi Karyawan',
+        'group' => 'Data Master',
+    ],
     'data_user' => [
         'label' => 'Data User',
         'group' => 'Data Master',
@@ -211,6 +215,7 @@ return [
             'dashboard_admin',
             'central_monitor',
             'data_karyawan',
+            'employee_movement',
             'data_user',
             'electronic_contract_admin',
             'electronic_contract_first_party_signature',
@@ -239,6 +244,7 @@ return [
         'HOD' => [
             'dashboard_karyawan',
             'data_karyawan',
+            'employee_movement',
             'slip_gaji_user',
             'electronic_contract_user',
             'contract_renewal',

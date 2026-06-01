@@ -25,6 +25,7 @@ return [
     'day_off_setting' => '休息日设置',
     'delegated_approval' => '委托队列',
     'employee_attendance' => '员工考勤',
+    'employee_movement' => '员工调动',
     'electronic_contract' => '电子合同',
     'electronic_contract_templates' => '合同模板',
     'electronic_contract_clauses' => '补充协议条款',

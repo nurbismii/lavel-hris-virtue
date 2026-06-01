@@ -25,6 +25,7 @@ return [
     'day_off_setting' => 'Setting Hari Off',
     'delegated_approval' => 'Antrean Delegasi',
     'employee_attendance' => 'Presensi Karyawan',
+    'employee_movement' => 'Transisi Karyawan',
     'electronic_contract' => 'Kontrak Elektronik',
     'electronic_contract_templates' => 'Template Kontrak',
     'electronic_contract_clauses' => 'Klausul Adendum',
