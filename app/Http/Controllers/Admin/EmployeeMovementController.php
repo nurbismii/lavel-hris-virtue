@@ -24,7 +24,7 @@ class EmployeeMovementController extends Controller
         abort_unless(
             $service->canAccessMovementModule($request->user()),
             403,
-            'Anda tidak memiliki akses ke Transisi Karyawan.'
+            'Anda tidak memiliki akses ke Perubahan posisi.'
         );
 
         $query = EmployeeMovement::query()
@@ -106,7 +106,7 @@ class EmployeeMovementController extends Controller
         abort_unless(
             $service->canAccessMovementModule($request->user()),
             403,
-            'Anda tidak memiliki akses membuat pengajuan Transisi Karyawan.'
+            'Anda tidak memiliki akses membuat pengajuan Perubahan posisi.'
         );
 
         $selectedEmployee = null;
@@ -141,7 +141,7 @@ class EmployeeMovementController extends Controller
         } catch (Throwable $exception) {
             report($exception);
 
-            toast()->error('Gagal', 'Pengajuan Transisi Karyawan gagal diproses. Periksa data dan coba lagi.');
+            toast()->error('Gagal', 'Pengajuan Perubahan posisi gagal diproses. Periksa data dan coba lagi.');
             return back()->withInput();
         }
 
@@ -227,7 +227,7 @@ class EmployeeMovementController extends Controller
         abort_unless(
             $service->canAccessMovementModule($request->user()),
             403,
-            'Anda tidak memiliki akses pencarian karyawan untuk Transisi Karyawan.'
+            'Anda tidak memiliki akses pencarian karyawan untuk Perubahan posisi.'
         );
 
         $term = trim((string) $request->input('q', ''));

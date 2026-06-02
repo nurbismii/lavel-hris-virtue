@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Transisi Karyawan')
+@section('title', 'Perubahan posisi')
 
 @section('content')
 @php
@@ -26,13 +26,13 @@ return $oldPosition . ' -> ' . $newPosition;
 
 $approvalVisible = function ($movement) {
 return in_array($movement->status, [
-        \App\Models\EmployeeMovement::STATUS_PENDING_HOD,
-        \App\Models\EmployeeMovement::STATUS_PENDING_HRD,
-        \App\Models\EmployeeMovement::STATUS_SCHEDULED,
-        \App\Models\EmployeeMovement::STATUS_APPROVED,
-        \App\Models\EmployeeMovement::STATUS_APPLY_FAILED,
-        \App\Models\EmployeeMovement::STATUS_REJECTED,
-    ], true);
+\App\Models\EmployeeMovement::STATUS_PENDING_HOD,
+\App\Models\EmployeeMovement::STATUS_PENDING_HRD,
+\App\Models\EmployeeMovement::STATUS_SCHEDULED,
+\App\Models\EmployeeMovement::STATUS_APPROVED,
+\App\Models\EmployeeMovement::STATUS_APPLY_FAILED,
+\App\Models\EmployeeMovement::STATUS_REJECTED,
+], true);
 };
 @endphp
 
@@ -40,7 +40,7 @@ return in_array($movement->status, [
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Transisi Karyawan</h4>
+                <h4 class="fw-bold mb-1">Perubahan posisi</h4>
                 <small class="text-muted">Ajukan promosi, demosi, dan mutasi dengan approval HOD lalu HRD sebelum master karyawan berubah.</small>
             </div>
             @if($canCreateMovement)
@@ -144,13 +144,13 @@ return in_array($movement->status, [
                                 </td>
                                 <td>
                                     <span class="badge bg-{{ $movement->status_badge_class }}">{{ $movement->status_label }}</span>
-                                        @if($movement->applied_at)
-                                            <small class="d-block text-muted mt-1">Applied {{ optional($movement->applied_at)->format('d M Y H:i') }}</small>
-                                        @endif
-                                        @if($movement->application_error)
-                                            <small class="d-block text-danger mt-1">{{ $movement->application_error }}</small>
-                                        @endif
-                                    </td>
+                                    @if($movement->applied_at)
+                                    <small class="d-block text-muted mt-1">Applied {{ optional($movement->applied_at)->format('d M Y H:i') }}</small>
+                                    @endif
+                                    @if($movement->application_error)
+                                    <small class="d-block text-danger mt-1">{{ $movement->application_error }}</small>
+                                    @endif
+                                </td>
                                 <td>
                                     @if($approvalVisible($movement))
                                     <span class="badge bg-{{ $movement->hod_status_badge_class }}">{{ $movement->hod_status_label }}</span>
@@ -209,7 +209,7 @@ return in_array($movement->status, [
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">Belum ada pengajuan Transisi Karyawan.</td>
+                                <td colspan="9" class="text-center text-muted py-4">Belum ada pengajuan Perubahan posisi.</td>
                             </tr>
                             @endforelse
                         </tbody>

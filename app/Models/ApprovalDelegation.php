@@ -29,7 +29,7 @@ class ApprovalDelegation extends Model
             self::MODULE_ROSTER => 'Cuti/Insentif Roster',
             self::MODULE_ROSTER_OFF => 'OFF Roster',
             self::MODULE_ATTENDANCE_CORRECTION => 'Koreksi Presensi',
-            self::MODULE_EMPLOYEE_MOVEMENT => 'Transisi Karyawan',
+            self::MODULE_EMPLOYEE_MOVEMENT => 'Perubahan posisi',
         ];
     }
 

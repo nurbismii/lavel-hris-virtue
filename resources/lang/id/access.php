@@ -16,7 +16,7 @@ return [
         'central_monitor' => ['label' => 'Monitor Terpusat'],
         'dashboard_karyawan' => ['label' => 'Dashboard Karyawan'],
         'data_karyawan' => ['label' => 'Data Karyawan'],
-        'employee_movement' => ['label' => 'Transisi Karyawan'],
+        'employee_movement' => ['label' => 'Perubahan posisi'],
         'data_user' => ['label' => 'Data User'],
         'slip_gaji_admin' => ['label' => 'Slip Gaji Admin'],
         'electronic_contract_admin' => ['label' => 'Kontrak Elektronik Admin'],

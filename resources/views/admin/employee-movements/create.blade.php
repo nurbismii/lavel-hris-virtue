@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Buat Transisi Karyawan')
+@section('title', 'Buat Perubahan posisi')
 
 @push('styles')
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
@@ -44,7 +44,7 @@ $selectedEmployeePayload = $selectedEmployee ? [
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Buat Transisi Karyawan</h4>
+                <h4 class="fw-bold mb-1">Buat Perubahan posisi</h4>
                 <small class="text-muted">Pengajuan akan masuk workflow HOD lalu HRD. Master karyawan baru berubah setelah HRD approve.</small>
             </div>
             <div class="ms-md-auto">
@@ -55,7 +55,7 @@ $selectedEmployeePayload = $selectedEmployee ? [
         <form
             action="{{ route('employee-movements.store') }}"
             method="POST"
-            data-swal-confirm="Ajukan Transisi Karyawan ini ke workflow approval?"
+            data-swal-confirm="Ajukan Perubahan posisi ini ke workflow approval?"
             data-swal-title="Konfirmasi Pengajuan"
             data-swal-confirm-button="Ya, ajukan">
             @csrf

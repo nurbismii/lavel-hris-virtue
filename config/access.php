@@ -18,7 +18,7 @@ $menus = [
         'group' => 'Data Master',
     ],
     'employee_movement' => [
-        'label' => 'Transisi Karyawan',
+        'label' => 'Perubahan posisi',
         'group' => 'Data Master',
     ],
     'data_user' => [
