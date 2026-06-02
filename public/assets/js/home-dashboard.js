@@ -246,7 +246,16 @@
 
         event.preventDefault();
 
-        if (!window.confirm(deleteConfirmMessage)) {
+        const confirmed = await window.AppDialog.confirm({
+            title: 'Konfirmasi Hapus',
+            text: deleteConfirmMessage,
+            icon: 'warning',
+            confirmButtonText: 'Ya, hapus',
+            cancelButtonText: 'Batal',
+            dangerMode: true
+        });
+
+        if (!confirmed) {
             return;
         }
 
@@ -267,7 +276,7 @@
             await refreshProgress();
         } catch (error) {
             console.error(error);
-            alert('Gagal menghapus progress upload.');
+            window.AppDialog.alert('Gagal', 'Gagal menghapus progress upload.', 'error');
         }
     });
 

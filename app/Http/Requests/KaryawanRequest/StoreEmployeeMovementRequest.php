@@ -22,7 +22,7 @@ class StoreEmployeeMovementRequest extends FormRequest
         return [
             'employee_nik' => ['required', 'string', 'max:32', 'exists:employees,nik'],
             'movement_type' => ['required', Rule::in(array_keys(EmployeeMovement::typeOptions()))],
-            'effective_date' => ['required', 'date', 'before_or_equal:today'],
+            'effective_date' => ['required', 'date'],
             'new_posisi' => ['nullable', 'string', 'max:255'],
             'new_jabatan' => ['nullable', 'string', 'max:255'],
             'new_departemen_id' => ['nullable', 'integer', 'exists:departemens,id'],
@@ -73,7 +73,6 @@ class StoreEmployeeMovementRequest extends FormRequest
             'movement_type.required' => 'Jenis pergerakan wajib dipilih.',
             'movement_type.in' => 'Jenis pergerakan tidak valid.',
             'effective_date.required' => 'Tanggal efektif wajib diisi.',
-            'effective_date.before_or_equal' => 'Tanggal efektif tidak boleh lebih dari hari ini karena approval HRD final langsung menerapkan perubahan ke master karyawan.',
             'new_posisi.max' => 'Posisi baru maksimal 255 karakter.',
             'new_jabatan.max' => 'Jabatan baru maksimal 255 karakter.',
             'new_departemen_id.exists' => 'Departemen tujuan tidak ditemukan.',

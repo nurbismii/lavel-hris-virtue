@@ -493,21 +493,7 @@ $weekLabels = ['MINGGU KE-1', 'MINGGU KE-2', 'MINGGU KE-3', 'MINGGU KE-4', 'MING
     }
 
     function showOverlapWarning(message) {
-        if (window.Swal && typeof window.Swal.fire === 'function') {
-            window.Swal.fire('Perhatian!', message, 'warning');
-            return;
-        }
-
-        if (typeof window.swal === 'function') {
-            window.swal({
-                title: 'Perhatian!',
-                text: message,
-                icon: 'warning'
-            });
-            return;
-        }
-
-        window.alert(message);
+        window.AppDialog.alert('Perhatian!', message, 'warning');
     }
 
     function highlightConflictFields(fieldIds) {

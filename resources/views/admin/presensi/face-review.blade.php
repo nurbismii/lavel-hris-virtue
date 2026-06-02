@@ -311,7 +311,11 @@
                             </div>
 
                             <div class="col-lg-7">
-                                <form method="POST" action="{{ route('data-presensi.face-review.decide', $verification) }}" class="face-review-info" onsubmit="return confirm('Simpan keputusan review presensi wajah ini?')">
+                                <form method="POST" action="{{ route('data-presensi.face-review.decide', $verification) }}" class="face-review-info"
+                                      data-swal-confirm="Simpan keputusan review presensi wajah ini?"
+                                      data-swal-title="Konfirmasi Review"
+                                      data-swal-icon="warning"
+                                      data-swal-confirm-button="Ya, simpan">
                                     @csrf
                                     <div class="row g-2">
                                         <div class="col-md-4">

@@ -8,6 +8,7 @@ use App\Models\EmployeeMovement;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Karyawan\EmployeeMovementService;
+use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -163,6 +164,92 @@ class EmployeeMovementServiceTest extends TestCase
         );
     }
 
+    public function test_future_effective_date_is_scheduled_and_applied_when_due(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-01 08:00:00'));
+
+        try {
+            $service = app(EmployeeMovementService::class);
+
+            $movement = $service->submit([
+                'employee_nik' => 'EMP001',
+                'movement_type' => EmployeeMovement::TYPE_PROMOTION,
+                'effective_date' => '2026-06-10',
+                'new_posisi' => 'Senior Staff',
+                'new_jabatan' => 'Senior Operator',
+                'reason' => 'Efektif setelah SK berlaku.',
+            ], $this->makeHodUser());
+
+            $movement = $service->processHrd(
+                $movement,
+                $this->makeHrUser(),
+                EmployeeMovement::APPROVAL_APPROVED
+            );
+
+            $employee = Employee::query()->whereKey('EMP001')->first();
+
+            $this->assertSame(EmployeeMovement::STATUS_SCHEDULED, $movement->status);
+            $this->assertNull($movement->applied_at);
+            $this->assertSame('Staff', $employee->posisi);
+
+            Carbon::setTestNow(Carbon::parse('2026-06-10 00:30:00'));
+
+            $summary = $service->applyDueMovements();
+            $movement = $movement->fresh();
+            $employee = Employee::query()->whereKey('EMP001')->first();
+
+            $this->assertSame(1, $summary['checked']);
+            $this->assertSame(1, $summary['applied']);
+            $this->assertSame(EmployeeMovement::STATUS_APPROVED, $movement->status);
+            $this->assertNotNull($movement->applied_at);
+            $this->assertSame('Senior Staff', $employee->posisi);
+            $this->assertSame('Senior Operator', $employee->jabatan);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_due_application_marks_failed_when_employee_snapshot_changed(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-01 08:00:00'));
+
+        try {
+            $service = app(EmployeeMovementService::class);
+
+            $movement = $service->submit([
+                'employee_nik' => 'EMP001',
+                'movement_type' => EmployeeMovement::TYPE_PROMOTION,
+                'effective_date' => '2026-06-10',
+                'new_posisi' => 'Senior Staff',
+                'reason' => 'Efektif setelah SK berlaku.',
+            ], $this->makeHodUser());
+
+            $movement = $service->processHrd(
+                $movement,
+                $this->makeHrUser(),
+                EmployeeMovement::APPROVAL_APPROVED
+            );
+
+            Employee::query()
+                ->whereKey('EMP001')
+                ->update(['posisi' => 'Lead Staff']);
+
+            Carbon::setTestNow(Carbon::parse('2026-06-10 00:30:00'));
+
+            $summary = $service->applyDueMovements();
+            $movement = $movement->fresh();
+            $employee = Employee::query()->whereKey('EMP001')->first();
+
+            $this->assertSame(1, $summary['checked']);
+            $this->assertSame(1, $summary['failed']);
+            $this->assertSame(EmployeeMovement::STATUS_APPLY_FAILED, $movement->status);
+            $this->assertNotNull($movement->application_error);
+            $this->assertSame('Lead Staff', $employee->posisi);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
     private function createSchema(): void
     {
         Schema::create('users', function (Blueprint $table) {
@@ -238,6 +325,8 @@ class EmployeeMovementServiceTest extends TestCase
             $table->string('hrd_rejection_reason', 500)->nullable();
             $table->string('applied_by_user_id', 36)->nullable();
             $table->timestamp('applied_at')->nullable();
+            $table->timestamp('application_attempted_at')->nullable();
+            $table->string('application_error', 500)->nullable();
             $table->timestamps();
         });
 

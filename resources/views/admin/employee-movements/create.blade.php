@@ -97,7 +97,7 @@ $selectedEmployeePayload = $selectedEmployee ? [
                                     <label class="form-label">Tanggal Efektif</label>
                                     <input type="date" name="effective_date" class="form-control @error('effective_date') is-invalid @enderror" value="{{ old('effective_date', now()->toDateString()) }}">
                                     @error('effective_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    <small class="text-muted">Tanggal efektif tidak boleh lebih dari hari ini karena approval HRD final langsung menerapkan master.</small>
+                                    <small class="text-muted">Jika tanggal efektif di masa depan, HRD dapat menyetujui sekarang dan sistem akan menerapkan perubahan saat tanggal efektif tiba.</small>
                                 </div>
 
                                 <div class="col-12">

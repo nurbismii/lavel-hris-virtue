@@ -41,6 +41,8 @@ return new class extends Migration
             $table->string('hrd_rejection_reason', 500)->nullable();
             $table->string('applied_by_user_id', 36)->nullable();
             $table->timestamp('applied_at')->nullable();
+            $table->timestamp('application_attempted_at')->nullable();
+            $table->string('application_error', 500)->nullable();
             $table->timestamps();
 
             $table->index(['employee_nik', 'effective_date'], 'employee_movements_employee_date_idx');

@@ -192,6 +192,46 @@ class EmployeeMovementService
                 ]);
             }
 
+            if ($movement->effective_date && $movement->effective_date->isAfter(today())) {
+                $movement->forceFill([
+                    'hrd_status' => EmployeeMovement::APPROVAL_APPROVED,
+                    'hrd_processed_by' => (string) $actor->id,
+                    'hrd_processed_at' => now(),
+                    'hrd_rejection_reason' => null,
+                    'status' => EmployeeMovement::STATUS_SCHEDULED,
+                    'application_attempted_at' => null,
+                    'application_error' => null,
+                ])->save();
+
+                $movement = $movement->fresh();
+
+                $this->recordMovementAudit(
+                    'employee.movement.hrd.approved',
+                    $movement,
+                    $actor,
+                    $oldApprovalValues,
+                    $this->approvalSnapshot($movement),
+                    $note,
+                    ['stage' => 'hrd', 'action' => $action, 'scheduled' => true]
+                );
+
+                $this->recordMovementAudit(
+                    'employee.movement.scheduled',
+                    $movement,
+                    $actor,
+                    $expectedOldValues,
+                    $targetValues,
+                    $movement->reason,
+                    [
+                        'movement_type' => $movement->movement_type,
+                        'effective_date' => optional($movement->effective_date)->toDateString(),
+                        'reference_number' => $movement->reference_number,
+                    ]
+                );
+
+                return $this->freshMovement($movement);
+            }
+
             $employee->forceFill([
                 'posisi' => $targetValues['posisi'],
                 'jabatan' => $targetValues['jabatan'],
@@ -207,6 +247,8 @@ class EmployeeMovementService
                 'status' => EmployeeMovement::STATUS_APPROVED,
                 'applied_by_user_id' => (string) $actor->id,
                 'applied_at' => now(),
+                'application_attempted_at' => now(),
+                'application_error' => null,
             ])->save();
 
             $movement = $movement->fresh();
@@ -232,6 +274,136 @@ class EmployeeMovementService
                     'movement_type' => $movement->movement_type,
                     'effective_date' => optional($movement->effective_date)->toDateString(),
                     'reference_number' => $movement->reference_number,
+                ]
+            );
+
+            return $this->freshMovement($movement);
+        });
+    }
+
+    public function applyDueMovements(int $limit = 200): array
+    {
+        $limit = max(1, min($limit, 1000));
+        $summary = [
+            'checked' => 0,
+            'applied' => 0,
+            'failed' => 0,
+            'skipped' => 0,
+        ];
+
+        EmployeeMovement::query()
+            ->where('status', EmployeeMovement::STATUS_SCHEDULED)
+            ->where('hod_status', EmployeeMovement::APPROVAL_APPROVED)
+            ->where('hrd_status', EmployeeMovement::APPROVAL_APPROVED)
+            ->whereNull('applied_at')
+            ->whereDate('effective_date', '<=', today())
+            ->orderBy('effective_date')
+            ->orderBy('id')
+            ->limit($limit)
+            ->get()
+            ->each(function (EmployeeMovement $movement) use (&$summary) {
+                $summary['checked']++;
+
+                $freshMovement = $this->applyDueMovement($movement);
+
+                if ($freshMovement->status === EmployeeMovement::STATUS_APPROVED) {
+                    $summary['applied']++;
+                    return;
+                }
+
+                if ($freshMovement->status === EmployeeMovement::STATUS_APPLY_FAILED) {
+                    $summary['failed']++;
+                    return;
+                }
+
+                $summary['skipped']++;
+            });
+
+        return $summary;
+    }
+
+    public function applyDueMovement(EmployeeMovement $movement, ?User $actor = null): EmployeeMovement
+    {
+        return DB::transaction(function () use ($movement, $actor) {
+            $movement = EmployeeMovement::query()
+                ->whereKey($movement->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (!$movement->isApprovedPendingEffective()) {
+                return $this->freshMovement($movement);
+            }
+
+            if ($movement->effective_date && $movement->effective_date->isAfter(today())) {
+                return $this->freshMovement($movement);
+            }
+
+            $employee = Employee::query()
+                ->whereKey($movement->employee_nik)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $currentValues = $this->snapshot($employee);
+            $expectedOldValues = $this->oldValuesFromMovement($movement);
+            $targetValues = $this->targetValuesFromMovement($movement);
+
+            if ($this->hasChangedSinceSubmission($expectedOldValues, $currentValues)) {
+                $message = 'Data karyawan sudah berubah sebelum tanggal efektif. Pengajuan perlu direview ulang oleh HRD.';
+
+                $movement->forceFill([
+                    'status' => EmployeeMovement::STATUS_APPLY_FAILED,
+                    'application_attempted_at' => now(),
+                    'application_error' => $message,
+                ])->save();
+
+                $movement = $movement->fresh();
+
+                $this->recordMovementAudit(
+                    'employee.movement.apply_failed',
+                    $movement,
+                    $actor,
+                    $expectedOldValues,
+                    $currentValues,
+                    $message,
+                    [
+                        'movement_type' => $movement->movement_type,
+                        'effective_date' => optional($movement->effective_date)->toDateString(),
+                        'reason' => 'stale_employee_snapshot',
+                    ]
+                );
+
+                return $this->freshMovement($movement);
+            }
+
+            $employee->forceFill([
+                'posisi' => $targetValues['posisi'],
+                'jabatan' => $targetValues['jabatan'],
+                'departemen_id' => $targetValues['departemen_id'],
+                'divisi_id' => $targetValues['divisi_id'],
+            ])->save();
+
+            $movement->forceFill([
+                'status' => EmployeeMovement::STATUS_APPROVED,
+                'applied_by_user_id' => $actor ? (string) $actor->id : null,
+                'applied_at' => now(),
+                'application_attempted_at' => now(),
+                'application_error' => null,
+            ])->save();
+
+            $movement = $movement->fresh();
+
+            $this->recordMovementAudit(
+                'employee.movement.applied',
+                $movement,
+                $actor,
+                $expectedOldValues,
+                $targetValues,
+                $movement->reason,
+                [
+                    'movement_type' => $movement->movement_type,
+                    'effective_date' => optional($movement->effective_date)->toDateString(),
+                    'reference_number' => $movement->reference_number,
+                    'trigger' => 'scheduled_command',
                 ]
             );
 
@@ -575,7 +747,7 @@ class EmployeeMovementService
     private function recordMovementAudit(
         string $event,
         EmployeeMovement $movement,
-        User $actor,
+        ?User $actor,
         array $oldValues,
         array $newValues,
         ?string $note = null,

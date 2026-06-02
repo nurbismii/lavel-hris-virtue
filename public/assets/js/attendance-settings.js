@@ -288,7 +288,7 @@
                 item.element.closest('td').removeClass('table-warning');
             });
 
-            alert(error.message || 'Update gagal');
+            window.AppDialog.alert('Update gagal', error.message || 'Update gagal', 'error');
         }
     }
 

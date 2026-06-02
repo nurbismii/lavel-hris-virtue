@@ -192,7 +192,11 @@
     function getLocation() {
 
         if (!navigator.geolocation) {
-            alert("Browser tidak mendukung geolocation");
+            window.AppDialog.alert(
+                'Geolocation tidak tersedia',
+                'Browser tidak mendukung geolocation.',
+                'warning'
+            );
             return;
         }
 
@@ -209,7 +213,11 @@
             setLocation(lat, lng);
 
         }, function() {
-            alert("Gagal mengambil lokasi");
+            window.AppDialog.alert(
+                'Gagal mengambil lokasi',
+                'Sistem gagal mengambil lokasi perangkat. Silakan cek izin lokasi browser.',
+                'error'
+            );
         }, {
             enableHighAccuracy: true
         });

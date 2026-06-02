@@ -28,6 +28,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('contracts:notify-renewal-due --days=30 --limit=200')->dailyAt('07:00')->withoutOverlapping();
         $schedule->command('contracts:sync-terminated-employees --limit=500')->dailyAt('00:10')->withoutOverlapping();
         $schedule->command('approvals:escalate-sla --limit=500')->hourly()->withoutOverlapping();
+        $schedule->command('employee-movements:apply-due --limit=500')->dailyAt('00:20')->withoutOverlapping();
     }
 
     /**

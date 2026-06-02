@@ -49,18 +49,7 @@
             message = 'Koneksi bermasalah atau request diblokir. Silakan cek jaringan Anda.';
         }
 
-        if (window.Swal) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal',
-                text: message,
-                confirmButtonText: 'OK',
-            });
-
-            return;
-        }
-
-        alert(message);
+        window.AppDialog.alert('Gagal', message, 'error');
     }
 
     function formFilters() {

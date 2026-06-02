@@ -354,7 +354,11 @@
         });
 
         if (selectedDivisi.length < 1) {
-            alert('Pilih minimal 1 divisi');
+            window.AppDialog.alert(
+                'Belum ada divisi dipilih',
+                'Pilih minimal 1 divisi.',
+                'warning'
+            );
             return;
         }
 

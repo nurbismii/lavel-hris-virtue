@@ -509,21 +509,7 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
         }
 
         function showOverlapWarning(message) {
-            if (window.Swal && typeof window.Swal.fire === 'function') {
-                window.Swal.fire('Perhatian!', message, 'warning');
-                return;
-            }
-
-            if (typeof window.swal === 'function') {
-                window.swal({
-                    title: 'Perhatian!',
-                    text: message,
-                    icon: 'warning'
-                });
-                return;
-            }
-
-            window.alert(message);
+            window.AppDialog.alert('Perhatian!', message, 'warning');
         }
 
         function highlightConflictFields(fieldIds) {

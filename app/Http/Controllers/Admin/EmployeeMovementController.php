@@ -207,9 +207,13 @@ class EmployeeMovementController extends Controller
             return back();
         }
 
-        $message = $movement->hrd_status === EmployeeMovement::APPROVAL_APPROVED
-            ? 'Pengajuan disetujui HRD dan perubahan sudah diterapkan ke master karyawan.'
-            : 'Pengajuan ditolak HRD.';
+        if ($movement->status === EmployeeMovement::STATUS_SCHEDULED) {
+            $message = 'Pengajuan disetujui HRD dan akan diterapkan otomatis pada tanggal efektif.';
+        } elseif ($movement->hrd_status === EmployeeMovement::APPROVAL_APPROVED) {
+            $message = 'Pengajuan disetujui HRD dan perubahan sudah diterapkan ke master karyawan.';
+        } else {
+            $message = 'Pengajuan ditolak HRD.';
+        }
 
         toast()->success('Berhasil', $message);
 

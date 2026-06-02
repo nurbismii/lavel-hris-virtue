@@ -234,16 +234,34 @@
 
 @push('scripts')
 <script>
-    $(document).on('submit', '.js-sla-escalate-form', function () {
-        if (!window.confirm('Kirim eskalasi untuk semua approval yang sudah melewati SLA?')) {
-            return false;
+    $(document).on('submit', '.js-sla-escalate-form', function (event) {
+        const $form = $(this);
+
+        if ($form.data('submitting') === 1) {
+            event.preventDefault();
+            return;
         }
 
-        const $form = $(this);
+        event.preventDefault();
+
         const $button = $form.find('button[type="submit"]');
         const loadingText = $button.data('loading-text') || 'Memproses...';
 
-        $button.prop('disabled', true).data('original-html', $button.html()).html(loadingText);
+        window.AppDialog.confirm({
+            title: 'Kirim Eskalasi SLA?',
+            text: 'Kirim eskalasi untuk semua approval yang sudah melewati SLA?',
+            icon: 'warning',
+            confirmButtonText: 'Ya, kirim',
+            cancelButtonText: 'Batal'
+        }).then(function (confirmed) {
+            if (!confirmed) {
+                return;
+            }
+
+            $form.data('submitting', 1);
+            $button.prop('disabled', true).data('original-html', $button.html()).html(loadingText);
+            $form[0].submit();
+        });
     });
 </script>
 @endpush

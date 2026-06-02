@@ -735,16 +735,11 @@
                 if (selectedIds.length === 0) {
                     event.preventDefault();
 
-                    if (window.Swal) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Belum ada data dipilih',
-                            text: 'Pilih minimal satu kontrak yang akan diproses.',
-                            confirmButtonText: 'OK'
-                        });
-                    } else {
-                        window.alert('Pilih minimal satu kontrak yang akan diproses.');
-                    }
+                    window.AppDialog.alert(
+                        'Belum ada data dipilih',
+                        'Pilih minimal satu kontrak yang akan diproses.',
+                        'warning'
+                    );
 
                     return;
                 }
@@ -752,16 +747,11 @@
                 if (selectedIds.length > 100) {
                     event.preventDefault();
 
-                    if (window.Swal) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Terlalu banyak data',
-                            text: 'Maksimal 100 kontrak dapat diproses dalam satu kali aksi.',
-                            confirmButtonText: 'OK'
-                        });
-                    } else {
-                        window.alert('Maksimal 100 kontrak dapat diproses dalam satu kali aksi.');
-                    }
+                    window.AppDialog.alert(
+                        'Terlalu banyak data',
+                        'Maksimal 100 kontrak dapat diproses dalam satu kali aksi.',
+                        'warning'
+                    );
 
                     return;
                 }
@@ -806,25 +796,17 @@
                     form.submit();
                 };
 
-                if (window.Swal) {
-                    Swal.fire({
-                        icon: 'question',
-                        title: 'Konfirmasi',
-                        text: message,
-                        showCancelButton: true,
-                        confirmButtonText: 'Ya, lanjutkan',
-                        cancelButtonText: 'Batal'
-                    }).then(function (result) {
-                        if (result.isConfirmed) {
-                            submitForm();
-                        }
-                    });
-                    return;
-                }
-
-                if (window.confirm(message)) {
-                    submitForm();
-                }
+                window.AppDialog.confirm({
+                    icon: 'question',
+                    title: 'Konfirmasi',
+                    text: message,
+                    confirmButtonText: 'Ya, lanjutkan',
+                    cancelButtonText: 'Batal'
+                }).then(function (confirmed) {
+                    if (confirmed) {
+                        submitForm();
+                    }
+                });
             });
         });
     });

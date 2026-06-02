@@ -187,7 +187,12 @@
                                     <td>{!! $offRequest->status_hrd_label !!}</td>
                                     <td>
                                         @if($offRequest->can_be_managed_by_employee)
-                                            <form action="{{ route('roster-off.destroy', $offRequest) }}" method="POST" onsubmit="return confirm('Hapus pengajuan OFF ini?')">
+                                            <form action="{{ route('roster-off.destroy', $offRequest) }}" method="POST"
+                                                  data-swal-confirm="Hapus pengajuan OFF ini?"
+                                                  data-swal-title="Konfirmasi Hapus"
+                                                  data-swal-icon="warning"
+                                                  data-swal-confirm-button="Ya, hapus"
+                                                  data-swal-danger="1">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-outline-danger btn-sm">

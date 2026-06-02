@@ -16,7 +16,9 @@ class EmployeeMovement extends Model
 
     public const STATUS_PENDING_HOD = 'pending_hod';
     public const STATUS_PENDING_HRD = 'pending_hrd';
+    public const STATUS_SCHEDULED = 'scheduled';
     public const STATUS_APPROVED = 'approved';
+    public const STATUS_APPLY_FAILED = 'apply_failed';
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_CANCELLED = 'cancelled';
     public const STATUS_APPLIED = 'applied';
@@ -32,6 +34,7 @@ class EmployeeMovement extends Model
         'hrd_status' => 'integer',
         'hrd_processed_at' => 'datetime',
         'applied_at' => 'datetime',
+        'application_attempted_at' => 'datetime',
     ];
 
     public static function typeOptions(): array
@@ -48,7 +51,9 @@ class EmployeeMovement extends Model
         return [
             self::STATUS_PENDING_HOD => 'Menunggu HOD',
             self::STATUS_PENDING_HRD => 'Menunggu HRD',
+            self::STATUS_SCHEDULED => 'Disetujui, menunggu tanggal efektif',
             self::STATUS_APPROVED => 'Disetujui & diterapkan',
+            self::STATUS_APPLY_FAILED => 'Gagal diterapkan',
             self::STATUS_REJECTED => 'Ditolak',
             self::STATUS_CANCELLED => 'Dibatalkan',
             self::STATUS_APPLIED => 'Sudah diterapkan',
@@ -88,7 +93,9 @@ class EmployeeMovement extends Model
         return [
             self::STATUS_PENDING_HOD => 'warning',
             self::STATUS_PENDING_HRD => 'primary',
+            self::STATUS_SCHEDULED => 'info',
             self::STATUS_APPROVED => 'success',
+            self::STATUS_APPLY_FAILED => 'danger',
             self::STATUS_REJECTED => 'danger',
             self::STATUS_CANCELLED => 'secondary',
             self::STATUS_APPLIED => 'success',
@@ -126,6 +133,14 @@ class EmployeeMovement extends Model
         return $this->status === self::STATUS_PENDING_HRD
             && (int) $this->hod_status === self::APPROVAL_APPROVED
             && (int) $this->hrd_status === self::APPROVAL_PENDING;
+    }
+
+    public function isApprovedPendingEffective(): bool
+    {
+        return $this->status === self::STATUS_SCHEDULED
+            && (int) $this->hod_status === self::APPROVAL_APPROVED
+            && (int) $this->hrd_status === self::APPROVAL_APPROVED
+            && $this->applied_at === null;
     }
 
     private function approvalBadgeClass(int $status): string

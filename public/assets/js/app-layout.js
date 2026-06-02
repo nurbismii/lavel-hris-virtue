@@ -226,15 +226,11 @@
             form.dataset.compressionInProgress = 'false';
             toggleFormSubmitting(form, false);
 
-            if (window.Swal) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Kompresi gagal',
-                    text: error.message || 'Gagal memproses gambar sebelum upload.',
-                });
-            } else {
-                alert(error.message || 'Gagal memproses gambar sebelum upload.');
-            }
+            window.AppDialog.alert(
+                'Kompresi gagal',
+                error.message || 'Gagal memproses gambar sebelum upload.',
+                'error'
+            );
         }
     });
 })();

@@ -35,31 +35,11 @@
     }
 
     function showWarning(message) {
-        if (window.Swal) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Periksa filter',
-                text: message,
-            });
-
-            return;
-        }
-
-        alert(message);
+        window.AppDialog.alert('Periksa filter', message, 'warning');
     }
 
     function showError(message) {
-        if (window.Swal) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Data gagal dimuat',
-                text: message,
-            });
-
-            return;
-        }
-
-        alert(message);
+        window.AppDialog.alert('Data gagal dimuat', message, 'error');
     }
 
     function formatMonthValue(date) {
