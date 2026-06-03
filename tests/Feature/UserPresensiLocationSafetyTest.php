@@ -111,6 +111,7 @@ class UserPresensiLocationSafetyTest extends TestCase
             'employee_nik' => 'EMP001',
             'lokasi_absen_id' => 2,
             'effective_from' => now()->subDay()->toDateString(),
+            'assignment_mode' => 'replace',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -120,6 +121,43 @@ class UserPresensiLocationSafetyTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('ok', $this->jsonPayload($response)['status']);
         $this->assertSame(1, DB::table('log_presensi')->count());
+        $this->assertSame(2, (int) DB::table('log_presensi')->value('lokasi_absen_id'));
+    }
+
+    public function test_gps_log_accepts_any_active_append_location(): void
+    {
+        DB::table('lokasi_absens')->insert([
+            [
+                'id' => 1,
+                'divisi_id' => 10,
+                'lat' => '0',
+                'long' => '0',
+                'radius' => '100',
+            ],
+            [
+                'id' => 2,
+                'divisi_id' => 20,
+                'lat' => '-3.9951',
+                'long' => '122.5123',
+                'radius' => '100',
+            ],
+        ]);
+
+        DB::table('employee_attendance_location_assignments')->insert([
+            'employee_nik' => 'EMP001',
+            'lokasi_absen_id' => 2,
+            'effective_from' => now()->subDay()->toDateString(),
+            'assignment_mode' => 'append',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->sendGpsLog($this->makeUser());
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame('ok', $this->jsonPayload($response)['status']);
+        $this->assertSame(1, DB::table('log_presensi')->count());
+        $this->assertSame(2, (int) DB::table('log_presensi')->value('lokasi_absen_id'));
     }
 
     private function createSchema(): void
@@ -141,6 +179,8 @@ class UserPresensiLocationSafetyTest extends TestCase
             $table->string('long')->nullable();
             $table->string('accuracy')->nullable();
             $table->string('speed')->nullable();
+            $table->unsignedInteger('lokasi_absen_id')->nullable();
+            $table->decimal('distance_meter', 10, 2)->nullable();
             $table->string('ip_address')->nullable();
             $table->text('user_agent')->nullable();
             $table->timestamps();
@@ -152,6 +192,7 @@ class UserPresensiLocationSafetyTest extends TestCase
             $table->unsignedInteger('lokasi_absen_id')->nullable();
             $table->date('effective_from')->nullable();
             $table->date('effective_until')->nullable();
+            $table->string('assignment_mode', 20)->default('replace');
             $table->timestamps();
         });
     }

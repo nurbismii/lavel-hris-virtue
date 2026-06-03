@@ -25,6 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RealRashid\SweetAlert\Facades\Alert;
@@ -49,9 +50,11 @@ class PresensiController extends Controller
         $activeAttendanceDateString = $activeAttendanceContext['date'];
         $activeAttendanceDate = Carbon::parse($activeAttendanceDateString);
 
-        $lokasi = app(AttendanceLocationResolverService::class)->resolveForEmployee($karyawan, $activeAttendanceDateString);
-        $isLocationReady = $this->isAttendanceLocationReady($lokasi);
-        $locationIssueMessage = $isLocationReady ? null : $this->attendanceLocationIssueMessage($lokasi);
+        $attendanceLocationResolver = app(AttendanceLocationResolverService::class);
+        $attendanceLocations = $attendanceLocationResolver->resolveAllForEmployee($karyawan, $activeAttendanceDateString);
+        $lokasi = $attendanceLocations->first();
+        $isLocationReady = $this->hasReadyAttendanceLocation($attendanceLocations);
+        $locationIssueMessage = $isLocationReady ? null : $this->attendanceLocationsIssueMessage($attendanceLocations);
         app(AttendanceStatusService::class)->syncStatusForDate($user->nik_karyawan, $activeAttendanceDateString);
         $overtimeService = app(OvertimeOrderService::class);
         $workScheduleService = app(WorkScheduleService::class);
@@ -145,6 +148,7 @@ class PresensiController extends Controller
             'presensi' => $presensiRecords,
             'absensiHariIni' => $absensiHariIni,
             'lokasi' => $lokasi,
+            'attendanceLocations' => $attendanceLocations,
             'isLocationReady' => $isLocationReady,
             'locationIssueMessage' => $locationIssueMessage,
             'cutoffStart' => $start,
@@ -198,10 +202,10 @@ class PresensiController extends Controller
 
         $request->validated();
 
-        $lokasi = app(AttendanceLocationResolverService::class)->resolveForEmployee($karyawan, $attendanceDate);
+        $attendanceLocations = app(AttendanceLocationResolverService::class)->resolveAllForEmployee($karyawan, $attendanceDate);
 
-        if (!$this->isAttendanceLocationReady($lokasi)) {
-            return $this->failPresensi($this->attendanceLocationIssueMessage($lokasi));
+        if (!$this->hasReadyAttendanceLocation($attendanceLocations)) {
+            return $this->failPresensi($this->attendanceLocationsIssueMessage($attendanceLocations));
         }
 
         if (empty($karyawan->face_reference_path)) {
@@ -212,21 +216,22 @@ class PresensiController extends Controller
             return $this->failPresensi('Pergerakan tidak wajar. Presensi ditolak untuk keamanan lokasi.');
         }
 
+        $locationMatch = $this->matchingAttendanceLocation(
+            $attendanceLocations,
+            (float) $request->lat_user,
+            (float) $request->long_user
+        );
+
+        if (!$locationMatch) {
+            return $this->failPresensi($this->outsideAttendanceRadiusMessage($attendanceLocations, (float) $request->lat_user, (float) $request->long_user));
+        }
+
+        $lokasi = $locationMatch['location'];
+        $distance = $locationMatch['distance'];
         $maxGpsAccuracy = $securityService->maxGpsAccuracyFor($lokasi);
 
         if ((float) $request->accuracy > $maxGpsAccuracy) {
             return $this->failPresensi('Akurasi GPS ' . round((float) $request->accuracy) . 'm melebihi batas ' . round($maxGpsAccuracy) . 'm. Tunggu akurasi lokasi membaik lalu coba lagi.');
-        }
-
-        $distance = $this->calculateDistance(
-            $request->lat_user,
-            $request->long_user,
-            $lokasi->lat,
-            $lokasi->long
-        );
-
-        if ($distance > $lokasi->radius) {
-            return $this->failPresensi('Anda berada di luar radius presensi!');
         }
 
         $securityService->validateRecentGpsEvidence($request, $user, $lokasi);
@@ -313,6 +318,8 @@ class PresensiController extends Controller
                 $serverVerification,
                 $securityScore,
                 $isSuspicious,
+                $lokasi,
+                $distance,
                 $verificationStatusService,
                 &$selfiePath,
                 &$absensiId,
@@ -406,6 +413,10 @@ class PresensiController extends Controller
                     'face_verification_method' => $serverVerification['method'] ?? 'server-side-async-pending',
                     'face_verification_meta' => $storedFaceMeta,
                     'presensi_challenge_id' => $challenge['id'],
+                    'lokasi_absen_id' => $lokasi->id,
+                    'attendance_location_name' => $lokasi->display_name,
+                    'distance_meter' => $distance,
+                    'gps_accuracy_meter' => (float) $request->accuracy,
                     'submitted_at' => $now,
                 ]);
 
@@ -556,12 +567,25 @@ class PresensiController extends Controller
             }
         }
 
-        $lokasi = app(AttendanceLocationResolverService::class)->resolveForEmployee($employee, $attendanceDate);
+        $attendanceLocations = app(AttendanceLocationResolverService::class)->resolveAllForEmployee($employee, $attendanceDate);
 
-        if (!$this->isAttendanceLocationReady($lokasi)) {
-            return response()->json(['message' => $this->attendanceLocationIssueMessage($lokasi)], 422);
+        if (!$this->hasReadyAttendanceLocation($attendanceLocations)) {
+            return response()->json(['message' => $this->attendanceLocationsIssueMessage($attendanceLocations)], 422);
         }
 
+        $locationMatch = $this->matchingAttendanceLocation(
+            $attendanceLocations,
+            (float) $request->lat,
+            (float) $request->long
+        );
+
+        if (!$locationMatch) {
+            return response()->json([
+                'message' => $this->outsideAttendanceRadiusMessage($attendanceLocations, (float) $request->lat, (float) $request->long),
+            ], 422);
+        }
+
+        $lokasi = $locationMatch['location'];
         $maxGpsAccuracy = $securityService->maxGpsAccuracyFor($lokasi);
 
         if ((float) $request->accuracy > $maxGpsAccuracy) {
@@ -572,9 +596,9 @@ class PresensiController extends Controller
             ], 422);
         }
 
-        LogPresensi::create([
+        $logData = [
             'nik_karyawan' => $user->nik_karyawan,
-            'tanggal' => now()->format('Y-m-d'),
+            'tanggal' => $attendanceDate,
             'lat' => $request->lat,
             'long' => $request->long,
             'accuracy' => $request->accuracy,
@@ -582,7 +606,17 @@ class PresensiController extends Controller
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
             'created_at' => now(),
-        ]);
+        ];
+
+        if (Schema::hasColumn('log_presensi', 'lokasi_absen_id')) {
+            $logData['lokasi_absen_id'] = $lokasi->id;
+        }
+
+        if (Schema::hasColumn('log_presensi', 'distance_meter')) {
+            $logData['distance_meter'] = round((float) $locationMatch['distance'], 2);
+        }
+
+        LogPresensi::create($logData);
 
         return response()->json(['status' => 'ok']);
     }
@@ -611,6 +645,88 @@ class PresensiController extends Controller
             'Content-Disposition' => 'inline; filename="face-reference"',
             'X-Content-Type-Options' => 'nosniff',
         ]);
+    }
+
+    private function hasReadyAttendanceLocation($locations): bool
+    {
+        return collect($locations)->contains(function ($location) {
+            return $location instanceof LokasiAbsen && $this->isAttendanceLocationReady($location);
+        });
+    }
+
+    private function readyAttendanceLocations($locations)
+    {
+        return collect($locations)
+            ->filter(function ($location) {
+                return $location instanceof LokasiAbsen && $this->isAttendanceLocationReady($location);
+            })
+            ->values();
+    }
+
+    private function matchingAttendanceLocation($locations, float $latitude, float $longitude): ?array
+    {
+        return $this->readyAttendanceLocations($locations)
+            ->map(function (LokasiAbsen $location) use ($latitude, $longitude) {
+                $distance = $this->calculateDistance(
+                    $latitude,
+                    $longitude,
+                    (float) $location->lat,
+                    (float) $location->long
+                );
+
+                return [
+                    'location' => $location,
+                    'distance' => $distance,
+                ];
+            })
+            ->filter(function (array $match) {
+                return $match['distance'] <= (float) $match['location']->radius;
+            })
+            ->sortBy('distance')
+            ->first();
+    }
+
+    private function nearestAttendanceLocation($locations, float $latitude, float $longitude): ?array
+    {
+        return $this->readyAttendanceLocations($locations)
+            ->map(function (LokasiAbsen $location) use ($latitude, $longitude) {
+                $distance = $this->calculateDistance(
+                    $latitude,
+                    $longitude,
+                    (float) $location->lat,
+                    (float) $location->long
+                );
+
+                return [
+                    'location' => $location,
+                    'distance' => $distance,
+                ];
+            })
+            ->sortBy('distance')
+            ->first();
+    }
+
+    private function attendanceLocationsIssueMessage($locations): string
+    {
+        if (collect($locations)->isEmpty()) {
+            return 'Lokasi presensi untuk divisi Anda belum diatur.';
+        }
+
+        return 'Konfigurasi lokasi presensi Anda belum lengkap. Hubungi HR/Admin untuk melengkapi titik koordinat dan radius.';
+    }
+
+    private function outsideAttendanceRadiusMessage($locations, float $latitude, float $longitude): string
+    {
+        $nearest = $this->nearestAttendanceLocation($locations, $latitude, $longitude);
+
+        if (!$nearest) {
+            return 'Anda berada di luar radius presensi!';
+        }
+
+        return 'Anda berada di luar radius presensi. Lokasi terdekat: '
+            . $nearest['location']->display_name
+            . ' (' . round((float) $nearest['distance']) . 'm dari titik, radius '
+            . round((float) $nearest['location']->radius) . 'm).';
     }
 
     private function isAttendanceLocationReady(?LokasiAbsen $lokasi): bool

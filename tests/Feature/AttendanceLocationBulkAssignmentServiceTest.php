@@ -109,6 +109,74 @@ class AttendanceLocationBulkAssignmentServiceTest extends TestCase
         ]);
     }
 
+    public function test_bulk_assignment_append_mode_keeps_existing_location_active(): void
+    {
+        $service = app(AttendanceLocationBulkAssignmentService::class);
+        $actor = $this->makeSuperAdmin();
+        $targetLocation = LokasiAbsen::query()->findOrFail(2);
+
+        $result = $service->assignByFilter(
+            $actor,
+            $targetLocation,
+            [
+                'perusahaan_id' => null,
+                'departemen_id' => 10,
+                'divisi_id' => null,
+            ],
+            Carbon::parse('2026-05-01'),
+            null,
+            'Lokasi tambahan',
+            AttendanceLocationBulkAssignmentService::MODE_APPEND
+        );
+
+        $this->assertSame(2, $result['assigned_count']);
+        $this->assertDatabaseHas('employee_attendance_location_assignments', [
+            'employee_nik' => 'EMP001',
+            'lokasi_absen_id' => 1,
+            'effective_from' => '2026-05-01',
+            'effective_until' => null,
+        ]);
+        $this->assertDatabaseHas('employee_attendance_location_assignments', [
+            'employee_nik' => 'EMP001',
+            'lokasi_absen_id' => 2,
+            'effective_from' => '2026-05-01',
+            'assignment_mode' => 'append',
+        ]);
+    }
+
+    public function test_bulk_assignment_replace_mode_removes_same_start_location_conflict(): void
+    {
+        $service = app(AttendanceLocationBulkAssignmentService::class);
+        $actor = $this->makeSuperAdmin();
+        $targetLocation = LokasiAbsen::query()->findOrFail(2);
+
+        $result = $service->assignByFilter(
+            $actor,
+            $targetLocation,
+            [
+                'perusahaan_id' => null,
+                'departemen_id' => 10,
+                'divisi_id' => null,
+            ],
+            Carbon::parse('2026-05-01'),
+            null,
+            'Replace lokasi'
+        );
+
+        $this->assertSame(2, $result['assigned_count']);
+        $this->assertDatabaseMissing('employee_attendance_location_assignments', [
+            'employee_nik' => 'EMP001',
+            'lokasi_absen_id' => 1,
+            'effective_from' => '2026-05-01',
+        ]);
+        $this->assertDatabaseHas('employee_attendance_location_assignments', [
+            'employee_nik' => 'EMP001',
+            'lokasi_absen_id' => 2,
+            'effective_from' => '2026-05-01',
+            'assignment_mode' => 'replace',
+        ]);
+    }
+
     private function createSchema(): void
     {
         Schema::create('perusahaan', function (Blueprint $table) {
@@ -155,10 +223,11 @@ class AttendanceLocationBulkAssignmentServiceTest extends TestCase
             $table->string('assigned_by', 36)->nullable();
             $table->string('batch_id', 36)->nullable();
             $table->string('assignment_source', 40)->nullable();
+            $table->string('assignment_mode', 20)->default('replace');
             $table->string('note', 255)->nullable();
             $table->timestamps();
 
-            $table->unique(['employee_nik', 'effective_from']);
+            $table->unique(['employee_nik', 'lokasi_absen_id', 'effective_from']);
         });
 
         Schema::create('audit_trails', function (Blueprint $table) {
@@ -215,6 +284,7 @@ class AttendanceLocationBulkAssignmentServiceTest extends TestCase
             'employee_nik' => 'EMP001',
             'lokasi_absen_id' => 1,
             'effective_from' => '2026-05-01',
+            'assignment_mode' => 'replace',
             'created_at' => now(),
             'updated_at' => now(),
         ]);

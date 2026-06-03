@@ -23,6 +23,8 @@ class PresensiVerification extends Model
         'submitted_at' => 'datetime',
         'reviewed_by' => 'string',
         'reviewed_at' => 'datetime',
+        'distance_meter' => 'float',
+        'gps_accuracy_meter' => 'float',
     ];
 
     public function presensi()

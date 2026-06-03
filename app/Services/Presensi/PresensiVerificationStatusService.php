@@ -5,6 +5,7 @@ namespace App\Services\Presensi;
 use App\Models\Presensi;
 use App\Models\PresensiVerification;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class PresensiVerificationStatusService
 {
@@ -18,7 +19,7 @@ class PresensiVerificationStatusService
         $status = $this->normalizeStatus($payload['status'] ?? Presensi::STATUS_ABSEN_PENDING_REVIEW);
         $verified = $status === Presensi::STATUS_ABSEN_VERIFIED;
 
-        $verification->fill([
+        $data = [
             'nik_karyawan' => $presensi->nik_karyawan,
             'tanggal' => Carbon::parse($presensi->tanggal)->toDateString(),
             'status' => $status,
@@ -31,7 +32,20 @@ class PresensiVerificationStatusService
             'face_verification_meta' => $payload['face_verification_meta'] ?? null,
             'presensi_challenge_id' => $payload['presensi_challenge_id'] ?? null,
             'submitted_at' => $payload['submitted_at'] ?? now(),
-        ]);
+        ];
+
+        foreach ([
+            'lokasi_absen_id',
+            'attendance_location_name',
+            'distance_meter',
+            'gps_accuracy_meter',
+        ] as $optionalColumn) {
+            if (array_key_exists($optionalColumn, $payload) && Schema::hasColumn('presensi_verifications', $optionalColumn)) {
+                $data[$optionalColumn] = $payload[$optionalColumn];
+            }
+        }
+
+        $verification->fill($data);
 
         $verification->save();
 

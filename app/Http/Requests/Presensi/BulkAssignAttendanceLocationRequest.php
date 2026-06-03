@@ -27,6 +27,7 @@ class BulkAssignAttendanceLocationRequest extends FormRequest
             'bulk_effective_until' => 'nullable|date|after_or_equal:bulk_effective_from',
             'bulk_note' => 'nullable|string|max:255',
             'bulk_employee_niks' => 'nullable|string|max:20000',
+            'bulk_assignment_mode' => 'nullable|string|in:replace,append',
         ];
 
         if ($requireConfirmation) {
@@ -51,6 +52,7 @@ class BulkAssignAttendanceLocationRequest extends FormRequest
             'bulk_effective_until.date' => 'Tanggal selesai berlaku tidak valid.',
             'bulk_effective_until.after_or_equal' => 'Tanggal selesai berlaku tidak boleh sebelum tanggal mulai.',
             'bulk_employee_niks.max' => 'Daftar NIK terlalu panjang. Bagi assignment menjadi beberapa batch.',
+            'bulk_assignment_mode.in' => 'Mode assignment lokasi tidak valid.',
             'confirm_bulk_assignment.accepted' => 'Konfirmasi assign massal wajib dicentang sebelum menyimpan.',
         ];
     }

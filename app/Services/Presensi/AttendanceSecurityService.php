@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -328,7 +329,13 @@ class AttendanceSecurityService
         $recentLog = LogPresensi::where('nik_karyawan', $user->nik_karyawan)
             ->where('created_at', '>=', now()->subSeconds(self::GPS_EVIDENCE_WINDOW_SECONDS))
             ->where('ip_address', $request->ip())
-            ->where('user_agent', $request->userAgent())
+            ->where('user_agent', $request->userAgent());
+
+        if (Schema::hasColumn('log_presensi', 'lokasi_absen_id')) {
+            $recentLog->where('lokasi_absen_id', $lokasi->id);
+        }
+
+        $recentLog = $recentLog
             ->latest('created_at')
             ->first();
 

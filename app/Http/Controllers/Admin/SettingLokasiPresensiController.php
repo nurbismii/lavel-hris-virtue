@@ -160,15 +160,26 @@ class SettingLokasiPresensiController extends Controller
             $this->bulkFilters($validated, $bulkAssignmentService),
             Carbon::parse($validated['bulk_effective_from']),
             filled($validated['bulk_effective_until'] ?? null) ? Carbon::parse($validated['bulk_effective_until']) : null,
-            $validated['bulk_note'] ?? null
+            $validated['bulk_note'] ?? null,
+            $validated['bulk_assignment_mode'] ?? AttendanceLocationBulkAssignmentService::MODE_REPLACE
         );
 
         if (($result['assigned_count'] ?? 0) < 1) {
-            toast()->warning('Peringatan', 'Tidak ada karyawan aktif yang cocok dengan filter assignment.');
+            $warningMessage = ($result['candidate_count'] ?? 0) > 0
+                ? 'Semua karyawan target sudah memiliki lokasi presensi ini aktif pada periode tersebut.'
+                : 'Tidak ada karyawan aktif yang cocok dengan filter assignment.';
+
+            toast()->warning('Peringatan', $warningMessage);
             return redirect()->route('setting-lokasi-presensi.index');
         }
 
-        toast()->success('Success', $result['assigned_count'] . ' karyawan aktif berhasil diassign ke lokasi presensi.');
+        $message = $result['assigned_count'] . ' assignment lokasi presensi berhasil disimpan.';
+
+        if (($result['candidate_count'] ?? null) && (int) $result['candidate_count'] !== (int) $result['assigned_count']) {
+            $message .= ' ' . ((int) $result['candidate_count'] - (int) $result['assigned_count']) . ' karyawan dilewati karena lokasi tersebut sudah aktif.';
+        }
+
+        toast()->success('Success', $message);
         return redirect()->route('setting-lokasi-presensi.index');
     }
 
@@ -222,6 +233,7 @@ class SettingLokasiPresensiController extends Controller
             'unmatched_niks' => $unmatchedNiks,
             'effective_from' => $validated['bulk_effective_from'],
             'effective_until' => $validated['bulk_effective_until'] ?? null,
+            'assignment_mode' => $validated['bulk_assignment_mode'] ?? AttendanceLocationBulkAssignmentService::MODE_REPLACE,
             'note' => $validated['bulk_note'] ?? null,
         ];
     }
@@ -239,8 +251,7 @@ class SettingLokasiPresensiController extends Controller
             ->orderByDesc('effective_from')
             ->orderByDesc('id')
             ->get()
-            ->unique('employee_nik')
-            ->keyBy('employee_nik');
+            ->groupBy('employee_nik');
     }
 
     private function bulkFilters(array $validated, AttendanceLocationBulkAssignmentService $bulkAssignmentService): array

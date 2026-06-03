@@ -14,6 +14,9 @@ use Illuminate\Support\Str;
 
 class AttendanceLocationBulkAssignmentService
 {
+    public const MODE_REPLACE = 'replace';
+    public const MODE_APPEND = 'append';
+
     public function candidateQuery(User $actor, array $filters): Builder
     {
         $query = $actor
@@ -72,8 +75,12 @@ class AttendanceLocationBulkAssignmentService
         array $filters,
         Carbon $effectiveFrom,
         ?Carbon $effectiveUntil = null,
-        ?string $note = null
+        ?string $note = null,
+        string $assignmentMode = self::MODE_REPLACE
     ): array {
+        $assignmentMode = $assignmentMode === self::MODE_APPEND
+            ? self::MODE_APPEND
+            : self::MODE_REPLACE;
         $candidateQuery = $this->candidateQuery($actor, $filters)
             ->where('employees.status_resign', 'AKTIF');
         $total = (clone $candidateQuery)->count('employees.nik');
@@ -90,6 +97,7 @@ class AttendanceLocationBulkAssignmentService
         $untilDate = $effectiveUntil ? $effectiveUntil->toDateString() : null;
         $previousDate = $effectiveFrom->copy()->subDay()->toDateString();
         $now = now();
+        $assignedCount = 0;
         $assignmentSource = !empty($this->normalizeEmployeeNiks($filters['employee_niks'] ?? []))
             ? EmployeeAttendanceLocationAssignment::SOURCE_SELECTED_NIKS
             : EmployeeAttendanceLocationAssignment::SOURCE_BULK_FILTER;
@@ -104,7 +112,9 @@ class AttendanceLocationBulkAssignmentService
             $batchId,
             $note,
             $now,
-            $assignmentSource
+            $assignmentSource,
+            $assignmentMode,
+            &$assignedCount
         ) {
             $candidateQuery
                 ->orderBy('employees.nik')
@@ -117,22 +127,36 @@ class AttendanceLocationBulkAssignmentService
                     $batchId,
                     $note,
                     $now,
-                    $assignmentSource
+                    $assignmentSource,
+                    $assignmentMode,
+                    &$assignedCount
                 ) {
                     $niks = $employees->pluck('nik')->values()->all();
 
-                    EmployeeAttendanceLocationAssignment::query()
-                        ->whereIn('employee_nik', $niks)
-                        ->where('effective_from', '<', $fromDate)
-                        ->where(function (Builder $assignmentQuery) use ($fromDate) {
-                            $assignmentQuery
-                                ->whereNull('effective_until')
-                                ->orWhere('effective_until', '>=', $fromDate);
-                        })
-                        ->update([
-                            'effective_until' => $previousDate,
-                            'updated_at' => $now,
-                        ]);
+                    if ($assignmentMode === self::MODE_REPLACE) {
+                        EmployeeAttendanceLocationAssignment::query()
+                            ->whereIn('employee_nik', $niks)
+                            ->where('effective_from', '<', $fromDate)
+                            ->where(function (Builder $assignmentQuery) use ($fromDate) {
+                                $assignmentQuery
+                                    ->whereNull('effective_until')
+                                    ->orWhere('effective_until', '>=', $fromDate);
+                            })
+                            ->update([
+                                'effective_until' => $previousDate,
+                                'updated_at' => $now,
+                            ]);
+
+                        EmployeeAttendanceLocationAssignment::query()
+                            ->whereIn('employee_nik', $niks)
+                            ->where('effective_from', $fromDate)
+                            ->where('lokasi_absen_id', '<>', $location->id)
+                            ->delete();
+                    }
+
+                    $alreadyAssignedNiks = $assignmentMode === self::MODE_APPEND
+                        ? $this->activeNiksForLocation($niks, $location->id, $fromDate)
+                        : [];
 
                     $rows = $employees->map(function (Employee $employee) use (
                         $location,
@@ -142,8 +166,14 @@ class AttendanceLocationBulkAssignmentService
                         $batchId,
                         $note,
                         $now,
-                        $assignmentSource
+                        $assignmentSource,
+                        $assignmentMode,
+                        $alreadyAssignedNiks
                     ) {
+                        if (in_array((string) $employee->nik, $alreadyAssignedNiks, true)) {
+                            return null;
+                        }
+
                         return [
                             'employee_nik' => $employee->nik,
                             'lokasi_absen_id' => $location->id,
@@ -152,21 +182,29 @@ class AttendanceLocationBulkAssignmentService
                             'assigned_by' => (string) $actor->id,
                             'batch_id' => $batchId,
                             'assignment_source' => $assignmentSource,
+                            'assignment_mode' => $assignmentMode,
                             'note' => $note,
                             'created_at' => $now,
                             'updated_at' => $now,
                         ];
-                    })->all();
+                    })->filter()->values()->all();
+
+                    if (empty($rows)) {
+                        return;
+                    }
+
+                    $assignedCount += count($rows);
 
                     DB::table('employee_attendance_location_assignments')->upsert(
                         $rows,
-                        ['employee_nik', 'effective_from'],
+                        ['employee_nik', 'lokasi_absen_id', 'effective_from'],
                         [
                             'lokasi_absen_id',
                             'effective_until',
                             'assigned_by',
                             'batch_id',
                             'assignment_source',
+                            'assignment_mode',
                             'note',
                             'updated_at',
                         ]
@@ -184,19 +222,38 @@ class AttendanceLocationBulkAssignmentService
                 'lokasi_absen_id' => $location->id,
                 'effective_from' => $fromDate,
                 'effective_until' => $untilDate,
-                'assigned_count' => $total,
+                'assigned_count' => $assignedCount,
+                'candidate_count' => $total,
             ],
             'metadata' => [
                 'batch_id' => $batchId,
                 'filters' => $filters,
                 'assignment_source' => $assignmentSource,
+                'assignment_mode' => $assignmentMode,
             ],
             'note' => $note,
         ]);
 
         return [
-            'assigned_count' => $total,
+            'assigned_count' => $assignedCount,
+            'candidate_count' => $total,
             'batch_id' => $batchId,
+            'assignment_mode' => $assignmentMode,
         ];
+    }
+
+    private function activeNiksForLocation(array $niks, int $locationId, string $date): array
+    {
+        if (empty($niks)) {
+            return [];
+        }
+
+        return EmployeeAttendanceLocationAssignment::query()
+            ->whereIn('employee_nik', $niks)
+            ->where('lokasi_absen_id', $locationId)
+            ->activeAt($date)
+            ->pluck('employee_nik')
+            ->map(fn($nik) => (string) $nik)
+            ->all();
     }
 }

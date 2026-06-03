@@ -12,6 +12,7 @@
     $selectedEffectiveUntil = old('bulk_effective_until', request('bulk_effective_until', ''));
     $selectedNote = old('bulk_note', request('bulk_note', ''));
     $selectedEmployeeNiks = old('bulk_employee_niks', request('bulk_employee_niks', ''));
+    $selectedAssignmentMode = old('bulk_assignment_mode', request('bulk_assignment_mode', 'replace'));
     $companies = $divisions
         ->map(fn($division) => optional(optional($division->departemen)->perusahaan))
         ->filter(fn($company) => filled(optional($company)->id))
@@ -142,6 +143,20 @@
                         @error('bulk_note')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
+                    <div class="col-lg-3">
+                        <label class="form-label">Mode Assignment</label>
+                        <select name="bulk_assignment_mode" class="form-select @error('bulk_assignment_mode') is-invalid @enderror">
+                            <option value="replace" {{ $selectedAssignmentMode === 'replace' ? 'selected' : '' }}>
+                                Replace lokasi aktif lama
+                            </option>
+                            <option value="append" {{ $selectedAssignmentMode === 'append' ? 'selected' : '' }}>
+                                Tambahkan lokasi aktif
+                            </option>
+                        </select>
+                        @error('bulk_assignment_mode')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        <small class="text-muted d-block mt-1">Pilih append jika karyawan boleh presensi di beberapa titik dalam periode yang sama.</small>
+                    </div>
+
                     <div class="col-lg-9">
                         <label class="form-label">NIK Spesifik</label>
                         <textarea
@@ -175,6 +190,7 @@
                                 @if($bulkPreview['effective_until'])
                                     sampai {{ $bulkPreview['effective_until'] }}
                                 @endif
+                                | Mode: {{ ($bulkPreview['assignment_mode'] ?? 'replace') === 'append' ? 'Tambah lokasi aktif' : 'Replace lokasi aktif lama' }}
                             </small>
                         </div>
                         <div class="text-md-end">
@@ -231,11 +247,18 @@
                                             <td>{{ optional($employee->departemen)->departemen ?? '-' }}</td>
                                             <td>{{ optional($employee->divisi)->nama_divisi ?? '-' }}</td>
                                             <td>
-                                                @if($currentAssignment)
-                                                    {{ optional($currentAssignment->location)->display_name ?? 'Lokasi #' . $currentAssignment->lokasi_absen_id }}
-                                                    <small class="text-muted d-block">
-                                                        Sejak {{ optional($currentAssignment->effective_from)->format('Y-m-d') }}
-                                                    </small>
+                                                @if($currentAssignment && $currentAssignment->isNotEmpty())
+                                                    @foreach($currentAssignment as $assignment)
+                                                        <div class="{{ $loop->last ? '' : 'mb-1' }}">
+                                                            {{ optional($assignment->location)->display_name ?? 'Lokasi #' . $assignment->lokasi_absen_id }}
+                                                            <small class="text-muted d-block">
+                                                                Sejak {{ optional($assignment->effective_from)->format('Y-m-d') }}
+                                                                @if($assignment->effective_until)
+                                                                    sampai {{ optional($assignment->effective_until)->format('Y-m-d') }}
+                                                                @endif
+                                                            </small>
+                                                        </div>
+                                                    @endforeach
                                                 @else
                                                     <span class="text-muted">Default divisi / belum ada assignment karyawan</span>
                                                 @endif
@@ -261,6 +284,7 @@
                             <input type="hidden" name="bulk_effective_from" value="{{ $selectedEffectiveFrom }}">
                             <input type="hidden" name="bulk_effective_until" value="{{ $selectedEffectiveUntil }}">
                             <input type="hidden" name="bulk_note" value="{{ $selectedNote }}">
+                            <input type="hidden" name="bulk_assignment_mode" value="{{ $selectedAssignmentMode }}">
                             <textarea name="bulk_employee_niks" class="d-none">{{ $selectedEmployeeNiks }}</textarea>
 
                             <div class="form-check mb-3">

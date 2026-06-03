@@ -6,28 +6,61 @@ use App\Models\Employee;
 use App\Models\EmployeeAttendanceLocationAssignment;
 use App\Models\LokasiAbsen;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 class AttendanceLocationResolverService
 {
     public function resolveForEmployee(?Employee $employee, $date = null): ?LokasiAbsen
     {
+        return $this->resolveAllForEmployee($employee, $date)->first();
+    }
+
+    public function resolveAllForEmployee(?Employee $employee, $date = null): Collection
+    {
         if (!$employee || blank($employee->nik)) {
-            return null;
+            return collect();
         }
 
         $dateString = Carbon::parse($date ?: now())->toDateString();
-        $assignment = $this->activeAssignmentFor($employee, $dateString);
+        $assignments = $this->activeAssignmentsFor($employee, $dateString);
 
-        if ($assignment && $assignment->location) {
-            $assignment->location->setAttribute('attendance_location_source', 'employee_assignment');
-            $assignment->location->setAttribute('attendance_location_assignment_id', $assignment->id);
+        if ($assignments->isNotEmpty()) {
+            $assignmentLocations = $assignments
+                ->filter(fn(EmployeeAttendanceLocationAssignment $assignment) => $assignment->location)
+                ->unique('lokasi_absen_id')
+                ->map(function (EmployeeAttendanceLocationAssignment $assignment) {
+                    $assignment->location->setAttribute('attendance_location_source', 'employee_assignment');
+                    $assignment->location->setAttribute('attendance_location_assignment_id', $assignment->id);
 
-            return $assignment->location;
+                    return $assignment->location;
+                })
+                ->values();
+
+            if ($this->shouldIncludeDivisionDefaults($assignments)) {
+                return $assignmentLocations
+                    ->merge($this->divisionDefaultLocations($employee))
+                    ->unique('id')
+                    ->values();
+            }
+
+            return $assignmentLocations;
         }
 
+        return $this->divisionDefaultLocations($employee);
+    }
+
+    private function shouldIncludeDivisionDefaults(Collection $assignments): bool
+    {
+        return $assignments->every(function (EmployeeAttendanceLocationAssignment $assignment) {
+            return (string) ($assignment->assignment_mode ?? '') === 'append';
+        });
+    }
+
+    private function divisionDefaultLocations(Employee $employee): Collection
+    {
         if (blank($employee->divisi_id)) {
-            return null;
+            return collect();
         }
 
         $locationQuery = LokasiAbsen::query()
@@ -38,19 +71,19 @@ class AttendanceLocationResolverService
             $locationQuery->with('divisi.departemen');
         }
 
-        $location = $locationQuery->first();
+        return $locationQuery
+            ->get()
+            ->map(function (LokasiAbsen $location) {
+                $location->setAttribute('attendance_location_source', 'division_default');
 
-        if ($location) {
-            $location->setAttribute('attendance_location_source', 'division_default');
-        }
-
-        return $location;
+                return $location;
+            });
     }
 
-    private function activeAssignmentFor(Employee $employee, string $date): ?EmployeeAttendanceLocationAssignment
+    private function activeAssignmentsFor(Employee $employee, string $date): Collection
     {
         if (!Schema::hasTable('employee_attendance_location_assignments')) {
-            return null;
+            return collect();
         }
 
         $query = EmployeeAttendanceLocationAssignment::query()
@@ -65,6 +98,6 @@ class AttendanceLocationResolverService
             $query->with('location');
         }
 
-        return $query->first();
+        return $query->get();
     }
 }
