@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="{{ versioned_asset('assets/css/plugins.min.css') }}" />
     <link rel="stylesheet" href="{{ versioned_asset('assets/css/kaiadmin.min.css') }}" />
     <link rel="stylesheet" href="{{ versioned_asset('assets/css/app-layout.css') }}" />
+    <link rel="stylesheet" href="{{ versioned_asset('assets/css/custom.css') }}" />
 
     @stack('styles')
 </head>

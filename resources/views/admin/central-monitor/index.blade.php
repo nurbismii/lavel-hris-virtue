@@ -42,117 +42,155 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="page-inner central-monitor-page">
-        <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-3 gap-2">
-            <div>
-                <h4 class="fw-bold mb-1">
-                    <i class="fas fa-desktop text-primary me-2"></i>
-                    {{ __('navigation.central_monitor') }}
-                </h4>
-                <small class="text-muted">
-                    Periode {{ $dashboard['period']['label'] }} · Update {{ $health['updated_at'] }} WITA
-                </small>
+    <div class="page-inner ui-page central-monitor-page">
+        <div class="ui-page-header">
+            <div class="ui-page-heading">
+                <span class="ui-page-icon" aria-hidden="true">
+                    <i class="fas fa-desktop"></i>
+                </span>
+                <div>
+                    <h4 class="ui-page-title">{{ __('navigation.central_monitor') }}</h4>
+                    <p class="ui-page-subtitle">
+                        Periode {{ $dashboard['period']['label'] }} &middot; Update {{ $health['updated_at'] }} WITA
+                    </p>
+                </div>
             </div>
-            <div class="ms-md-auto pt-3 pt-md-0">
-                <form method="GET" class="d-flex flex-wrap gap-2 align-items-center">
-                    <input type="month" name="period_month" class="form-control form-control-sm central-monitor-period" value="{{ $dashboard['period']['month'] }}">
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-sync-alt me-1"></i>
-                        Refresh
-                    </button>
-                </form>
-            </div>
+
+            <form method="GET" class="central-monitor-toolbar" data-loading-text="Memuat monitor...">
+                <div class="ui-field central-monitor-period-field">
+                    <label class="form-label" for="period_month">Periode</label>
+                    <input type="month" id="period_month" name="period_month" class="form-control form-control-sm" value="{{ $dashboard['period']['month'] }}">
+                </div>
+                <button type="submit" class="btn btn-primary ui-btn-icon" data-loading-text="Memuat monitor...">
+                    <i class="fas fa-sync-alt" aria-hidden="true"></i>
+                    <span>Refresh</span>
+                </button>
+            </form>
         </div>
 
         @if($errors->any())
-            <div class="alert alert-danger">
+            <div class="alert ui-alert central-monitor-alert central-monitor-alert--danger">
                 <strong>Filter tidak valid.</strong> {{ $errors->first() }}
             </div>
         @endif
 
         @if($inactiveModules->isNotEmpty())
-            <div class="alert alert-warning">
-                Modul monitor belum lengkap: {{ $inactiveModules->join(', ') }}. Jalankan migrasi terkait agar semua indikator aktif.
+            <div class="alert ui-alert central-monitor-alert central-monitor-alert--warning">
+                <strong>Modul monitor belum lengkap.</strong>
+                {{ $inactiveModules->join(', ') }} belum aktif. Jalankan migrasi terkait agar semua indikator tersedia.
             </div>
         @endif
 
-        <div class="central-monitor-health central-monitor-health--{{ $healthMeta['class'] }}">
-            <div class="central-monitor-health__icon">
-                <i class="{{ $healthMeta['icon'] }}"></i>
-            </div>
-            <div>
-                <div class="small text-muted">Status operasional</div>
-                <div class="h5 mb-0">{{ $health['label'] }}</div>
+        <section class="central-monitor-health central-monitor-health--{{ $healthMeta['class'] }}" aria-label="Status operasional">
+            <div class="central-monitor-health__main">
+                <span class="central-monitor-health__icon" aria-hidden="true">
+                    <i class="{{ $healthMeta['icon'] }}"></i>
+                </span>
+                <div>
+                    <div class="central-monitor-label">Status operasional</div>
+                    <div class="central-monitor-health__title">{{ $health['label'] }}</div>
+                    <div class="central-monitor-health__subtitle">Ringkasan dari approval, presensi, import, queue, dan audit.</div>
+                </div>
             </div>
             <div class="central-monitor-health__stats">
-                <span>{{ number_format($health['critical_count']) }} kritis</span>
-                <span>{{ number_format($health['warning_count']) }} warning</span>
+                <span>
+                    <strong>{{ number_format($health['critical_count']) }}</strong>
+                    kritis
+                </span>
+                <span>
+                    <strong>{{ number_format($health['warning_count']) }}</strong>
+                    warning
+                </span>
             </div>
-        </div>
+        </section>
 
-        <div class="row g-3 mt-1">
+        <div class="central-monitor-card-grid">
             @foreach($dashboard['cards'] as $card)
                 @php
                     $meta = $statusMeta[$card['status']] ?? $statusMeta[\App\Services\Monitoring\CentralMonitorService::STATUS_OK];
                 @endphp
-                <div class="col-12 col-md-6 col-xl-3">
-                    <div class="central-monitor-card central-monitor-card--{{ $meta['class'] }}">
-                        <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
-                            <div>
-                                <div class="central-monitor-card__title">{{ $card['title'] }}</div>
-                                <div class="central-monitor-card__value">{{ number_format((int) $card['primary_value']) }}</div>
-                                <div class="small text-muted">{{ $card['primary_label'] }}</div>
-                            </div>
-                            <span class="central-monitor-card__icon">
-                                <i class="{{ $card['icon'] }}"></i>
-                            </span>
+                <section class="central-monitor-card central-monitor-card--{{ $meta['class'] }}" aria-labelledby="central-monitor-card-{{ $loop->index }}">
+                    <div class="central-monitor-card__header">
+                        <div>
+                            <div class="central-monitor-card__title" id="central-monitor-card-{{ $loop->index }}">{{ $card['title'] }}</div>
+                            <div class="central-monitor-card__value">{{ number_format((int) $card['primary_value']) }}</div>
+                            <div class="central-monitor-card__label">{{ $card['primary_label'] }}</div>
                         </div>
-
-                        <div class="central-monitor-card__description">
-                            {{ $card['description'] }}
-                        </div>
-
-                        <div class="central-monitor-metrics">
-                            @foreach($card['metrics'] as $metric)
-                                <div class="central-monitor-metric central-monitor-metric--{{ $metric['tone'] ?? 'neutral' }}">
-                                    <span>{{ $metric['label'] }}</span>
-                                    <strong>{{ number_format((int) $metric['value']) }}</strong>
-                                </div>
-                            @endforeach
-                        </div>
-
-                        <div class="d-flex flex-wrap gap-2 mt-3">
-                            @if(!empty($card['url']))
-                                <a href="{{ $card['url'] }}" class="btn btn-sm btn-outline-primary">
-                                    Detail
-                                </a>
-                            @endif
-                            @if(!empty($card['secondary_url']))
-                                <a href="{{ $card['secondary_url'] }}" class="btn btn-sm btn-outline-secondary">
-                                    Closing
-                                </a>
-                            @endif
-                        </div>
+                        <span class="central-monitor-card__icon" aria-hidden="true">
+                            <i class="{{ $card['icon'] }}"></i>
+                        </span>
                     </div>
-                </div>
+
+                    <p class="central-monitor-card__description">
+                        {{ $card['description'] }}
+                    </p>
+
+                    <div class="central-monitor-metrics">
+                        @foreach($card['metrics'] as $metric)
+                            <div class="central-monitor-metric central-monitor-metric--{{ $metric['tone'] ?? 'neutral' }}">
+                                <span>{{ $metric['label'] }}</span>
+                                <strong>{{ number_format((int) $metric['value']) }}</strong>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    <div class="central-monitor-card__actions">
+                        @if(!empty($card['url']))
+                            <a href="{{ $card['url'] }}" class="btn btn-sm btn-outline-primary ui-btn-icon" data-loading-text="Membuka...">
+                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                                <span>Detail</span>
+                            </a>
+                        @endif
+                        @if(!empty($card['secondary_url']))
+                            <a href="{{ $card['secondary_url'] }}" class="btn btn-sm btn-outline-secondary ui-btn-icon" data-loading-text="Membuka...">
+                                <i class="fas fa-lock" aria-hidden="true"></i>
+                                <span>Closing</span>
+                            </a>
+                        @endif
+                    </div>
+                </section>
             @endforeach
         </div>
 
-        <div class="row g-3 mt-1">
-            <div class="col-12 col-xl-6">
-                <div class="central-monitor-panel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <h5 class="mb-1">Import Terbaru</h5>
-                            <small class="text-muted">Lima proses import terakhir.</small>
+        <section class="ui-panel mt-3" aria-labelledby="centralMonitorReadinessTitle">
+            <div class="ui-panel__header">
+                <div>
+                    <h5 class="ui-panel__title" id="centralMonitorReadinessTitle">Kesiapan Modul Monitor</h5>
+                    <p class="ui-panel__meta">Status ketersediaan tabel dan konfigurasi pendukung dashboard.</p>
+                </div>
+            </div>
+            <div class="ui-panel__body">
+                <div class="central-monitor-readiness">
+                    @foreach($readinessLabels as $key => $label)
+                        @php($isReady = !empty($dashboard['readiness'][$key]))
+                        <div class="central-monitor-readiness__item {{ $isReady ? 'is-ready' : 'is-missing' }}">
+                            <span class="central-monitor-readiness__icon" aria-hidden="true">
+                                <i class="fas {{ $isReady ? 'fa-check' : 'fa-exclamation' }}"></i>
+                            </span>
+                            <span>{{ $label }}</span>
                         </div>
-                        @if(auth()->user()->hasMenuAccess('import_history'))
-                            <a href="{{ route('import-histories.index') }}" class="btn btn-sm btn-outline-primary">History</a>
-                        @endif
-                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </section>
 
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle mb-0">
+        <div class="central-monitor-detail-grid">
+            <section class="ui-panel" aria-labelledby="recentImportTitle">
+                <div class="ui-panel__header">
+                    <div>
+                        <h5 class="ui-panel__title" id="recentImportTitle">Import Terbaru</h5>
+                        <p class="ui-panel__meta">Lima proses import terakhir.</p>
+                    </div>
+                    @if(auth()->user()->hasMenuAccess('import_history'))
+                        <a href="{{ route('import-histories.index') }}" class="btn btn-sm btn-outline-primary ui-btn-icon" data-loading-text="Membuka...">
+                            <i class="fas fa-history" aria-hidden="true"></i>
+                            <span>History</span>
+                        </a>
+                    @endif
+                </div>
+                <div class="ui-panel__body">
+                    <div class="ui-table-wrap">
+                        <table class="table table-sm align-middle mb-0 ui-table">
                             <thead>
                                 <tr>
                                     <th>Waktu</th>
@@ -174,29 +212,36 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="text-muted text-center py-4">Belum ada riwayat import.</td>
+                                        <td colspan="3">
+                                            <div class="ui-empty-state">
+                                                <i class="fas fa-file-import" aria-hidden="true"></i>
+                                                <span>Belum ada riwayat import.</span>
+                                            </div>
+                                        </td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="col-12 col-xl-6">
-                <div class="central-monitor-panel">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div>
-                            <h5 class="mb-1">Audit Terbaru</h5>
-                            <small class="text-muted">Lima aktivitas sistem terakhir.</small>
-                        </div>
-                        @if(auth()->user()->hasMenuAccess('audit_trail'))
-                            <a href="{{ route('audit-trails.index') }}" class="btn btn-sm btn-outline-primary">Audit</a>
-                        @endif
+            <section class="ui-panel" aria-labelledby="recentAuditTitle">
+                <div class="ui-panel__header">
+                    <div>
+                        <h5 class="ui-panel__title" id="recentAuditTitle">Audit Terbaru</h5>
+                        <p class="ui-panel__meta">Lima aktivitas sistem terakhir.</p>
                     </div>
-
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle mb-0">
+                    @if(auth()->user()->hasMenuAccess('audit_trail'))
+                        <a href="{{ route('audit-trails.index') }}" class="btn btn-sm btn-outline-primary ui-btn-icon" data-loading-text="Membuka...">
+                            <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+                            <span>Audit</span>
+                        </a>
+                    @endif
+                </div>
+                <div class="ui-panel__body">
+                    <div class="ui-table-wrap">
+                        <table class="table table-sm align-middle mb-0 ui-table">
                             <thead>
                                 <tr>
                                     <th>Waktu</th>
@@ -210,20 +255,30 @@
                                         <td>{{ \Illuminate\Support\Carbon::parse($audit->created_at)->format('d M H:i') }}</td>
                                         <td>
                                             <div class="fw-semibold">{{ $audit->event }}</div>
-                                            <small class="text-muted">{{ $audit->module }}{{ $audit->employee_nik ? ' · ' . $audit->employee_nik : '' }}</small>
+                                            <small class="text-muted">
+                                                {{ $audit->module }}
+                                                @if($audit->employee_nik)
+                                                    &middot; {{ $audit->employee_nik }}
+                                                @endif
+                                            </small>
                                         </td>
                                         <td>{{ $audit->actor_name ?: '-' }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="text-muted text-center py-4">Belum ada audit terbaru.</td>
+                                        <td colspan="3">
+                                            <div class="ui-empty-state">
+                                                <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+                                                <span>Belum ada audit terbaru.</span>
+                                            </div>
+                                        </td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
                 </div>
-            </div>
+            </section>
         </div>
     </div>
 </div>

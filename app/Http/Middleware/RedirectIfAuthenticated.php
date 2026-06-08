@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Providers\RouteServiceProvider;
+use App\Support\EmailUrl;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 
@@ -22,6 +23,12 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
+                $redirect = EmailUrl::safeRedirectPath($request->query('redirect'));
+
+                if ($redirect) {
+                    return redirect()->to($redirect);
+                }
+
                 return redirect(RouteServiceProvider::HOME);
             }
         }

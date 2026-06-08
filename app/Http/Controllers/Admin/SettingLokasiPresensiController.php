@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Presensi\BulkAssignAttendanceLocationRequest;
+use App\Http\Requests\Presensi\SaveAttendanceLocationRequest;
 use App\Models\Divisi;
 use App\Models\EmployeeAttendanceLocationAssignment;
 use App\Models\LokasiAbsen;
@@ -19,10 +20,6 @@ class SettingLokasiPresensiController extends Controller
 {
     public function index(Request $request, AttendanceLocationBulkAssignmentService $bulkAssignmentService)
     {
-        $title = 'Delete Data!';
-        $text = "Are you sure you want to delete?";
-        confirmDelete($title, $text);
-
         $locationColumns = ['id', 'divisi_id', 'lat', 'long', 'radius', 'created_at'];
 
         if (Schema::hasColumn('lokasi_absens', 'nama_lokasi')) {
@@ -60,25 +57,9 @@ class SettingLokasiPresensiController extends Controller
         return view('admin.setting-lokasi.create');
     }
 
-    public function store(Request $request)
+    public function store(SaveAttendanceLocationRequest $request)
     {
-        $validated = $request->validate([
-            'nama_lokasi' => 'required|string|max:150',
-            'lat'       => 'required|numeric',
-            'long'      => 'required|numeric',
-            'radius'    => 'required|numeric|min:1|max:10000',
-        ], [
-            'nama_lokasi.required' => 'Nama lokasi presensi wajib diisi.',
-            'nama_lokasi.max'      => 'Nama lokasi presensi maksimal 150 karakter.',
-            'lat.required'       => 'Latitude wajib diisi.',
-            'lat.numeric'        => 'Latitude harus berupa angka.',
-            'long.required'      => 'Longitude wajib diisi.',
-            'long.numeric'       => 'Longitude harus berupa angka.',
-            'radius.required'    => 'Radius wajib diisi.',
-            'radius.numeric'     => 'Radius harus berupa angka.',
-            'radius.min'         => 'Radius minimal 1 meter.',
-            'radius.max'         => 'Radius maksimal 10.000 meter.',
-        ]);
+        $validated = $request->validated();
 
         LokasiAbsen::create([
             'nama_lokasi' => $validated['nama_lokasi'],
@@ -89,46 +70,37 @@ class SettingLokasiPresensiController extends Controller
             'created_at' => now()
         ]);
 
-        toast()->success('Success', 'Lokasi presensi created successfuly');
+        toast()->success('Berhasil', 'Lokasi presensi berhasil disimpan.');
         return redirect()->route('setting-lokasi-presensi.index');
     }
 
-    public function edit($id)
+    public function edit(Request $request, $id)
     {
-        $lokasi = LokasiAbsen::with('divisi.departemen.perusahaan')->where('id', $id)->firstOrFail();
+        $lokasi = $this->locationQueryForUser($request->user())
+            ->with('divisi.departemen.perusahaan')
+            ->where('id', $id)
+            ->firstOrFail();
 
         return view('admin.setting-lokasi.edit', compact('lokasi'));
     }
 
-    public function update(Request $request, $id)
+    public function update(SaveAttendanceLocationRequest $request, $id)
     {
-        $validated = $request->validate([
-            'nama_lokasi' => 'required|string|max:150',
-            'lat'       => 'required|numeric',
-            'long'      => 'required|numeric',
-            'radius'    => 'required|numeric|min:1|max:10000',
-        ], [
-            'nama_lokasi.required' => 'Nama lokasi presensi wajib diisi.',
-            'nama_lokasi.max'      => 'Nama lokasi presensi maksimal 150 karakter.',
-            'lat.required'       => 'Latitude wajib diisi.',
-            'lat.numeric'        => 'Latitude harus berupa angka.',
-            'long.required'      => 'Longitude wajib diisi.',
-            'long.numeric'       => 'Longitude harus berupa angka.',
-            'radius.required'    => 'Radius wajib diisi.',
-            'radius.numeric'     => 'Radius harus berupa angka.',
-            'radius.min'         => 'Radius minimal 1 meter.',
-            'radius.max'         => 'Radius maksimal 10.000 meter.',
-        ]);
+        $lokasi = $this->locationQueryForUser($request->user())
+            ->where('id', $id)
+            ->firstOrFail();
 
-        LokasiAbsen::where('id', $id)->update($validated);
+        $lokasi->update($request->validated());
 
-        toast()->success('Success', 'Lokasi presensi updated successfully');
+        toast()->success('Berhasil', 'Lokasi presensi berhasil diperbarui.');
         return redirect()->route('setting-lokasi-presensi.index');
     }
 
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $lokasi = LokasiAbsen::findOrFail($id);
+        $lokasi = $this->locationQueryForUser($request->user())
+            ->where('id', $id)
+            ->firstOrFail();
 
         if (
             Schema::hasTable('employee_attendance_location_assignments')
@@ -140,7 +112,7 @@ class SettingLokasiPresensiController extends Controller
 
         $lokasi->delete();
 
-        toast()->success('Success', 'Lokasi presensi deleted successfuly');
+        toast()->success('Berhasil', 'Lokasi presensi berhasil dihapus.');
         return redirect()->route('setting-lokasi-presensi.index');
     }
 
@@ -179,7 +151,7 @@ class SettingLokasiPresensiController extends Controller
             $message .= ' ' . ((int) $result['candidate_count'] - (int) $result['assigned_count']) . ' karyawan dilewati karena lokasi tersebut sudah aktif.';
         }
 
-        toast()->success('Success', $message);
+        toast()->success('Berhasil', $message);
         return redirect()->route('setting-lokasi-presensi.index');
     }
 

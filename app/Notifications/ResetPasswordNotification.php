@@ -4,7 +4,7 @@ namespace App\Notifications;
 
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Support\Facades\Lang;
+use App\Support\EmailUrl;
 
 class ResetPasswordNotification extends Notification
 {
@@ -22,10 +22,10 @@ class ResetPasswordNotification extends Notification
 
     public function toMail($notifiable)
     {
-        $url = url(route('password.reset', [
+        $url = EmailUrl::route('password.reset', [
             'token' => $this->token,
             'email' => $notifiable->email,
-        ], false));
+        ]);
 
         return (new MailMessage)
             ->subject('Reset Password Akun V-People')

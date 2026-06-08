@@ -1,124 +1,91 @@
 @extends('layouts.app')
 
+@section('title', 'Data Karyawan')
+
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('assets/css/admin-karyawan-index.css') }}">
-<style>
-    .table-scroll-wrapper {
-        overflow-x: auto;
-    }
-
-    .dataTables_wrapper .dataTables_filter,
-    .dataTables_wrapper .dataTables_paginate {
-        white-space: nowrap;
-    }
-
-    .dataTables_scrollBody {
-        overflow-x: auto !important;
-    }
-
-    .bulk-upload-feedback {
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        background: #f8fafc;
-        padding: 14px 16px;
-    }
-
-    .bulk-upload-feedback__title {
-        font-size: 0.92rem;
-        font-weight: 600;
-        color: #0f172a;
-    }
-
-    .bulk-upload-feedback__text {
-        font-size: 0.84rem;
-        color: #475569;
-    }
-
-    .bulk-upload-feedback__error {
-        font-size: 0.84rem;
-        color: #b91c1c;
-    }
-</style>
 @endpush
 
 @section('content')
-<div class="container-fluid karyawan-page">
-    <div class="page-inner">
-        <div class="karyawan-page-header d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
-            <div>
-                <h4 class="fw-bold mb-1">
-                    <i class="fas fa-users text-primary me-2"></i>
-                    Data Karyawan
-                </h4>
-                <small class="text-muted">
-                    Daftar keseluruhan karyawan VDNI/VDNIP/OSS
-                </small>
+<div class="container-fluid">
+    <div class="page-inner ui-page karyawan-page">
+        <div class="ui-page-header karyawan-page-header">
+            <div class="ui-page-heading">
+                <div class="ui-page-icon" aria-hidden="true">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <h4 class="ui-page-title">Data Karyawan</h4>
+                    <p class="ui-page-subtitle">
+                        Kelola data master karyawan, dokumen sensitif, dan status kerja dengan filter organisasi.
+                    </p>
+                </div>
             </div>
 
             @if($canManageMasterData)
-            <div class="karyawan-actions ms-md-auto py-2 py-md-0 d-flex flex-wrap gap-2">
-                <a class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalBulkDocuments">
-                    <i class="fas fa-folder-open me-1"></i>
+            <div class="ui-page-actions karyawan-actions">
+                <button type="button" class="btn btn-sm btn-outline-primary ui-btn-icon" data-bs-toggle="modal" data-bs-target="#modalBulkDocuments">
+                    <i class="fas fa-folder-open"></i>
                     Bulk Dokumen
-                </a>
-                <a class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalImportEmployee">
-                    <i class="fas fa-file-import me-1"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-primary ui-btn-icon" data-bs-toggle="modal" data-bs-target="#modalImportEmployee">
+                    <i class="fas fa-file-import"></i>
                     Bulk Karyawan
-                </a>
+                </button>
             </div>
             @endif
         </div>
 
         @if(!auth()->user()->canAccessAllEmployees())
-        <div class="alert alert-light border mb-3">
+        <div class="alert ui-alert karyawan-scope-alert mb-3">
+            <i class="fas fa-lock me-2"></i>
             Data karyawan dibatasi sesuai scope role Anda: {{ auth()->user()->role->scope_label ?? 'Akun sendiri' }}.
         </div>
         @endif
 
-        <div class="col-md-12">
-            <div class="card karyawan-card">
-                <div class="card-body">
-                    <div class="karyawan-filter-panel">
-                        <div class="karyawan-filter-panel__header">
-                            <div>
-                                <div class="karyawan-filter-panel__title">Filter Data</div>
-                                <small class="text-muted">Pilih perusahaan, departemen, divisi, dan status karyawan.</small>
+        <section class="ui-panel karyawan-panel" aria-labelledby="employeeDataTableTitle">
+            <div class="ui-panel__header">
+                <div>
+                    <h5 class="ui-panel__title" id="employeeDataTableTitle">Daftar Karyawan</h5>
+                    <p class="ui-panel__meta">Tabel memakai server-side processing agar tetap ringan untuk data karyawan besar.</p>
+                </div>
+                <button type="button" class="btn btn-sm btn-light border ui-btn-icon" id="btnResetFilter">
+                    <i class="fas fa-undo"></i>
+                    Reset Filter
+                </button>
+            </div>
+            <div class="ui-panel__body">
+                <div class="karyawan-filter-panel">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="companyFilterDropdown">Perusahaan</label>
+                            <div class="company-filter">
+                                <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="companyFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="filterAreaLabel">Semua perusahaan</span>
+                                </button>
+                                <div class="dropdown-menu company-filter__menu" aria-labelledby="companyFilterDropdown">
+                                    <div class="company-filter__menu-header">
+                                        <span>Pilih perusahaan</span>
+                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearAreaFilter">Kosongkan</button>
+                                    </div>
+                                    @forelse ($areas as $area)
+                                    <label class="company-filter__option">
+                                        <input type="checkbox" class="form-check-input filter-area-check" value="{{ $area->kode_perusahaan }}">
+                                        <span>{{ $area->kode_perusahaan }}</span>
+                                    </label>
+                                    @empty
+                                    <div class="company-filter__empty">Tidak ada perusahaan tersedia.</div>
+                                    @endforelse
+                                </div>
                             </div>
-                            <button type="button" class="btn btn-sm btn-light border" id="btnResetFilter">
-                                Reset
-                            </button>
+                            <select id="filter_area" class="d-none" multiple aria-hidden="true">
+                                @foreach ($areas as $area)
+                                <option value="{{ $area->kode_perusahaan }}">{{ $area->kode_perusahaan }}</option>
+                                @endforeach
+                            </select>
                         </div>
 
-                        <div class="row g-3 align-items-end">
-                            <div class="col-xl-3 col-md-6">
-                                <label class="form-label">Perusahaan</label>
-                                <div class="company-filter">
-                                    <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="companyFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                        <span id="filterAreaLabel">Semua perusahaan</span>
-                                    </button>
-                                    <div class="dropdown-menu company-filter__menu" aria-labelledby="companyFilterDropdown">
-                                        <div class="company-filter__menu-header">
-                                            <span>Pilih perusahaan</span>
-                                            <button type="button" class="btn btn-link btn-sm p-0" id="btnClearAreaFilter">Kosongkan</button>
-                                        </div>
-                                        @forelse ($areas as $area)
-                                        <label class="company-filter__option">
-                                            <input type="checkbox" class="form-check-input filter-area-check" value="{{ $area->kode_perusahaan }}">
-                                            <span>{{ $area->kode_perusahaan }}</span>
-                                        </label>
-                                        @empty
-                                        <div class="company-filter__empty">Tidak ada perusahaan tersedia.</div>
-                                        @endforelse
-                                    </div>
-                                </div>
-                                <select id="filter_area" class="d-none" multiple aria-hidden="true">
-                                    @foreach ($areas as $area)
-                                    <option value="{{ $area->kode_perusahaan }}">{{ $area->kode_perusahaan }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-xl-3 col-md-6">
+                            <div class="col-xl-3 col-md-6 ui-field">
                                 <label class="form-label" for="filter_departemen">Departemen</label>
                                 <select id="filter_departemen" class="form-select">
                                     <option value="">Semua Departemen</option>
@@ -139,7 +106,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-xl-3 col-md-6">
+                            <div class="col-xl-3 col-md-6 ui-field">
                                 <label class="form-label" for="filter_divisi">Divisi</label>
                                 <select id="filter_divisi" class="form-select">
                                     <option value="">Semua Divisi</option>
@@ -149,7 +116,7 @@
                                 </select>
                             </div>
 
-                            <div class="col-xl-3 col-md-6">
+                            <div class="col-xl-3 col-md-6 ui-field">
                                 <label class="form-label" for="filter_resign">Status</label>
                                 <select id="filter_resign" class="form-select">
                                     <option value="">Semua Kategori Resign</option>
@@ -171,8 +138,8 @@
                         </div>
                     </div>
 
-                    <div class="karyawan-table-section">
-                        <table id="multi-filter-select" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
+                    <div class="karyawan-table-section ui-table-wrap">
+                        <table id="multi-filter-select" class="table table-bordered table-striped table-sm small text-sm nowrap align-middle ui-table">
                             <thead>
                                 <tr>
                                     <th>{{ __('tables.nik') }}</th>
@@ -188,9 +155,8 @@
                             </thead>
                         </table>
                     </div>
-                </div>
             </div>
-        </div>
+        </section>
     </div>
 </div>
 
@@ -206,14 +172,17 @@
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
                     Mengambil dokumen dari recruitment...
                 </div>
-                <div id="recruitmentDocumentsError" class="alert alert-warning d-none mb-0"></div>
-                <div id="recruitmentDocumentsEmpty" class="alert alert-light border d-none mb-0">
+                <div id="recruitmentDocumentsError" class="alert ui-alert ui-alert--warning d-none mb-0"></div>
+                <div id="recruitmentDocumentsEmpty" class="alert ui-alert d-none mb-0">
                     Dokumen recruitment tidak ditemukan untuk No KTP karyawan ini.
                 </div>
                 <div id="recruitmentDocumentsList" class="recruitment-documents-list d-none"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                <button type="button" class="btn btn-secondary ui-btn-icon" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i>
+                    Tutup
+                </button>
             </div>
         </div>
     </div>
@@ -236,8 +205,14 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                <a href="#" id="documentPreviewDownload" class="btn btn-primary">Download</a>
+                <button type="button" class="btn btn-secondary ui-btn-icon" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i>
+                    Tutup
+                </button>
+                <a href="#" id="documentPreviewDownload" class="btn btn-primary ui-btn-icon">
+                    <i class="fas fa-download"></i>
+                    Download
+                </a>
             </div>
         </div>
     </div>
@@ -254,56 +229,57 @@
             <form action="{{ route('karyawan.bulk-upload-documents') }}" method="POST" enctype="multipart/form-data" class="js-bulk-upload-form" data-redirect-url="{{ route('karyawan.index') }}">
                 @csrf
                 <div class="modal-body">
-                    <div class="alert alert-light border small">
+                    <div class="ui-help-panel">
                         Upload satu file ZIP per jenis dokumen.
                         Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya <code>2200112233.jpg</code>, <code>2200112233.jpeg</code>, atau <code>2200112233.pdf</code>.
                         ZIP akan diproses di background dan hasil akhirnya dikirim ke notifikasi.
                     </div>
 
-                    <div class="alert alert-warning small">
+                    <div class="alert ui-alert ui-alert--warning small mt-3">
                         <div class="fw-semibold mb-1">Panduan cepat</div>
                         Batas upload ZIP dari aplikasi ini disiapkan sampai sekitar <code>500MB</code> per file ZIP. Pastikan worker queue aktif agar proses berjalan di background.
                         <div class="mt-2">
-                            <a href="{{ asset('upload-templates/contoh-zip-dokumen-karyawan.txt') }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ asset('upload-templates/contoh-zip-dokumen-karyawan.txt') }}" target="_blank" class="btn btn-sm btn-outline-primary ui-btn-icon">
+                                <i class="fas fa-download"></i>
                                 Download Template ZIP
                             </a>
                         </div>
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">ZIP Foto Karyawan</label>
-                            <input type="file" name="bulk_photo_zip" class="form-control" accept=".zip,application/zip">
+                        <div class="col-md-6 ui-field">
+                            <label class="form-label" for="bulk_photo_zip">ZIP Foto Karyawan</label>
+                            <input type="file" name="bulk_photo_zip" id="bulk_photo_zip" class="form-control" accept=".zip,application/zip">
                             <small class="text-muted">Satu ZIP khusus isi foto karyawan. Maksimal sekitar 500MB per ZIP.</small>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">ZIP KTP</label>
-                            <input type="file" name="bulk_ktp_zip" class="form-control" accept=".zip,application/zip">
+                        <div class="col-md-6 ui-field">
+                            <label class="form-label" for="bulk_ktp_zip">ZIP KTP</label>
+                            <input type="file" name="bulk_ktp_zip" id="bulk_ktp_zip" class="form-control" accept=".zip,application/zip">
                             <small class="text-muted">Satu ZIP khusus isi file KTP. Maksimal sekitar 500MB per ZIP.</small>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">ZIP KK</label>
-                            <input type="file" name="bulk_kk_zip" class="form-control" accept=".zip,application/zip">
+                        <div class="col-md-6 ui-field">
+                            <label class="form-label" for="bulk_kk_zip">ZIP KK</label>
+                            <input type="file" name="bulk_kk_zip" id="bulk_kk_zip" class="form-control" accept=".zip,application/zip">
                             <small class="text-muted">Satu ZIP khusus isi file KK. Maksimal sekitar 500MB per ZIP.</small>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">ZIP SIM</label>
-                            <input type="file" name="bulk_sim_zip" class="form-control" accept=".zip,application/zip">
+                        <div class="col-md-6 ui-field">
+                            <label class="form-label" for="bulk_sim_zip">ZIP SIM</label>
+                            <input type="file" name="bulk_sim_zip" id="bulk_sim_zip" class="form-control" accept=".zip,application/zip">
                             <small class="text-muted">Satu ZIP khusus isi file SIM. Maksimal sekitar 500MB per ZIP.</small>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">ZIP SIO</label>
-                            <input type="file" name="bulk_sio_zip" class="form-control" accept=".zip,application/zip">
+                        <div class="col-md-6 ui-field">
+                            <label class="form-label" for="bulk_sio_zip">ZIP SIO</label>
+                            <input type="file" name="bulk_sio_zip" id="bulk_sio_zip" class="form-control" accept=".zip,application/zip">
                             <small class="text-muted">Satu ZIP khusus isi file SIO. Maksimal sekitar 500MB per ZIP.</small>
                         </div>
                     </div>
 
                     @if($errors->has('bulk_documents_zip'))
-                    <div class="alert alert-warning mt-3 mb-0">
+                    <div class="alert ui-alert ui-alert--warning mt-3 mb-0">
                         {{ $errors->first('bulk_documents_zip') }}
                     </div>
                     @endif
@@ -313,16 +289,22 @@
                             <div class="bulk-upload-feedback__title">Upload sedang berjalan</div>
                             <div class="bulk-upload-feedback__text" data-upload-percent>0%</div>
                         </div>
-                        <div class="progress" style="height: 10px;">
-                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%;" data-upload-progress-bar></div>
+                        <div class="progress bulk-upload-feedback__progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bulk-upload-feedback__bar" role="progressbar" data-upload-progress-bar></div>
                         </div>
                         <div class="bulk-upload-feedback__text mt-2 mb-0" data-upload-status>Menyiapkan upload ZIP ke server...</div>
                         <div class="bulk-upload-feedback__error mt-2 d-none" data-upload-error></div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary" data-submit-label="Upload ZIP">Upload ZIP</button>
+                    <button type="button" class="btn btn-secondary ui-btn-icon" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i>
+                        Tutup
+                    </button>
+                    <button type="submit" class="btn btn-primary ui-btn-icon" data-submit-label="Upload ZIP">
+                        <i class="fas fa-upload"></i>
+                        Upload ZIP
+                    </button>
                 </div>
             </form>
         </div>
@@ -336,19 +318,27 @@
                 <h1 class="modal-title fs-5" id="modalImportEmployeeLabel">Import Karyawan</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ route('karyawan.store') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ route('karyawan.store') }}" method="POST" enctype="multipart/form-data" data-loading-text="Memasukkan ke antrean...">
                 @csrf
                 <div class="modal-body">
-                    <div class="col-md-6 col-lg-6">
-                        <div class="form-group">
-                            <label for="exampleFormControlFile1">Pilih file excel</label>
-                            <input type="file" name="file" class="form-control-file" id="exampleFormControlFile1">
-                        </div>
+                    <div class="ui-help-panel mb-3">
+                        Upload file Excel karyawan format <code>.xlsx</code>. Setelah diterima, file akan diproses lewat queue/background dan statusnya bisa dicek pada History Import.
+                    </div>
+                    <div class="ui-field">
+                        <label class="form-label" for="employee_import_file">File Excel Karyawan</label>
+                        <input type="file" name="file" class="form-control" id="employee_import_file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
+                        <small class="text-muted">Gunakan template yang sesuai struktur import karyawan yang sedang dipakai sistem.</small>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary">Import</button>
+                    <button type="button" class="btn btn-secondary ui-btn-icon" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i>
+                        Tutup
+                    </button>
+                    <button type="submit" class="btn btn-primary ui-btn-icon" data-loading-text="Memasukkan ke antrean...">
+                        <i class="fas fa-file-import"></i>
+                        Import
+                    </button>
                 </div>
             </form>
         </div>
@@ -588,6 +578,22 @@
         serverSide: true,
         responsive: true,
         autoWidth: false,
+        language: {
+            processing: 'Memuat data karyawan...',
+            search: 'Cari:',
+            lengthMenu: 'Tampilkan _MENU_ data',
+            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
+            infoEmpty: 'Tidak ada data karyawan',
+            infoFiltered: '(difilter dari _MAX_ total data)',
+            zeroRecords: 'Data karyawan tidak ditemukan',
+            emptyTable: 'Belum ada data karyawan',
+            paginate: {
+                first: 'Pertama',
+                last: 'Terakhir',
+                next: 'Berikutnya',
+                previous: 'Sebelumnya'
+            }
+        },
 
         dom: "<'row mb-2'<'col-md-6'l><'col-md-6 text-end'f>>" +
             "<'table-scroll-wrapper'tr>" +

@@ -28,45 +28,49 @@
 @endphp
 
 <div class="container-fluid">
-    <div class="page-inner">
-        <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
-            <div>
-                <h3 class="fw-bold mb-1">Lokasi Presensi</h3>
-                <small class="text-muted">Kelola titik presensi dan assignment lokasi massal untuk karyawan aktif.</small>
+    <div class="page-inner ui-page">
+        <div class="ui-page-header">
+            <div class="ui-page-heading">
+                <span class="ui-page-icon" aria-hidden="true">
+                    <i class="fas fa-map-marker-alt"></i>
+                </span>
+                <div>
+                    <h3 class="ui-page-title">Lokasi Presensi</h3>
+                    <p class="ui-page-subtitle">Kelola titik presensi dan assignment lokasi massal untuk karyawan aktif.</p>
+                </div>
             </div>
 
-            <div class="ms-md-auto py-2 py-md-0">
-                <a href="{{ route('setting-lokasi-presensi.create') }}" class="btn btn-sm btn-secondary">
-                    <span class="btn-label">
-                        <i class="fa fa-plus"></i>
-                    </span>
-                    Lokasi presensi
+            <div class="ui-page-actions">
+                <a href="{{ route('setting-lokasi-presensi.create') }}" class="btn btn-primary ui-btn-icon" data-loading-text="Membuka...">
+                    <i class="fa fa-plus" aria-hidden="true"></i>
+                    <span>Tambah Lokasi</span>
                 </a>
             </div>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
-                    <div>
-                        <h5 class="mb-1">Assign Lokasi Presensi Massal</h5>
-                        <small class="text-muted">Gunakan filter organisasi atau daftar NIK spesifik untuk membagi karyawan dalam divisi yang sama ke lokasi berbeda.</small>
-                    </div>
-                    <span class="badge bg-light text-dark border align-self-start align-self-md-center">
-                        Karyawan aktif saja
-                    </span>
+        <section class="ui-panel mb-4" aria-labelledby="bulkLocationTitle">
+            <div class="ui-panel__header">
+                <div>
+                    <h5 class="ui-panel__title" id="bulkLocationTitle">Assign Lokasi Presensi Massal</h5>
+                    <p class="ui-panel__meta">Gunakan filter organisasi atau daftar NIK spesifik untuk membagi karyawan dalam divisi yang sama ke lokasi berbeda.</p>
                 </div>
+                <span class="ui-status-pill ui-status-pill--success">
+                    <i class="fas fa-user-check" aria-hidden="true"></i>
+                    Karyawan aktif saja
+                </span>
+            </div>
 
+            <div class="ui-panel__body">
                 @error('bulk_filter')
-                    <div class="alert alert-warning">{{ $message }}</div>
+                    <div class="alert ui-alert ui-alert--warning">{{ $message }}</div>
                 @enderror
 
-                <form action="{{ route('setting-lokasi-presensi.index') }}" method="GET" class="row g-3" id="bulkLocationPreviewForm">
+                <form action="{{ route('setting-lokasi-presensi.index') }}" method="GET" class="row g-3" id="bulkLocationPreviewForm" data-loading-text="Memuat preview...">
                     <input type="hidden" name="bulk_preview" value="1">
 
-                    <div class="col-lg-4">
-                        <label class="form-label">Lokasi Tujuan</label>
-                        <select name="bulk_lokasi_absen_id" class="form-select @error('bulk_lokasi_absen_id') is-invalid @enderror">
+                    <div class="col-lg-4 ui-field">
+                        <label class="form-label" for="bulk_lokasi_absen_id">Lokasi Tujuan</label>
+                        <select id="bulk_lokasi_absen_id" name="bulk_lokasi_absen_id" class="form-select @error('bulk_lokasi_absen_id') is-invalid @enderror">
                             <option value="">-- Pilih Lokasi Presensi --</option>
                             @foreach ($lokasi as $lok)
                                 <option value="{{ $lok->id }}" {{ $selectedLocation === (string) $lok->id ? 'selected' : '' }}>
@@ -78,8 +82,8 @@
                         @error('bulk_lokasi_absen_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
-                    <div class="col-lg-2">
-                        <label class="form-label">Area</label>
+                    <div class="col-lg-2 ui-field">
+                        <label class="form-label" for="bulkLocationPerusahaan">Area</label>
                         <select name="bulk_perusahaan_id" id="bulkLocationPerusahaan" class="form-select @error('bulk_perusahaan_id') is-invalid @enderror">
                             <option value="">Semua Area</option>
                             @foreach ($companies as $company)
@@ -91,8 +95,8 @@
                         @error('bulk_perusahaan_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
-                    <div class="col-lg-3">
-                        <label class="form-label">Departemen</label>
+                    <div class="col-lg-3 ui-field">
+                        <label class="form-label" for="bulkLocationDepartemen">Departemen</label>
                         <select name="bulk_departemen_id" id="bulkLocationDepartemen" class="form-select @error('bulk_departemen_id') is-invalid @enderror">
                             <option value="">Semua Departemen</option>
                             @foreach ($departemens as $departemen)
@@ -107,8 +111,8 @@
                         @error('bulk_departemen_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
-                    <div class="col-lg-3">
-                        <label class="form-label">Divisi</label>
+                    <div class="col-lg-3 ui-field">
+                        <label class="form-label" for="bulkLocationDivisi">Divisi</label>
                         <select name="bulk_divisi_id" id="bulkLocationDivisi" class="form-select @error('bulk_divisi_id') is-invalid @enderror">
                             <option value="">Semua Divisi</option>
                             @foreach ($divisions as $division)
@@ -125,27 +129,27 @@
                         @error('bulk_divisi_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
-                    <div class="col-lg-2">
-                        <label class="form-label">Mulai Berlaku</label>
-                        <input type="date" name="bulk_effective_from" class="form-control @error('bulk_effective_from') is-invalid @enderror" value="{{ $selectedEffectiveFrom }}">
+                    <div class="col-lg-2 ui-field">
+                        <label class="form-label" for="bulk_effective_from">Mulai Berlaku</label>
+                        <input type="date" id="bulk_effective_from" name="bulk_effective_from" class="form-control @error('bulk_effective_from') is-invalid @enderror" value="{{ $selectedEffectiveFrom }}">
                         @error('bulk_effective_from')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
-                    <div class="col-lg-2">
-                        <label class="form-label">Selesai Berlaku</label>
-                        <input type="date" name="bulk_effective_until" class="form-control @error('bulk_effective_until') is-invalid @enderror" value="{{ $selectedEffectiveUntil }}">
+                    <div class="col-lg-2 ui-field">
+                        <label class="form-label" for="bulk_effective_until">Selesai Berlaku</label>
+                        <input type="date" id="bulk_effective_until" name="bulk_effective_until" class="form-control @error('bulk_effective_until') is-invalid @enderror" value="{{ $selectedEffectiveUntil }}">
                         @error('bulk_effective_until')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
-                    <div class="col-lg-5">
-                        <label class="form-label">Catatan</label>
-                        <input type="text" name="bulk_note" class="form-control @error('bulk_note') is-invalid @enderror" value="{{ $selectedNote }}" maxlength="255" placeholder="Contoh: Penempatan Gudang B periode Mei">
+                    <div class="col-lg-5 ui-field">
+                        <label class="form-label" for="bulk_note">Catatan</label>
+                        <input type="text" id="bulk_note" name="bulk_note" class="form-control @error('bulk_note') is-invalid @enderror" value="{{ $selectedNote }}" maxlength="255" placeholder="Contoh: Penempatan Gudang B periode Mei">
                         @error('bulk_note')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
-                    <div class="col-lg-3">
-                        <label class="form-label">Mode Assignment</label>
-                        <select name="bulk_assignment_mode" class="form-select @error('bulk_assignment_mode') is-invalid @enderror">
+                    <div class="col-lg-3 ui-field">
+                        <label class="form-label" for="bulk_assignment_mode">Mode Assignment</label>
+                        <select id="bulk_assignment_mode" name="bulk_assignment_mode" class="form-select @error('bulk_assignment_mode') is-invalid @enderror">
                             <option value="replace" {{ $selectedAssignmentMode === 'replace' ? 'selected' : '' }}>
                                 Replace lokasi aktif lama
                             </option>
@@ -154,12 +158,13 @@
                             </option>
                         </select>
                         @error('bulk_assignment_mode')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        <small class="text-muted d-block mt-1">Pilih append jika karyawan boleh presensi di beberapa titik dalam periode yang sama.</small>
+                        <small class="text-muted d-block mt-1">Pilih tambahkan jika karyawan boleh presensi di beberapa titik dalam periode yang sama.</small>
                     </div>
 
-                    <div class="col-lg-9">
-                        <label class="form-label">NIK Spesifik</label>
+                    <div class="col-lg-9 ui-field">
+                        <label class="form-label" for="bulk_employee_niks">NIK Spesifik</label>
                         <textarea
+                            id="bulk_employee_niks"
                             name="bulk_employee_niks"
                             rows="4"
                             class="form-control @error('bulk_employee_niks') is-invalid @enderror"
@@ -169,50 +174,50 @@
                     </div>
 
                     <div class="col-lg-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search me-1"></i>
-                            Preview Assignment
+                        <button type="submit" class="btn btn-primary ui-btn-icon w-100" data-loading-text="Memuat preview...">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <span>Preview Assignment</span>
                         </button>
                     </div>
                 </form>
             </div>
-        </div>
+        </section>
 
         @if ($bulkPreview)
-            <div class="card mb-4 border-primary">
-                <div class="card-body">
-                    <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
-                        <div>
-                            <h5 class="mb-1">Preview Assignment Massal</h5>
-                            <small class="text-muted">
-                                Target: {{ $bulkPreview['selected_location']->display_name }}
-                                | Mulai {{ $bulkPreview['effective_from'] }}
-                                @if($bulkPreview['effective_until'])
-                                    sampai {{ $bulkPreview['effective_until'] }}
-                                @endif
-                                | Mode: {{ ($bulkPreview['assignment_mode'] ?? 'replace') === 'append' ? 'Tambah lokasi aktif' : 'Replace lokasi aktif lama' }}
-                            </small>
-                        </div>
-                        <div class="text-md-end">
-                            <div class="fs-4 fw-bold">{{ number_format($bulkPreview['total']) }}</div>
-                            <small class="text-muted">
-                                karyawan aktif terdampak
-                                @if(!empty($bulkPreview['requested_niks']))
-                                    dari {{ number_format(count($bulkPreview['requested_niks'])) }} NIK diminta
-                                @endif
-                            </small>
-                        </div>
+            <section class="ui-panel mb-4" aria-labelledby="bulkLocationPreviewTitle">
+                <div class="ui-panel__header">
+                    <div>
+                        <h5 class="ui-panel__title" id="bulkLocationPreviewTitle">Preview Assignment Massal</h5>
+                        <p class="ui-panel__meta">
+                            Target: {{ $bulkPreview['selected_location']->display_name }}
+                            | Mulai {{ $bulkPreview['effective_from'] }}
+                            @if($bulkPreview['effective_until'])
+                                sampai {{ $bulkPreview['effective_until'] }}
+                            @endif
+                            | Mode: {{ ($bulkPreview['assignment_mode'] ?? 'replace') === 'append' ? 'Tambah lokasi aktif' : 'Replace lokasi aktif lama' }}
+                        </p>
                     </div>
+                    <div class="ui-metric">
+                        <span class="ui-metric__value">{{ number_format($bulkPreview['total']) }}</span>
+                        <span class="ui-metric__label">
+                            karyawan aktif
+                            @if(!empty($bulkPreview['requested_niks']))
+                                dari {{ number_format(count($bulkPreview['requested_niks'])) }} NIK
+                            @endif
+                        </span>
+                    </div>
+                </div>
 
+                <div class="ui-panel__body">
                     @if(!empty($bulkPreview['requested_niks']))
-                        <div class="alert alert-light border">
+                        <div class="ui-help-panel mb-3">
                             <strong>Mode NIK spesifik aktif.</strong>
                             Sistem hanya memproses NIK yang ada di daftar, aktif, berada dalam scope akses, dan cocok dengan filter organisasi yang dipilih.
                         </div>
                     @endif
 
                     @if(!empty($bulkPreview['unmatched_niks']))
-                        <div class="alert alert-warning">
+                        <div class="alert ui-alert ui-alert--warning">
                             <strong>{{ count($bulkPreview['unmatched_niks']) }} NIK tidak akan diproses</strong>
                             karena tidak ditemukan, tidak aktif, di luar scope akses, atau tidak cocok dengan filter:
                             {{ collect($bulkPreview['unmatched_niks'])->take(30)->join(', ') }}
@@ -223,12 +228,12 @@
                     @endif
 
                     @if ($bulkPreview['total'] < 1)
-                        <div class="alert alert-warning mb-0">
+                        <div class="alert ui-alert ui-alert--warning mb-0">
                             Tidak ada karyawan aktif yang cocok dengan filter ini.
                         </div>
                     @else
-                        <div class="table-responsive mb-3">
-                            <table class="table table-sm table-bordered align-middle mb-0">
+                        <div class="ui-table-wrap mb-3">
+                            <table class="table table-sm table-bordered align-middle ui-table">
                                 <thead>
                                     <tr>
                                         <th>{{ __('tables.nik') }}</th>
@@ -249,9 +254,9 @@
                                             <td>
                                                 @if($currentAssignment && $currentAssignment->isNotEmpty())
                                                     @foreach($currentAssignment as $assignment)
-                                                        <div class="{{ $loop->last ? '' : 'mb-1' }}">
+                                                        <div class="{{ $loop->last ? '' : 'mb-2' }}">
                                                             {{ optional($assignment->location)->display_name ?? 'Lokasi #' . $assignment->lokasi_absen_id }}
-                                                            <small class="text-muted d-block">
+                                                            <small class="ui-table-note d-block">
                                                                 Sejak {{ optional($assignment->effective_from)->format('Y-m-d') }}
                                                                 @if($assignment->effective_until)
                                                                     sampai {{ optional($assignment->effective_until)->format('Y-m-d') }}
@@ -270,12 +275,18 @@
                         </div>
 
                         @if($bulkPreview['total'] > $bulkPreview['employees']->count())
-                            <div class="alert alert-info">
+                            <div class="ui-help-panel mb-3">
                                 Tabel hanya menampilkan {{ $bulkPreview['employees']->count() }} karyawan pertama untuk preview. Saat disimpan, sistem akan memproses semua {{ number_format($bulkPreview['total']) }} karyawan aktif yang cocok dengan filter/daftar NIK.
                             </div>
                         @endif
 
-                        <form action="{{ route('setting-lokasi-presensi.bulk-assign') }}" method="POST" class="border rounded p-3 bg-light">
+                        <form
+                            action="{{ route('setting-lokasi-presensi.bulk-assign') }}"
+                            method="POST"
+                            class="ui-help-panel"
+                            data-loading-text="Menyimpan assignment..."
+                            data-swal-confirm="Assignment lokasi akan diterapkan ke seluruh karyawan pada preview. Lanjutkan?"
+                            data-swal-confirm-button="Ya, terapkan">
                             @csrf
                             <input type="hidden" name="bulk_lokasi_absen_id" value="{{ $selectedLocation }}">
                             <input type="hidden" name="bulk_perusahaan_id" value="{{ $selectedPerusahaan }}">
@@ -295,20 +306,27 @@
                                 @error('confirm_bulk_assignment')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             </div>
 
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-check me-1"></i>
-                                Terapkan Assignment Massal
+                            <button type="submit" class="btn btn-success ui-btn-icon" data-loading-text="Menyimpan assignment...">
+                                <i class="fas fa-check" aria-hidden="true"></i>
+                                <span>Terapkan Assignment Massal</span>
                             </button>
                         </form>
                     @endif
                 </div>
-            </div>
+            </section>
         @endif
 
-        <div class="card">
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table id="table-lokasi-presensi" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
+        <section class="ui-panel" aria-labelledby="locationTableTitle">
+            <div class="ui-panel__header">
+                <div>
+                    <h5 class="ui-panel__title" id="locationTableTitle">Daftar Titik Presensi</h5>
+                    <p class="ui-panel__meta">Pantau titik koordinat, radius, dan jumlah assignment karyawan aktif.</p>
+                </div>
+            </div>
+
+            <div class="ui-panel__body">
+                <div class="ui-table-wrap">
+                    <table id="table-lokasi-presensi" class="table table-bordered table-striped table-sm small text-sm nowrap align-middle ui-table">
                         <thead>
                             <tr>
                                 <th>{{ __('tables.no') }}</th>
@@ -326,32 +344,35 @@
                         <tbody>
                             @foreach ($lokasi as $key => $lok)
                                 <tr>
-                                    <td>{{ ++$key }}</td>
+                                    <td>{{ $key + 1 }}</td>
                                     <td>{{ $lok->display_name }}</td>
                                     <td>{{ optional(optional(optional($lok->divisi)->departemen)->perusahaan)->kode_perusahaan ?? '-' }}</td>
                                     <td>{{ optional(optional($lok->divisi)->departemen)->departemen ?? '-' }}</td>
                                     <td>{{ optional($lok->divisi)->nama_divisi ?? '-' }}</td>
                                     <td>{{ $lok->lat }}</td>
                                     <td>{{ $lok->long }}</td>
-                                    <td>{{ $lok->radius }}</td>
+                                    <td>{{ number_format($lok->radius) }}</td>
                                     <td>{{ number_format($lok->active_employee_assignment_count ?? 0) }}</td>
                                     <td class="text-nowrap">
-                                        <a href="{{ route('setting-lokasi-presensi.edit', $lok->id) }}" class="btn btn-sm btn-primary btn-icon-split">
-                                            <span class="icon text-white-50">
-                                                <i class="fas fa-edit"></i>
-                                            </span>
-                                            <span class="text">Edit</span>
-                                        </a>
-                                        <form action="{{ route('setting-lokasi-presensi.destroy', $lok->id) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm btn-icon-split" data-confirm-delete="true">
-                                                <span class="icon text-white-50">
-                                                    <i class="fas fa-trash"></i>
-                                                </span>
-                                                <span class="text">Hapus</span>
-                                            </button>
-                                        </form>
+                                        <div class="ui-actions">
+                                            <a href="{{ route('setting-lokasi-presensi.edit', $lok->id) }}" class="btn btn-sm btn-primary ui-btn-icon" data-loading-text="Membuka...">
+                                                <i class="fas fa-edit" aria-hidden="true"></i>
+                                                <span>Edit</span>
+                                            </a>
+                                            <form
+                                                action="{{ route('setting-lokasi-presensi.destroy', $lok->id) }}"
+                                                method="POST"
+                                                data-loading-text="Menghapus..."
+                                                data-swal-confirm="Lokasi presensi akan dihapus jika belum dipakai assignment karyawan. Lanjutkan?"
+                                                data-swal-confirm-button="Ya, hapus">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-outline-danger btn-sm ui-btn-icon" data-loading-text="Menghapus...">
+                                                    <i class="fas fa-trash" aria-hidden="true"></i>
+                                                    <span>Hapus</span>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
@@ -359,7 +380,7 @@
                     </table>
                 </div>
             </div>
-        </div>
+        </section>
     </div>
 </div>
 @endsection
@@ -369,6 +390,10 @@
     $(document).ready(function() {
         $("#table-lokasi-presensi").DataTable({
             responsive: true,
+            language: {
+                emptyTable: 'Belum ada lokasi presensi.',
+                zeroRecords: 'Tidak ada lokasi presensi yang cocok dengan pencarian.'
+            }
         });
     });
 </script>

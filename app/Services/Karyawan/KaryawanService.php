@@ -65,19 +65,23 @@ class KaryawanService
             ->addColumn('divisi', fn($r) => $r->divisi->nama_divisi ?? '-')
             ->addColumn('status', fn($r) => $r->status_resign ?? '-')
             ->addColumn('dokumen', fn($r) => $this->renderDocumentSummary($r))
-            ->addColumn('aksi', function ($r) {
+            ->addColumn('aksi', function ($r) use ($user) {
                 $editButton = '
                     <a href="' . e(route('karyawan.edit', $r->nik)) . '" 
-                       class="btn btn-sm btn-warning me-1">
+                       class="btn btn-sm btn-outline-primary ui-btn-icon me-1"
+                       title="Edit data karyawan"
+                       aria-label="Edit data karyawan">
                         <i class="fa fa-edit"></i>
                     </a>
                 ';
 
-                $deleteButton = auth()->user()->canAccessAllEmployees() ? '
-                    <button type="button" class="btn btn-sm btn-danger btn-delete"
+                $deleteButton = $user->canAccessAllEmployees() ? '
+                    <button type="button" class="btn btn-sm btn-outline-danger ui-btn-icon btn-delete"
                         data-id="' . e($r->nik) . '"
                         data-url="' . e(route('karyawan.destroy', $r->nik)) . '"
-                        data-nama="' . e($r->nama_karyawan) . '">
+                        data-nama="' . e($r->nama_karyawan) . '"
+                        title="Hapus data karyawan"
+                        aria-label="Hapus data karyawan">
                         <i class="fa fa-trash"></i>
                     </button>
                 ' : '';

@@ -15,6 +15,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Email Link Base URL
+    |--------------------------------------------------------------------------
+    |
+    | Queued notifications do not have access to the browser request host, so
+    | email action links need a stable public URL. Set this to the production
+    | HRIS domain when APP_URL cannot be trusted on the queue worker.
+    |
+    */
+    'email' => [
+        'base_url' => env('HRIS_EMAIL_BASE_URL', env('APP_URL', 'http://localhost')),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Mobile App Version Guard
     |--------------------------------------------------------------------------
     |

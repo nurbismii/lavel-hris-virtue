@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Tambah Lokasi Presensi')
+
 @push('styles')
 <link
     rel="stylesheet"
@@ -10,119 +12,128 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="page-inner">
-
-        {{-- HEADER --}}
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h3 class="fw-bold mb-1">
-                    <i class="fas fa-map-marker-alt text-primary me-2"></i>
-                    Penambahan Lokasi Presensi
-                </h3>
-                <small class="text-muted">
-                    Buat master titik lokasi. Pembagian karyawan dilakukan lewat assignment lokasi presensi.
-                </small>
+    <div class="page-inner ui-page">
+        <div class="ui-page-header">
+            <div class="ui-page-heading">
+                <span class="ui-page-icon" aria-hidden="true">
+                    <i class="fas fa-map-marker-alt"></i>
+                </span>
+                <div>
+                    <h3 class="ui-page-title">Tambah Lokasi Presensi</h3>
+                    <p class="ui-page-subtitle">Buat master titik lokasi. Pembagian karyawan dilakukan lewat assignment lokasi presensi.</p>
+                </div>
+            </div>
+            <div class="ui-page-actions">
+                <a href="{{ route('setting-lokasi-presensi.index') }}" class="btn btn-light border ui-btn-icon" data-loading-text="Kembali...">
+                    <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                    <span>Kembali</span>
+                </a>
             </div>
         </div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-body p-4">
+        <section class="ui-panel" aria-labelledby="attendanceLocationFormTitle">
+            <div class="ui-panel__header">
+                <div>
+                    <h5 class="ui-panel__title" id="attendanceLocationFormTitle">Data Lokasi</h5>
+                    <p class="ui-panel__meta">Klik peta atau tarik marker untuk menentukan titik presensi paling akurat.</p>
+                </div>
+            </div>
 
-                <form action="{{ route('setting-lokasi-presensi.store') }}" method="POST">
+            <div class="ui-panel__body">
+                <form action="{{ route('setting-lokasi-presensi.store') }}" method="POST" data-loading-text="Menyimpan lokasi...">
                     @csrf
 
-                    <div class="row mb-4">
-                        <div class="col-md-8">
-                            <label class="form-label fw-semibold">Nama Lokasi Presensi</label>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8 ui-field">
+                            <label class="form-label" for="nama_lokasi">Nama Lokasi Presensi</label>
                             <input
                                 type="text"
+                                id="nama_lokasi"
                                 name="nama_lokasi"
                                 class="form-control @error('nama_lokasi') is-invalid @enderror"
                                 value="{{ old('nama_lokasi') }}"
                                 maxlength="150"
-                                placeholder="Contoh: Gate Gudang B, Office VDNI, Mess Site A">
+                                placeholder="Contoh: Gate Gudang B, Office VDNI, Mess Site A"
+                                required>
                             @error('nama_lokasi')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
-                        <div class="col-md-4">
-                            <label class="form-label fw-semibold">Radius (meter)</label>
+                        <div class="col-md-4 ui-field">
+                            <label class="form-label" for="radius">Radius (meter)</label>
                             <input
                                 type="number"
-                                name="radius"
                                 id="radius"
+                                name="radius"
                                 class="form-control @error('radius') is-invalid @enderror"
                                 value="{{ old('radius', 100) }}"
-                                min="10"
-                                step="10">
+                                min="1"
+                                max="10000"
+                                step="1"
+                                required>
                             @error('radius')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
 
-                    {{-- MAP SECTION --}}
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold">
-                            Titik Lokasi Presensi
-                        </label>
-
-                        <div id="location"
-                            class="rounded border shadow-sm"
-                            style="width:100%; height:400px;">
-                        </div>
-
-                        <div class="mt-3 text-end">
-                            <button type="button"
-                                class="btn btn-warning btn-sm px-4"
-                                onclick="getLocation()">
-                                <i class="fas fa-crosshairs me-1"></i>
-                                Ambil Lokasi Saat Ini
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="location">Titik Lokasi Presensi</label>
+                        <div id="location" class="ui-map-frame"></div>
+                        <div class="ui-map-hint">
+                            <div class="ui-table-note">
+                                Gunakan lokasi perangkat sebagai titik awal, lalu koreksi marker jika GPS belum presisi.
+                            </div>
+                            <button type="button" id="getCurrentLocationButton" class="btn btn-warning btn-sm ui-btn-icon" onclick="getLocation()">
+                                <i class="fas fa-crosshairs" aria-hidden="true"></i>
+                                <span>Ambil Lokasi Saat Ini</span>
                             </button>
                         </div>
                     </div>
 
-                    {{-- COORDINATE SECTION --}}
-                    <div class="row">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Latitude</label>
-                            <input type="text"
-                                name="lat"
+                    <div class="row g-3">
+                        <div class="col-md-6 ui-field">
+                            <label class="form-label" for="latitude">Latitude</label>
+                            <input
+                                type="text"
                                 id="latitude"
+                                name="lat"
                                 class="form-control @error('lat') is-invalid @enderror"
                                 value="{{ old('lat') }}"
-                                readonly>
+                                readonly
+                                required>
                             @error('lat')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Longitude</label>
-                            <input type="text"
-                                name="long"
+                        <div class="col-md-6 ui-field">
+                            <label class="form-label" for="longitude">Longitude</label>
+                            <input
+                                type="text"
                                 id="longitude"
+                                name="long"
                                 class="form-control @error('long') is-invalid @enderror"
                                 value="{{ old('long') }}"
-                                readonly>
+                                readonly
+                                required>
                             @error('long')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
 
-                    {{-- BUTTON SECTION --}}
-                    <div class="mt-4 d-flex justify-content-end gap-2">
-                        <a href="{{ route('setting-lokasi-presensi.index') }}"
-                            class="btn btn-light border">
-                            Kembali
-                        </a>
+                    <div class="ui-section-divider"></div>
 
-                        <button type="submit"
-                            class="btn btn-primary px-4">
-                            <i class="fas fa-save me-1"></i>
-                            Simpan Lokasi
+                    <div class="ui-actions ui-actions--end ui-actions--sm-stack">
+                        <a href="{{ route('setting-lokasi-presensi.index') }}" class="btn btn-light border ui-btn-icon" data-loading-text="Kembali...">
+                            <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                            <span>Kembali</span>
+                        </a>
+                        <button type="submit" class="btn btn-primary ui-btn-icon" data-loading-text="Menyimpan lokasi...">
+                            <i class="fas fa-save" aria-hidden="true"></i>
+                            <span>Simpan Lokasi</span>
                         </button>
                     </div>
-
                 </form>
             </div>
-        </div>
+        </section>
     </div>
 </div>
+@endsection
 
 @push('scripts')
 <script
@@ -135,12 +146,25 @@
     let marker;
     let circle;
     const freeMapTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-    const freeMapAttribution = 'Setting lokasi presensi';
+    const freeMapAttribution = 'Tiles &copy; Esri - Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
 
     function radiusValue() {
-        const value = parseInt(document.getElementById("radius").value, 10);
+        const value = parseInt(document.getElementById('radius').value, 10);
 
         return Number.isFinite(value) && value > 0 ? value : 100;
+    }
+
+    function updateLocationButton(isLoading) {
+        const button = document.getElementById('getCurrentLocationButton');
+
+        if (!button) {
+            return;
+        }
+
+        button.disabled = isLoading;
+        button.innerHTML = isLoading
+            ? '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span><span>Mengambil lokasi...</span>'
+            : '<i class="fas fa-crosshairs" aria-hidden="true"></i><span>Ambil Lokasi Saat Ini</span>';
     }
 
     function initMap(lat = -6.200000, lng = 106.816666) {
@@ -150,7 +174,7 @@
             map.remove();
         }
 
-        map = L.map("location", {
+        map = L.map('location', {
             zoomControl: true,
             attributionControl: true
         }).setView(center, 16);
@@ -162,35 +186,31 @@
 
         marker = L.marker(center, {
             draggable: true,
-            title: "Titik lokasi presensi"
+            title: 'Titik lokasi presensi'
         }).addTo(map);
 
         circle = L.circle(center, {
-            color: "#0d6efd",
-            opacity: 0.8,
+            color: '#146c94',
+            opacity: 0.85,
             weight: 2,
-            fillColor: "#0d6efd",
-            fillOpacity: 0.2,
+            fillColor: '#146c94',
+            fillOpacity: 0.18,
             radius: radiusValue()
         }).addTo(map);
 
         updateInputs(lat, lng);
 
-        // Drag marker
-        marker.on("dragend", function(event) {
+        marker.on('dragend', function(event) {
             const position = event.target.getLatLng();
             setLocation(position.lat, position.lng, false);
         });
 
-        // Click map
-        map.on("click", function(event) {
+        map.on('click', function(event) {
             setLocation(event.latlng.lat, event.latlng.lng, false);
         });
     }
 
-    // ================= GET LOCATION =================
     function getLocation() {
-
         if (!navigator.geolocation) {
             window.AppDialog.alert(
                 'Geolocation tidak tersedia',
@@ -200,33 +220,28 @@
             return;
         }
 
+        updateLocationButton(true);
+
         navigator.geolocation.getCurrentPosition(function(position) {
-
-            let lat = position.coords.latitude;
-            let lng = position.coords.longitude;
-
-            if (!map) {
-                initMap(lat, lng);
-                return;
-            }
-
-            setLocation(lat, lng);
-
+            setLocation(position.coords.latitude, position.coords.longitude);
+            updateLocationButton(false);
         }, function() {
+            updateLocationButton(false);
             window.AppDialog.alert(
                 'Gagal mengambil lokasi',
                 'Sistem gagal mengambil lokasi perangkat. Silakan cek izin lokasi browser.',
                 'error'
             );
         }, {
-            enableHighAccuracy: true
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 0
         });
     }
 
-    // ================= UPDATE INPUT =================
     function updateInputs(lat, lng) {
-        document.getElementById("latitude").value = lat.toFixed(8);
-        document.getElementById("longitude").value = lng.toFixed(8);
+        document.getElementById('latitude').value = lat.toFixed(8);
+        document.getElementById('longitude').value = lng.toFixed(8);
     }
 
     function setLocation(lat, lng, moveMap = true) {
@@ -247,18 +262,15 @@
         updateInputs(lat, lng);
     }
 
-    // ================= RADIUS DINAMIS =================
-    document.getElementById("radius").addEventListener("input", function() {
+    document.getElementById('radius').addEventListener('input', function() {
         if (circle) {
             circle.setRadius(radiusValue());
         }
     });
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const latitudeInput = document.getElementById("latitude");
-        const longitudeInput = document.getElementById("longitude");
-        const oldLatitude = parseFloat(latitudeInput.value);
-        const oldLongitude = parseFloat(longitudeInput.value);
+    document.addEventListener('DOMContentLoaded', function() {
+        const oldLatitude = parseFloat(document.getElementById('latitude').value);
+        const oldLongitude = parseFloat(document.getElementById('longitude').value);
 
         if (Number.isFinite(oldLatitude) && Number.isFinite(oldLongitude)) {
             initMap(oldLatitude, oldLongitude);
@@ -269,5 +281,3 @@
     });
 </script>
 @endpush
-
-@endsection

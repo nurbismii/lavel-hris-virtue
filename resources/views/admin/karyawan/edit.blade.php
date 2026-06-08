@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Edit Data Karyawan')
+
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('assets/css/admin-karyawan-edit.css') }}">
 @endpush
@@ -83,13 +85,13 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
     data-kabupatens-base-url="{{ url('/wilayah/kabupatens') }}"
     data-kecamatans-base-url="{{ url('/wilayah/kecamatans') }}"
     data-kelurahans-base-url="{{ url('/wilayah/kelurahans') }}">
-    <div class="page-inner">
-        <div class="employee-edit-header d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 pt-2 pb-4">
+    <div class="page-inner ui-page">
+        <div class="ui-page-header employee-edit-header">
             <div class="employee-edit-header__identity">
                 <div class="employee-edit-header__avatar">{{ strtoupper($employeeInitials) }}</div>
                 <div>
                     <div class="employee-edit-header__eyebrow">Edit Data Karyawan</div>
-                    <h3 class="fw-bold mb-1">{{ $employee->nama_karyawan ?: 'Karyawan' }}</h3>
+                    <h3 class="ui-page-title">{{ $employee->nama_karyawan ?: 'Karyawan' }}</h3>
                     <div class="employee-edit-header__meta">
                         <span>{{ $employee->nik }}</span>
                         <span>{{ $employee->area_kerja ?: 'Area belum diatur' }}</span>
@@ -98,33 +100,49 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                 </div>
             </div>
             <div class="employee-edit-header__actions">
-                <a href="{{ route('karyawan.index') }}" class="btn btn-sm btn-light border">
-                    <i class="fas fa-arrow-left me-1"></i>Kembali
+                <a href="{{ route('karyawan.index') }}" class="btn btn-sm btn-light border ui-btn-icon" data-loading-text="Kembali...">
+                    <i class="fas fa-arrow-left"></i>
+                    Kembali
                 </a>
             </div>
         </div>
 
-        <form id="employeeEditForm" action="{{ route('karyawan.update', $employee->nik) }}" method="POST" enctype="multipart/form-data" data-auto-compress-images="true">
+        @if($errors->any())
+        <div class="alert ui-alert ui-alert--warning employee-validation-alert">
+            <div class="employee-validation-alert__icon" aria-hidden="true">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div>
+                <div class="employee-validation-alert__title">Perubahan belum bisa disimpan.</div>
+                <div class="employee-validation-alert__message">{{ $errors->first() }}</div>
+            </div>
+        </div>
+        @endif
+
+        <form id="employeeEditForm" class="employee-edit-form" action="{{ route('karyawan.update', $employee->nik) }}" method="POST" enctype="multipart/form-data" data-auto-compress-images="true" data-loading-text="Menyimpan perubahan...">
             @csrf
             @method('PUT')
 
             <div class="row g-4">
                 <div class="col-xl-8">
-                    <div class="card employee-form-card border-0">
-                        <div class="card-body p-4">
+                    <section class="ui-panel employee-form-card">
+                        <div class="ui-panel__body">
                             <ul class="nav nav-pills employee-edit-tabs" id="employeeEditTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="profil-tab" data-bs-toggle="pill" data-bs-target="#profil-pane" type="button" role="tab" aria-controls="profil-pane" aria-selected="true">
+                                        <i class="fas fa-id-card"></i>
                                         Profil
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="alamat-tab" data-bs-toggle="pill" data-bs-target="#alamat-pane" type="button" role="tab" aria-controls="alamat-pane" aria-selected="false">
+                                        <i class="fas fa-map-marker-alt"></i>
                                         Alamat
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="dokumen-tab" data-bs-toggle="pill" data-bs-target="#dokumen-pane" type="button" role="tab" aria-controls="dokumen-pane" aria-selected="false">
+                                        <i class="fas fa-folder-open"></i>
                                         Dokumen
                                     </button>
                                 </li>
@@ -143,27 +161,27 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Nama Karyawan</label>
-                                                    <input type="text" class="form-control" name="nama_karyawan" value="{{ $employee->nama_karyawan }}" required>
+                                                    <input type="text" class="form-control" name="nama_karyawan" value="{{ old('nama_karyawan', $employee->nama_karyawan) }}" required>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">No KTP</label>
-                                                    <input type="text" class="form-control" name="no_ktp" value="{{ $employee->no_ktp }}" required>
+                                                    <input type="text" class="form-control" name="no_ktp" value="{{ old('no_ktp', $employee->no_ktp) }}" required>
                                                 </div>
                                                     <div class="col-md-4">
                                                     <label class="form-label">No KK</label>
-                                                    <input type="text" class="form-control" name="no_kk" value="{{ $employee->no_kk ?? '' }}" required>
+                                                    <input type="text" class="form-control" name="no_kk" value="{{ old('no_kk', $employee->no_kk ?? '') }}" required>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Jenis Kelamin</label>
                                                     <select name="jenis_kelamin" class="form-select form-control">
                                                         <option value="">-- Pilih --</option>
-                                                        <option value="L" {{ $employee->jenis_kelamin == 'L' ? 'selected' : '' }}>Laki-laki</option>
-                                                        <option value="P" {{ $employee->jenis_kelamin == 'P' ? 'selected' : '' }}>Perempuan</option>
+                                                        <option value="L" {{ old('jenis_kelamin', $employee->jenis_kelamin) == 'L' ? 'selected' : '' }}>Laki-laki</option>
+                                                        <option value="P" {{ old('jenis_kelamin', $employee->jenis_kelamin) == 'P' ? 'selected' : '' }}>Perempuan</option>
                                                     </select>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Tanggal Lahir</label>
-                                                    <input type="date" class="form-control" name="tgl_lahir" value="{{ optional($employee->tgl_lahir)->format('Y-m-d') }}">
+                                                    <input type="date" class="form-control" name="tgl_lahir" value="{{ old('tgl_lahir', optional($employee->tgl_lahir)->format('Y-m-d')) }}">
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Agama</label>
@@ -181,14 +199,14 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                     <label class="form-label">Status Perkawinan</label>
                                                     <select name="status_perkawinan" id="status_perkawinan" class="form-select form-control">
                                                         <option value="">Pilih Status</option>
-                                                        <option value="Belum Kawin" {{ $employee->status_perkawinan == 'Belum Kawin' ? 'selected' : '' }}>Belum Kawin</option>
-                                                        <option value="Kawin" {{ $employee->status_perkawinan == 'Kawin' ? 'selected' : '' }}>Kawin</option>
-                                                        <option value="Cerai" {{ $employee->status_perkawinan == 'Cerai' ? 'selected' : '' }}>Cerai</option>
+                                                        <option value="Belum Kawin" {{ old('status_perkawinan', $employee->status_perkawinan) == 'Belum Kawin' ? 'selected' : '' }}>Belum Kawin</option>
+                                                        <option value="Kawin" {{ old('status_perkawinan', $employee->status_perkawinan) == 'Kawin' ? 'selected' : '' }}>Kawin</option>
+                                                        <option value="Cerai" {{ old('status_perkawinan', $employee->status_perkawinan) == 'Cerai' ? 'selected' : '' }}>Cerai</option>
                                                     </select>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">No. Telp</label>
-                                                    <input type="text" class="form-control" name="no_telp" value="{{ $employee->no_telp }}">
+                                                    <input type="text" class="form-control" name="no_telp" value="{{ old('no_telp', $employee->no_telp) }}">
                                                 </div>
                                             </div>
                                         </div>
@@ -201,15 +219,15 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                             <div class="row g-3">
                                                 <div class="col-md-4">
                                                     <label class="form-label">No SK PKWTT</label>
-                                                    <input type="text" class="form-control" name="no_sk_pkwtt" value="{{ $employee->no_sk_pkwtt }}">
+                                                    <input type="text" class="form-control" name="no_sk_pkwtt" value="{{ old('no_sk_pkwtt', $employee->no_sk_pkwtt) }}">
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Posisi</label>
-                                                    <input type="text" class="form-control" name="posisi" value="{{ $employee->posisi }}">
+                                                    <input type="text" class="form-control" name="posisi" value="{{ old('posisi', $employee->posisi) }}">
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Jabatan</label>
-                                                    <input type="text" class="form-control" name="jabatan" value="{{ $employee->jabatan }}">
+                                                    <input type="text" class="form-control" name="jabatan" value="{{ old('jabatan', $employee->jabatan) }}">
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Status Kontrak</label>
@@ -314,15 +332,15 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                             <div class="row g-3">
                                                 <div class="col-md-4">
                                                     <label class="form-label">NPWP</label>
-                                                    <input type="text" class="form-control" name="npwp" value="{{ $employee->npwp }}">
+                                                    <input type="text" class="form-control" name="npwp" value="{{ old('npwp', $employee->npwp) }}">
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">BPJS Kesehatan</label>
-                                                    <input type="text" class="form-control" name="bpjs_kesehatan" value="{{ $employee->bpjs_kesehatan }}">
+                                                    <input type="text" class="form-control" name="bpjs_kesehatan" value="{{ old('bpjs_kesehatan', $employee->bpjs_kesehatan) }}">
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">BPJS Ketenagakerjaan</label>
-                                                    <input type="text" class="form-control" name="bpjs_tk" value="{{ $employee->bpjs_tk }}">
+                                                    <input type="text" class="form-control" name="bpjs_tk" value="{{ old('bpjs_tk', $employee->bpjs_tk) }}">
                                                 </div>
                                             </div>
                                         </div>
@@ -370,11 +388,11 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                             <div class="row g-3">
                                                 <div class="col-md-6">
                                                     <label class="form-label">Alamat KTP</label>
-                                                    <textarea class="form-control" name="alamat_ktp" rows="5">{{ $employee->alamat_ktp }}</textarea>
+                                                    <textarea class="form-control" name="alamat_ktp" rows="5">{{ old('alamat_ktp', $employee->alamat_ktp) }}</textarea>
                                                 </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">Alamat Domisili</label>
-                                                    <textarea class="form-control" name="alamat_domisili" rows="5">{{ $employee->alamat_domisili }}</textarea>
+                                                    <textarea class="form-control" name="alamat_domisili" rows="5">{{ old('alamat_domisili', $employee->alamat_domisili) }}</textarea>
                                                 </div>
                                             </div>
                                         </div>
@@ -411,10 +429,12 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                             </div>
                                                             @if($employee->face_reference_path)
                                                             <div class="employee-document-row__actions">
-                                                                <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ route('karyawan.documents.preview', ['nik' => $employee->nik, 'type' => 'face_reference']) }}" data-file-type="image" data-file-label="Foto Referensi Wajah" data-file-name="{{ basename($employee->face_reference_path) }}">
+                                                                <button type="button" class="btn btn-sm btn-outline-primary ui-btn-icon" data-document-preview data-file-url="{{ route('karyawan.documents.preview', ['nik' => $employee->nik, 'type' => 'face_reference']) }}" data-file-type="image" data-file-label="Foto Referensi Wajah" data-file-name="{{ basename($employee->face_reference_path) }}">
+                                                                    <i class="fas fa-eye"></i>
                                                                     Lihat
                                                                 </button>
-                                                                <a href="{{ route('karyawan.documents.download', ['nik' => $employee->nik, 'type' => 'face_reference']) }}" download class="btn btn-sm btn-primary">
+                                                                <a href="{{ route('karyawan.documents.download', ['nik' => $employee->nik, 'type' => 'face_reference']) }}" download class="btn btn-sm btn-primary ui-btn-icon">
+                                                                    <i class="fas fa-download"></i>
                                                                     Unduh
                                                                 </a>
                                                             </div>
@@ -476,10 +496,12 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                             </div>
                                                             @if($document['path'])
                                                             <div class="employee-document-row__actions">
-                                                                <button type="button" class="btn btn-sm btn-outline-primary" data-document-preview data-file-url="{{ $document['url'] }}" data-file-type="{{ $document['is_pdf'] ? 'pdf' : 'image' }}" data-file-label="{{ $document['label'] }}" data-file-name="{{ $document['file_name'] }}">
+                                                                <button type="button" class="btn btn-sm btn-outline-primary ui-btn-icon" data-document-preview data-file-url="{{ $document['url'] }}" data-file-type="{{ $document['is_pdf'] ? 'pdf' : 'image' }}" data-file-label="{{ $document['label'] }}" data-file-name="{{ $document['file_name'] }}">
+                                                                    <i class="fas fa-eye"></i>
                                                                     Lihat
                                                                 </button>
-                                                                <a href="{{ $document['download_url'] }}" download class="btn btn-sm btn-primary">
+                                                                <a href="{{ $document['download_url'] }}" download class="btn btn-sm btn-primary ui-btn-icon">
+                                                                    <i class="fas fa-download"></i>
                                                                     Unduh
                                                                 </a>
                                                             </div>
@@ -509,13 +531,13 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </section>
                 </div>
 
                 <div class="col-xl-4">
                     <div class="employee-action-card d-flex flex-column gap-4">
-                        <div class="card employee-summary-card border-0">
-                            <div class="card-body p-4">
+                        <section class="ui-panel employee-summary-card">
+                            <div class="ui-panel__body">
                                 <div class="employee-summary-card__top">
                                     <div class="employee-summary-card__avatar">{{ strtoupper($employeeInitials) }}</div>
                                     <div>
@@ -565,22 +587,24 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </section>
 
-                        <div class="card employee-save-card border-0">
-                            <div class="card-body p-4">
+                        <section class="ui-panel employee-save-card">
+                            <div class="ui-panel__body">
                                 <div class="employee-edit-section__title">Aksi</div>
                                 <div class="employee-edit-section__caption">Simpan perubahan setelah seluruh data dan dokumen diperiksa kembali.</div>
                                 <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-primary" id="employeeSaveButton" data-loading-text="Menyimpan...">
-                                        <i class="fas fa-save me-1"></i> Simpan Perubahan
+                                    <button type="submit" class="btn btn-primary ui-btn-icon" id="employeeSaveButton" data-loading-text="Menyimpan perubahan...">
+                                        <i class="fas fa-save"></i>
+                                        Simpan Perubahan
                                     </button>
-                                    <a href="{{ route('karyawan.index') }}" class="btn btn-outline-secondary">
+                                    <a href="{{ route('karyawan.index') }}" class="btn btn-outline-secondary ui-btn-icon" data-loading-text="Membatalkan...">
+                                        <i class="fas fa-times"></i>
                                         Batal
                                     </a>
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
                 </div>
             </div>
@@ -607,10 +631,12 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                 </div>
             </div>
             <div class="modal-footer">
-                <a href="#" class="btn btn-outline-secondary" id="employeeDocumentPreviewOpen" target="_blank" rel="noopener noreferrer">
+                <a href="#" class="btn btn-outline-secondary ui-btn-icon" id="employeeDocumentPreviewOpen" target="_blank" rel="noopener noreferrer">
+                    <i class="fas fa-external-link-alt"></i>
                     Buka di Tab Baru
                 </a>
-                <a href="#" class="btn btn-primary" id="employeeDocumentPreviewDownload" download>
+                <a href="#" class="btn btn-primary ui-btn-icon" id="employeeDocumentPreviewDownload" download>
+                    <i class="fas fa-download"></i>
                     Unduh
                 </a>
             </div>

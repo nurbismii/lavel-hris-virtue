@@ -2,13 +2,12 @@
 
 namespace App\Notifications;
 
+use App\Support\EmailUrl;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
-use Illuminate\Notifications\Notification;
-use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Auth\Notifications\VerifyEmail as BaseVerifyEmail;
 
-class VerifyEmailCustom extends Notification
+class VerifyEmailCustom extends BaseVerifyEmail
 {
     use Queueable;
 
@@ -41,7 +40,7 @@ class VerifyEmailCustom extends Notification
      */
     public function toMail($notifiable)
     {
-        $url = $this->verificationUrl($notifiable);
+        $url = EmailUrl::login($this->verificationUrl($notifiable));
 
         return (new MailMessage)
             ->subject('Verifikasi Email V-People')

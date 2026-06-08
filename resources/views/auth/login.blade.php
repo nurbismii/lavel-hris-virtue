@@ -78,6 +78,9 @@
 
                         <form method="POST" action="{{ route('login') }}">
                             @csrf
+                            @if(!empty($redirect))
+                            <input type="hidden" name="redirect" value="{{ $redirect }}">
+                            @endif
 
                             {{-- Email --}}
                             <div class="mb-3">

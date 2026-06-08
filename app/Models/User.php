@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,6 +10,7 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Auth\Notifications\VerifyEmail as VerifyEmailNotification;
 use App\Notifications\ResetPasswordNotification;
+use App\Support\EmailUrl;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -99,7 +99,7 @@ class User extends Authenticatable implements MustVerifyEmail
                     ->line('Silakan klik tombol berikut untuk mengaktifkan akun Anda.')
                     ->action(
                         'Verifikasi Email',
-                        $this->verificationUrl($notifiable)
+                        EmailUrl::login($this->verificationUrl($notifiable))
                     )
                     ->line('Jika Anda tidak merasa membuat akun, abaikan email ini.')
                     ->salutation('PT Virtue Dragon Nickel Industry');

@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\EmployeeContract;
+use App\Support\EmailUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -13,10 +14,12 @@ class ContractRenewalReadyNotification extends Notification implements ShouldQue
     use Queueable;
 
     private int $contractId;
+    private string $baseUrl;
 
     public function __construct(int $contractId)
     {
         $this->contractId = $contractId;
+        $this->baseUrl = EmailUrl::currentBaseUrl();
     }
 
     public function via($notifiable): array
@@ -33,13 +36,18 @@ class ContractRenewalReadyNotification extends Notification implements ShouldQue
     public function toMail($notifiable): MailMessage
     {
         $contract = $this->contract();
+        $contractUrl = EmailUrl::route(
+            'user-electronic-contracts.show',
+            ['contract' => $this->contractId],
+            $this->baseUrl
+        );
 
         return (new MailMessage)
             ->subject('Kontrak Elektronik Perpanjangan Siap Ditandatangani')
             ->greeting('Halo ' . ($notifiable->name ?: 'Karyawan') . ',')
             ->line('Kontrak elektronik perpanjangan Anda sudah tersedia di V-People.')
             ->line('Nomor kontrak: ' . optional($contract)->display_number)
-            ->action('Buka Kontrak Elektronik', route('user-electronic-contracts.show', $this->contractId))
+            ->action('Login dan Buka Kontrak Elektronik', EmailUrl::login($contractUrl, $this->baseUrl))
             ->line('Silakan baca dokumen dengan teliti sebelum memberikan tanda tangan elektronik.')
             ->salutation('HRD PT Virtue Dragon Nickel Industry');
     }
@@ -51,7 +59,7 @@ class ContractRenewalReadyNotification extends Notification implements ShouldQue
         return [
             'judul' => 'Kontrak Perpanjangan Siap Ditandatangani',
             'pesan' => 'Kontrak elektronik ' . optional($contract)->display_number . ' sudah tersedia di menu Kontrak Elektronik.',
-            'url' => route('user-electronic-contracts.show', $this->contractId),
+            'url' => route('user-electronic-contracts.show', ['contract' => $this->contractId], false),
             'tipe' => 'Kontrak Elektronik',
         ];
     }

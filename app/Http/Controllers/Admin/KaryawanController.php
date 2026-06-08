@@ -40,10 +40,6 @@ class KaryawanController extends Controller
 
     public function index(Request $request)
     {
-        $title = 'Delete Data!';
-        $text = "Are you sure you want to delete?";
-        confirmDelete($title, $text);
-
         if ($request->ajax()) {
 
             $karyawanService = app()->make(\App\Services\Karyawan\KaryawanService::class);
@@ -100,7 +96,12 @@ class KaryawanController extends Controller
         abort_unless($request->user()->canAccessAllEmployees(), 403, 'Akses tidak diizinkan.');
 
         $request->validate([
-            'file' => 'required|mimes:xlsx'
+            'file' => 'required|file|mimes:xlsx|max:51200',
+        ], [
+            'file.required' => 'File Excel karyawan wajib dipilih.',
+            'file.file' => 'Upload harus berupa file Excel yang valid.',
+            'file.mimes' => 'Format file harus .xlsx.',
+            'file.max' => 'Ukuran file Excel maksimal 50MB.',
         ]);
 
         $uploadedFile = $request->file('file');
@@ -124,13 +125,13 @@ class KaryawanController extends Controller
                 new DeleteImportedFile($filePath)
             ]);
 
-            toast()->success('Success', 'Your file is being processed in the background.');
+            toast()->success('Berhasil', 'File import karyawan berhasil diterima dan sedang diproses di background. Cek History Import untuk melihat hasilnya.');
             return back();
         } catch (Throwable $e) {
             app(ImportHistoryService::class)->markFailed(optional($history)->id, $e);
             report($e);
 
-            toast()->error('Error', 'File kamu rusak, buat file baru dan import ulang.');
+            toast()->error('Gagal', 'File import karyawan gagal diterima. Pastikan format file .xlsx sesuai template lalu coba lagi.');
             return back();
         }
     }
@@ -305,12 +306,13 @@ class KaryawanController extends Controller
 
         if ($request->expectsJson()) {
             return response()->json([
+                'success' => true,
                 'message' => $message,
                 'redirect_url' => route('karyawan.index'),
             ]);
         }
 
-        toast()->success('Success', $message);
+        toast()->success('Berhasil', $message);
         return redirect()->route('karyawan.index');
     }
 
@@ -458,7 +460,7 @@ class KaryawanController extends Controller
     }
 
     /**
-     * DEPARTEMEN → DIVISI
+     * DEPARTEMEN -> DIVISI
      */
     public function divisiByDepartemen(Request $request)
     {

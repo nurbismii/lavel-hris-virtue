@@ -40,47 +40,76 @@
         return options;
     }
 
+    function setSelectLoading(selector, label) {
+        $(selector)
+            .html(`<option value="">${escapeHtml(label || 'Memuat...')}</option>`)
+            .prop('disabled', true);
+    }
+
+    function setSelectReady(selector, options) {
+        $(selector)
+            .html(options)
+            .prop('disabled', false);
+    }
+
+    function showAjaxError(message) {
+        if (window.Swal && typeof window.Swal.fire === 'function') {
+            window.Swal.fire({
+                icon: 'error',
+                title: 'Gagal',
+                text: message,
+                confirmButtonText: 'OK'
+            });
+
+            return;
+        }
+
+        window.alert(message);
+    }
+
     function loadCompanyHierarchy() {
         $('#perusahaan_id').on('change', function() {
             const perusahaan = $(this).val();
 
-            $('#departemen_id').html('<option value="">Loading...</option>');
-            $('#divisi_id').html('<option value="">-- Pilih Divisi --</option>');
+            setSelectLoading('#departemen_id', 'Memuat departemen...');
+            setSelectReady('#divisi_id', '<option value="">-- Pilih Divisi --</option>');
 
             if (!perusahaan || !config.departemenUrl) {
-                $('#departemen_id').html('<option value="">-- Pilih Departemen --</option>');
+                setSelectReady('#departemen_id', '<option value="">-- Pilih Departemen --</option>');
                 return;
             }
 
             $.get(config.departemenUrl, { area: perusahaan }, function(data) {
-                $('#departemen_id').html(buildOptions('-- Pilih Departemen --', data, 'id', 'departemen'));
+                setSelectReady('#departemen_id', buildOptions('-- Pilih Departemen --', data, 'id', 'departemen'));
 
                 if (config.oldDepartemen && perusahaan === config.oldPerusahaan) {
                     $('#departemen_id').val(config.oldDepartemen).trigger('change');
                 }
             }).fail(function() {
-                $('#departemen_id').html('<option value="">Departemen gagal dimuat</option>');
+                setSelectReady('#departemen_id', '<option value="">Departemen gagal dimuat</option>');
+                showAjaxError('Departemen gagal dimuat. Silakan cek koneksi lalu coba lagi.');
             });
         });
 
         $('#departemen_id').on('change', function() {
             const departemen = $(this).val();
 
-            $('#divisi_id').html('<option value="">Loading...</option>');
+            setSelectLoading('#divisi_id', 'Memuat divisi...');
 
             if (!departemen || !config.divisiUrl) {
-                $('#divisi_id').html('<option value="">-- Pilih Divisi --</option>');
+                setSelectReady('#divisi_id', '<option value="">-- Pilih Divisi --</option>');
                 return;
             }
 
             $.get(config.divisiUrl, { departemen: departemen }, function(data) {
-                $('#divisi_id').html(buildOptions('-- Pilih Divisi --', data, 'id', 'nama_divisi'));
+                setSelectReady('#divisi_id', buildOptions('-- Pilih Divisi --', data, 'id', 'nama_divisi'));
 
                 if (config.oldDivisi && departemen === config.oldDepartemen) {
                     $('#divisi_id').val(config.oldDivisi);
                 }
             }).fail(function() {
-                $('#divisi_id').html('<option value="">Divisi gagal dimuat</option>');
+                setSelectReady('#divisi_id', '<option value="">Divisi gagal dimuat</option>');
+                showAjaxError('Divisi gagal dimuat. Silakan cek koneksi lalu coba lagi.');
             });
         });
 
@@ -148,75 +177,105 @@
         }
 
         $.get(config.provincesUrl, function(data) {
-            $('#provinsi_id').html(buildOptions('-- Pilih Provinsi --', data, 'id', 'provinsi'));
+            setSelectReady('#provinsi_id', buildOptions('-- Pilih Provinsi --', data, 'id', 'provinsi'));
 
             if (config.oldProvinsi) {
                 $('#provinsi_id').val(config.oldProvinsi).trigger('change');
             }
         }).fail(function() {
-            $('#provinsi_id').html('<option value="">Provinsi gagal dimuat</option>');
+            setSelectReady('#provinsi_id', '<option value="">Provinsi gagal dimuat</option>');
+            showAjaxError('Provinsi gagal dimuat. Silakan cek koneksi lalu coba lagi.');
         });
 
         $('#provinsi_id').on('change', function() {
             const provinsi = $(this).val();
 
-            $('#kabupaten_id').html('<option>Loading...</option>');
-            $('#kecamatan_id').html('<option value="">-- Pilih Kecamatan --</option>');
-            $('#kelurahan_id').html('<option value="">-- Pilih Kelurahan --</option>');
+            setSelectLoading('#kabupaten_id', 'Memuat kabupaten...');
+            setSelectReady('#kecamatan_id', '<option value="">-- Pilih Kecamatan --</option>');
+            setSelectReady('#kelurahan_id', '<option value="">-- Pilih Kelurahan --</option>');
 
             if (!provinsi || !config.kabupatensBaseUrl) {
+                setSelectReady('#kabupaten_id', '<option value="">-- Pilih Kabupaten --</option>');
                 return;
             }
 
             $.get(`${config.kabupatensBaseUrl}/${provinsi}`, function(data) {
-                $('#kabupaten_id').html(buildOptions('-- Pilih Kabupaten --', data, 'id', 'kabupaten'));
+                setSelectReady('#kabupaten_id', buildOptions('-- Pilih Kabupaten --', data, 'id', 'kabupaten'));
 
                 if (config.oldKabupaten && provinsi === config.oldProvinsi) {
                     $('#kabupaten_id').val(config.oldKabupaten).trigger('change');
                 }
             }).fail(function() {
-                $('#kabupaten_id').html('<option value="">Kabupaten gagal dimuat</option>');
+                setSelectReady('#kabupaten_id', '<option value="">Kabupaten gagal dimuat</option>');
+                showAjaxError('Kabupaten gagal dimuat. Silakan cek koneksi lalu coba lagi.');
             });
         });
 
         $('#kabupaten_id').on('change', function() {
             const kabupaten = $(this).val();
 
-            $('#kecamatan_id').html('<option>Loading...</option>');
-            $('#kelurahan_id').html('<option value="">-- Pilih Kelurahan --</option>');
+            setSelectLoading('#kecamatan_id', 'Memuat kecamatan...');
+            setSelectReady('#kelurahan_id', '<option value="">-- Pilih Kelurahan --</option>');
 
             if (!kabupaten || !config.kecamatansBaseUrl) {
+                setSelectReady('#kecamatan_id', '<option value="">-- Pilih Kecamatan --</option>');
                 return;
             }
 
             $.get(`${config.kecamatansBaseUrl}/${kabupaten}`, function(data) {
-                $('#kecamatan_id').html(buildOptions('-- Pilih Kecamatan --', data, 'id', 'kecamatan'));
+                setSelectReady('#kecamatan_id', buildOptions('-- Pilih Kecamatan --', data, 'id', 'kecamatan'));
 
                 if (config.oldKecamatan && kabupaten === config.oldKabupaten) {
                     $('#kecamatan_id').val(config.oldKecamatan).trigger('change');
                 }
             }).fail(function() {
-                $('#kecamatan_id').html('<option value="">Kecamatan gagal dimuat</option>');
+                setSelectReady('#kecamatan_id', '<option value="">Kecamatan gagal dimuat</option>');
+                showAjaxError('Kecamatan gagal dimuat. Silakan cek koneksi lalu coba lagi.');
             });
         });
 
         $('#kecamatan_id').on('change', function() {
             const kecamatan = $(this).val();
 
-            $('#kelurahan_id').html('<option>Loading...</option>');
+            setSelectLoading('#kelurahan_id', 'Memuat kelurahan...');
 
             if (!kecamatan || !config.kelurahansBaseUrl) {
+                setSelectReady('#kelurahan_id', '<option value="">-- Pilih Kelurahan --</option>');
                 return;
             }
 
             $.get(`${config.kelurahansBaseUrl}/${kecamatan}`, function(data) {
-                $('#kelurahan_id').html(buildOptions('-- Pilih Kelurahan --', data, 'id', 'kelurahan'));
+                setSelectReady('#kelurahan_id', buildOptions('-- Pilih Kelurahan --', data, 'id', 'kelurahan'));
 
                 if (config.oldKelurahan && kecamatan === config.oldKecamatan) {
                     $('#kelurahan_id').val(config.oldKelurahan);
                 }
             }).fail(function() {
-                $('#kelurahan_id').html('<option value="">Kelurahan gagal dimuat</option>');
+                setSelectReady('#kelurahan_id', '<option value="">Kelurahan gagal dimuat</option>');
+                showAjaxError('Kelurahan gagal dimuat. Silakan cek koneksi lalu coba lagi.');
+            });
+        });
+    }
+
+    function bindFileInputState() {
+        document.querySelectorAll('.employee-document-row input[type="file"]').forEach((input) => {
+            input.addEventListener('change', function() {
+                const row = this.closest('.employee-document-row');
+                const help = row ? row.querySelector('.employee-document-input__help') : null;
+                const file = this.files && this.files.length ? this.files[0] : null;
+
+                if (!row || !help) {
+                    return;
+                }
+
+                if (!help.dataset.originalText) {
+                    help.dataset.originalText = help.textContent.trim();
+                }
+
+                row.classList.toggle('employee-document-row--has-new-file', Boolean(file));
+                help.textContent = file
+                    ? `File dipilih: ${file.name}. Simpan perubahan untuk mengunggah.`
+                    : help.dataset.originalText;
             });
         });
     }
@@ -245,6 +304,7 @@
         loadCompanyHierarchy();
         loadDocumentPreview();
         loadRegionHierarchy();
+        bindFileInputState();
         bindSubmitState();
     });
 })(window.jQuery);

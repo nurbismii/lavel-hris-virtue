@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\EmailUrl;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
@@ -16,9 +17,28 @@ class LoginController extends Controller
         $this->middleware('guest')->except('logout');
     }
 
+    public function showLoginForm(Request $request)
+    {
+        $redirect = EmailUrl::safeRedirectPath($request->query('redirect'));
+
+        if ($redirect) {
+            $request->session()->put('url.intended', $redirect);
+        }
+
+        return view('auth.login', [
+            'redirect' => $redirect,
+        ]);
+    }
+
     protected function authenticated(Request $request, $user)
     {
         $user->markLastLogin();
+
+        $redirect = EmailUrl::safeRedirectPath($request->input('redirect'));
+
+        if ($redirect) {
+            return redirect()->to($redirect);
+        }
     }
 
     protected function redirectTo()

@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\EmployeeContractRenewal;
+use App\Support\EmailUrl;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
@@ -13,10 +14,12 @@ class ContractRenewalTerminatedNotification extends Notification implements Shou
     use Queueable;
 
     private int $renewalId;
+    private string $baseUrl;
 
     public function __construct(int $renewalId)
     {
         $this->renewalId = $renewalId;
+        $this->baseUrl = EmailUrl::currentBaseUrl();
     }
 
     public function via($notifiable): array
@@ -41,7 +44,10 @@ class ContractRenewalTerminatedNotification extends Notification implements Shou
             ->line('Berdasarkan hasil proses evaluasi perpanjangan kontrak, kontrak kerja Anda tidak diperpanjang.')
             ->line('Tanggal akhir kontrak: ' . $endDate)
             ->line('Silakan menghubungi HRD untuk informasi administrasi dan arahan selanjutnya.')
-            ->action('Buka Kotak Masuk', route('kotak-masuk.index'))
+            ->action(
+                'Login dan Buka Kotak Masuk',
+                EmailUrl::login(EmailUrl::route('kotak-masuk.index', [], $this->baseUrl), $this->baseUrl)
+            )
             ->salutation('HRD PT Virtue Dragon Nickel Industry');
     }
 
@@ -53,7 +59,7 @@ class ContractRenewalTerminatedNotification extends Notification implements Shou
         return [
             'judul' => 'Informasi Status Kontrak Kerja',
             'pesan' => 'Kontrak kerja Anda tidak diperpanjang. Tanggal akhir kontrak: ' . $endDate . '.',
-            'url' => route('kotak-masuk.index'),
+            'url' => route('kotak-masuk.index', [], false),
             'tipe' => 'Perpanjangan Kontrak',
         ];
     }
