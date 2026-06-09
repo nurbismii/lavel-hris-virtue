@@ -25,6 +25,25 @@
     .contract-renewal-delegate-select .select2-container--default .select2-selection--single .select2-selection__arrow {
         min-height: 29px;
     }
+
+    .contract-history-details summary {
+        cursor: pointer;
+    }
+
+    .contract-history-list {
+        border-left: 2px solid #e5e7eb;
+        max-width: 360px;
+    }
+
+    .contract-history-item {
+        margin-left: 10px;
+        padding: 0 0 10px 10px;
+    }
+
+    .contract-history-item + .contract-history-item {
+        border-top: 1px dashed #e5e7eb;
+        padding-top: 10px;
+    }
 </style>
 @endpush
 
@@ -92,6 +111,14 @@
                         </option>
                     @endforeach
                 </select>
+                <input
+                    type="text"
+                    name="search"
+                    class="form-control form-control-sm"
+                    style="width: 220px;"
+                    value="{{ $search ?? '' }}"
+                    placeholder="Cari nama / NIK"
+                >
                 <select name="days" class="form-select form-select-sm" style="width: 150px;">
                     @foreach([30, 45, 60, 90] as $option)
                         <option value="{{ $option }}" {{ (int) $days === $option ? 'selected' : '' }}>{{ $option }} hari</option>
@@ -160,6 +187,7 @@
                         <input type="hidden" name="divisi_id" value="{{ $filters['divisi_id'] ?? '' }}">
                         <input type="hidden" name="days" value="{{ $days }}">
                         <input type="hidden" name="status" value="{{ $status }}">
+                        <input type="hidden" name="search" value="{{ $search ?? '' }}">
                         <div data-bulk-history-inputs></div>
 
                         <div class="row g-2 align-items-end">
@@ -239,6 +267,9 @@
                                     <td>
                                         <span class="badge bg-info">{{ $history->raw_history_type }}</span>
                                         <small class="d-block text-muted mt-1">Durasi: {{ $history->duration_label ?: '-' }}</small>
+                                        @include('admin.contract-renewals.partials.contract-history-list', [
+                                            'historyItems' => $contractHistoryMap[$history->nik] ?? collect(),
+                                        ])
                                     </td>
                                     <td>
                                         <strong>{{ optional($history->contract_end_date)->format('d M Y') ?: '-' }}</strong>
@@ -326,6 +357,9 @@
                                         <small class="d-block text-muted">
                                             Akhir saat ini: {{ optional($renewal->current_contract_end_date)->format('d M Y') ?: '-' }}
                                         </small>
+                                        @include('admin.contract-renewals.partials.contract-history-list', [
+                                            'historyItems' => $contractHistoryMap[$renewal->employee_nik] ?? collect(),
+                                        ])
                                     </td>
                                     <td>
                                         <span class="badge bg-{{ $renewal->status_badge_class }}">{{ $renewal->status_label }}</span>

@@ -48,7 +48,7 @@ class ContractRenewalService
     public function upcomingHistoriesQuery(User $user, int $days = 30): Builder
     {
         $today = Carbon::today();
-        $until = $today->copy()->addDays(max(1, min($days, 90)));
+        $until = $today->copy()->addDays(max(1, min($days, 180)));
 
         $latestEndSubquery = EmployeeContractHistory::query()
             ->select('nik', DB::raw('MAX(contract_end_date) as latest_contract_end_date'))
@@ -204,6 +204,214 @@ class ContractRenewalService
                 $employeeQuery->where('divisi_id', $filters['divisi_id']);
             }
         });
+    }
+
+    public function applyEmployeeSearch(Builder $query, ?string $search, string $relation = 'employee'): Builder
+    {
+        $search = trim((string) $search);
+
+        if ($search === '') {
+            return $query;
+        }
+
+        $search = mb_substr($search, 0, 100);
+        $nameLike = '%' . $search . '%';
+        $nikLike = $search . '%';
+
+        return $query->whereHas($relation, function (Builder $employeeQuery) use ($nameLike, $nikLike) {
+            $employeeQuery->where(function (Builder $searchQuery) use ($nameLike, $nikLike) {
+                $searchQuery->where('nik', 'like', $nikLike)
+                    ->orWhere('nama_karyawan', 'like', $nameLike);
+            });
+        });
+    }
+
+    public function contractHistoriesForNiks(array $niks): Collection
+    {
+        $niks = collect($niks)
+            ->map(fn($nik) => trim((string) $nik))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($niks->isEmpty()) {
+            return collect();
+        }
+
+        $timelineByNik = collect();
+
+        EmployeeContractHistory::query()
+            ->whereIn('nik', $niks->all())
+            ->orderBy('nik')
+            ->orderBy('history_sequence')
+            ->orderBy('contract_end_date')
+            ->orderBy('id')
+            ->get()
+            ->each(function (EmployeeContractHistory $history) use ($timelineByNik) {
+                $this->pushContractTimelineItem($timelineByNik, $this->normalizeContractHistoryItem($history));
+            });
+
+        EmployeeContract::query()
+            ->whereIn('nik', $niks->all())
+            ->whereIn('contract_type', [ContractTemplate::TYPE_PKWT_1, ContractTemplate::TYPE_ADDENDUM_PKWT])
+            ->orderBy('nik')
+            ->orderBy('contract_start_date')
+            ->orderBy('contract_end_date')
+            ->orderBy('id')
+            ->get()
+            ->each(function (EmployeeContract $contract) use ($timelineByNik) {
+                $this->pushContractTimelineItem($timelineByNik, $this->normalizeElectronicContractTimelineItem($contract));
+            });
+
+        return $timelineByNik->map(function (Collection $items) {
+            return $items
+                ->sortBy(fn(array $item) => sprintf(
+                    '%02d-%04d-%s-%010d',
+                    (int) $item['type_order'],
+                    (int) $item['sequence'],
+                    $item['sort_date'] ?: '9999-12-31',
+                    (int) $item['id']
+                ))
+                ->values();
+        });
+    }
+
+    private function pushContractTimelineItem(Collection $timelineByNik, array $item): void
+    {
+        $nik = $item['nik'];
+        $items = $timelineByNik->get($nik, collect());
+        $matchedIndex = $items->search(fn(array $existing) => $this->contractTimelineItemsMatch($existing, $item));
+
+        if ($matchedIndex === false) {
+            $items->push($item);
+            $timelineByNik->put($nik, $items);
+            return;
+        }
+
+        $existing = $items->get($matchedIndex);
+
+        foreach (['number', 'start_date', 'end_date', 'duration_label', 'signed_at', 'status_label', 'source_contract_id'] as $key) {
+            if (blank($existing[$key] ?? null) && filled($item[$key] ?? null)) {
+                $existing[$key] = $item[$key];
+            }
+        }
+
+        if (filled($item['signed_at'] ?? null)) {
+            $existing['signed_at'] = $item['signed_at'];
+        }
+
+        if (filled($item['status_label'] ?? null)) {
+            $existing['status_label'] = $item['status_label'];
+        }
+
+        if (filled($item['source_contract_id'] ?? null)) {
+            $existing['source_contract_id'] = $item['source_contract_id'];
+        }
+
+        $sources = collect(explode('+', (string) $existing['source']))
+            ->push((string) $item['source'])
+            ->filter()
+            ->unique()
+            ->values()
+            ->implode('+');
+        $existing['source'] = $sources;
+        $items->put($matchedIndex, $existing);
+        $timelineByNik->put($nik, $items);
+    }
+
+    private function contractTimelineItemsMatch(array $existing, array $item): bool
+    {
+        if ((string) $existing['nik'] !== (string) $item['nik']) {
+            return false;
+        }
+
+        if ((string) $existing['history_type'] !== (string) $item['history_type']) {
+            return false;
+        }
+
+        if ((int) $existing['sequence'] !== (int) $item['sequence']) {
+            return false;
+        }
+
+        $existingEndDate = $this->dateKey($existing['end_date'] ?? null);
+        $itemEndDate = $this->dateKey($item['end_date'] ?? null);
+
+        if ($existingEndDate !== null && $itemEndDate !== null) {
+            return $existingEndDate === $itemEndDate;
+        }
+
+        return filled($existing['number'] ?? null)
+            && filled($item['number'] ?? null)
+            && (string) $existing['number'] === (string) $item['number'];
+    }
+
+    private function normalizeContractHistoryItem(EmployeeContractHistory $history): array
+    {
+        return [
+            'id' => $history->id,
+            'nik' => $history->nik,
+            'source' => 'history',
+            'source_contract_id' => null,
+            'history_type' => $history->history_type,
+            'type_order' => $this->contractTimelineTypeOrder($history->history_type),
+            'type_label' => $history->history_type_label,
+            'raw_type' => $history->raw_history_type ?: $history->history_type_label,
+            'sequence' => (int) $history->history_sequence,
+            'number' => $history->contract_number,
+            'start_date' => $history->entry_date,
+            'end_date' => $history->contract_end_date,
+            'signed_at' => null,
+            'duration_label' => $history->duration_label,
+            'status_label' => null,
+            'sort_date' => $this->dateKey($history->contract_end_date) ?: $this->dateKey($history->entry_date),
+        ];
+    }
+
+    private function normalizeElectronicContractTimelineItem(EmployeeContract $contract): array
+    {
+        $isAddendum = $contract->contract_type === ContractTemplate::TYPE_ADDENDUM_PKWT;
+        $endDate = $isAddendum
+            ? ($contract->first_extension_end_date ?: $contract->contract_end_date)
+            : $contract->contract_end_date;
+
+        return [
+            'id' => $contract->id,
+            'nik' => $contract->nik,
+            'source' => 'electronic',
+            'source_contract_id' => $contract->id,
+            'history_type' => $contract->contract_type,
+            'type_order' => $this->contractTimelineTypeOrder($contract->contract_type),
+            'type_label' => $contract->type_label,
+            'raw_type' => $isAddendum
+                ? 'ADENDUM ' . ((int) $contract->addendum_sequence ?: '-')
+                : 'PKWT 1',
+            'sequence' => $isAddendum ? (int) $contract->addendum_sequence : 0,
+            'number' => $contract->display_number,
+            'start_date' => $contract->contract_start_date,
+            'end_date' => $endDate,
+            'signed_at' => $contract->signed_at,
+            'duration_label' => $isAddendum ? $contract->first_extension_duration : $contract->contract_duration,
+            'status_label' => $contract->status_label,
+            'sort_date' => $this->dateKey($endDate) ?: $this->dateKey($contract->contract_start_date),
+        ];
+    }
+
+    private function contractTimelineTypeOrder(?string $type): int
+    {
+        if ($type === ContractTemplate::TYPE_PKWT_1) {
+            return 0;
+        }
+
+        if ($type === ContractTemplate::TYPE_ADDENDUM_PKWT) {
+            return 1;
+        }
+
+        return 2;
+    }
+
+    private function dateKey($date): ?string
+    {
+        return $date ? Carbon::parse($date)->format('Y-m-d') : null;
     }
 
     public function createFromHistory(EmployeeContractHistory $history, User $actor): EmployeeContractRenewal

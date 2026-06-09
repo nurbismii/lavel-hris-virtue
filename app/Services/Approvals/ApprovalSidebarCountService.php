@@ -61,31 +61,35 @@ class ApprovalSidebarCountService
         );
 
         if ($user->hasMenuAccess('approval_hod')) {
-            $approvalHodCounts['cuti'] = $user->applyEmployeeRelationScope(
-                $delegationService->restrictReadyForHod(
-                    Cuti::query()
-                        ->where('tipe', 'CUTI')
-                        ->where('status_hod', 0),
-                    'cuti_izin'
-                )
-            )->count();
+            if (Schema::hasTable('cuti_izin')) {
+                $approvalHodCounts['cuti'] = $user->applyEmployeeRelationScope(
+                    $delegationService->restrictReadyForHod(
+                        Cuti::query()
+                            ->where('tipe', 'CUTI')
+                            ->where('status_hod', 0),
+                        'cuti_izin'
+                    )
+                )->count();
 
-            $approvalHodCounts['izin'] = $user->applyEmployeeRelationScope(
-                $delegationService->restrictReadyForHod(
-                    Cuti::query()
-                        ->whereIn('tipe', ['PAID', 'UNPAID'])
-                        ->where('status_hod', 0),
-                    'cuti_izin'
-                )
-            )->count();
+                $approvalHodCounts['izin'] = $user->applyEmployeeRelationScope(
+                    $delegationService->restrictReadyForHod(
+                        Cuti::query()
+                            ->whereIn('tipe', ['PAID', 'UNPAID'])
+                            ->where('status_hod', 0),
+                        'cuti_izin'
+                    )
+                )->count();
+            }
 
-            $approvalHodCounts['roster'] = $user->applyEmployeeRelationScope(
-                $delegationService->restrictReadyForHod(
-                    Roster::query()
-                        ->where('status_pengajuan', 0),
-                    'cuti_roster'
-                )
-            )->count();
+            if (Schema::hasTable('cuti_roster')) {
+                $approvalHodCounts['roster'] = $user->applyEmployeeRelationScope(
+                    $delegationService->restrictReadyForHod(
+                        Roster::query()
+                            ->where('status_pengajuan', 0),
+                        'cuti_roster'
+                    )
+                )->count();
+            }
 
             if (Schema::hasTable('roster_off_requests')) {
                 $approvalHodCounts['roster_off'] = $user->applyEmployeeRelationScope(
@@ -119,25 +123,29 @@ class ApprovalSidebarCountService
         }
 
         if ($user->hasMenuAccess('approval_hr')) {
-            $approvalHrCounts['cuti'] = $user->applyEmployeeRelationScope(
-                Cuti::query()
-                    ->where('tipe', 'CUTI')
-                    ->where('status_hod', 1)
-                    ->where('status_hrd', 0)
-            )->count();
+            if (Schema::hasTable('cuti_izin')) {
+                $approvalHrCounts['cuti'] = $user->applyEmployeeRelationScope(
+                    Cuti::query()
+                        ->where('tipe', 'CUTI')
+                        ->where('status_hod', 1)
+                        ->where('status_hrd', 0)
+                )->count();
 
-            $approvalHrCounts['izin'] = $user->applyEmployeeRelationScope(
-                Cuti::query()
-                    ->whereIn('tipe', ['PAID', 'UNPAID'])
-                    ->where('status_hod', 1)
-                    ->where('status_hrd', 0)
-            )->count();
+                $approvalHrCounts['izin'] = $user->applyEmployeeRelationScope(
+                    Cuti::query()
+                        ->whereIn('tipe', ['PAID', 'UNPAID'])
+                        ->where('status_hod', 1)
+                        ->where('status_hrd', 0)
+                )->count();
+            }
 
-            $approvalHrCounts['roster'] = $user->applyEmployeeRelationScope(
-                Roster::query()
-                    ->where('status_pengajuan', 1)
-                    ->where('status_pengajuan_hrd', 0)
-            )->count();
+            if (Schema::hasTable('cuti_roster')) {
+                $approvalHrCounts['roster'] = $user->applyEmployeeRelationScope(
+                    Roster::query()
+                        ->where('status_pengajuan', 1)
+                        ->where('status_pengajuan_hrd', 0)
+                )->count();
+            }
 
             if (Schema::hasTable('roster_off_requests')) {
                 $approvalHrCounts['roster_off'] = $user->applyEmployeeRelationScope(

@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\SlipGajiController;
 use App\Http\Controllers\Admin\WorkPatternController;
 use App\Http\Controllers\Approval\AttendanceCorrectionApprovalController;
 use App\Http\Controllers\Approval\CutiApprovalController;
+use App\Http\Controllers\Approval\HodApprovalDashboardController;
 use App\Http\Controllers\Approval\IzinApprovalController;
 use App\Http\Controllers\Approval\RosterOffApprovalController;
 use App\Http\Controllers\Approval\RosterApprovalController;
@@ -259,6 +260,7 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::prefix('/perpanjangan-kontrak')
             ->name('contract-renewals.')
             ->group(function () {
+                Route::get('/dashboard', [ContractRenewalController::class, 'dashboard'])->name('dashboard');
                 Route::get('/', [ContractRenewalController::class, 'index'])->name('index');
                 Route::post('/import-history', [ContractRenewalController::class, 'importHistory'])
                     ->middleware('role:Super Admin,HR')
@@ -449,6 +451,8 @@ Route::middleware(['android.redirect'])->group(function () {
             ->name('approval.delegate.roster.attachment');
         Route::post('/delegasi-approval/{module}/{id}', [DelegatedApprovalController::class, 'process'])
             ->name('approval.delegate.process');
+
+        Route::get('/hod/dashboard', [HodApprovalDashboardController::class, 'index'])->middleware('menu:approval_hod')->name('approval.hod.dashboard');
 
         Route::get('/hod/cuti', [CutiApprovalController::class, 'hodIndex'])->middleware('menu:approval_hod')->name('approval.cuti.hod');
         Route::post('/hod/cuti/{id}', [CutiApprovalController::class, 'hodProcess'])->middleware('menu:approval_hod')->name('approval.cuti.hod.process');

@@ -12,9 +12,12 @@ $shiftMenuActive = request()->routeIs('shifts.*') || request()->routeIs('shift-s
 $overtimeMenuActive = request()->routeIs('overtime-orders.*') || request()->routeIs('overtime-masters.*');
 $electronicContractAdminActive = request()->routeIs('electronic-contracts.*');
 $contractRenewalActive = request()->routeIs('contract-renewals.*');
+$contractRenewalDashboardActive = request()->routeIs('contract-renewals.dashboard');
+$contractRenewalWorkflowActive = $contractRenewalActive && !$contractRenewalDashboardActive;
 $attendanceAnomalyActive = request()->routeIs('attendance-anomalies.*');
 $attendancePeriodLockActive = request()->routeIs('attendance-period-locks.*');
 $approvalSlaActive = request()->routeIs('approval-sla.*');
+$approvalHodDashboardActive = request()->routeIs('approval.hod.dashboard');
 $centralMonitorActive = request()->routeIs('central-monitor.*');
 $employeeMovementActive = request()->routeIs('employee-movements.*');
 @endphp
@@ -160,10 +163,28 @@ $employeeMovementActive = request()->routeIs('employee-movements.*');
 
                 @if($can('contract_renewal'))
                 <li class="nav-item {{ $contractRenewalActive ? 'active' : '' }}">
-                    <a href="{{ route('contract-renewals.index') }}">
+                    <a data-bs-toggle="collapse" href="#contractRenewalMenu"
+                        class="{{ $contractRenewalActive ? '' : 'collapsed' }}"
+                        aria-expanded="{{ $contractRenewalActive ? 'true' : 'false' }}">
                         <i class="fas fa-file-contract"></i>
                         <p>{{ __('navigation.contract_renewal') }}</p>
+                        <span class="caret"></span>
                     </a>
+
+                    <div class="collapse {{ $contractRenewalActive ? 'show' : '' }}" id="contractRenewalMenu">
+                        <ul class="nav nav-collapse">
+                            <li class="{{ $contractRenewalDashboardActive ? 'active' : '' }}">
+                                <a href="{{ route('contract-renewals.dashboard') }}">
+                                    <span class="sub-item">{{ __('navigation.contract_monitoring') }}</span>
+                                </a>
+                            </li>
+                            <li class="{{ $contractRenewalWorkflowActive ? 'active' : '' }}">
+                                <a href="{{ route('contract-renewals.index') }}">
+                                    <span class="sub-item">{{ __('navigation.contract_renewal_workflow') }}</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
                 </li>
                 @endif
 
@@ -349,6 +370,16 @@ $employeeMovementActive = request()->routeIs('employee-movements.*');
                     <div class="sidebar-section-title">
                         <h4 class="text-section mb-0">{{ __('navigation.approval_hod') }}</h4>
                     </div>
+                </li>
+
+                <li class="nav-item {{ $approvalHodDashboardActive ? 'active' : '' }}">
+                    <a href="{{ route('approval.hod.dashboard') }}" class="{{ ($approvalHodCounts['total'] ?? 0) > 0 ? 'has-sidebar-badge' : '' }}">
+                        <i class="fas fa-chart-pie"></i>
+                        <p>{{ __('navigation.approval_hod_dashboard') }}</p>
+                        @if(($approvalHodCounts['total'] ?? 0) > 0)
+                        <span class="badge badge-primary">{{ $approvalHodCounts['total'] }}</span>
+                        @endif
+                    </a>
                 </li>
 
                 @if($canManageApprovalDelegations)

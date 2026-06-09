@@ -8,6 +8,7 @@ use App\Models\Divisi;
 use App\Models\ElectronicContractAuditLog;
 use App\Models\Employee;
 use App\Models\EmployeeContract;
+use App\Models\EmployeeContractHistory;
 use App\Models\EmployeeContractSignature;
 use App\Models\OnboardingCandidate;
 use App\Models\Perusahaan;
@@ -351,6 +352,7 @@ class VhireOnboardingContractService
             $activeDate,
             false
         );
+        $this->recordPkwtOneContractHistory($updatedContract->fresh(['employee']), $employeeNik, $request);
 
         $this->recordAudit($updatedContract, 'vhire_candidate_activated_as_employee', $request, array_merge([
             'vhire_candidate_id' => $candidate->vhire_candidate_id,
@@ -359,6 +361,68 @@ class VhireOnboardingContractService
         ], $auditMetadata));
 
         return $candidate->fresh();
+    }
+
+    private function recordPkwtOneContractHistory(EmployeeContract $contract, string $employeeNik, Request $request): void
+    {
+        if (!Schema::hasTable('employee_contract_histories')) {
+            return;
+        }
+
+        if ($contract->contract_type !== ContractTemplate::TYPE_PKWT_1 || !$contract->contract_end_date) {
+            return;
+        }
+
+        $endDate = Carbon::parse($contract->contract_end_date)->format('Y-m-d');
+        $history = EmployeeContractHistory::query()
+            ->where('nik', $employeeNik)
+            ->where('contract_number', $contract->pkwt_number)
+            ->whereDate('contract_end_date', $endDate)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$history) {
+            $history = new EmployeeContractHistory([
+                'nik' => $employeeNik,
+                'history_sequence' => 0,
+                'contract_number' => $contract->pkwt_number,
+                'contract_end_date' => $endDate,
+                'created_by' => (string) optional($request->user())->id,
+            ]);
+        }
+
+        $history->fill([
+            'employee_name' => $contract->display_employee_name !== '-' ? $contract->display_employee_name : null,
+            'marital_status' => $contract->marital_status,
+            'employee_status' => 'PKWT',
+            'entry_date' => optional($contract->contract_start_date)->format('Y-m-d'),
+            'history_type' => ContractTemplate::TYPE_PKWT_1,
+            'raw_history_type' => 'PKWT 1',
+            'duration_months' => $this->durationMonthsFromContract($contract),
+            'duration_label' => $contract->contract_duration,
+        ]);
+        $history->save();
+    }
+
+    private function durationMonthsFromContract(EmployeeContract $contract): ?int
+    {
+        $value = $contract->duration_value !== null
+            ? (int) $contract->duration_value
+            : null;
+
+        if (!$value || $value < 1) {
+            return null;
+        }
+
+        if ($contract->duration_unit === 'year') {
+            return $value * 12;
+        }
+
+        if ($contract->duration_unit === 'month') {
+            return $value;
+        }
+
+        return null;
     }
 
     private function assertCanGenerateEmployeeNik(EmployeeContract $contract): void

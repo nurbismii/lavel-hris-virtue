@@ -16,6 +16,7 @@ use App\Models\EmployeeContractHistory;
 use App\Models\EmployeeContractRenewal;
 use App\Models\ImportHistory;
 use App\Models\User;
+use App\Services\ContractRenewals\ContractMonitoringDashboardService;
 use App\Services\ContractRenewals\ContractRenewalService;
 use App\Services\ImportHistory\ImportHistoryService;
 use Illuminate\Http\Request;
@@ -27,6 +28,39 @@ use Throwable;
 
 class ContractRenewalController extends Controller
 {
+    public function dashboard(
+        Request $request,
+        ContractRenewalService $renewalService,
+        ContractMonitoringDashboardService $dashboardService
+    ) {
+        abort_unless($renewalService->canAccessIndex($request->user()), 403, 'Anda tidak memiliki akses ke monitoring kontrak.');
+
+        $validated = $request->validate([
+            'area' => ['nullable', 'string', 'max:40'],
+            'departemen_id' => ['nullable', 'string', 'max:40'],
+            'divisi_id' => ['nullable', 'string', 'max:40'],
+            'days' => ['nullable', 'integer', 'min:7', 'max:180'],
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $filters = $renewalService->resolveOrganizationFilters($request->user(), $validated);
+        $filterOptions = $renewalService->organizationFilterOptions($request->user(), $filters);
+        $days = (int) ($validated['days'] ?? 30);
+        $days = max(7, min($days > 0 ? $days : 30, 180));
+        $search = mb_substr(trim((string) ($validated['search'] ?? '')), 0, 100);
+
+        return view('admin.contract-renewals.dashboard', [
+            'dashboard' => $dashboardService->dashboard($request->user(), array_merge($filters, [
+                'days' => $days,
+                'search' => $search,
+            ])),
+            'filters' => $filters,
+            'filterOptions' => $filterOptions,
+            'days' => $days,
+            'search' => $search,
+            'statusOptions' => EmployeeContractRenewal::statusLabels(),
+        ]);
+    }
+
     public function index(Request $request, ContractRenewalService $service)
     {
         abort_unless($service->canAccessIndex($request->user()), 403, 'Anda tidak memiliki akses ke perpanjangan kontrak.');
@@ -34,6 +68,7 @@ class ContractRenewalController extends Controller
         $days = (int) $request->input('days', 30);
         $days = max(1, min($days, 90));
         $status = $request->input('status');
+        $search = mb_substr(trim((string) $request->input('search', '')), 0, 100);
         $canManageWorkflow = $service->canManageWorkflow($request->user());
         $filters = $service->resolveOrganizationFilters($request->user(), $request->only([
             'area',
@@ -42,24 +77,30 @@ class ContractRenewalController extends Controller
         ]));
         $filterOptions = $service->organizationFilterOptions($request->user(), $filters);
 
-        $upcomingHistories = $canManageWorkflow
-            ? $service->applyOrganizationFilters(
+        if ($canManageWorkflow) {
+            $upcomingHistoriesQuery = $service->applyOrganizationFilters(
                 $service->upcomingHistoriesQuery($request->user(), $days),
                 $filters
-            )
-            ->orderBy('employee_contract_histories.contract_end_date')
-            ->orderBy('employee_contract_histories.nik')
-            ->paginate(20, ['*'], 'upcoming_page')
-            ->appends($request->query())
-            : new LengthAwarePaginator([], 0, 20, 1, [
+            );
+            $service->applyEmployeeSearch($upcomingHistoriesQuery, $search);
+
+            $upcomingHistories = $upcomingHistoriesQuery
+                ->orderBy('employee_contract_histories.contract_end_date')
+                ->orderBy('employee_contract_histories.nik')
+                ->paginate(20, ['*'], 'upcoming_page')
+                ->appends($request->query());
+        } else {
+            $upcomingHistories = new LengthAwarePaginator([], 0, 20, 1, [
                 'path' => $request->url(),
                 'pageName' => 'upcoming_page',
             ]);
+        }
 
         $renewalsQuery = $service->applyOrganizationFilters(
             $service->renewalsQuery($request->user()),
             $filters
         );
+        $service->applyEmployeeSearch($renewalsQuery, $search);
 
         if ($status && array_key_exists($status, EmployeeContractRenewal::statusLabels())) {
             $renewalsQuery->where('status', $status);
@@ -91,15 +132,26 @@ class ContractRenewalController extends Controller
                 ];
             });
 
+        $historyNiks = collect($upcomingHistories->items())
+            ->pluck('nik')
+            ->merge($renewals->getCollection()->pluck('employee_nik'))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $contractHistoryMap = $service->contractHistoriesForNiks($historyNiks);
+
         return view('admin.contract-renewals.index', [
             'days' => $days,
             'status' => $status,
+            'search' => $search,
             'filters' => $filters,
             'filterOptions' => $filterOptions,
             'canManageRenewalWorkflow' => $canManageWorkflow,
             'upcomingHistories' => $upcomingHistories,
             'renewals' => $renewals,
             'delegateOptions' => $delegateOptions,
+            'contractHistoryMap' => $contractHistoryMap,
             'statusOptions' => EmployeeContractRenewal::statusLabels(),
         ]);
     }
@@ -204,6 +256,7 @@ class ContractRenewalController extends Controller
             'divisi_id',
             'days',
             'status',
+            'search',
         ]));
     }
 
