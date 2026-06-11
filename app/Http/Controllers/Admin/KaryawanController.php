@@ -14,6 +14,7 @@ use App\Models\Employee;
 use App\Models\ImportHistory;
 use App\Models\Perusahaan;
 use App\Models\WorkPattern;
+use App\Services\ContractRenewals\ContractRenewalService;
 use App\Services\ImportHistory\ImportHistoryService;
 use App\Services\Recruitment\RecruitmentDocumentClient;
 use App\Services\Storage\SensitiveFileStorageService;
@@ -60,7 +61,7 @@ class KaryawanController extends Controller
         ]);
     }
 
-    public function edit($nik)
+    public function edit($nik, ContractRenewalService $contractRenewalService)
     {
         $employee = auth()->user()
             ->applyEmployeeScope(Employee::query())
@@ -72,6 +73,9 @@ class KaryawanController extends Controller
         $departemenIds = (clone $scopeQuery)->select('departemen_id')->distinct()->pluck('departemen_id')->filter();
         $divisiIds = (clone $scopeQuery)->select('divisi_id')->distinct()->pluck('divisi_id')->filter();
         $areaCodes = (clone $scopeQuery)->select('area_kerja')->distinct()->pluck('area_kerja')->filter();
+        $contractTimeline = $contractRenewalService
+            ->contractHistoriesForNiks([$employee->nik])
+            ->get($employee->nik, collect());
 
         return view('admin.karyawan.edit', [
             'employee' => $employee,
@@ -88,6 +92,7 @@ class KaryawanController extends Controller
                 })
                 ->orderBy('name')
                 ->get(),
+            'contractTimeline' => $contractTimeline,
         ]);
     }
 

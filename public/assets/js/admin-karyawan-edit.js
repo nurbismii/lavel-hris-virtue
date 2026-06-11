@@ -280,6 +280,38 @@
         });
     }
 
+    function bindContractTimeline() {
+        document.querySelectorAll('[data-contract-timeline-collapse]').forEach((collapseElement) => {
+            const item = collapseElement.closest('[data-contract-timeline-item]');
+            const toggle = item ? item.querySelector('[data-contract-timeline-toggle]') : null;
+            const label = toggle ? toggle.querySelector('.employee-contract-timeline__toggle-text') : null;
+
+            function syncTimelineState(isOpen) {
+                if (item) {
+                    item.classList.toggle('employee-contract-timeline__item--active', isOpen);
+                }
+
+                if (toggle) {
+                    toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+                }
+
+                if (label) {
+                    label.textContent = isOpen ? 'Tutup detail' : 'Lihat detail';
+                }
+            }
+
+            syncTimelineState(collapseElement.classList.contains('show'));
+
+            collapseElement.addEventListener('shown.bs.collapse', function() {
+                syncTimelineState(true);
+            });
+
+            collapseElement.addEventListener('hidden.bs.collapse', function() {
+                syncTimelineState(false);
+            });
+        });
+    }
+
     function bindSubmitState() {
         const form = document.getElementById('employeeEditForm');
         const button = document.getElementById('employeeSaveButton');
@@ -305,6 +337,7 @@
         loadDocumentPreview();
         loadRegionHierarchy();
         bindFileInputState();
+        bindContractTimeline();
         bindSubmitState();
     });
 })(window.jQuery);

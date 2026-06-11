@@ -135,6 +135,15 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="kontrak-tab" data-bs-toggle="pill" data-bs-target="#kontrak-pane" type="button" role="tab" aria-controls="kontrak-pane" aria-selected="false">
+                                        <i class="fas fa-file-contract"></i>
+                                        Riwayat Kontrak
+                                        @if(($contractTimeline ?? collect())->isNotEmpty())
+                                            <span class="employee-edit-tabs__count">{{ $contractTimeline->count() }}</span>
+                                        @endif
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="alamat-tab" data-bs-toggle="pill" data-bs-target="#alamat-pane" type="button" role="tab" aria-controls="alamat-pane" aria-selected="false">
                                         <i class="fas fa-map-marker-alt"></i>
                                         Alamat
@@ -345,6 +354,13 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+
+                                <div class="tab-pane fade" id="kontrak-pane" role="tabpanel" aria-labelledby="kontrak-tab">
+                                    @include('admin.karyawan.partials.contract-timeline', [
+                                        'employee' => $employee,
+                                        'contractTimeline' => $contractTimeline ?? collect(),
+                                    ])
                                 </div>
 
                                 <div class="tab-pane fade" id="alamat-pane" role="tabpanel" aria-labelledby="alamat-tab">
