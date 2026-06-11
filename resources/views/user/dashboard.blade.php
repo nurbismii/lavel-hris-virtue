@@ -453,6 +453,31 @@ if ($hour < 11) {
     })->values();
     $quickActionLimit = 8;
     $visibleQuickActions = $quickActions->take($quickActionLimit);
+    $canAccessPresensi = $currentUser->hasMenuAccess('presensi');
+    $presensiRoute = $canAccessPresensi ? route('presensi.index') : null;
+    $attendanceTimes = collect($attendanceSummary['times'] ?? []);
+    $attendanceDoneCount = $attendanceTimes->where('filled', true)->count();
+    $attendanceTotalCount = $attendanceTimes->count();
+    $attendanceProgressPercent = $attendanceTotalCount > 0
+    ? (int) round(($attendanceDoneCount / $attendanceTotalCount) * 100)
+    : 0;
+    $nextAttendanceAction = $attendanceSummary['next_action'] ?? [
+    'key' => null,
+    'label' => 'Buka Presensi',
+    'description' => 'Lihat status presensi Anda hari ini.',
+    'tone' => 'primary',
+    ];
+    $attendanceActionIcons = [
+    'masuk' => 'fas fa-sign-in-alt',
+    'istirahat' => 'fas fa-coffee',
+    'kembali' => 'fas fa-undo-alt',
+    'pulang' => 'fas fa-sign-out-alt',
+    'done' => 'fas fa-check-circle',
+    'status' => 'fas fa-info-circle',
+    ];
+    $nextAttendanceIcon = $attendanceActionIcons[$nextAttendanceAction['key'] ?? ''] ?? 'fas fa-fingerprint';
+    $heroShiftLabel = $attendanceSummary['shift_label'] ?? 'Shift belum tersedia';
+    $heroWorkTimeRange = $attendanceSummary['work_time_range'] ?? 'Jam kerja belum diatur';
     @endphp
 
     <div class="container-fluid employee-dashboard px-3">
@@ -469,7 +494,7 @@ if ($hour < 11) {
                                 @endif
                             </div>
 
-                            <div>
+                            <div class="hero-copy">
                                 <div class="hero-meta mb-3">
                                     <div class="hero-date mb-0">
                                         <i class="fas fa-calendar-day"></i>
@@ -487,21 +512,71 @@ if ($hour < 11) {
 
                                 <div class="hero-eyebrow">{{ $greeting }}</div>
                                 <h1 class="hero-name">{{ $displayName }}</h1>
+                                <div class="hero-role">
+                                    <i class="fas fa-briefcase"></i>
+                                    <span>{{ $positionName }}</span>
+                                    <span class="hero-role__divider"></span>
+                                    <span>{{ $divisionName }}</span>
+                                </div>
 
                                 <div class="chip-row">
                                     <span class="dashboard-chip">
                                         <i class="fas fa-user-clock"></i>
-                                        {{ $attendanceSummary['shift_label'] }}
+                                        {{ $heroShiftLabel }}
                                     </span>
                                     <span class="dashboard-chip">
                                         <i class="fas fa-clock"></i>
-                                        {{ $attendanceSummary['work_time_range'] }}
+                                        {{ $heroWorkTimeRange }}
                                     </span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="mobile-command-strip d-lg-none" aria-label="Aksi cepat dashboard">
+                @if($attendanceSummary && $canAccessPresensi && $presensiRoute)
+                <a href="{{ $presensiRoute }}" class="mobile-command mobile-command--primary">
+                    <span class="mobile-command__icon">
+                        <i class="{{ $nextAttendanceIcon }}"></i>
+                    </span>
+                    <span>
+                        <strong>{{ $nextAttendanceAction['label'] }}</strong>
+                        <small>{{ $nextAttendanceAction['description'] }}</small>
+                    </span>
+                </a>
+                @endif
+
+                <button type="button" class="mobile-command" data-dashboard-scroll="#quickActionsSection">
+                    <span class="mobile-command__icon quick-tone--sky">
+                        <i class="fas fa-th-large"></i>
+                    </span>
+                    <span>
+                        <strong>{{ $totalAccessibleMenuCount }}</strong>
+                        <small>Menu aktif</small>
+                    </span>
+                </button>
+
+                <a href="{{ route('kotak-masuk.index') }}" class="mobile-command">
+                    <span class="mobile-command__icon quick-tone--rose">
+                        <i class="fas fa-bell"></i>
+                    </span>
+                    <span>
+                        <strong>{{ $dashboardUnreadNotifications }}</strong>
+                        <small>Notifikasi</small>
+                    </span>
+                </a>
+
+                <a href="{{ route('pengaturan-akun.index') }}" class="mobile-command">
+                    <span class="mobile-command__icon quick-tone--emerald">
+                        <i class="fas fa-user-check"></i>
+                    </span>
+                    <span>
+                        <strong>{{ $sisaCuti }}</strong>
+                        <small>Sisa cuti</small>
+                    </span>
+                </a>
             </div>
 
             @if($attendanceSummary)
@@ -521,6 +596,16 @@ if ($hour < 11) {
                         <small id="dashboardRealtimeDate" class="attendance-live-panel__date">
                             {{ now()->translatedFormat('l, d M Y') }} WITA
                         </small>
+
+                        <div class="attendance-progress" aria-label="Progress presensi hari ini">
+                            <div class="attendance-progress__meta">
+                                <span>Progress hari ini</span>
+                                <strong>{{ $attendanceDoneCount }}/{{ $attendanceTotalCount }}</strong>
+                            </div>
+                            <div class="attendance-progress__track">
+                                <span style="width: {{ $attendanceProgressPercent }}%"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -537,10 +622,24 @@ if ($hour < 11) {
                     </div>
                     @endforeach
                 </div>
+
+                @if($canAccessPresensi && $presensiRoute)
+                <div class="attendance-overview__footer">
+                    <a href="{{ $presensiRoute }}" class="attendance-action-button attendance-action-button--{{ $nextAttendanceAction['tone'] ?? 'primary' }}">
+                        <span class="attendance-action-button__icon">
+                            <i class="{{ $nextAttendanceIcon }}"></i>
+                        </span>
+                        <span>
+                            <strong>{{ $nextAttendanceAction['label'] }}</strong>
+                            <small>{{ $nextAttendanceAction['description'] }}</small>
+                        </span>
+                    </a>
+                </div>
+                @endif
             </div>
             @endif
 
-            <div class="dashboard-card mb-3">
+            <div class="dashboard-card mb-3" id="quickActionsSection">
                 <div class="section-header">
                     <div>
                             <h2 class="section-title">{{ __('access.dashboard_menu.section_title') }}</h2>
@@ -605,16 +704,39 @@ if ($hour < 11) {
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <div class="menu-access-groups">
+                            <div class="menu-access-tools">
+                                <label class="menu-access-search" for="dashboardMenuSearch">
+                                    <i class="fas fa-search"></i>
+                                    <input
+                                        type="search"
+                                        id="dashboardMenuSearch"
+                                        placeholder="Cari menu..."
+                                        autocomplete="off"
+                                        data-dashboard-menu-search>
+                                </label>
+
+                                <div class="menu-access-filter" aria-label="Filter grup menu">
+                                    <button type="button" class="is-active" data-dashboard-menu-filter="all">
+                                        Semua
+                                    </button>
+                                    @foreach($allAccessibleMenuItems as $group => $menus)
+                                    <button type="button" data-dashboard-menu-filter="{{ \Illuminate\Support\Str::slug((string) $group) }}">
+                                        {{ $menus->first()['group_label'] ?? $group }}
+                                    </button>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="menu-access-groups" data-dashboard-menu-list>
                                 @foreach($allAccessibleMenuItems as $group => $menus)
-                                <div class="menu-access-group">
+                                <div class="menu-access-group" data-dashboard-menu-group="{{ \Illuminate\Support\Str::slug((string) $group) }}">
                                     <div class="menu-access-group__head">
                                         <h6 class="menu-access-group__title">{{ $menus->first()['group_label'] ?? $group }}</h6>
                                         <span class="menu-access-group__count">{{ $menus->count() }}</span>
                                     </div>
                                     <div class="menu-access-grid">
                                         @foreach($menus as $menu)
-                                        <a href="{{ $menu['route'] }}" class="menu-access-link">
+                                        <a href="{{ $menu['route'] }}" class="menu-access-link" data-dashboard-menu-item>
                                             <span class="menu-access-link__icon quick-tone--{{ $menu['tone'] }}">
                                                 <i class="{{ $menu['icon'] }}"></i>
                                             </span>
@@ -628,6 +750,12 @@ if ($hour < 11) {
                                 </div>
                                 @endforeach
                             </div>
+
+                            <div class="menu-access-empty d-none" data-dashboard-menu-empty>
+                                <i class="fas fa-search"></i>
+                                <strong>Menu tidak ditemukan</strong>
+                                <span>Coba kata kunci lain atau pilih filter Semua.</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -635,7 +763,7 @@ if ($hour < 11) {
             @endif
 
             <div class="dashboard-info-grid">
-                <div class="dashboard-card">
+                <div class="dashboard-card account-activity-card" data-account-card>
                     <div class="section-header">
                         <div>
                             <h2 class="section-title">Aktivitas Akun</h2>
@@ -643,9 +771,17 @@ if ($hour < 11) {
                                 Status akses dan aktivitas login terbaru untuk membantu Anda memantau keamanan akun.
                             </p>
                         </div>
+                        <button
+                            type="button"
+                            class="dashboard-detail-toggle d-lg-none"
+                            data-account-toggle
+                            aria-expanded="false">
+                            <span>Lihat detail</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
                     </div>
 
-                    <div class="activity-list">
+                    <div class="activity-list" data-account-details>
                         <div class="activity-row">
                             <div>
                                 <small>Status</small>
@@ -695,44 +831,165 @@ if ($hour < 11) {
         document.addEventListener('DOMContentLoaded', function() {
             const clockRoot = document.querySelector('[data-dashboard-clock]');
 
-            if (!clockRoot) {
-                return;
+            if (clockRoot) {
+                const clockElement = document.getElementById('dashboardRealtimeClock');
+                const dateElement = document.getElementById('dashboardRealtimeDate');
+                const serverTime = Date.parse(clockRoot.dataset.serverTime || '');
+                const baseTime = Number.isNaN(serverTime) ? Date.now() : serverTime;
+                const startedAt = Date.now();
+                const clockFormatter = new Intl.DateTimeFormat('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                    timeZone: 'Asia/Makassar'
+                });
+                const dateFormatter = new Intl.DateTimeFormat('id-ID', {
+                    weekday: 'long',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    timeZone: 'Asia/Makassar'
+                });
+
+                const renderClock = function() {
+                    const current = new Date(baseTime + (Date.now() - startedAt));
+
+                    if (clockElement) {
+                        clockElement.textContent = clockFormatter.format(current).replace(/\./g, ':');
+                    }
+
+                    if (dateElement) {
+                        dateElement.textContent = dateFormatter.format(current) + ' WITA';
+                    }
+                };
+
+                renderClock();
+                window.setInterval(renderClock, 1000);
             }
 
-            const clockElement = document.getElementById('dashboardRealtimeClock');
-            const dateElement = document.getElementById('dashboardRealtimeDate');
-            const serverTime = Date.parse(clockRoot.dataset.serverTime || '');
-            const baseTime = Number.isNaN(serverTime) ? Date.now() : serverTime;
-            const startedAt = Date.now();
-            const clockFormatter = new Intl.DateTimeFormat('id-ID', {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-                timeZone: 'Asia/Makassar'
-            });
-            const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-                weekday: 'long',
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric',
-                timeZone: 'Asia/Makassar'
+            document.querySelectorAll('[data-dashboard-scroll]').forEach(function(trigger) {
+                trigger.addEventListener('click', function() {
+                    const target = document.querySelector(trigger.dataset.dashboardScroll);
+
+                    if (!target) {
+                        return;
+                    }
+
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                });
             });
 
-            const renderClock = function() {
-                const current = new Date(baseTime + (Date.now() - startedAt));
+            const menuModal = document.getElementById('allAccessMenuModal');
 
-                if (clockElement) {
-                    clockElement.textContent = clockFormatter.format(current).replace(/\./g, ':');
+            if (menuModal) {
+                const searchInput = menuModal.querySelector('[data-dashboard-menu-search]');
+                const filterButtons = Array.from(menuModal.querySelectorAll('[data-dashboard-menu-filter]'));
+                const menuGroups = Array.from(menuModal.querySelectorAll('[data-dashboard-menu-group]'));
+                const emptyState = menuModal.querySelector('[data-dashboard-menu-empty]');
+                let activeFilter = 'all';
+
+                const renderMenuFilter = function() {
+                    const keyword = (searchInput ? searchInput.value : '').trim().toLowerCase();
+                    let visibleItemCount = 0;
+
+                    menuGroups.forEach(function(group) {
+                        const groupKey = group.dataset.dashboardMenuGroup;
+                        const groupIsActive = activeFilter === 'all' || activeFilter === groupKey;
+                        let groupVisibleCount = 0;
+
+                        group.querySelectorAll('[data-dashboard-menu-item]').forEach(function(item) {
+                            const text = item.textContent.trim().toLowerCase();
+                            const isVisible = groupIsActive && (!keyword || text.indexOf(keyword) !== -1);
+
+                            item.classList.toggle('d-none', !isVisible);
+
+                            if (isVisible) {
+                                groupVisibleCount += 1;
+                                visibleItemCount += 1;
+                            }
+                        });
+
+                        group.classList.toggle('d-none', groupVisibleCount === 0);
+                    });
+
+                    if (emptyState) {
+                        emptyState.classList.toggle('d-none', visibleItemCount > 0);
+                    }
+                };
+
+                filterButtons.forEach(function(button) {
+                    button.addEventListener('click', function() {
+                        activeFilter = button.dataset.dashboardMenuFilter || 'all';
+                        filterButtons.forEach(function(item) {
+                            item.classList.toggle('is-active', item === button);
+                        });
+                        renderMenuFilter();
+                    });
+                });
+
+                if (searchInput) {
+                    searchInput.addEventListener('input', renderMenuFilter);
                 }
 
-                if (dateElement) {
-                    dateElement.textContent = dateFormatter.format(current) + ' WITA';
-                }
-            };
+                menuModal.addEventListener('shown.bs.modal', function() {
+                    if (searchInput) {
+                        searchInput.focus();
+                    }
+                });
 
-            renderClock();
-            window.setInterval(renderClock, 1000);
+                menuModal.addEventListener('hidden.bs.modal', function() {
+                    activeFilter = 'all';
+
+                    if (searchInput) {
+                        searchInput.value = '';
+                    }
+
+                    filterButtons.forEach(function(button) {
+                        button.classList.toggle('is-active', button.dataset.dashboardMenuFilter === 'all');
+                    });
+                    renderMenuFilter();
+                });
+
+                renderMenuFilter();
+            }
+
+            const accountCard = document.querySelector('[data-account-card]');
+
+            if (accountCard) {
+                const accountToggle = accountCard.querySelector('[data-account-toggle]');
+                const mobileQuery = window.matchMedia('(max-width: 575.98px)');
+
+                const setAccountExpanded = function(isExpanded) {
+                    accountCard.classList.toggle('is-collapsed', !isExpanded);
+
+                    if (accountToggle) {
+                        accountToggle.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+                        accountToggle.querySelector('span').textContent = isExpanded ? 'Sembunyikan' : 'Lihat detail';
+                    }
+                };
+
+                const syncAccountState = function() {
+                    setAccountExpanded(!mobileQuery.matches);
+                };
+
+                if (accountToggle) {
+                    accountToggle.addEventListener('click', function() {
+                        setAccountExpanded(accountCard.classList.contains('is-collapsed'));
+                    });
+                }
+
+                if (typeof mobileQuery.addEventListener === 'function') {
+                    mobileQuery.addEventListener('change', syncAccountState);
+                } else if (typeof mobileQuery.addListener === 'function') {
+                    mobileQuery.addListener(syncAccountState);
+                }
+
+                syncAccountState();
+            }
         });
     </script>
     @endpush
