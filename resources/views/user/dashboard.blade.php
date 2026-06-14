@@ -599,7 +599,7 @@ if ($hour < 11) {
 
                         <div class="attendance-progress" aria-label="Progress presensi hari ini">
                             <div class="attendance-progress__meta">
-                                <span>Progress hari ini</span>
+                                <span>Progress presensi hari ini</span>
                                 <strong>{{ $attendanceDoneCount }}/{{ $attendanceTotalCount }}</strong>
                             </div>
                             <div class="attendance-progress__track">
