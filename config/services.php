@@ -51,6 +51,12 @@ return [
         'bulk_generate_chunk_size' => env('VHIRE_BULK_GENERATE_CHUNK_SIZE', 25),
     ],
 
+    'cv_maker' => [
+        'connection' => env('CV_MAKER_DB_CONNECTION_NAME', 'cv_maker'),
+        'nik_hash_key' => env('CV_MAKER_NIK_HASH_KEY'),
+        'max_page_size' => env('CV_MAKER_COMPARE_MAX_PAGE_SIZE', 100),
+    ],
+
     'presensi_face' => [
         'endpoint' => env('PRESENSI_FACE_VERIFICATION_URL'),
         'token' => env('PRESENSI_FACE_VERIFICATION_TOKEN'),

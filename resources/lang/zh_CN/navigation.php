@@ -23,6 +23,7 @@ return [
     'contract_monitoring' => '合同监控',
     'contract_renewal' => '合同续签',
     'contract_renewal_workflow' => '合同续签流程',
+    'cv_maker_compare' => 'CV Maker Compare',
     'dashboard' => '仪表板',
     'dashboard_employee' => '员工仪表板',
     'day_off_setting' => '休息日设置',

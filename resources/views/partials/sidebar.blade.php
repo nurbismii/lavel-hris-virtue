@@ -20,6 +20,7 @@ $approvalSlaActive = request()->routeIs('approval-sla.*');
 $approvalHodDashboardActive = request()->routeIs('approval.hod.dashboard');
 $centralMonitorActive = request()->routeIs('central-monitor.*');
 $employeeMovementActive = request()->routeIs('employee-movements.*');
+$cvMakerCompareActive = request()->routeIs('cv-maker-compare.*');
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -73,7 +74,7 @@ $employeeMovementActive = request()->routeIs('employee-movements.*');
                 </li>
                 @endif
 
-                @if($can('data_karyawan') || $canUseEmployeeMovement || $can('data_user') || $can('slip_gaji_admin') || $can('electronic_contract_admin') || $can('contract_renewal') || $can('resign') || $can('surat_peringatan') || $can('data_presensi') || $can('attendance_anomaly') || $can('distribusi_wilayah'))
+                @if($can('data_karyawan') || $can('cv_maker_compare') || $canUseEmployeeMovement || $can('data_user') || $can('slip_gaji_admin') || $can('electronic_contract_admin') || $can('contract_renewal') || $can('resign') || $can('surat_peringatan') || $can('data_presensi') || $can('attendance_anomaly') || $can('distribusi_wilayah'))
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
@@ -87,6 +88,15 @@ $employeeMovementActive = request()->routeIs('employee-movements.*');
                     <a href="{{ route('karyawan.index') }}">
                         <i class="fas fa-users"></i>
                         <p>{{ __('navigation.employee_data') }}</p>
+                    </a>
+                </li>
+                @endif
+
+                @if($can('cv_maker_compare'))
+                <li class="nav-item {{ $cvMakerCompareActive ? 'active' : '' }}">
+                    <a href="{{ route('cv-maker-compare.index') }}">
+                        <i class="fas fa-not-equal"></i>
+                        <p>{{ __('navigation.cv_maker_compare') }}</p>
                     </a>
                 </li>
                 @endif

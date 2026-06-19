@@ -96,6 +96,13 @@ $menuCatalog = [
 'tone' => 'emerald',
 'description' => 'Kelola dan lihat data karyawan sesuai akses Anda.',
 ],
+'cv_maker_compare' => [
+'route_name' => 'cv-maker-compare.index',
+'icon' => 'fas fa-not-equal',
+'tone' => 'rose',
+'description' => 'Bandingkan data profil CV Maker dengan master karyawan HRIS.',
+'roles' => ['Super Admin', 'HR', 'HOD', 'Manager', 'Supervisor', 'Admin Divisi'],
+],
 'data_user' => [
 'route_name' => 'user.index',
 'icon' => 'fas fa-user-friends',

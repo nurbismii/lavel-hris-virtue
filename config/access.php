@@ -17,6 +17,10 @@ $menus = [
         'label' => 'Data Karyawan',
         'group' => 'Data Master',
     ],
+    'cv_maker_compare' => [
+        'label' => 'Compare CV Maker',
+        'group' => 'Data Master',
+    ],
     'employee_movement' => [
         'label' => 'Perubahan posisi',
         'group' => 'Data Master',
@@ -215,6 +219,7 @@ return [
             'dashboard_admin',
             'central_monitor',
             'data_karyawan',
+            'cv_maker_compare',
             'employee_movement',
             'data_user',
             'electronic_contract_admin',
@@ -244,6 +249,7 @@ return [
         'HOD' => [
             'dashboard_karyawan',
             'data_karyawan',
+            'cv_maker_compare',
             'employee_movement',
             'slip_gaji_user',
             'electronic_contract_user',
@@ -262,6 +268,7 @@ return [
         'Manager' => [
             'dashboard_karyawan',
             'data_karyawan',
+            'cv_maker_compare',
             'slip_gaji_user',
             'electronic_contract_user',
             'cuti',
@@ -273,6 +280,7 @@ return [
         'Supervisor' => [
             'dashboard_karyawan',
             'data_karyawan',
+            'cv_maker_compare',
             'slip_gaji_user',
             'electronic_contract_user',
             'cuti',
@@ -306,6 +314,7 @@ return [
         'Admin Divisi' => [
             'dashboard_karyawan',
             'data_karyawan',
+            'cv_maker_compare',
             'slip_gaji_user',
             'electronic_contract_user',
             'contract_renewal',

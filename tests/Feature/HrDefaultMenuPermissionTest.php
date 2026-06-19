@@ -12,6 +12,7 @@ class HrDefaultMenuPermissionTest extends TestCase
 
         $this->assertContains('dashboard_admin', $hrMenus);
         $this->assertContains('data_karyawan', $hrMenus);
+        $this->assertContains('cv_maker_compare', $hrMenus);
         $this->assertContains('approval_hod', $hrMenus);
         $this->assertContains('approval_hr', $hrMenus);
         $this->assertContains('lembur', $hrMenus);
@@ -34,6 +35,7 @@ class HrDefaultMenuPermissionTest extends TestCase
         $hodMenus = config('access.default_menu_permissions.HOD', []);
 
         $this->assertContains('employee_movement', $hodMenus);
+        $this->assertContains('cv_maker_compare', $hodMenus);
         $this->assertContains('approval_hod', $hodMenus);
     }
 }

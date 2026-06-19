@@ -23,6 +23,7 @@ return [
     'contract_monitoring' => 'Monitoring Kontrak',
     'contract_renewal' => 'Perpanjangan Kontrak',
     'contract_renewal_workflow' => 'Workflow Perpanjangan',
+    'cv_maker_compare' => 'Compare CV Maker',
     'dashboard' => 'Dashboard',
     'dashboard_employee' => 'Dashboard Karyawan',
     'day_off_setting' => 'Setting Hari Off',

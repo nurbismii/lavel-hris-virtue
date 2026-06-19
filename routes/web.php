@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AttendanceAnomalyDashboardController;
 use App\Http\Controllers\Admin\AuditTrailController;
 use App\Http\Controllers\Admin\CentralMonitorController;
 use App\Http\Controllers\Admin\ContractRenewalController;
+use App\Http\Controllers\Admin\CvMakerCompareController;
 use App\Http\Controllers\Admin\AttendancePeriodLockController;
 use App\Http\Controllers\Admin\ElectronicContractAssetController;
 use App\Http\Controllers\Admin\ElectronicContractClauseController;
@@ -207,6 +208,19 @@ Route::middleware(['android.redirect'])->group(function () {
             ->only(['index', 'store', 'edit', 'update', 'destroy'])
             ->middleware('menu:data_karyawan');
 
+        Route::get('/cv-maker-compare', [CvMakerCompareController::class, 'index'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-compare.index');
+        Route::get('/cv-maker-compare/data', [CvMakerCompareController::class, 'data'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-compare.data');
+        Route::post('/cv-maker-compare/{nik}/preview-update', [CvMakerCompareController::class, 'previewUpdate'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-compare.preview-update');
+        Route::post('/cv-maker-compare/{nik}/update-hris', [CvMakerCompareController::class, 'updateHris'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-compare.update-hris');
+
         Route::prefix('/pergerakan-karyawan')
             ->name('employee-movements.')
             ->group(function () {
@@ -407,8 +421,8 @@ Route::middleware(['android.redirect'])->group(function () {
             ->only(['index'])
             ->middleware('menu:data_presensi');
 
-        Route::get('/ajax/departemen-by-area', [App\Http\Controllers\Admin\KaryawanController::class, 'departemenByArea'])->middleware('menu:data_karyawan,setting_hari_off,data_presensi')->name('ajax.departemen.by.area');
-        Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->middleware('menu:data_karyawan,setting_hari_off,pengaturan_shift,data_presensi')->name('ajax.divisi.by.departemen');
+        Route::get('/ajax/departemen-by-area', [App\Http\Controllers\Admin\KaryawanController::class, 'departemenByArea'])->middleware('menu:data_karyawan,cv_maker_compare,setting_hari_off,data_presensi')->name('ajax.departemen.by.area');
+        Route::get('/ajax/divisi-by-departemen', [App\Http\Controllers\Admin\KaryawanController::class, 'divisiByDepartemen'])->middleware('menu:data_karyawan,cv_maker_compare,setting_hari_off,pengaturan_shift,data_presensi')->name('ajax.divisi.by.departemen');
 
         Route::get('fetch/data-presensi', [PresensiAdminController::class, 'dataPresensi'])->middleware('menu:data_presensi')->name('fetch.data-presensi');
         Route::get('/presensi/export', [PresensiAdminController::class, 'export'])->middleware('menu:data_presensi')->name('presensi.export');
