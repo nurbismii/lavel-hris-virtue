@@ -73,6 +73,7 @@ class CvMakerCompareServiceTest extends TestCase
 
         $this->assertSame(1, $comparison['mismatch_count']);
         $this->assertGreaterThan(1, $comparison['compared_count']);
+        $this->assertSame('position', collect($comparison['groups']['work'])->firstWhere('mismatch', true)['key']);
     }
 
     public function test_location_fields_are_compared_when_both_sides_have_values(): void
@@ -102,6 +103,30 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertTrue($location['Kabupaten']['mismatch']);
         $this->assertFalse($location['Kecamatan']['mismatch']);
         $this->assertFalse($location['Kelurahan']['mismatch']);
+    }
+
+    public function test_location_fields_are_mismatch_when_one_side_is_empty(): void
+    {
+        $service = new CvMakerCompareService();
+        $employee = new Employee([
+            'nik' => '2200112245',
+            'nama_karyawan' => 'Andi Saputra',
+        ]);
+
+        $employee->setRelation('provinsi', new Provinsi(['provinsi' => 'Sulawesi Tenggara']));
+
+        $comparison = $service->compareEmployee($employee, [
+            'profile_id' => 13,
+            'province_name' => null,
+            'regency_name' => null,
+            'district_name' => null,
+            'village_name' => null,
+        ]);
+
+        $location = collect($comparison['groups']['location'])->keyBy('label');
+
+        $this->assertFalse($location['Provinsi']['skipped']);
+        $this->assertTrue($location['Provinsi']['mismatch']);
     }
 
     public function test_build_update_preview_only_returns_valid_changed_fields(): void

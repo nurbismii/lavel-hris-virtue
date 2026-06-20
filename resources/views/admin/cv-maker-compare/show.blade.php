@@ -18,6 +18,16 @@ $cvProfile = $detail['cv_profile'] ?? null;
 $vitae = $detail['vitae'] ?? [];
 $comparison = $detail['comparison'] ?? ['groups' => [], 'mismatch_count' => 0, 'compared_count' => 0];
 $canUpdateFromCv = (bool) ($detail['can_update'] ?? false);
+$mismatchKeys = collect($comparison['groups'] ?? [])
+    ->flatMap(fn($items) => $items)
+    ->filter(fn($item) => !empty($item['mismatch']))
+    ->pluck('key')
+    ->filter()
+    ->values()
+    ->all();
+$isMismatch = function (array $keys) use ($mismatchKeys): bool {
+    return count(array_intersect($keys, $mismatchKeys)) > 0;
+};
 $cvName = $vitae['profile']['name'] ?? ($employee->nama_karyawan ?: $employee->nik);
 $cvInitials = collect(explode(' ', trim((string) $cvName)))
     ->filter()
@@ -134,34 +144,81 @@ $cvInitials = collect(explode(' ', trim((string) $cvName)))
                 <article class="cv-vitae-sheet">
                     <aside class="cv-vitae-sidebar">
                         <div class="cv-vitae-avatar" aria-hidden="true">{{ $cvInitials ?: 'CV' }}</div>
-                        <h2>{{ $vitae['profile']['name'] ?: '-' }}</h2>
-                        <div class="cv-vitae-position">{{ $vitae['profile']['position'] ?: '-' }}</div>
+                        <h2 class="{{ $isMismatch(['name']) ? 'cv-vitae-field--mismatch' : '' }}">
+                            {{ $vitae['profile']['name'] ?: '-' }}
+                            @if($isMismatch(['name']))
+                            <span class="cv-vitae-mismatch-badge">Tidak sesuai HRIS</span>
+                            @endif
+                        </h2>
+                        <div class="cv-vitae-position{{ $isMismatch(['position']) ? ' cv-vitae-field--mismatch' : '' }}">
+                            {{ $vitae['profile']['position'] ?: '-' }}
+                            @if($isMismatch(['position']))
+                            <span class="cv-vitae-mismatch-badge">Tidak sesuai HRIS</span>
+                            @endif
+                        </div>
 
                         <div class="cv-vitae-side-section">
                             <h3>Kontak</h3>
                             <dl>
+                                <div class="cv-vitae-field{{ $isMismatch(['phone']) ? ' cv-vitae-field--mismatch' : '' }}">
                                 <dt>No. HP</dt>
                                 <dd>{{ $vitae['profile']['phone'] ?: '-' }}</dd>
+                                @if($isMismatch(['phone']))
+                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
+                                @endif
+                                </div>
+                                <div class="cv-vitae-field">
                                 <dt>Email</dt>
                                 <dd>{{ $vitae['profile']['email'] ?: '-' }}</dd>
+                                </div>
+                                <div class="cv-vitae-field{{ $isMismatch(['address']) ? ' cv-vitae-field--mismatch' : '' }}">
                                 <dt>Alamat</dt>
                                 <dd>{{ $vitae['profile']['address'] ?: '-' }}</dd>
+                                @if($isMismatch(['address']))
+                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
+                                @endif
+                                </div>
+                                <div class="cv-vitae-field{{ $isMismatch(['province', 'regency', 'district', 'village']) ? ' cv-vitae-field--mismatch' : '' }}">
                                 <dt>Wilayah</dt>
                                 <dd>{{ $vitae['profile']['location'] ?: '-' }}</dd>
+                                @if($isMismatch(['province', 'regency', 'district', 'village']))
+                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
+                                @endif
+                                </div>
                             </dl>
                         </div>
 
                         <div class="cv-vitae-side-section">
                             <h3>Data Pribadi</h3>
                             <dl>
+                                <div class="cv-vitae-field{{ $isMismatch(['birth_date']) ? ' cv-vitae-field--mismatch' : '' }}">
                                 <dt>TTL</dt>
                                 <dd>{{ $vitae['profile']['birth'] ?: '-' }}</dd>
+                                @if($isMismatch(['birth_date']))
+                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
+                                @endif
+                                </div>
+                                <div class="cv-vitae-field{{ $isMismatch(['gender']) ? ' cv-vitae-field--mismatch' : '' }}">
                                 <dt>Gender</dt>
                                 <dd>{{ $vitae['profile']['gender'] ?: '-' }}</dd>
+                                @if($isMismatch(['gender']))
+                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
+                                @endif
+                                </div>
+                                <div class="cv-vitae-field{{ $isMismatch(['marital_status']) ? ' cv-vitae-field--mismatch' : '' }}">
                                 <dt>Status</dt>
                                 <dd>{{ $vitae['profile']['marital_status'] ?: '-' }}</dd>
+                                @if($isMismatch(['marital_status']))
+                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
+                                @endif
+                                </div>
+                                <div class="cv-vitae-field{{ $isMismatch(['work_area', 'department', 'division']) ? ' cv-vitae-field--mismatch' : '' }}">
                                 <dt>Organisasi Kerja</dt>
                                 <dd>{{ $vitae['profile']['organization'] ?: '-' }}</dd>
+                                @if($isMismatch(['work_area', 'department', 'division']))
+                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
+                                @endif
+                                </div>
                             </dl>
                         </div>
 
@@ -235,8 +292,13 @@ $cvInitials = collect(explode(' ', trim((string) $cvName)))
                         @endif
 
                         @if(!empty($vitae['educations']))
-                        <section class="cv-vitae-section">
-                            <h3>Pendidikan</h3>
+                        <section class="cv-vitae-section{{ $isMismatch(['education_level', 'education_institution', 'education_major', 'graduation_year']) ? ' cv-vitae-section--mismatch' : '' }}">
+                            <h3>
+                                <span>Pendidikan</span>
+                                @if($isMismatch(['education_level', 'education_institution', 'education_major', 'graduation_year']))
+                                <span class="cv-vitae-mismatch-badge">Tidak sesuai HRIS</span>
+                                @endif
+                            </h3>
                             @foreach($vitae['educations'] as $education)
                             <div class="cv-vitae-item">
                                 <div class="cv-vitae-item__head">

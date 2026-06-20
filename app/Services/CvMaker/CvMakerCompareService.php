@@ -31,10 +31,10 @@ class CvMakerCompareService
             ['key' => 'position', 'label' => 'Posisi', 'hris' => 'position', 'cv' => 'position', 'type' => 'text'],
         ],
         'location' => [
-            ['key' => 'province', 'label' => 'Provinsi', 'hris' => 'province_name', 'cv' => 'province_name', 'type' => 'text'],
-            ['key' => 'regency', 'label' => 'Kabupaten', 'hris' => 'regency_name', 'cv' => 'regency_name', 'type' => 'text'],
-            ['key' => 'district', 'label' => 'Kecamatan', 'hris' => 'district_name', 'cv' => 'district_name', 'type' => 'text'],
-            ['key' => 'village', 'label' => 'Kelurahan', 'hris' => 'village_name', 'cv' => 'village_name', 'type' => 'text'],
+            ['key' => 'province', 'label' => 'Provinsi', 'hris' => 'province_name', 'cv' => 'province_name', 'type' => 'text', 'compare_missing' => true],
+            ['key' => 'regency', 'label' => 'Kabupaten', 'hris' => 'regency_name', 'cv' => 'regency_name', 'type' => 'text', 'compare_missing' => true],
+            ['key' => 'district', 'label' => 'Kecamatan', 'hris' => 'district_name', 'cv' => 'district_name', 'type' => 'text', 'compare_missing' => true],
+            ['key' => 'village', 'label' => 'Kelurahan', 'hris' => 'village_name', 'cv' => 'village_name', 'type' => 'text', 'compare_missing' => true],
         ],
         'education' => [
             ['key' => 'education_level', 'label' => 'Pendidikan', 'hris' => 'pendidikan_terakhir', 'cv' => 'education_level', 'type' => 'education_level'],
@@ -158,7 +158,8 @@ class CvMakerCompareService
                     $field['label'],
                     $this->employeeComparableValue($employee, $field['hris']),
                     $cvProfile ? ($cvProfile[$field['cv']] ?? null) : null,
-                    $field['type']
+                    $field['type'],
+                    !empty($cvProfile['profile_id']) && !empty($field['compare_missing'])
                 );
 
                 if (!$result['skipped']) {
@@ -169,6 +170,7 @@ class CvMakerCompareService
                     $mismatchCount++;
                 }
 
+                $result['key'] = $field['key'];
                 $groups[$group][] = $result;
             }
         }
@@ -180,11 +182,13 @@ class CvMakerCompareService
         ];
     }
 
-    public function compareField(string $label, $hrisValue, $cvValue, string $type = 'text'): array
+    public function compareField(string $label, $hrisValue, $cvValue, string $type = 'text', bool $compareMissing = false): array
     {
         $hrisNormalized = $this->normalizeForCompare($hrisValue, $type);
         $cvNormalized = $this->normalizeForCompare($cvValue, $type);
-        $skipped = $hrisNormalized === null || $cvNormalized === null;
+        $skipped = $compareMissing
+            ? $hrisNormalized === null && $cvNormalized === null
+            : ($hrisNormalized === null || $cvNormalized === null);
         $mismatch = !$skipped && $hrisNormalized !== $cvNormalized;
 
         return [

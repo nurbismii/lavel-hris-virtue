@@ -412,6 +412,12 @@
     margin: 0;
 }
 
+.cv-vitae-field {
+    padding: 7px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+}
+
 .cv-vitae-side-section dt {
     color: #cbd5e1;
     font-size: 0.7rem;
@@ -425,6 +431,50 @@
     font-size: 0.84rem;
     line-height: 1.45;
     overflow-wrap: anywhere;
+}
+
+.cv-vitae-field--mismatch {
+    padding: 7px;
+    color: #fee2e2;
+    background: rgba(127, 29, 29, 0.38);
+    border: 1px solid rgba(248, 113, 113, 0.82);
+    border-radius: 7px;
+}
+
+.cv-vitae-sidebar h2.cv-vitae-field--mismatch,
+.cv-vitae-position.cv-vitae-field--mismatch {
+    margin-left: -7px;
+    margin-right: -7px;
+}
+
+.cv-vitae-field--mismatch dt,
+.cv-vitae-field--mismatch dd,
+.cv-vitae-field--mismatch .cv-vitae-mismatch-note {
+    color: #fee2e2;
+}
+
+.cv-vitae-mismatch-badge,
+.cv-vitae-mismatch-note {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    margin-top: 6px;
+    padding: 3px 7px;
+    color: #7f1d1d;
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.cv-vitae-field--mismatch .cv-vitae-mismatch-badge,
+.cv-vitae-field--mismatch .cv-vitae-mismatch-note,
+.cv-vitae-sidebar .cv-vitae-mismatch-badge {
+    color: #fee2e2;
+    background: rgba(127, 29, 29, 0.72);
+    border-color: rgba(254, 202, 202, 0.9);
 }
 
 .cv-vitae-skill-title {
@@ -483,9 +533,25 @@
 }
 
 .cv-vitae-section h3 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
     color: #111827;
     border-bottom: 2px solid #e5e7eb;
     padding-bottom: 8px;
+}
+
+.cv-vitae-section--mismatch {
+    padding: 10px;
+    background: #fff1f2;
+    border: 1px solid #fca5a5;
+    border-radius: 7px;
+}
+
+.cv-vitae-section--mismatch h3 {
+    color: #7f1d1d;
+    border-bottom-color: #fecaca;
 }
 
 .cv-vitae-section p {
