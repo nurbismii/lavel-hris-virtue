@@ -112,12 +112,7 @@ class CvMakerCompareService
                     'nik' => e($employee->nik),
                     'employee' => $this->renderEmployeeCell($employee),
                     'cv_status' => $this->renderCvStatus($cvProfile),
-                    'mismatch_summary' => $this->renderMismatchSummary($comparison, $cvProfile),
-                    'identity' => $this->renderComparisonGroup($comparison['groups']['identity']),
-                    'work' => $this->renderComparisonGroup($comparison['groups']['work']),
-                    'location' => $this->renderComparisonGroup($comparison['groups']['location']),
-                    'education' => $this->renderComparisonGroup($comparison['groups']['education']),
-                    'action' => $this->renderActionCell($employee, $cvProfile),
+                    'result' => $this->renderResultCell($employee, $comparison, $cvProfile),
                 ];
             })
             ->values()
@@ -129,6 +124,23 @@ class CvMakerCompareService
             'recordsFiltered' => $recordsFiltered,
             'data' => $rows,
             'integration_available' => $this->isConfigured(),
+        ];
+    }
+
+    public function detailForEmployee(Employee $employee): array
+    {
+        $employee->loadMissing(['departemen', 'divisi', 'provinsi', 'kabupaten', 'kecamatan', 'kelurahan']);
+
+        $cvProfile = $this->cvProfileForEmployee($employee);
+        $comparison = $this->compareEmployee($employee, $cvProfile);
+
+        return [
+            'cv_profile' => $cvProfile,
+            'vitae' => $this->buildVitaeView($cvProfile),
+            'comparison' => $comparison,
+            'cv_status' => $this->renderCvStatus($cvProfile),
+            'summary' => $this->renderMismatchSummary($comparison, $cvProfile),
+            'can_update' => $this->isConfigured() && $cvProfile && !empty($cvProfile['profile_id']),
         ];
     }
 
@@ -588,6 +600,182 @@ class CvMakerCompareService
         ];
     }
 
+    private function buildVitaeView(?array $cvProfile): array
+    {
+        $empty = [
+            'profile' => [],
+            'educations' => [],
+            'experiences' => [],
+            'organizations' => [],
+            'certifications' => [],
+            'languages' => [],
+            'projects' => [],
+            'has_content' => false,
+        ];
+
+        if (!$this->isConfigured() || !$cvProfile || empty($cvProfile['profile_id'])) {
+            return $empty;
+        }
+
+        $profileId = (int) $cvProfile['profile_id'];
+        $educations = $this->fetchCvRelatedRows($profileId, 'cv_educations', [
+            'level',
+            'institution',
+            'major',
+            'graduation_year',
+            'sort_order',
+        ]);
+        $experiences = $this->fetchCvRelatedRows($profileId, 'cv_experiences', [
+            'position',
+            'company',
+            'department',
+            'start_month',
+            'end_month',
+            'is_current',
+            'responsibilities',
+            'sort_order',
+        ]);
+        $organizations = $this->fetchCvRelatedRows($profileId, 'cv_organizations', [
+            'organization_name',
+            'role',
+            'start_year',
+            'end_year',
+            'sort_order',
+        ]);
+        $certifications = $this->fetchCvRelatedRows($profileId, 'cv_certifications', [
+            'name',
+            'issuer',
+            'year',
+            'valid_until_year',
+            'is_lifetime',
+            'type',
+            'sort_order',
+        ]);
+        $languages = $this->fetchCvRelatedRows($profileId, 'cv_languages', [
+            'language',
+            'level',
+            'sort_order',
+        ]);
+        $projects = $this->fetchCvRelatedRows($profileId, 'cv_projects', [
+            'name',
+            'year',
+            'sort_order',
+        ]);
+
+        $vitae = [
+            'profile' => [
+                'name' => $cvProfile['full_name'] ?? null,
+                'position' => $cvProfile['position'] ?? null,
+                'summary' => $this->cleanLongText($cvProfile['profile_summary'] ?? null),
+                'birth' => $this->formatBirthInfo($cvProfile['birth_place'] ?? null, $cvProfile['birth_date'] ?? null),
+                'gender' => $this->plainDisplayValue($cvProfile['gender'] ?? null, 'text'),
+                'marital_status' => $this->plainDisplayValue($cvProfile['marital_status'] ?? null, 'text'),
+                'phone' => $this->plainDisplayValue($cvProfile['phone'] ?? null, 'text'),
+                'email' => $this->plainDisplayValue($cvProfile['email'] ?? null, 'text'),
+                'address' => $this->cleanLongText($cvProfile['address'] ?? null),
+                'location' => $this->joinNonEmpty([
+                    $cvProfile['village_name'] ?? null,
+                    $cvProfile['district_name'] ?? null,
+                    $cvProfile['regency_name'] ?? null,
+                    $cvProfile['province_name'] ?? null,
+                ], ', '),
+                'organization' => $this->joinNonEmpty([
+                    $cvProfile['work_area'] ?? null,
+                    $cvProfile['department'] ?? null,
+                    $cvProfile['division'] ?? null,
+                ], ' / '),
+                'technical_skills' => $this->splitCvList($cvProfile['technical_skills'] ?? null),
+                'non_technical_skills' => $this->splitCvList($cvProfile['non_technical_skills'] ?? null),
+                'last_generated_at' => $this->formatDateTime($cvProfile['last_generated_at'] ?? null),
+                'updated_at' => $this->formatDateTime($cvProfile['updated_at'] ?? null),
+            ],
+            'educations' => $educations->map(function ($item) {
+                return [
+                    'title' => $this->joinNonEmpty([$item->level ?? null, $item->major ?? null], ' - '),
+                    'institution' => $item->institution ?? null,
+                    'year' => $item->graduation_year ?? null,
+                ];
+            })->all(),
+            'experiences' => $experiences->map(function ($item) {
+                return [
+                    'title' => $item->position ?? null,
+                    'company' => $this->joinNonEmpty([$item->company ?? null, $item->department ?? null], ' - '),
+                    'period' => $this->formatMonthRange($item->start_month ?? null, $item->end_month ?? null, (bool) ($item->is_current ?? false)),
+                    'responsibilities' => $this->splitCvList($item->responsibilities ?? null),
+                ];
+            })->all(),
+            'organizations' => $organizations->map(function ($item) {
+                return [
+                    'title' => $item->organization_name ?? null,
+                    'role' => $item->role ?? null,
+                    'period' => $this->formatYearRange($item->start_year ?? null, $item->end_year ?? null),
+                ];
+            })->all(),
+            'certifications' => $certifications->map(function ($item) {
+                return [
+                    'title' => $item->name ?? null,
+                    'issuer' => $item->issuer ?? null,
+                    'type' => $item->type ?? null,
+                    'period' => $this->formatCertificationPeriod(
+                        $item->year ?? null,
+                        $item->valid_until_year ?? null,
+                        (bool) ($item->is_lifetime ?? false)
+                    ),
+                ];
+            })->all(),
+            'languages' => $languages->map(function ($item) {
+                return [
+                    'language' => $item->language ?? null,
+                    'level' => $item->level ?? null,
+                ];
+            })->all(),
+            'projects' => $projects->map(function ($item) {
+                return [
+                    'name' => $item->name ?? null,
+                    'year' => $item->year ?? null,
+                ];
+            })->all(),
+        ];
+
+        $vitae['has_content'] = filled($vitae['profile']['name'])
+            || filled($vitae['profile']['summary'])
+            || !empty($vitae['educations'])
+            || !empty($vitae['experiences'])
+            || !empty($vitae['organizations'])
+            || !empty($vitae['certifications'])
+            || !empty($vitae['languages'])
+            || !empty($vitae['projects']);
+
+        return $vitae;
+    }
+
+    private function fetchCvRelatedRows(int $profileId, string $table, array $columns, int $limit = 50): Collection
+    {
+        try {
+            $query = DB::connection(config('services.cv_maker.connection', 'cv_maker'))
+                ->table($table)
+                ->where('cv_profile_id', $profileId)
+                ->select($columns);
+
+            if (in_array('sort_order', $columns, true)) {
+                $query->orderBy('sort_order');
+            }
+
+            return $query
+                ->orderBy('id')
+                ->limit($limit)
+                ->get();
+        } catch (Throwable $exception) {
+            Log::warning('CV Maker vitae lookup failed.', [
+                'table' => $table,
+                'profile_id' => $profileId,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return collect();
+        }
+    }
+
     private function fetchCvProfilesForEmployees(Collection $employees): array
     {
         if (!$this->isConfigured() || $employees->isEmpty()) {
@@ -617,6 +805,7 @@ class CvMakerCompareService
                     'cv_profiles.id as profile_id',
                     'cv_profiles.status',
                     'cv_profiles.full_name',
+                    'cv_profiles.birth_place',
                     'cv_profiles.birth_date',
                     'cv_profiles.gender',
                     'cv_profiles.marital_status',
@@ -635,6 +824,10 @@ class CvMakerCompareService
                     'cv_profiles.department',
                     'cv_profiles.division',
                     'cv_profiles.position',
+                    'cv_profiles.profile_summary',
+                    'cv_profiles.technical_skills',
+                    'cv_profiles.non_technical_skills',
+                    'cv_profiles.last_generated_at',
                     'cv_profiles.updated_at',
                 ])
                 ->get();
@@ -665,6 +858,7 @@ class CvMakerCompareService
                     'account_email' => $profile->account_email,
                     'vpeople_last_synced_at' => $profile->vpeople_last_synced_at,
                     'full_name' => $profile->full_name,
+                    'birth_place' => $profile->birth_place,
                     'birth_date' => $profile->birth_date,
                     'gender' => $profile->gender,
                     'marital_status' => $profile->marital_status,
@@ -683,6 +877,10 @@ class CvMakerCompareService
                     'department' => $profile->department,
                     'division' => $profile->division,
                     'position' => $profile->position,
+                    'profile_summary' => $profile->profile_summary,
+                    'technical_skills' => $profile->technical_skills,
+                    'non_technical_skills' => $profile->non_technical_skills,
+                    'last_generated_at' => $profile->last_generated_at,
                     'updated_at' => $profile->updated_at,
                     'education_level' => $education['level'] ?? null,
                     'education_institution' => $education['institution'] ?? null,
@@ -874,6 +1072,12 @@ class CvMakerCompareService
             return '-';
         }
 
+        $decodedListText = $this->decodedCvListToText($value);
+
+        if ($decodedListText !== null) {
+            return $decodedListText;
+        }
+
         if ($type === 'date') {
             try {
                 return Carbon::parse($value)->format('d/m/Y');
@@ -899,6 +1103,12 @@ class CvMakerCompareService
 
         if ($value === null || trim((string) $value) === '') {
             return '-';
+        }
+
+        $decodedListText = $this->decodedCvListToText($value);
+
+        if ($decodedListText !== null) {
+            return e($decodedListText);
         }
 
         if ($type === 'date') {
@@ -929,6 +1139,196 @@ class CvMakerCompareService
         }
 
         return 0;
+    }
+
+    private function cleanLongText($value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        $text = (string) $value;
+        $text = preg_replace('/<\s*br\s*\/?>/i', "\n", $text) ?: $text;
+        $text = preg_replace('/<\/\s*p\s*>/i', "\n", $text) ?: $text;
+        $text = trim(strip_tags($text));
+        $text = preg_replace("/[ \t]+/", ' ', $text) ?: $text;
+        $text = preg_replace("/\n{3,}/", "\n\n", $text) ?: $text;
+
+        return trim($text) !== '' ? trim($text) : null;
+    }
+
+    private function splitCvList($value): array
+    {
+        $decodedItems = $this->decodeCvList($value);
+
+        if ($decodedItems !== null) {
+            return collect($decodedItems)
+                ->flatMap(fn($item) => is_array($item) ? array_values($item) : [$item])
+                ->map(fn($item) => is_scalar($item) ? $this->cleanLongText($item) : null)
+                ->filter(fn($item) => filled($item))
+                ->unique()
+                ->take(30)
+                ->values()
+                ->all();
+        }
+
+        $text = $this->cleanLongText($value);
+
+        if (!$text) {
+            return [];
+        }
+
+        $text = trim($text, "[] \t\n\r\0\x0B");
+        $items = preg_split('/\r\n|\r|\n|;|,/', $text) ?: [];
+
+        return collect($items)
+            ->map(fn($item) => trim((string) $item, " \t\n\r\0\x0B\"'"))
+            ->filter(fn($item) => $item !== '')
+            ->unique()
+            ->take(30)
+            ->values()
+            ->all();
+    }
+
+    private function decodeCvList($value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        $text = trim((string) $value);
+
+        if (!in_array(substr($text, 0, 1), ['[', '{'], true)) {
+            return null;
+        }
+
+        $decoded = json_decode($text, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return null;
+        }
+
+        if (is_array($decoded)) {
+            return array_values($decoded);
+        }
+
+        return null;
+    }
+
+    private function decodedCvListToText($value): ?string
+    {
+        $decodedItems = $this->decodeCvList($value);
+
+        if ($decodedItems === null) {
+            return null;
+        }
+
+        $items = collect($decodedItems)
+            ->flatMap(fn($item) => is_array($item) ? array_values($item) : [$item])
+            ->map(fn($item) => is_scalar($item) ? $this->cleanLongText($item) : null)
+            ->filter(fn($item) => filled($item))
+            ->unique()
+            ->values();
+
+        return $items->isNotEmpty() ? $items->join(', ') : '-';
+    }
+
+    private function joinNonEmpty(array $values, string $separator): ?string
+    {
+        $items = collect($values)
+            ->map(fn($value) => $value === null ? null : trim((string) $value))
+            ->filter(fn($value) => filled($value))
+            ->values()
+            ->all();
+
+        return $items ? implode($separator, $items) : null;
+    }
+
+    private function formatBirthInfo($place, $date): ?string
+    {
+        return $this->joinNonEmpty([
+            $place,
+            $this->formatDate($date),
+        ], ', ');
+    }
+
+    private function formatDate($value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->format('d/m/Y');
+        } catch (Throwable $exception) {
+            return (string) $value;
+        }
+    }
+
+    private function formatDateTime($value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->format('d/m/Y H:i');
+        } catch (Throwable $exception) {
+            return (string) $value;
+        }
+    }
+
+    private function formatMonthRange($start, $end, bool $isCurrent): ?string
+    {
+        $startLabel = $this->formatMonth($start);
+        $endLabel = $isCurrent ? 'Sekarang' : $this->formatMonth($end);
+
+        return $this->formatRange($startLabel, $endLabel);
+    }
+
+    private function formatMonth($value): ?string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return null;
+        }
+
+        $value = trim((string) $value);
+
+        try {
+            return Carbon::parse(strlen($value) === 7 ? $value . '-01' : $value)->format('m/Y');
+        } catch (Throwable $exception) {
+            return $value;
+        }
+    }
+
+    private function formatYearRange($start, $end): ?string
+    {
+        return $this->formatRange($start, $end);
+    }
+
+    private function formatCertificationPeriod($year, $validUntilYear, bool $isLifetime): ?string
+    {
+        if ($isLifetime) {
+            return $this->formatRange($year, 'Seumur hidup');
+        }
+
+        return $this->formatRange($year, $validUntilYear);
+    }
+
+    private function formatRange($start, $end): ?string
+    {
+        $start = $start === null ? '' : trim((string) $start);
+        $end = $end === null ? '' : trim((string) $end);
+
+        if ($start !== '' && $end !== '') {
+            return $start . ' - ' . $end;
+        }
+
+        return $start !== '' ? $start : ($end !== '' ? $end : null);
     }
 
     private function renderEmployeeCell(Employee $employee): string
@@ -968,6 +1368,19 @@ class CvMakerCompareService
         return '<span class="badge ' . $badgeClass . '">' . e(ucfirst($status)) . '</span>' . $updatedAt;
     }
 
+    private function renderResultCell(Employee $employee, array $comparison, ?array $cvProfile): string
+    {
+        $detailUrl = route('cv-maker-compare.show', $employee->nik);
+
+        return '<div class="cv-result-cell">'
+            . '<div class="cv-result-cell__summary">' . $this->renderMismatchSummary($comparison, $cvProfile) . '</div>'
+            . '<a href="' . e($detailUrl) . '" class="btn btn-sm btn-outline-primary ui-btn-icon cv-result-cell__detail">'
+            . '<i class="fas fa-eye"></i>'
+            . '<span>Detail</span>'
+            . '</a>'
+            . '</div>';
+    }
+
     private function renderMismatchSummary(array $comparison, ?array $cvProfile): string
     {
         if (!$this->isConfigured() || !$cvProfile || empty($cvProfile['profile_id'])) {
@@ -987,45 +1400,4 @@ class CvMakerCompareService
             . '<div class="cv-status-meta">' . (int) $comparison['compared_count'] . ' field dibandingkan</div>';
     }
 
-    private function renderComparisonGroup(array $items): string
-    {
-        $html = '<div class="cv-compare-fields">';
-
-        foreach ($items as $item) {
-            $class = $item['mismatch']
-                ? ' cv-compare-field--mismatch'
-                : ($item['skipped'] ? ' cv-compare-field--skipped' : '');
-
-            $html .= '<div class="cv-compare-field' . $class . '">'
-                . '<div class="cv-compare-field__label">' . e($item['label']) . '</div>'
-                . '<div class="cv-compare-field__values">'
-                . '<span title="HRIS">' . $item['hris'] . '</span>'
-                . '<span title="CV Maker">' . $item['cv'] . '</span>'
-                . '</div>'
-                . '</div>';
-        }
-
-        return $html . '</div>';
-    }
-
-    private function renderActionCell(Employee $employee, ?array $cvProfile): string
-    {
-        $editButton = '<a href="' . e(route('karyawan.edit', $employee->nik)) . '" class="btn btn-sm btn-outline-primary ui-btn-icon" title="Edit HRIS">'
-            . '<i class="fas fa-edit"></i>'
-            . '</a>';
-
-        if (!$this->isConfigured() || !$cvProfile || empty($cvProfile['profile_id'])) {
-            return '<div class="cv-action-buttons">' . $editButton . '</div>';
-        }
-
-        $updateButton = '<button type="button" class="btn btn-sm btn-outline-danger ui-btn-icon js-cv-update-preview"'
-            . ' data-preview-url="' . e(route('cv-maker-compare.preview-update', $employee->nik)) . '"'
-            . ' data-update-url="' . e(route('cv-maker-compare.update-hris', $employee->nik)) . '"'
-            . ' data-employee-name="' . e($employee->nama_karyawan ?: $employee->nik) . '"'
-            . ' title="Update HRIS dari CV Maker">'
-            . '<i class="fas fa-sync-alt"></i>'
-            . '</button>';
-
-        return '<div class="cv-action-buttons">' . $editButton . $updateButton . '</div>';
-    }
 }

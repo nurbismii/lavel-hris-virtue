@@ -39,7 +39,7 @@
             <div class="ui-panel__header">
                 <div>
                     <h5 class="ui-panel__title" id="cvMakerCompareTableTitle">Daftar Compare</h5>
-                    <p class="ui-panel__meta">Field merah berarti nilai HRIS dan CV Maker sama-sama tersedia tetapi berbeda.</p>
+                    <p class="ui-panel__meta">Klik Detail pada kolom Hasil untuk melihat identitas, organisasi, wilayah, pendidikan, dan opsi update HRIS.</p>
                 </div>
                 <button type="button" class="btn btn-sm btn-light border ui-btn-icon" id="btnResetCvCompareFilter">
                     <i class="fas fa-undo"></i>
@@ -136,14 +136,9 @@
                         <thead>
                             <tr>
                                 <th>NIK</th>
-                                <th>Karyawan HRIS</th>
+                                <th>Karyawan</th>
                                 <th>CV Maker</th>
                                 <th>Hasil</th>
-                                <th>Identitas</th>
-                                <th>Organisasi</th>
-                                <th>Wilayah</th>
-                                <th>Pendidikan</th>
-                                <th>Aksi</th>
                             </tr>
                         </thead>
                     </table>
@@ -153,56 +148,6 @@
     </div>
 </div>
 
-<div class="modal fade" id="cvUpdatePreviewModal" tabindex="-1" aria-labelledby="cvUpdatePreviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content cv-update-modal">
-            <div class="modal-header">
-                <div>
-                    <h1 class="modal-title fs-5" id="cvUpdatePreviewModalLabel">Update HRIS dari CV Maker</h1>
-                    <small class="text-muted" id="cvUpdatePreviewEmployee">-</small>
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
-            </div>
-            <div class="modal-body">
-                <div id="cvUpdatePreviewLoading" class="cv-update-state">
-                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                    Memeriksa perubahan dari CV Maker...
-                </div>
-                <div id="cvUpdatePreviewError" class="alert ui-alert ui-alert--warning d-none mb-0"></div>
-                <div id="cvUpdatePreviewEmpty" class="alert ui-alert d-none mb-0"></div>
-                <div id="cvUpdatePreviewContent" class="d-none">
-                    <div class="cv-update-warning mb-3">
-                        <i class="fas fa-info-circle"></i>
-                        Sistem hanya mengisi nilai CV Maker yang valid dan tidak kosong. Departemen, divisi, dan perusahaan tidak di-update otomatis karena memakai foreign key dan berdampak ke scope akses.
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-bordered align-middle cv-update-table mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Field</th>
-                                    <th>HRIS sekarang</th>
-                                    <th>CV Maker</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cvUpdatePreviewRows"></tbody>
-                        </table>
-                    </div>
-                    <div id="cvUpdatePreviewSkipped" class="cv-update-skipped d-none"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-light border ui-btn-icon" data-bs-dismiss="modal">
-                    <i class="fas fa-times"></i>
-                    Batal
-                </button>
-                <button type="button" class="btn btn-danger ui-btn-icon" id="cvUpdateConfirmButton" disabled>
-                    <i class="fas fa-sync-alt"></i>
-                    Update HRIS
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 @endsection
 
 @push('scripts')
@@ -310,173 +255,9 @@
                 { data: 'nik', width: '90px' },
                 { data: 'employee', orderable: true },
                 { data: 'cv_status', orderable: false, searchable: false, width: '120px' },
-                { data: 'mismatch_summary', orderable: false, searchable: false, width: '130px' },
-                { data: 'identity', orderable: false, searchable: false },
-                { data: 'work', orderable: false, searchable: false },
-                { data: 'location', orderable: false, searchable: false },
-                { data: 'education', orderable: false, searchable: false },
-                { data: 'action', orderable: false, searchable: false, width: '70px' }
+                { data: 'result', orderable: false, searchable: false, width: '190px' }
             ]
         });
-
-    const cvUpdateModalEl = document.getElementById('cvUpdatePreviewModal');
-    const cvUpdateModal = cvUpdateModalEl ? new bootstrap.Modal(cvUpdateModalEl) : null;
-    const cvUpdateEmployee = document.getElementById('cvUpdatePreviewEmployee');
-    const cvUpdateLoading = document.getElementById('cvUpdatePreviewLoading');
-    const cvUpdateError = document.getElementById('cvUpdatePreviewError');
-    const cvUpdateEmpty = document.getElementById('cvUpdatePreviewEmpty');
-    const cvUpdateContent = document.getElementById('cvUpdatePreviewContent');
-    const cvUpdateRows = document.getElementById('cvUpdatePreviewRows');
-    const cvUpdateSkipped = document.getElementById('cvUpdatePreviewSkipped');
-    const cvUpdateConfirm = document.getElementById('cvUpdateConfirmButton');
-    let pendingCvUpdateUrl = null;
-
-    function escapeHtml(value) {
-        return $('<div>').text(value === null || value === undefined || value === '' ? '-' : value).html();
-    }
-
-    function resetCvUpdateModal() {
-        pendingCvUpdateUrl = null;
-        cvUpdateEmployee.textContent = '-';
-        cvUpdateLoading.classList.remove('d-none');
-        cvUpdateError.classList.add('d-none');
-        cvUpdateEmpty.classList.add('d-none');
-        cvUpdateContent.classList.add('d-none');
-        cvUpdateSkipped.classList.add('d-none');
-        cvUpdateError.textContent = '';
-        cvUpdateEmpty.textContent = '';
-        cvUpdateRows.innerHTML = '';
-        cvUpdateSkipped.innerHTML = '';
-        cvUpdateConfirm.disabled = true;
-    }
-
-    function renderCvUpdatePreview(payload, updateUrl) {
-        cvUpdateLoading.classList.add('d-none');
-
-        const changes = payload.changes || [];
-        const skipped = payload.skipped || [];
-
-        if (!changes.length) {
-            cvUpdateEmpty.textContent = payload.message || 'Tidak ada perubahan yang bisa diperbarui dari CV Maker.';
-            cvUpdateEmpty.classList.remove('d-none');
-
-            if (skipped.length) {
-                cvUpdateSkipped.innerHTML = renderSkippedItems(skipped);
-                cvUpdateSkipped.classList.remove('d-none');
-                cvUpdateContent.classList.remove('d-none');
-            }
-
-            return;
-        }
-
-        cvUpdateRows.innerHTML = changes.map(function(change) {
-            return `<tr>
-                <td>${escapeHtml(change.label)}</td>
-                <td>${escapeHtml(change.old)}</td>
-                <td class="cv-update-table__new">${escapeHtml(change.new)}</td>
-            </tr>`;
-        }).join('');
-
-        if (skipped.length) {
-            cvUpdateSkipped.innerHTML = renderSkippedItems(skipped);
-            cvUpdateSkipped.classList.remove('d-none');
-        }
-
-        pendingCvUpdateUrl = updateUrl;
-        cvUpdateConfirm.disabled = false;
-        cvUpdateContent.classList.remove('d-none');
-    }
-
-    function renderSkippedItems(items) {
-        const rows = items.map(function(item) {
-            return `<li><strong>${escapeHtml(item.label)}</strong>: ${escapeHtml(item.reason)}</li>`;
-        }).join('');
-
-        return `<div class="cv-update-skipped__title">Field dilewati</div><ul>${rows}</ul>`;
-    }
-
-    $(document).on('click', '.js-cv-update-preview', function() {
-        if (!cvUpdateModal) {
-            return;
-        }
-
-        const button = $(this);
-        const previewUrl = button.data('preview-url');
-        const updateUrl = button.data('update-url');
-        const employeeName = button.data('employee-name') || 'Karyawan';
-        const originalHtml = button.html();
-
-        resetCvUpdateModal();
-        cvUpdateEmployee.textContent = employeeName;
-        cvUpdateModal.show();
-        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-
-        $.ajax({
-            url: previewUrl,
-            method: 'POST',
-            dataType: 'json',
-            data: {
-                _token: $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function(payload) {
-                renderCvUpdatePreview(payload, updateUrl);
-            },
-            error: function(xhr) {
-                cvUpdateLoading.classList.add('d-none');
-                cvUpdateError.text(xhr.responseJSON && xhr.responseJSON.message
-                    ? xhr.responseJSON.message
-                    : 'Preview update gagal dimuat.');
-                cvUpdateError.classList.remove('d-none');
-            },
-            complete: function() {
-                button.prop('disabled', false).html(originalHtml);
-            }
-        });
-    });
-
-    $('#cvUpdateConfirmButton').on('click', function() {
-        if (!pendingCvUpdateUrl) {
-            return;
-        }
-
-        const button = $(this);
-        const originalHtml = button.html();
-
-        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Mengupdate...');
-
-        $.ajax({
-            url: pendingCvUpdateUrl,
-            method: 'POST',
-            dataType: 'json',
-            data: {
-                _token: $('meta[name="csrf-token"]').attr('content')
-            },
-            success: function(payload) {
-                cvUpdateModal.hide();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Berhasil',
-                    text: payload.message || 'Data HRIS berhasil diperbarui dari CV Maker.',
-                    confirmButtonText: 'OK'
-                }).then(function() {
-                    cvCompareTable.ajax.reload(null, false);
-                });
-            },
-            error: function(xhr) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Gagal',
-                    text: xhr.responseJSON && xhr.responseJSON.message
-                        ? xhr.responseJSON.message
-                        : 'Data HRIS gagal diperbarui.',
-                    confirmButtonText: 'OK'
-                });
-            },
-            complete: function() {
-                button.prop('disabled', false).html(originalHtml);
-            }
-        });
-    });
 
     syncCvAreaFilter();
     resetCvDepartmentAndDivision(true);

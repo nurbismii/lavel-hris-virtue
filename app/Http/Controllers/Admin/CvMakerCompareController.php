@@ -47,6 +47,19 @@ class CvMakerCompareController extends Controller
         return response()->json($service->datatable($request, $request->user()));
     }
 
+    public function show(Request $request, string $nik, CvMakerCompareService $service)
+    {
+        $this->authorizeAccess($request->user());
+
+        $employee = $this->scopedEmployee($request, $nik);
+
+        return view('admin.cv-maker-compare.show', [
+            'employee' => $employee,
+            'detail' => $service->detailForEmployee($employee),
+            'integrationAvailable' => $service->isConfigured(),
+        ]);
+    }
+
     public function previewUpdate(Request $request, string $nik, CvMakerCompareService $service): JsonResponse
     {
         $this->authorizeAccess($request->user());

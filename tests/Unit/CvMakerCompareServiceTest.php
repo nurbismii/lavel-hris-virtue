@@ -161,4 +161,24 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertSame('2020', $graduationYearChange['new']);
         $this->assertSame('2020-01-01', $graduationYearChange['new_raw']);
     }
+
+    public function test_cv_list_json_strings_are_cleaned_for_vitae_display(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'splitCvList');
+        $method->setAccessible(true);
+
+        $items = $method->invoke($service, '["Administrasi","Komunikasi","Leadership"]');
+
+        $this->assertSame(['Administrasi', 'Komunikasi', 'Leadership'], $items);
+    }
+
+    public function test_json_list_values_are_cleaned_for_compare_display(): void
+    {
+        $service = new CvMakerCompareService();
+
+        $result = $service->compareField('Skill', 'Administrasi', '["Administrasi","Komunikasi"]');
+
+        $this->assertSame('Administrasi, Komunikasi', $result['cv']);
+    }
 }

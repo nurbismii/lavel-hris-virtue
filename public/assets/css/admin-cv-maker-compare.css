@@ -35,7 +35,7 @@
 }
 
 .cv-compare-table-section .table {
-    min-width: 1660px;
+    min-width: 820px;
     margin-bottom: 0;
 }
 
@@ -179,6 +179,10 @@
     min-width: 250px;
 }
 
+.cv-compare-fields--detail {
+    min-width: 0;
+}
+
 .cv-compare-field {
     padding: 7px;
     background: #ffffff;
@@ -245,11 +249,310 @@
     border-radius: 7px;
 }
 
-.cv-action-buttons {
+.cv-result-cell {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 170px;
+}
+
+.cv-result-cell__summary {
+    min-width: 0;
+}
+
+.cv-result-cell__detail {
+    flex: 0 0 auto;
+}
+
+.cv-detail-summary-panel > .ui-panel__body,
+.cv-detail-compare-panel > .ui-panel__body {
+    padding: 1rem;
+}
+
+.cv-detail-summary {
+    height: 100%;
+    min-height: 124px;
+    padding: 12px;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border-soft);
+    border-radius: var(--ui-radius);
+}
+
+.cv-detail-summary__label {
+    margin-bottom: 6px;
+    color: var(--ui-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.cv-detail-summary__value {
+    color: var(--ui-text);
+    font-weight: 800;
+    line-height: 1.35;
+}
+
+.cv-detail-summary__meta {
+    margin-top: 4px;
+    color: var(--ui-muted);
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.cv-detail-actions {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+}
+
+.cv-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.cv-detail-group {
+    min-width: 0;
+    padding: 12px;
+    background: #ffffff;
+    border: 1px solid var(--ui-border-soft);
+    border-radius: var(--ui-radius);
+}
+
+.cv-detail-group__header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.cv-detail-group__header h6 {
+    margin: 0;
+    color: var(--ui-text);
+    font-weight: 800;
+}
+
+.cv-detail-group__header .badge {
+    border-radius: 999px;
+}
+
+.cv-vitae-panel > .ui-panel__body {
+    padding: 1rem;
+}
+
+.cv-vitae-sheet {
+    display: grid;
+    grid-template-columns: minmax(260px, 0.34fr) minmax(0, 0.66fr);
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid var(--ui-border-soft);
+    border-radius: var(--ui-radius);
+}
+
+.cv-vitae-sidebar {
+    min-width: 0;
+    padding: 22px;
+    color: #f8fafc;
+    background: #1f2937;
+}
+
+.cv-vitae-avatar {
+    display: grid;
+    place-items: center;
+    width: 74px;
+    height: 74px;
+    margin-bottom: 16px;
+    color: #1f2937;
+    background: #f8fafc;
+    border-radius: 50%;
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: 0;
+}
+
+.cv-vitae-sidebar h2 {
+    margin: 0;
+    color: #ffffff;
+    font-size: 1.35rem;
+    font-weight: 900;
+    line-height: 1.25;
+}
+
+.cv-vitae-position {
+    margin-top: 6px;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.cv-vitae-side-section {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(248, 250, 252, 0.18);
+}
+
+.cv-vitae-side-section h3,
+.cv-vitae-section h3 {
+    margin: 0 0 12px;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.cv-vitae-side-section h3 {
+    color: #ffffff;
+}
+
+.cv-vitae-side-section dl {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+}
+
+.cv-vitae-side-section dt {
+    color: #cbd5e1;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.cv-vitae-side-section dd {
+    margin: -4px 0 0;
+    color: #f8fafc;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.cv-vitae-skill-title {
+    margin: 10px 0 6px;
+    color: #cbd5e1;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.cv-vitae-tags {
+    display: flex;
+    flex-wrap: wrap;
     gap: 6px;
-    min-width: 76px;
+}
+
+.cv-vitae-tags span {
+    padding: 5px 8px;
+    color: #f8fafc;
+    background: rgba(248, 250, 252, 0.11);
+    border: 1px solid rgba(248, 250, 252, 0.18);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.cv-vitae-compact-list {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.cv-vitae-compact-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    color: #f8fafc;
+    font-size: 0.84rem;
+}
+
+.cv-vitae-compact-list small {
+    flex: 0 0 auto;
+    color: #cbd5e1;
+}
+
+.cv-vitae-main {
+    min-width: 0;
+    padding: 24px;
+}
+
+.cv-vitae-section + .cv-vitae-section,
+.cv-vitae-two-col {
+    margin-top: 22px;
+}
+
+.cv-vitae-section h3 {
+    color: #111827;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 8px;
+}
+
+.cv-vitae-section p {
+    margin: 0;
+    color: #344054;
+    font-size: 0.9rem;
+    line-height: 1.65;
+}
+
+.cv-vitae-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.cv-vitae-item:last-child {
+    border-bottom: 0;
+}
+
+.cv-vitae-item__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.cv-vitae-item h4 {
+    margin: 0;
+    color: #111827;
+    font-size: 0.95rem;
+    font-weight: 900;
+    line-height: 1.35;
+}
+
+.cv-vitae-item span {
+    display: block;
+    margin-top: 3px;
+    color: #475467;
+    font-size: 0.84rem;
+    line-height: 1.4;
+}
+
+.cv-vitae-item small {
+    color: #667085;
+    font-size: 0.78rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.cv-vitae-item ul {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    color: #344054;
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.cv-vitae-item--compact h4,
+.cv-vitae-item--compact span,
+.cv-vitae-item--compact small {
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.cv-vitae-two-col {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
 }
 
 .cv-update-modal .modal-header,
@@ -338,5 +641,32 @@
 
     .cv-compare-field__values {
         grid-template-columns: 1fr;
+    }
+
+    .cv-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cv-result-cell {
+        flex-direction: column;
+    }
+
+    .cv-vitae-sheet,
+    .cv-vitae-two-col {
+        grid-template-columns: 1fr;
+    }
+
+    .cv-vitae-sidebar,
+    .cv-vitae-main {
+        padding: 18px;
+    }
+
+    .cv-vitae-item__head {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .cv-vitae-item small {
+        white-space: normal;
     }
 }

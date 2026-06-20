@@ -214,6 +214,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/cv-maker-compare/data', [CvMakerCompareController::class, 'data'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
             ->name('cv-maker-compare.data');
+        Route::get('/cv-maker-compare/{nik}', [CvMakerCompareController::class, 'show'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-compare.show');
         Route::post('/cv-maker-compare/{nik}/preview-update', [CvMakerCompareController::class, 'previewUpdate'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
             ->name('cv-maker-compare.preview-update');
