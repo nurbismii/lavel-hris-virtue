@@ -1188,10 +1188,10 @@ class CvMakerCompareService
         }
 
         $text = trim($text, "[] \t\n\r\0\x0B");
-        $items = preg_split('/\r\n|\r|\n|;|,/', $text) ?: [];
+        $items = preg_split('/\r\n|\r|\n|;/', $text) ?: [];
 
         return collect($items)
-            ->map(fn($item) => trim((string) $item, " \t\n\r\0\x0B\"'"))
+            ->map(fn($item) => trim((string) $item, " \t\n\r\0\x0B\"';"))
             ->filter(fn($item) => $item !== '')
             ->unique()
             ->take(30)

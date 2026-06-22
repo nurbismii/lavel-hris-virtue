@@ -42,6 +42,27 @@ $hasCvValue = function ($value): bool {
 $cvText = function ($value, string $fallback = '-') use ($hasCvValue): string {
     return $hasCvValue($value) ? (string) $value : $fallback;
 };
+$cvMultilineBullets = function ($value) use ($hasCvValue): array {
+    if (!$hasCvValue($value)) {
+        return [];
+    }
+
+    $text = str_replace(["\r\n", "\r"], "\n", (string) $value);
+
+    if (strpos($text, "\n") === false) {
+        return [];
+    }
+
+    return collect(explode("\n", $text))
+        ->map(function ($line) {
+            $line = preg_replace('/^\s*(?:[-*]+|\d+[.)])\s*/', '', (string) $line) ?: (string) $line;
+
+            return trim($line, " \t\n\r\0\x0B;");
+        })
+        ->filter()
+        ->values()
+        ->all();
+};
 $cvPersonalMeta = collect([
     ['value' => 'NIK: ' . $employee->nik, 'keys' => []],
     ['value' => $profile['birth'] ?? null, 'keys' => ['birth_date']],
@@ -223,7 +244,18 @@ $hasAdditional = !empty($vitae['projects']) || !empty($vitae['organizations']) |
                     @if($hasCvValue($profile['summary'] ?? null))
                     <section class="cv-vitae-section">
                         <h3>Ringkasan Profil</h3>
+                        @php
+                        $summaryBullets = $cvMultilineBullets($profile['summary'] ?? null);
+                        @endphp
+                        @if(count($summaryBullets) > 1)
+                        <ul class="cv-vitae-bullet-list">
+                            @foreach($summaryBullets as $summaryLine)
+                            <li>{{ $summaryLine }}</li>
+                            @endforeach
+                        </ul>
+                        @else
                         <p>{!! nl2br(e($profile['summary'])) !!}</p>
+                        @endif
                     </section>
                     @endif
 

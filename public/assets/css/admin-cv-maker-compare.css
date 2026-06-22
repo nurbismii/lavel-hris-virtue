@@ -562,7 +562,19 @@
     line-height: 1.58;
 }
 
+.cv-vitae-bullet-list {
+    margin: 0;
+    padding-left: 18px;
+    color: #111827;
+    font-size: 0.91rem;
+    line-height: 1.58;
+}
+
 .cv-vitae-item li + li {
+    margin-top: 3px;
+}
+
+.cv-vitae-bullet-list li + li {
     margin-top: 3px;
 }
 

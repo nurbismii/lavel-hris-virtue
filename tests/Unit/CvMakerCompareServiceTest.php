@@ -198,6 +198,28 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertSame(['Administrasi', 'Komunikasi', 'Leadership'], $items);
     }
 
+    public function test_cv_multiline_list_values_become_clean_bullet_items(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'splitCvList');
+        $method->setAccessible(true);
+
+        $items = $method->invoke($service, "Analisa sistem;\nMembuat alur sistem;\nDeploy aplikasi");
+
+        $this->assertSame(['Analisa sistem', 'Membuat alur sistem', 'Deploy aplikasi'], $items);
+    }
+
+    public function test_cv_comma_text_is_not_forced_into_list_items(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'splitCvList');
+        $method->setAccessible(true);
+
+        $items = $method->invoke($service, 'PHP, Laravel, MySQL');
+
+        $this->assertSame(['PHP, Laravel, MySQL'], $items);
+    }
+
     public function test_json_list_values_are_cleaned_for_compare_display(): void
     {
         $service = new CvMakerCompareService();
