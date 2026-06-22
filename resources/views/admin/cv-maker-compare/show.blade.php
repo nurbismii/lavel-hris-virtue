@@ -34,6 +34,30 @@ $cvInitials = collect(explode(' ', trim((string) $cvName)))
     ->take(2)
     ->map(fn($part) => mb_substr($part, 0, 1))
     ->implode('');
+$profile = $vitae['profile'] ?? [];
+$employeePhotoUrl = $employee->document_photo_url;
+$hasCvValue = function ($value): bool {
+    return filled($value) && trim((string) $value) !== '-';
+};
+$cvText = function ($value, string $fallback = '-') use ($hasCvValue): string {
+    return $hasCvValue($value) ? (string) $value : $fallback;
+};
+$cvPersonalMeta = collect([
+    ['value' => 'NIK: ' . $employee->nik, 'keys' => []],
+    ['value' => $profile['birth'] ?? null, 'keys' => ['birth_date']],
+    ['value' => $profile['gender'] ?? null, 'keys' => ['gender']],
+    ['value' => $profile['marital_status'] ?? null, 'keys' => ['marital_status']],
+])->filter(fn($item) => $hasCvValue($item['value']))->values();
+$cvAddressLines = collect([
+    $profile['address'] ?? null,
+    $profile['location'] ?? null,
+])->filter($hasCvValue)->values();
+$cvContactMeta = collect([
+    ['value' => $profile['phone'] ?? null, 'keys' => ['phone']],
+    ['value' => $profile['email'] ?? null, 'keys' => []],
+])->filter(fn($item) => $hasCvValue($item['value']))->values();
+$hasSkills = !empty($profile['technical_skills']) || !empty($profile['non_technical_skills']);
+$hasAdditional = !empty($vitae['projects']) || !empty($vitae['organizations']) || !empty($vitae['languages']);
 @endphp
 
 <div class="container-fluid">
@@ -142,217 +166,188 @@ $cvInitials = collect(explode(' ', trim((string) $cvName)))
                 </div>
                 @else
                 <article class="cv-vitae-sheet">
-                    <aside class="cv-vitae-sidebar">
-                        <div class="cv-vitae-avatar" aria-hidden="true">{{ $cvInitials ?: 'CV' }}</div>
-                        <h2 class="{{ $isMismatch(['name']) ? 'cv-vitae-field--mismatch' : '' }}">
-                            {{ $vitae['profile']['name'] ?: '-' }}
-                            @if($isMismatch(['name']))
-                            <span class="cv-vitae-mismatch-badge">Tidak sesuai HRIS</span>
-                            @endif
-                        </h2>
-                        <div class="cv-vitae-position{{ $isMismatch(['position']) ? ' cv-vitae-field--mismatch' : '' }}">
-                            {{ $vitae['profile']['position'] ?: '-' }}
-                            @if($isMismatch(['position']))
-                            <span class="cv-vitae-mismatch-badge">Tidak sesuai HRIS</span>
-                            @endif
-                        </div>
-
-                        <div class="cv-vitae-side-section">
-                            <h3>Kontak</h3>
-                            <dl>
-                                <div class="cv-vitae-field{{ $isMismatch(['phone']) ? ' cv-vitae-field--mismatch' : '' }}">
-                                <dt>No. HP</dt>
-                                <dd>{{ $vitae['profile']['phone'] ?: '-' }}</dd>
-                                @if($isMismatch(['phone']))
-                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
-                                @endif
-                                </div>
-                                <div class="cv-vitae-field">
-                                <dt>Email</dt>
-                                <dd>{{ $vitae['profile']['email'] ?: '-' }}</dd>
-                                </div>
-                                <div class="cv-vitae-field{{ $isMismatch(['address']) ? ' cv-vitae-field--mismatch' : '' }}">
-                                <dt>Alamat</dt>
-                                <dd>{{ $vitae['profile']['address'] ?: '-' }}</dd>
-                                @if($isMismatch(['address']))
-                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
-                                @endif
-                                </div>
-                                <div class="cv-vitae-field{{ $isMismatch(['province', 'regency', 'district', 'village']) ? ' cv-vitae-field--mismatch' : '' }}">
-                                <dt>Wilayah</dt>
-                                <dd>{{ $vitae['profile']['location'] ?: '-' }}</dd>
-                                @if($isMismatch(['province', 'regency', 'district', 'village']))
-                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
-                                @endif
-                                </div>
-                            </dl>
-                        </div>
-
-                        <div class="cv-vitae-side-section">
-                            <h3>Data Pribadi</h3>
-                            <dl>
-                                <div class="cv-vitae-field{{ $isMismatch(['birth_date']) ? ' cv-vitae-field--mismatch' : '' }}">
-                                <dt>TTL</dt>
-                                <dd>{{ $vitae['profile']['birth'] ?: '-' }}</dd>
-                                @if($isMismatch(['birth_date']))
-                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
-                                @endif
-                                </div>
-                                <div class="cv-vitae-field{{ $isMismatch(['gender']) ? ' cv-vitae-field--mismatch' : '' }}">
-                                <dt>Gender</dt>
-                                <dd>{{ $vitae['profile']['gender'] ?: '-' }}</dd>
-                                @if($isMismatch(['gender']))
-                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
-                                @endif
-                                </div>
-                                <div class="cv-vitae-field{{ $isMismatch(['marital_status']) ? ' cv-vitae-field--mismatch' : '' }}">
-                                <dt>Status</dt>
-                                <dd>{{ $vitae['profile']['marital_status'] ?: '-' }}</dd>
-                                @if($isMismatch(['marital_status']))
-                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
-                                @endif
-                                </div>
-                                <div class="cv-vitae-field{{ $isMismatch(['work_area', 'department', 'division']) ? ' cv-vitae-field--mismatch' : '' }}">
-                                <dt>Organisasi Kerja</dt>
-                                <dd>{{ $vitae['profile']['organization'] ?: '-' }}</dd>
-                                @if($isMismatch(['work_area', 'department', 'division']))
-                                <dd class="cv-vitae-mismatch-note">Tidak sesuai HRIS</dd>
-                                @endif
-                                </div>
-                            </dl>
-                        </div>
-
-                        @if(!empty($vitae['profile']['technical_skills']) || !empty($vitae['profile']['non_technical_skills']))
-                        <div class="cv-vitae-side-section">
-                            <h3>Skill</h3>
-                            @if(!empty($vitae['profile']['technical_skills']))
-                            <div class="cv-vitae-skill-title">Teknis</div>
-                            <div class="cv-vitae-tags">
-                                @foreach($vitae['profile']['technical_skills'] as $skill)
-                                <span>{{ $skill }}</span>
-                                @endforeach
-                            </div>
-                            @endif
-                            @if(!empty($vitae['profile']['non_technical_skills']))
-                            <div class="cv-vitae-skill-title">Non Teknis</div>
-                            <div class="cv-vitae-tags">
-                                @foreach($vitae['profile']['non_technical_skills'] as $skill)
-                                <span>{{ $skill }}</span>
-                                @endforeach
-                            </div>
-                            @endif
-                        </div>
-                        @endif
-
-                        @if(!empty($vitae['languages']))
-                        <div class="cv-vitae-side-section">
-                            <h3>Bahasa</h3>
-                            <ul class="cv-vitae-compact-list">
-                                @foreach($vitae['languages'] as $language)
-                                <li>
-                                    <span>{{ $language['language'] ?: '-' }}</span>
-                                    <small>{{ $language['level'] ?: '-' }}</small>
-                                </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                        @endif
-                    </aside>
-
-                    <div class="cv-vitae-main">
-                        @if(!empty($vitae['profile']['summary']))
-                        <section class="cv-vitae-section">
-                            <h3>Ringkasan Profil</h3>
-                            <p>{!! nl2br(e($vitae['profile']['summary'])) !!}</p>
-                        </section>
-                        @endif
-
-                        @if(!empty($vitae['experiences']))
-                        <section class="cv-vitae-section">
-                            <h3>Pengalaman Kerja</h3>
-                            @foreach($vitae['experiences'] as $experience)
-                            <div class="cv-vitae-item">
-                                <div class="cv-vitae-item__head">
-                                    <div>
-                                        <h4>{{ $experience['title'] ?: '-' }}</h4>
-                                        <span>{{ $experience['company'] ?: '-' }}</span>
-                                    </div>
-                                    <small>{{ $experience['period'] ?: '-' }}</small>
-                                </div>
-                                @if(!empty($experience['responsibilities']))
-                                <ul>
-                                    @foreach($experience['responsibilities'] as $responsibility)
-                                    <li>{{ $responsibility }}</li>
-                                    @endforeach
-                                </ul>
-                                @endif
-                            </div>
-                            @endforeach
-                        </section>
-                        @endif
-
-                        @if(!empty($vitae['educations']))
-                        <section class="cv-vitae-section{{ $isMismatch(['education_level', 'education_institution', 'education_major', 'graduation_year']) ? ' cv-vitae-section--mismatch' : '' }}">
-                            <h3>
-                                <span>Pendidikan</span>
-                                @if($isMismatch(['education_level', 'education_institution', 'education_major', 'graduation_year']))
+                    <header class="cv-vitae-header">
+                        <div class="cv-vitae-identity">
+                            <h1 class="{{ $isMismatch(['name']) ? 'cv-vitae-field--mismatch' : '' }}">
+                                {{ $cvText($profile['name'] ?? null) }}
+                                @if($isMismatch(['name']))
                                 <span class="cv-vitae-mismatch-badge">Tidak sesuai HRIS</span>
                                 @endif
-                            </h3>
-                            @foreach($vitae['educations'] as $education)
-                            <div class="cv-vitae-item">
-                                <div class="cv-vitae-item__head">
-                                    <div>
-                                        <h4>{{ $education['title'] ?: '-' }}</h4>
-                                        <span>{{ $education['institution'] ?: '-' }}</span>
-                                    </div>
-                                    <small>{{ $education['year'] ?: '-' }}</small>
-                                </div>
+                            </h1>
+
+                            <div class="cv-vitae-meta-line">
+                                @foreach($cvPersonalMeta as $meta)
+                                <span class="{{ $isMismatch($meta['keys']) ? 'cv-vitae-field--mismatch' : '' }}">
+                                    {{ $meta['value'] }}
+                                </span>
+                                @endforeach
                             </div>
-                            @endforeach
-                        </section>
-                        @endif
 
-                        <div class="cv-vitae-two-col">
-                            @if(!empty($vitae['certifications']))
-                            <section class="cv-vitae-section">
-                                <h3>Sertifikasi</h3>
-                                @foreach($vitae['certifications'] as $certification)
-                                <div class="cv-vitae-item cv-vitae-item--compact">
-                                    <h4>{{ $certification['title'] ?: '-' }}</h4>
-                                    <span>{{ $certification['issuer'] ?: '-' }}</span>
-                                    <small>{{ $certification['period'] ?: '-' }}</small>
-                                </div>
-                                @endforeach
-                            </section>
+                            @if($hasCvValue($profile['organization'] ?? null))
+                            <div class="cv-vitae-meta-line cv-vitae-meta-line--work{{ $isMismatch(['work_area', 'department', 'division', 'position']) ? ' cv-vitae-field--mismatch' : '' }}">
+                                {{ $cvText($profile['organization'] ?? null) }}
+                                @if($hasCvValue($profile['position'] ?? null))
+                                <span>{{ $cvText($profile['position'] ?? null) }}</span>
+                                @endif
+                            </div>
                             @endif
 
-                            @if(!empty($vitae['organizations']))
-                            <section class="cv-vitae-section">
-                                <h3>Organisasi</h3>
-                                @foreach($vitae['organizations'] as $organization)
-                                <div class="cv-vitae-item cv-vitae-item--compact">
-                                    <h4>{{ $organization['title'] ?: '-' }}</h4>
-                                    <span>{{ $organization['role'] ?: '-' }}</span>
-                                    <small>{{ $organization['period'] ?: '-' }}</small>
-                                </div>
+                            @if($cvAddressLines->isNotEmpty())
+                            <div class="cv-vitae-address{{ $isMismatch(['address', 'province', 'regency', 'district', 'village']) ? ' cv-vitae-field--mismatch' : '' }}">
+                                @foreach($cvAddressLines as $line)
+                                <div>{{ $line }}</div>
                                 @endforeach
-                            </section>
+                            </div>
                             @endif
 
-                            @if(!empty($vitae['projects']))
-                            <section class="cv-vitae-section">
-                                <h3>Proyek</h3>
-                                @foreach($vitae['projects'] as $project)
-                                <div class="cv-vitae-item cv-vitae-item--compact">
-                                    <h4>{{ $project['name'] ?: '-' }}</h4>
-                                    <small>{{ $project['year'] ?: '-' }}</small>
-                                </div>
+                            @if($cvContactMeta->isNotEmpty())
+                            <div class="cv-vitae-meta-line cv-vitae-contact-line">
+                                @foreach($cvContactMeta as $meta)
+                                <span class="{{ $isMismatch($meta['keys']) ? 'cv-vitae-field--mismatch' : '' }}">
+                                    {{ $meta['value'] }}
+                                </span>
                                 @endforeach
-                            </section>
+                            </div>
                             @endif
                         </div>
-                    </div>
+
+                        <div class="cv-vitae-photo" aria-label="Foto karyawan">
+                            @if($employeePhotoUrl)
+                            <img src="{{ $employeePhotoUrl }}" alt="Foto {{ $cvText($profile['name'] ?? $employee->nama_karyawan) }}">
+                            @else
+                            <span>{{ $cvInitials ?: 'CV' }}</span>
+                            @endif
+                        </div>
+                    </header>
+
+                    @if($hasCvValue($profile['summary'] ?? null))
+                    <section class="cv-vitae-section">
+                        <h3>Ringkasan Profil</h3>
+                        <p>{!! nl2br(e($profile['summary'])) !!}</p>
+                    </section>
+                    @endif
+
+                    @if(!empty($vitae['experiences']))
+                    <section class="cv-vitae-section">
+                        <h3>Pengalaman Kerja</h3>
+                        @foreach($vitae['experiences'] as $experience)
+                        <div class="cv-vitae-item">
+                            <h4>{{ $cvText($experience['title'] ?? null) }}</h4>
+                            <div class="cv-vitae-item__meta">
+                                @foreach(collect([$experience['company'] ?? null, $experience['department'] ?? null, $experience['period'] ?? null])->filter($hasCvValue)->values() as $meta)
+                                <span>{{ $meta }}</span>
+                                @endforeach
+                            </div>
+                            @if(!empty($experience['responsibilities']))
+                            <ul>
+                                @foreach($experience['responsibilities'] as $responsibility)
+                                <li>{{ $responsibility }}</li>
+                                @endforeach
+                            </ul>
+                            @endif
+                        </div>
+                        @endforeach
+                    </section>
+                    @endif
+
+                    @if(!empty($vitae['educations']))
+                    <section class="cv-vitae-section{{ $isMismatch(['education_level', 'education_institution', 'education_major', 'graduation_year']) ? ' cv-vitae-section--mismatch' : '' }}">
+                        <h3>
+                            <span>Pendidikan</span>
+                            @if($isMismatch(['education_level', 'education_institution', 'education_major', 'graduation_year']))
+                            <span class="cv-vitae-mismatch-badge">Tidak sesuai HRIS</span>
+                            @endif
+                        </h3>
+                        @foreach($vitae['educations'] as $education)
+                        <div class="cv-vitae-item cv-vitae-item--education">
+                            <h4>{{ $cvText($education['title'] ?? null) }}</h4>
+                            <div class="cv-vitae-item__meta">
+                                @foreach(collect([$education['institution'] ?? null, $education['year'] ?? null])->filter($hasCvValue)->values() as $meta)
+                                <span>{{ $meta }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endforeach
+                    </section>
+                    @endif
+
+                    @if($hasSkills)
+                    <section class="cv-vitae-section">
+                        <h3>Keahlian</h3>
+                        @if(!empty($profile['technical_skills']))
+                        <p class="cv-vitae-skill-line">
+                            <strong>Teknis:</strong>
+                            {{ implode(', ', $profile['technical_skills']) }}
+                        </p>
+                        @endif
+                        @if(!empty($profile['non_technical_skills']))
+                        <p class="cv-vitae-skill-line">
+                            <strong>Non-teknis:</strong>
+                            {{ implode(', ', $profile['non_technical_skills']) }}
+                        </p>
+                        @endif
+                    </section>
+                    @endif
+
+                    @if(!empty($vitae['certifications']))
+                    <section class="cv-vitae-section">
+                        <h3>Sertifikasi & Pelatihan</h3>
+                        <div class="cv-vitae-table-wrap">
+                            <table class="cv-vitae-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nama</th>
+                                        <th>Penerbit/Penyelenggara</th>
+                                        <th>Tahun</th>
+                                        <th>Berlaku s/d</th>
+                                        <th>Jenis</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($vitae['certifications'] as $certification)
+                                    <tr>
+                                        <td>{{ $cvText($certification['title'] ?? null) }}</td>
+                                        <td>{{ $cvText($certification['issuer'] ?? null) }}</td>
+                                        <td>{{ $cvText($certification['year'] ?? null) }}</td>
+                                        <td>{{ $cvText($certification['valid_until'] ?? null) }}</td>
+                                        <td>{{ $cvText($certification['type'] ?? null) }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                    @endif
+
+                    @if($hasAdditional)
+                    <section class="cv-vitae-section">
+                        <h3>Tambahan</h3>
+                        @if(!empty($vitae['projects']))
+                        <p class="cv-vitae-additional-line">
+                            <strong>Proyek:</strong>
+                            @foreach($vitae['projects'] as $project)
+                            {{ $cvText($project['name'] ?? null) }}@if($hasCvValue($project['year'] ?? null)) ({{ $project['year'] }})@endif{{ !$loop->last ? ', ' : '' }}
+                            @endforeach
+                        </p>
+                        @endif
+                        @if(!empty($vitae['organizations']))
+                        <p class="cv-vitae-additional-line">
+                            <strong>Organisasi:</strong>
+                            @foreach($vitae['organizations'] as $organization)
+                            {{ $cvText($organization['title'] ?? null) }}@if($hasCvValue($organization['role'] ?? null)) - {{ $organization['role'] }}@endif @if($hasCvValue($organization['period'] ?? null))({{ $organization['period'] }})@endif{{ !$loop->last ? ', ' : '' }}
+                            @endforeach
+                        </p>
+                        @endif
+                        @if(!empty($vitae['languages']))
+                        <p class="cv-vitae-additional-line">
+                            <strong>Bahasa:</strong>
+                            @foreach($vitae['languages'] as $language)
+                            {{ $cvText($language['language'] ?? null) }}@if($hasCvValue($language['level'] ?? null)) - {{ $language['level'] }}@endif{{ !$loop->last ? ', ' : '' }}
+                            @endforeach
+                        </p>
+                        @endif
+                    </section>
+                    @endif
                 </article>
                 @endif
             </div>

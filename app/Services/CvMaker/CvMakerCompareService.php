@@ -703,7 +703,8 @@ class CvMakerCompareService
             'experiences' => $experiences->map(function ($item) {
                 return [
                     'title' => $item->position ?? null,
-                    'company' => $this->joinNonEmpty([$item->company ?? null, $item->department ?? null], ' - '),
+                    'company' => $item->company ?? null,
+                    'department' => $item->department ?? null,
                     'period' => $this->formatMonthRange($item->start_month ?? null, $item->end_month ?? null, (bool) ($item->is_current ?? false)),
                     'responsibilities' => $this->splitCvList($item->responsibilities ?? null),
                 ];
@@ -719,6 +720,10 @@ class CvMakerCompareService
                 return [
                     'title' => $item->name ?? null,
                     'issuer' => $item->issuer ?? null,
+                    'year' => $item->year ?? null,
+                    'valid_until' => (bool) ($item->is_lifetime ?? false)
+                        ? 'Seumur hidup'
+                        : ($item->valid_until_year ?? null),
                     'type' => $item->type ?? null,
                     'period' => $this->formatCertificationPeriod(
                         $item->year ?? null,
