@@ -101,26 +101,26 @@
                 <div class="modal-header">
                     <div>
                         <h5 class="modal-title fw-semibold" id="approvalRejectReasonModalLabel">
-                            Alasan Penolakan
+                            {{ __('common.dialog.reject_reason') }}
                         </h5>
                         <small class="text-muted">
-                            Catatan ini akan tersimpan di riwayat approval.
+                            {{ __('common.dialog.reject_reason_help') }}
                         </small>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('common.dialog.cancel') }}"></button>
                 </div>
                 <div class="modal-body">
                     <label for="approvalRejectReasonInput" class="form-label">
-                        Alasan
+                        {{ __('common.dialog.reason') }}
                     </label>
                     <textarea
                         id="approvalRejectReasonInput"
                         class="form-control"
                         rows="4"
                         maxlength="500"
-                        placeholder="Contoh: Dokumen pendukung belum sesuai atau periode pengajuan perlu diperbaiki."></textarea>
+                        placeholder="{{ __('common.dialog.reject_reason_placeholder') }}"></textarea>
                     <div class="invalid-feedback">
-                        Alasan penolakan wajib diisi.
+                        {{ __('common.dialog.reject_reason_required') }}
                     </div>
                     <div class="form-text text-end">
                         <span id="approvalRejectReasonCounter">0</span>/500
@@ -128,10 +128,10 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">
-                        Batal
+                        {{ __('common.dialog.cancel') }}
                     </button>
                     <button type="button" class="btn btn-danger" id="approvalRejectReasonSubmit">
-                        Tolak Pengajuan
+                        {{ __('common.dialog.reject_submission') }}
                     </button>
                 </div>
             </div>
@@ -143,21 +143,21 @@
             <div class="modal-content border-0 shadow">
                 <div class="modal-header">
                     <h5 class="modal-title fw-semibold" id="approvalConfirmModalLabel">
-                        Konfirmasi Approval
+                        {{ __('common.dialog.approve_confirm_title') }}
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('common.dialog.cancel') }}"></button>
                 </div>
                 <div class="modal-body">
                     <p class="mb-0" id="approvalConfirmModalMessage">
-                        Lanjutkan proses approval?
+                        {{ __('common.dialog.approve_confirm_text') }}
                     </p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">
-                        Batal
+                        {{ __('common.dialog.cancel') }}
                     </button>
                     <button type="button" class="btn btn-primary" id="approvalConfirmSubmit">
-                        Ya, Lanjutkan
+                        {{ __('common.dialog.continue') }}
                     </button>
                 </div>
             </div>
@@ -183,6 +183,13 @@
 
     <!-- Datatables -->
     <script src="{{ versioned_asset('assets/js/plugin/datatables/datatables.min.js') }}"></script>
+    <script>
+        if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
+            jQuery.extend(true, jQuery.fn.dataTable.defaults, {
+                language: @json(trans('datatables'))
+            });
+        }
+    </script>
 
     <!-- Bootstrap Notify -->
     <script src="{{ versioned_asset('assets/js/plugin/bootstrap-notify/bootstrap-notify.min.js') }}"></script>
@@ -200,7 +207,7 @@
                         title: title,
                         text: text || '',
                         icon: type,
-                        confirmButtonText: 'OK'
+                        confirmButtonText: @json(__('common.dialog.ok'))
                     });
                 }
 
@@ -209,7 +216,7 @@
                         title: title,
                         text: text || '',
                         icon: type,
-                        button: 'OK'
+                        button: @json(__('common.dialog.ok'))
                     });
                 }
 
@@ -218,11 +225,11 @@
             },
             confirm: function(options) {
                 const config = Object.assign({
-                    title: 'Konfirmasi',
-                    text: 'Lanjutkan proses ini?',
+                    title: @json(__('common.dialog.confirm')),
+                    text: @json(__('common.dialog.process_confirm_text')),
                     icon: 'warning',
-                    confirmButtonText: 'Ya, lanjutkan',
-                    cancelButtonText: 'Batal',
+                    confirmButtonText: @json(__('common.dialog.continue')),
+                    cancelButtonText: @json(__('common.dialog.cancel')),
                     dangerMode: false
                 }, options || {});
 
@@ -277,11 +284,11 @@
             event.preventDefault();
 
             window.AppDialog.confirmForm(form, {
-                title: form.dataset.swalTitle || 'Konfirmasi',
-                text: form.dataset.swalConfirm || 'Lanjutkan proses ini?',
+                title: form.dataset.swalTitle || @json(__('common.dialog.confirm')),
+                text: form.dataset.swalConfirm || @json(__('common.dialog.process_confirm_text')),
                 icon: form.dataset.swalIcon || 'warning',
-                confirmButtonText: form.dataset.swalConfirmButton || 'Ya, lanjutkan',
-                cancelButtonText: form.dataset.swalCancelButton || 'Batal',
+                confirmButtonText: form.dataset.swalConfirmButton || @json(__('common.dialog.continue')),
+                cancelButtonText: form.dataset.swalCancelButton || @json(__('common.dialog.cancel')),
                 dangerMode: form.dataset.swalDanger === '1'
             });
         });
@@ -509,7 +516,7 @@
             confirmModalElement.addEventListener('hidden.bs.modal', function() {
                 pendingConfirmForm = null;
                 pendingConfirmSubmitter = null;
-                confirmModalMessage.textContent = 'Lanjutkan proses approval?';
+                confirmModalMessage.textContent = @json(__('common.dialog.approve_confirm_text'));
                 confirmSubmitButton.disabled = false;
             });
         })();

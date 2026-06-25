@@ -60,16 +60,16 @@ class RosterOffRequest extends Model
     public function getStatusDelegateLabelAttribute(): string
     {
         if ($this->delegate_status === null) {
-            return '<span class="badge bg-secondary">Tidak Ada Delegasi</span>';
+            return '<span class="badge bg-secondary">' . e(__('self_service.status.no_delegate')) . '</span>';
         }
 
         switch ((int) $this->delegate_status) {
             case self::STATUS_APPROVED:
-                return '<span class="badge bg-success">Diterima Delegasi</span>';
+                return '<span class="badge bg-success">' . e(__('self_service.status.accepted_delegate')) . '</span>';
             case self::STATUS_REJECTED:
-                return '<span class="badge bg-danger">Ditolak Delegasi</span>';
+                return '<span class="badge bg-danger">' . e(__('self_service.status.rejected_delegate')) . '</span>';
             default:
-                return '<span class="badge bg-warning text-dark">Menunggu Delegasi</span>';
+                return '<span class="badge bg-warning text-dark">' . e(__('self_service.status.pending_delegate')) . '</span>';
         }
     }
 
@@ -84,11 +84,11 @@ class RosterOffRequest extends Model
     {
         switch ((int) $status) {
             case self::STATUS_APPROVED:
-                return 'Diterima';
+                return __('self_service.status.accepted');
             case self::STATUS_REJECTED:
-                return 'Ditolak';
+                return __('self_service.status.rejected');
             default:
-                return 'Menunggu';
+                return __('self_service.status.pending');
         }
     }
 
@@ -96,11 +96,11 @@ class RosterOffRequest extends Model
     {
         switch ($status) {
             case self::STATUS_APPROVED:
-                return '<span class="badge bg-success">Diterima</span>';
+                return '<span class="badge bg-success">' . e(__('self_service.status.accepted')) . '</span>';
             case self::STATUS_REJECTED:
-                return '<span class="badge bg-danger">Ditolak</span>';
+                return '<span class="badge bg-danger">' . e(__('self_service.status.rejected')) . '</span>';
             default:
-                return '<span class="badge bg-warning text-dark">Menunggu</span>';
+                return '<span class="badge bg-warning text-dark">' . e(__('self_service.status.pending')) . '</span>';
         }
     }
 }

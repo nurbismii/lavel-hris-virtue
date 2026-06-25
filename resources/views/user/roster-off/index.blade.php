@@ -80,18 +80,18 @@
                 <div>
                     <span class="roster-off-chip mb-3">
                         <i class="fas fa-calendar-day"></i>
-                        Khusus Karyawan Roster
+                        {{ __('self_service.roster.off_chip') }}
                     </span>
-                    <h4 class="fw-bold mb-1">Pengajuan OFF Roster</h4>
+                    <h4 class="fw-bold mb-1">{{ __('self_service.roster.off_title') }}</h4>
                     <p class="text-muted mb-0">
-                        Ajukan hari OFF, Setelah disetujui HOD dan belum ditolak HR, tanggal OFF akan terdeteksi di jadwal roster mingguan dan status presensi.
+                        {{ __('self_service.roster.off_subtitle') }}
                     </p>
                 </div>
 
                 <div class="ms-lg-auto">
                     <a href="{{ route('roster.index') }}" class="btn btn-outline-primary">
                         <i class="fas fa-plane-departure me-1"></i>
-                        Data Cuti Roster
+                        {{ __('self_service.roster.roster_leave_data') }}
                     </a>
                 </div>
             </div>
@@ -100,7 +100,7 @@
         <div class="row g-3 mb-4">
             <div class="col-md-4">
                 <div class="roster-off-info">
-                    <small>Nama Karyawan</small>
+                    <small>{{ __('self_service.roster.employee_name') }}</small>
                     <strong>{{ optional($employee)->nama_karyawan ?? auth()->user()->name }}</strong>
                 </div>
             </div>
@@ -112,8 +112,8 @@
             </div>
             <div class="col-md-4">
                 <div class="roster-off-info">
-                    <small>Total Riwayat OFF</small>
-                    <strong>{{ number_format($offRequests->count()) }} Pengajuan</strong>
+                    <small>{{ __('self_service.roster.total_off_history') }}</small>
+                    <strong>{{ number_format($offRequests->count()) }} {{ __('self_service.common.submission') }}</strong>
                 </div>
             </div>
         </div>
@@ -121,19 +121,19 @@
         <div class="row g-4">
             <div class="col-lg-4">
                 <div class="roster-off-card p-3 p-md-4">
-                    <h5 class="fw-bold mb-1">Ajukan OFF</h5>
-                    <p class="text-muted small mb-3">Tanggal OFF tidak boleh sebelum hari ini dan tidak boleh duplikat dengan pengajuan yang masih aktif.</p>
+                    <h5 class="fw-bold mb-1">{{ __('self_service.roster.off_form_title') }}</h5>
+                    <p class="text-muted small mb-3">{{ __('self_service.roster.off_form_help') }}</p>
 
                     @unless($canSubmitOffRequest)
                         <div class="alert alert-warning small">
-                            Akun ini belum terhubung dengan NIK karyawan, sehingga belum bisa mengirim pengajuan OFF.
+                            {{ __('self_service.roster.off_account_not_linked') }}
                         </div>
                     @endunless
 
                     <form action="{{ route('roster-off.store') }}" method="POST">
                         @csrf
                         <div class="mb-3">
-                            <label class="form-label">Tanggal OFF</label>
+                            <label class="form-label">{{ __('self_service.roster.off_date') }}</label>
                             <input type="date" name="tanggal_off" class="form-control @error('tanggal_off') is-invalid @enderror" value="{{ old('tanggal_off') }}" required {{ $canSubmitOffRequest ? '' : 'disabled' }}>
                             @error('tanggal_off')
                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -141,8 +141,8 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Alasan</label>
-                            <textarea name="alasan" rows="4" maxlength="1000" class="form-control @error('alasan') is-invalid @enderror" placeholder="Contoh: pengganti hari libur roster" {{ $canSubmitOffRequest ? '' : 'disabled' }}>{{ old('alasan') }}</textarea>
+                            <label class="form-label">{{ __('tables.reason') }}</label>
+                            <textarea name="alasan" rows="4" maxlength="1000" class="form-control @error('alasan') is-invalid @enderror" placeholder="{{ __('self_service.roster.off_reason_placeholder') }}" {{ $canSubmitOffRequest ? '' : 'disabled' }}>{{ old('alasan') }}</textarea>
                             @error('alasan')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -150,7 +150,7 @@
 
                         <button type="submit" class="btn btn-primary w-100" {{ $canSubmitOffRequest ? '' : 'disabled' }}>
                             <i class="fas fa-paper-plane me-1"></i>
-                            Kirim Pengajuan
+                            {{ __('self_service.actions.send_submission') }}
                         </button>
                     </form>
                 </div>
@@ -160,8 +160,8 @@
                 <div class="roster-off-card p-3 p-md-4">
                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                         <div>
-                            <h5 class="fw-bold mb-1">Riwayat OFF</h5>
-                            <p class="text-muted small mb-0">Daftar semua pengajuan OFF roster milik karyawan ini.</p>
+                            <h5 class="fw-bold mb-1">{{ __('self_service.roster.off_history_title') }}</h5>
+                            <p class="text-muted small mb-0">{{ __('self_service.roster.off_history_help') }}</p>
                         </div>
                     </div>
 
@@ -188,27 +188,27 @@
                                     <td>
                                         @if($offRequest->can_be_managed_by_employee)
                                             <form action="{{ route('roster-off.destroy', $offRequest) }}" method="POST"
-                                                  data-swal-confirm="Hapus pengajuan OFF ini?"
-                                                  data-swal-title="Konfirmasi Hapus"
+                                                  data-swal-confirm="{{ __('self_service.roster.delete_off_confirm') }}"
+                                                  data-swal-title="{{ __('self_service.roster.delete_confirm_title') }}"
                                                   data-swal-icon="warning"
-                                                  data-swal-confirm-button="Ya, hapus"
+                                                  data-swal-confirm-button="{{ __('self_service.actions.yes_delete') }}"
                                                   data-swal-danger="1">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-outline-danger btn-sm">
                                                     <i class="fas fa-trash me-1"></i>
-                                                    Hapus
+                                                    {{ __('self_service.actions.delete') }}
                                                 </button>
                                             </form>
                                         @else
-                                            <span class="text-muted small">Terkunci</span>
+                                            <span class="text-muted small">{{ __('self_service.common.locked') }}</span>
                                         @endif
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
                                     <td colspan="6" class="text-center text-muted py-4">
-                                        Belum ada riwayat pengajuan OFF roster.
+                                        {{ __('self_service.roster.empty_off_history') }}
                                     </td>
                                 </tr>
                                 @endforelse

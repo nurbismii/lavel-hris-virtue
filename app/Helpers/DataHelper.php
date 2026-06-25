@@ -20,8 +20,10 @@ if (!function_exists('formatDateIndonesia')) {
         }
 
         try {
+            $locale = function_exists('app') ? app()->getLocale() : 'id';
+
             return Carbon::parse($date)
-                ->locale('id')
+                ->locale($locale ?: 'id')
                 ->isoFormat('D MMM Y');
         } catch (\Exception $e) {
             return '-';

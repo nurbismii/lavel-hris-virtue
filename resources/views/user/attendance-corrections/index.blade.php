@@ -5,17 +5,17 @@
     <div class="page-inner">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
-                <h3 class="text-primary mb-1">Koreksi Presensi</h3>
-                <small class="text-muted">Riwayat koreksi jam/status dan izin presensi parsial Anda.</small>
+                <h3 class="text-primary mb-1">{{ __('self_service.attendance_correction.index_title') }}</h3>
+                <small class="text-muted">{{ __('self_service.attendance_correction.index_subtitle') }}</small>
             </div>
             <a href="{{ route('attendance-corrections.create') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i> Ajukan Koreksi
+                <i class="fas fa-plus me-1"></i> {{ __('self_service.actions.apply_attendance_correction') }}
             </a>
         </div>
 
         @if(!$isTableReady)
         <div class="alert alert-warning">
-            Fitur Koreksi Presensi belum aktif lengkap. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+            {!! __('self_service.attendance_correction.feature_inactive', ['command' => '<code>php artisan migrate</code>']) !!}
         </div>
         @else
         <div class="card">
@@ -79,17 +79,17 @@
                                 <td>
                                     @if($correction->attachment_path)
                                     <a href="{{ route('attendance-corrections.attachment', $correction->id) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
-                                        <i class="fas fa-paperclip me-1"></i> Lihat
+                                        <i class="fas fa-paperclip me-1"></i> {{ __('self_service.actions.view') }}
                                     </a>
                                     @else
-                                    <span class="text-muted small">Tidak ada</span>
+                                    <span class="text-muted small">{{ __('self_service.common.not_available') }}</span>
                                     @endif
                                 </td>
                             </tr>
                             @empty
                             <tr>
                                 <td colspan="7" class="text-center text-muted py-4">
-                                    Belum ada pengajuan koreksi presensi.
+                                    {{ __('self_service.attendance_correction.empty') }}
                                 </td>
                             </tr>
                             @endforelse

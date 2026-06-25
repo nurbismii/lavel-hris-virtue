@@ -42,9 +42,9 @@ class Cuti extends Model
     {
         switch ($this->tipe) {
             case 'PAID':
-                return '<span class="badge bg-primary">Paid</span>';
+                return '<span class="badge bg-primary">' . e(__('self_service.permission.paid')) . '</span>';
             case 'UNPAID':
-                return '<span class="badge bg-warning">Unpaid</span>';
+                return '<span class="badge bg-warning">' . e(__('self_service.permission.unpaid')) . '</span>';
         }
     }
 
@@ -52,11 +52,11 @@ class Cuti extends Model
     {
         switch ($this->status_hod) {
             case 0:
-                return '<span class="badge bg-warning">Menunggu</span>';
+                return '<span class="badge bg-warning">' . e(__('self_service.status.pending')) . '</span>';
             case 1:
-                return '<span class="badge bg-success">Diterima</span>';
+                return '<span class="badge bg-success">' . e(__('self_service.status.accepted')) . '</span>';
             case 2:
-                return '<span class="badge bg-danger">Ditolak</span>';
+                return '<span class="badge bg-danger">' . e(__('self_service.status.rejected')) . '</span>';
             default:
                 return '-';
         }
@@ -66,13 +66,13 @@ class Cuti extends Model
     {
         switch ($this->delegate_status) {
             case 0:
-                return '<span class="badge bg-warning">Menunggu Delegasi</span>';
+                return '<span class="badge bg-warning">' . e(__('self_service.status.pending_delegate')) . '</span>';
             case 1:
-                return '<span class="badge bg-success">Diterima Delegasi</span>';
+                return '<span class="badge bg-success">' . e(__('self_service.status.accepted_delegate')) . '</span>';
             case 2:
-                return '<span class="badge bg-danger">Ditolak Delegasi</span>';
+                return '<span class="badge bg-danger">' . e(__('self_service.status.rejected_delegate')) . '</span>';
             default:
-                return '<span class="badge bg-secondary">Tidak Ada Delegasi</span>';
+                return '<span class="badge bg-secondary">' . e(__('self_service.status.no_delegate')) . '</span>';
         }
     }
 
@@ -80,11 +80,11 @@ class Cuti extends Model
     {
         switch ($this->status_hrd) {
             case 0:
-                return '<span class="badge bg-warning">Menunggu</span>';
+                return '<span class="badge bg-warning">' . e(__('self_service.status.pending')) . '</span>';
             case 1:
-                return '<span class="badge bg-success">Diterima</span>';
+                return '<span class="badge bg-success">' . e(__('self_service.status.accepted')) . '</span>';
             case 2:
-                return '<span class="badge bg-danger">Ditolak</span>';
+                return '<span class="badge bg-danger">' . e(__('self_service.status.rejected')) . '</span>';
             default:
                 return '-';
         }

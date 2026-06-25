@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Pengaturan Akun')
+@section('title', __('navigation.account_settings'))
 
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('assets/css/user-account.css') }}">
@@ -19,14 +19,14 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-cog text-primary me-2"></i>
-                    Ganti Kata Sandi
+                    {{ __('self_service.account.password_title') }}
                 </h4>
                 <small class="text-muted">
-                    Tetap jaga kerahasiaan data kamu
+                    {{ __('self_service.account.subtitle') }}
                 </small>
             </div>
             <a href="{{ route('dashboard.karyawan') }}" class="btn btn-sm btn-light">
-                <i class="fas fa-arrow-left me-1"></i> Kembali
+                <i class="fas fa-arrow-left me-1"></i> {{ __('self_service.actions.back') }}
             </a>
         </div>
 
@@ -40,7 +40,7 @@
                         <div class="mb-3">
                             <div class="avatar-circle bg-primary text-white mx-auto">
                                 @if($employeePhotoUrl)
-                                    <img src="{{ $employeePhotoUrl }}" alt="{{ $employee->nama_karyawan ?? $currentUser->name ?? 'Pengguna' }}">
+                                    <img src="{{ $employeePhotoUrl }}" alt="{{ $employee->nama_karyawan ?? $currentUser->name ?? __('self_service.common.user_fallback') }}">
                                 @else
                                     {{ $employeeInitials }}
                                 @endif
@@ -67,7 +67,7 @@
 
                 <div class="card shadow-sm border-0">
                     <div class="card-header bg-white fw-bold">
-                        Ganti Password
+                        {{ __('self_service.account.password_card_title') }}
                     </div>
 
                     <div class="card-body">
@@ -83,7 +83,7 @@
 
                             <!-- Password Lama -->
                             <div class="mb-3">
-                                <label class="form-label">Password Lama</label>
+                                <label class="form-label">{{ __('self_service.account.old_password') }}</label>
                                 <input type="password"
                                     name="current_password"
                                     class="form-control @error('current_password') is-invalid @enderror"
@@ -98,7 +98,7 @@
 
                             <!-- Password Baru -->
                             <div class="mb-3">
-                                <label class="form-label">Password Baru</label>
+                                <label class="form-label">{{ __('self_service.account.new_password') }}</label>
                                 <input type="password"
                                     name="password"
                                     class="form-control @error('password') is-invalid @enderror"
@@ -113,7 +113,7 @@
 
                             <!-- Konfirmasi Password -->
                             <div class="mb-3">
-                                <label class="form-label">Konfirmasi Password Baru</label>
+                                <label class="form-label">{{ __('self_service.account.confirm_new_password') }}</label>
                                 <input type="password"
                                     name="password_confirmation"
                                     class="form-control"
@@ -122,7 +122,7 @@
 
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary">
-                                    Simpan Password Baru
+                                    {{ __('self_service.actions.save_new_password') }}
                                 </button>
                             </div>
                         </form>

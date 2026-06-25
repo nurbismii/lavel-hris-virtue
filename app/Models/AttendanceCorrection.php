@@ -80,39 +80,39 @@ class AttendanceCorrection extends Model
     public static function statusPresensiOptions(): array
     {
         return [
-            'Cuti Tahunan' => 'Cuti Tahunan',
-            'Cuti Roster' => 'Cuti Roster',
-            'Izin Berbayar' => 'Izin Berbayar',
-            'Izin Tidak Berbayar' => 'Izin Tidak Berbayar',
-            'Libur Nasional' => 'Libur Nasional',
-            'Off' => 'Off',
+            'Cuti Tahunan' => __('self_service.attendance_correction.daily_status_options.annual_leave'),
+            'Cuti Roster' => __('self_service.attendance_correction.daily_status_options.roster_leave'),
+            'Izin Berbayar' => __('self_service.attendance_correction.daily_status_options.paid_permission'),
+            'Izin Tidak Berbayar' => __('self_service.attendance_correction.daily_status_options.unpaid_permission'),
+            'Libur Nasional' => __('self_service.attendance_correction.daily_status_options.national_holiday'),
+            'Off' => __('self_service.attendance_correction.daily_status_options.off'),
         ];
     }
 
     public static function requestTypeOptions(): array
     {
         return [
-            self::REQUEST_TYPE_CORRECTION => 'Koreksi jam/status presensi',
-            self::REQUEST_TYPE_PARTIAL_PERMISSION => 'Izin presensi parsial',
+            self::REQUEST_TYPE_CORRECTION => __('self_service.attendance_correction.request_types.correction'),
+            self::REQUEST_TYPE_PARTIAL_PERMISSION => __('self_service.attendance_correction.request_types.partial_permission'),
         ];
     }
 
     public static function partialPermissionOptions(): array
     {
         return [
-            self::PARTIAL_LATE_ARRIVAL => 'Izin datang telat',
-            self::PARTIAL_SICK => 'Izin sakit',
-            self::PARTIAL_HALF_DAY => 'Izin 0.5',
-            self::PARTIAL_EARLY_LEAVE => 'Izin pulang cepat',
-            self::PARTIAL_OTHER => 'Lainnya',
+            self::PARTIAL_LATE_ARRIVAL => __('self_service.attendance_correction.partial_options.late_arrival'),
+            self::PARTIAL_SICK => __('self_service.attendance_correction.partial_options.sick'),
+            self::PARTIAL_HALF_DAY => __('self_service.attendance_correction.partial_options.half_day'),
+            self::PARTIAL_EARLY_LEAVE => __('self_service.attendance_correction.partial_options.early_leave'),
+            self::PARTIAL_OTHER => __('self_service.attendance_correction.partial_options.other'),
         ];
     }
 
     public static function halfDayPeriodOptions(): array
     {
         return [
-            self::PERIOD_MORNING => 'Setengah hari pagi',
-            self::PERIOD_AFTERNOON => 'Setengah hari siang',
+            self::PERIOD_MORNING => __('self_service.attendance_correction.half_day_periods.morning'),
+            self::PERIOD_AFTERNOON => __('self_service.attendance_correction.half_day_periods.afternoon'),
         ];
     }
 
@@ -120,11 +120,11 @@ class AttendanceCorrection extends Model
     {
         switch ((int) $status) {
             case self::STATUS_APPROVED:
-                return 'Disetujui';
+                return __('self_service.status.approved');
             case self::STATUS_REJECTED:
-                return 'Ditolak';
+                return __('self_service.status.rejected');
             default:
-                return 'Menunggu';
+                return __('self_service.status.pending');
         }
     }
 
@@ -148,7 +148,7 @@ class AttendanceCorrection extends Model
     public function getDelegateStatusLabelAttribute(): string
     {
         if ($this->delegate_status === null) {
-            return 'Tidak Ada Delegasi';
+            return __('self_service.status.no_delegate');
         }
 
         return self::statusLabel($this->delegate_status);
@@ -162,30 +162,30 @@ class AttendanceCorrection extends Model
     public function getOverallStatusLabelAttribute(): string
     {
         if ($this->delegate_status !== null && (int) $this->delegate_status === self::STATUS_REJECTED) {
-            return 'Ditolak Delegasi';
+            return __('self_service.status.rejected_delegate');
         }
 
         if ($this->delegate_status !== null && (int) $this->delegate_status === self::STATUS_PENDING) {
-            return 'Menunggu Delegasi';
+            return __('self_service.status.pending_delegate');
         }
 
         if ((int) $this->status_hod === self::STATUS_REJECTED) {
-            return 'Ditolak HOD';
+            return __('self_service.status.rejected_hod');
         }
 
         if ((int) $this->status_hod === self::STATUS_PENDING) {
-            return 'Menunggu HOD';
+            return __('self_service.status.waiting_hod');
         }
 
         if ((int) $this->status_hrd === self::STATUS_REJECTED) {
-            return 'Ditolak HR';
+            return __('self_service.status.rejected_hr');
         }
 
         if ((int) $this->status_hrd === self::STATUS_PENDING) {
-            return 'Menunggu HR';
+            return __('self_service.status.waiting_hr');
         }
 
-        return 'Selesai';
+        return __('self_service.status.completed');
     }
 
     public function getOverallBadgeClassAttribute(): string
@@ -205,7 +205,7 @@ class AttendanceCorrection extends Model
 
     public function getRequestTypeLabelAttribute(): string
     {
-        return self::requestTypeOptions()[$this->request_type ?: self::REQUEST_TYPE_CORRECTION] ?? 'Koreksi jam/status presensi';
+        return self::requestTypeOptions()[$this->request_type ?: self::REQUEST_TYPE_CORRECTION] ?? __('self_service.attendance_correction.request_types.correction');
     }
 
     public function getPartialPermissionLabelAttribute(): ?string
@@ -231,19 +231,19 @@ class AttendanceCorrection extends Model
         $changes = [];
 
         if (($this->request_type ?: self::REQUEST_TYPE_CORRECTION) === self::REQUEST_TYPE_PARTIAL_PERMISSION) {
-            $changes['Jenis'] = $this->request_type_label;
-            $changes['Kategori'] = $this->partial_permission_label ?: '-';
+            $changes[__('self_service.attendance_correction.change_labels.type')] = $this->request_type_label;
+            $changes[__('self_service.attendance_correction.change_labels.category')] = $this->partial_permission_label ?: '-';
 
             if ($this->partial_permission_period_label) {
-                $changes['Periode'] = $this->partial_permission_period_label;
+                $changes[__('self_service.attendance_correction.change_labels.period')] = $this->partial_permission_period_label;
             }
         }
 
         foreach ([
-            'jam_masuk' => 'Jam Masuk',
-            'jam_istirahat' => 'Jam Istirahat',
-            'jam_kembali_istirahat' => 'Jam Kembali Istirahat',
-            'jam_pulang' => 'Jam Pulang',
+            'jam_masuk' => __('self_service.attendance_correction.clock_in'),
+            'jam_istirahat' => __('self_service.attendance_correction.break_start'),
+            'jam_kembali_istirahat' => __('self_service.attendance_correction.break_end'),
+            'jam_pulang' => __('self_service.attendance_correction.clock_out'),
         ] as $column => $label) {
             $attribute = 'requested_' . $column;
 
@@ -253,7 +253,7 @@ class AttendanceCorrection extends Model
         }
 
         if ($this->change_status_presensi) {
-            $changes['Status Harian Khusus'] = $this->requested_status_presensi ?: 'Hadir normal';
+            $changes[__('self_service.attendance_correction.change_labels.daily_status')] = $this->requested_status_presensi ?: __('self_service.attendance_correction.normal_attendance');
         }
 
         return $changes;

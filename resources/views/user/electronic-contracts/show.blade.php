@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Tanda Tangan Kontrak')
+@section('title', __('self_service.contract.signature_title'))
 
 @push('styles')
 <style>
@@ -154,11 +154,11 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Kontrak Elektronik</h4>
+                <h4 class="fw-bold mb-1">{{ __('self_service.contract.show_title') }}</h4>
                 <small class="text-muted">{{ $contract->display_number }}</small>
             </div>
             <div class="ms-md-auto">
-                <a href="{{ route('user-electronic-contracts.index') }}" class="btn btn-light">Kembali</a>
+                <a href="{{ route('user-electronic-contracts.index') }}" class="btn btn-light">{{ __('self_service.actions.back') }}</a>
             </div>
         </div>
 
@@ -172,7 +172,7 @@
                             @if($contract->signature)
                             <hr>
                             <div class="alert alert-success mb-0">
-                                Kontrak ini telah ditandatangani pada {{ optional($contract->signature->signed_at)->format('d M Y H:i') }}.
+                                {{ __('self_service.contract.signed_notice', ['time' => optional($contract->signature->signed_at)->format('d M Y H:i')]) }}
                             </div>
                             @endif
                         </div>
@@ -183,13 +183,13 @@
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
-                        <h5 class="mb-3">Ringkasan</h5>
+                        <h5 class="mb-3">{{ __('self_service.contract.summary') }}</h5>
                         <dl class="row mb-0">
-                            <dt class="col-5">Status</dt>
+                            <dt class="col-5">{{ __('tables.status') }}</dt>
                             <dd class="col-7">{{ $contract->status_label }}</dd>
-                            <dt class="col-5">Tipe</dt>
+                            <dt class="col-5">{{ __('tables.type') }}</dt>
                             <dd class="col-7">{{ $contract->type_label }}</dd>
-                            <dt class="col-5">NIK</dt>
+                            <dt class="col-5">{{ __('tables.nik') }}</dt>
                             <dd class="col-7">{{ $contract->nik }}</dd>
                             <dt class="col-5">No PKWT</dt>
                             <dd class="col-7">{{ $contract->pkwt_number }}</dd>
@@ -202,8 +202,8 @@
                 @if($contract->isReadyForSignature())
                 <div class="card border-0 shadow-sm contract-signature-card">
                     <div class="card-body">
-                        <h5 class="mb-2">Tanda Tangan</h5>
-                        <p class="small text-muted">Gunakan jari atau mouse di area tanda tangan. Tanda tangan ini hanya berlaku untuk kontrak ini.</p>
+                        <h5 class="mb-2">{{ __('self_service.contract.signature') }}</h5>
+                        <p class="small text-muted">{{ __('self_service.contract.signature_help') }}</p>
 
                         <form action="{{ route('user-electronic-contracts.sign', $contract) }}" method="POST" id="signatureForm">
                             @csrf
@@ -213,7 +213,7 @@
 
                             <div class="d-flex gap-2 mt-2">
                                 <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSignature">
-                                    Bersihkan
+                                    {{ __('self_service.actions.clear') }}
                                 </button>
                             </div>
 
@@ -226,7 +226,7 @@
                             </div>
 
                             <button type="submit" class="btn btn-primary w-100 mt-3">
-                                Tandatangani Kontrak
+                                {{ __('self_service.actions.sign_contract') }}
                             </button>
                         </form>
                     </div>
@@ -234,9 +234,9 @@
                 @elseif($contract->signature)
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
-                        <h5 class="mb-2">Bukti Tanda Tangan</h5>
+                        <h5 class="mb-2">{{ __('self_service.contract.signature_proof') }}</h5>
                         <dl class="row mb-0">
-                            <dt class="col-5">Waktu</dt>
+                            <dt class="col-5">{{ __('tables.time') }}</dt>
                             <dd class="col-7">{{ optional($contract->signature->signed_at)->format('d M Y H:i') }}</dd>
                             <dt class="col-5">IP</dt>
                             <dd class="col-7">{{ $contract->signature->ip_address ?: '-' }}</dd>
@@ -247,7 +247,7 @@
                 </div>
                 @else
                 <div class="alert alert-secondary">
-                    Kontrak ini tidak tersedia untuk tanda tangan.
+                    {{ __('self_service.contract.not_available_for_signature') }}
                 </div>
                 @endif
             </div>
@@ -343,8 +343,8 @@
             if (!hasStroke) {
                 event.preventDefault();
                 window.AppDialog.alert(
-                    'Tanda tangan belum diisi',
-                    'Tanda tangan wajib diisi sebelum kontrak dikirim.',
+                    @json(__('self_service.contract.empty_signature_title')),
+                    @json(__('self_service.contract.empty_signature_text')),
                     'warning'
                 );
                 return;

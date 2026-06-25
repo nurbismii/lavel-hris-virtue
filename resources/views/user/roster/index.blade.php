@@ -8,15 +8,15 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-plane-departure text-primary me-2"></i>
-                    Data Pengajuan Roster
+                    {{ __('self_service.roster.index_title') }}
                 </h4>
                 <small class="text-muted">
-                    Daftar roster/insentif
+                    {{ __('self_service.roster.index_subtitle') }}
                 </small>
             </div>
 
             <a href="{{ route('roster.create') }}" class="btn btn-sm btn-primary">
-                <i class="fas fa-plus me-1"></i> Ajukan roster/insentif
+                <i class="fas fa-plus me-1"></i> {{ __('self_service.actions.apply_roster') }}
             </a>
         </div>
 
@@ -56,13 +56,13 @@
                                         <span class="icon text-white-50">
                                             <i class="fas fa-edit"></i>
                                         </span>
-                                        <span class="text">Edit</span>
+                                        <span class="text">{{ __('self_service.actions.edit') }}</span>
                                     </a>
                                     <a href="{{ route('roster.destroy', $cuti->id) }}" class="btn btn-danger btn-sm btn-icon-split" data-confirm-delete="true">
                                         <span class="icon text-white-50">
                                             <i class="fas fa-trash"></i>
                                         </span>
-                                        <span class="text">Hapus</span>
+                                        <span class="text">{{ __('self_service.actions.delete') }}</span>
                                     </a>
 
                                 </div>

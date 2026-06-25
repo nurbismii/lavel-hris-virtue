@@ -18,33 +18,33 @@
     $isPaid = ($slip->status_gaji ?? 'UNPAID') === 'PAID';
 
     $incomeItems = [
-    ['label' => 'Gaji Pokok', 'value' => (float) ($slip->gaji_pokok ?? 0), 'show' => true],
-    ['label' => 'Tunjangan UM', 'value' => (float) ($slip->tunj_um ?? 0), 'show' => !empty($slip->tunj_um)],
-    ['label' => 'Tunjangan Masa Kerja', 'value' => (float) ($slip->tunj_mk ?? 0), 'show' => !empty($slip->tunj_mk)],
-    ['label' => 'Tunjangan Koefisien', 'value' => (float) ($slip->tunj_koefisien ?? 0), 'show' => !empty($slip->tunj_koefisien)],
-    ['label' => 'Tunjangan Pengawas', 'value' => (float) ($slip->tunj_pengawas ?? 0), 'show' => !empty($slip->tunj_pengawas)],
-    ['label' => 'Tunjangan Transport', 'value' => (float) ($slip->tunj_transport ?? 0), 'show' => !empty($slip->tunj_transport)],
-    ['label' => 'Tunjangan Fungsional', 'value' => (float) ($slip->tunj_fungsional ?? 0), 'show' => !empty($slip->tunj_fungsional)],
-    ['label' => 'Lembur / OT', 'value' => (float) ($slip->ot ?? 0), 'show' => !empty($slip->ot)],
-    ['label' => 'Hour Machine', 'value' => (float) ($slip->hm ?? 0), 'show' => !empty($slip->hm)],
-    ['label' => 'Rapel', 'value' => (float) ($slip->rapel ?? 0), 'show' => !empty($slip->rapel)],
+    ['label' => __('self_service.salary.items.basic_salary'), 'value' => (float) ($slip->gaji_pokok ?? 0), 'show' => true],
+    ['label' => __('self_service.salary.items.meal_allowance'), 'value' => (float) ($slip->tunj_um ?? 0), 'show' => !empty($slip->tunj_um)],
+    ['label' => __('self_service.salary.items.tenure_allowance'), 'value' => (float) ($slip->tunj_mk ?? 0), 'show' => !empty($slip->tunj_mk)],
+    ['label' => __('self_service.salary.items.coefficient_allowance'), 'value' => (float) ($slip->tunj_koefisien ?? 0), 'show' => !empty($slip->tunj_koefisien)],
+    ['label' => __('self_service.salary.items.supervisor_allowance'), 'value' => (float) ($slip->tunj_pengawas ?? 0), 'show' => !empty($slip->tunj_pengawas)],
+    ['label' => __('self_service.salary.items.transport_allowance'), 'value' => (float) ($slip->tunj_transport ?? 0), 'show' => !empty($slip->tunj_transport)],
+    ['label' => __('self_service.salary.items.functional_allowance'), 'value' => (float) ($slip->tunj_fungsional ?? 0), 'show' => !empty($slip->tunj_fungsional)],
+    ['label' => __('self_service.salary.items.overtime'), 'value' => (float) ($slip->ot ?? 0), 'show' => !empty($slip->ot)],
+    ['label' => __('self_service.salary.items.machine_hour'), 'value' => (float) ($slip->hm ?? 0), 'show' => !empty($slip->hm)],
+    ['label' => __('self_service.salary.items.rapel'), 'value' => (float) ($slip->rapel ?? 0), 'show' => !empty($slip->rapel)],
     [
-    'label' => 'Insentif / Bonus',
+    'label' => __('self_service.salary.items.incentive_bonus'),
     'value' => (float) (($slip->insentif ?? 0) + ($slip->bonus ?? 0)),
     'show' => !empty($slip->insentif) || !empty($slip->bonus),
     ],
-    ['label' => 'Tunjangan Lapangan', 'value' => (float) ($slip->tunj_lap ?? 0), 'show' => !empty($slip->tunj_lap)],
-    ['label' => 'THR', 'value' => (float) ($slip->thr ?? 0), 'show' => !empty($slip->thr)],
+    ['label' => __('self_service.salary.items.field_allowance'), 'value' => (float) ($slip->tunj_lap ?? 0), 'show' => !empty($slip->tunj_lap)],
+    ['label' => __('self_service.salary.items.thr'), 'value' => (float) ($slip->thr ?? 0), 'show' => !empty($slip->thr)],
     ];
 
     $deductionItems = [
-    ['label' => 'BPJS Kesehatan', 'value' => (float) ($slip->pot_bpjskes ?? 0), 'show' => !empty($slip->pot_bpjskes)],
-    ['label' => 'JHT', 'value' => (float) ($slip->jht ?? 0), 'show' => !empty($slip->jht)],
-    ['label' => 'JP', 'value' => (float) ($slip->jp ?? 0), 'show' => !empty($slip->jp)],
-    ['label' => 'Unpaid Leave', 'value' => (float) ($slip->unpaid_leave ?? 0), 'show' => !empty($slip->unpaid_leave)],
-    ['label' => 'PPh 21', 'value' => (float) ($slip->deduction_pph21 ?? 0), 'show' => !empty($slip->deduction_pph21)],
-    ['label' => 'Alpa', 'value' => (float) ($slip->deduction_alpa ?? 0), 'show' => !empty($slip->deduction_alpa)],
-    ['label' => 'Deduction Lainnya', 'value' => (float) ($slip->deduction ?? 0), 'show' => !empty($slip->deduction)],
+    ['label' => __('self_service.salary.items.health_bpjs'), 'value' => (float) ($slip->pot_bpjskes ?? 0), 'show' => !empty($slip->pot_bpjskes)],
+    ['label' => __('self_service.salary.items.jht'), 'value' => (float) ($slip->jht ?? 0), 'show' => !empty($slip->jht)],
+    ['label' => __('self_service.salary.items.jp'), 'value' => (float) ($slip->jp ?? 0), 'show' => !empty($slip->jp)],
+    ['label' => __('self_service.salary.items.unpaid_leave'), 'value' => (float) ($slip->unpaid_leave ?? 0), 'show' => !empty($slip->unpaid_leave)],
+    ['label' => __('self_service.salary.items.pph21'), 'value' => (float) ($slip->deduction_pph21 ?? 0), 'show' => !empty($slip->deduction_pph21)],
+    ['label' => __('self_service.salary.items.absence'), 'value' => (float) ($slip->deduction_alpa ?? 0), 'show' => !empty($slip->deduction_alpa)],
+    ['label' => __('self_service.salary.items.other_deduction'), 'value' => (float) ($slip->deduction ?? 0), 'show' => !empty($slip->deduction)],
     ];
 
     $incomeItems = array_values(array_filter($incomeItems, fn ($item) => $item['show']));
@@ -72,12 +72,12 @@
 
                 <td width="58%">
                     <div class="pdf-kicker">V-Payslip</div>
-                    <div class="pdf-title">SLIP GAJI KARYAWAN</div>
+                    <div class="pdf-title">{{ __('self_service.salary.pdf_title') }}</div>
                     <div class="pdf-subtitle">
                         PT Virtue Dragon Nickel Industry
                     </div>
                     <div class="pdf-period">
-                        Periode {{ $periodText }}
+                        {{ __('self_service.salary.period', ['period' => $periodText]) }}
                     </div>
                 </td>
 
@@ -94,7 +94,7 @@
     <table width="100%" class="summary-table">
         <tr>
             <td width="58%" class="summary-left">
-                <div class="summary-label">Total Gaji Diterima</div>
+                <div class="summary-label">{{ __('self_service.salary.total_received') }}</div>
                 <div class="summary-amount">
                     Rp {{ number_format($slip->tot_diterima ?? 0, 0, ',', '.') }}
                 </div>
@@ -103,7 +103,7 @@
             <td width="42%" class="summary-right">
                 <table width="100%">
                     <tr>
-                        <td class="summary-meta-label">Nama</td>
+                        <td class="summary-meta-label">{{ __('tables.name') }}</td>
                         <td class="summary-meta-value">{{ $employeeName }}</td>
                     </tr>
                     <tr>
@@ -111,7 +111,7 @@
                         <td class="summary-meta-value">{{ $slip->karyawan->nik ?? '-' }}</td>
                     </tr>
                     <tr>
-                        <td class="summary-meta-label">Periode</td>
+                        <td class="summary-meta-label">{{ __('tables.period') }}</td>
                         <td class="summary-meta-value">{{ $slip->periode ?? $periodText }}</td>
                     </tr>
                 </table>
@@ -122,7 +122,7 @@
     {{-- INFO KARYAWAN --}}
     <div class="section-box">
         <div class="section-heading">
-            INFORMASI KARYAWAN
+            {{ __('self_service.salary.employee_information_upper') }}
         </div>
 
         <table width="100%" class="info-table">
@@ -162,7 +162,7 @@
                     <table width="100%">
                         <tr>
                             <td class="salary-box-title income-title">
-                                A. PENDAPATAN
+                                {{ __('self_service.salary.income_upper') }}
                             </td>
                             <td class="salary-box-total">
                                 Rp {{ number_format($totalIncome, 0, ',', '.') }}
@@ -180,7 +180,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="2" class="empty-text">Tidak ada komponen pendapatan.</td>
+                            <td colspan="2" class="empty-text">{{ __('self_service.salary.empty_income') }}</td>
                         </tr>
                         @endforelse
                     </table>
@@ -193,7 +193,7 @@
                     <table width="100%">
                         <tr>
                             <td class="salary-box-title deduction-title">
-                                B. POTONGAN
+                                {{ __('self_service.salary.deduction_upper') }}
                             </td>
                             <td class="salary-box-total">
                                 Rp {{ number_format($totalDeduction, 0, ',', '.') }}
@@ -211,7 +211,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="2" class="empty-text">Tidak ada komponen potongan.</td>
+                            <td colspan="2" class="empty-text">{{ __('self_service.salary.empty_deduction') }}</td>
                         </tr>
                         @endforelse
                     </table>
@@ -224,9 +224,9 @@
     <table width="100%" class="final-total-table">
         <tr>
             <td width="55%">
-                <div class="final-total-label">TOTAL GAJI DITERIMA</div>
+                <div class="final-total-label">{{ __('self_service.salary.total_received_upper') }}</div>
                 <div class="final-total-note">
-                    Jumlah bersih setelah pendapatan dan potongan.
+                    {{ __('self_service.salary.final_total_note') }}
                 </div>
             </td>
             <td width="45%" class="final-total-amount">
@@ -239,17 +239,16 @@
     <table width="100%" class="pdf-footer-table">
         <tr>
             <td width="58%" class="pdf-footer-note">
-                <strong>Catatan:</strong><br>
-                Slip gaji ini dihasilkan secara otomatis oleh sistem V-People.
-                Jika terdapat perbedaan data, silakan konfirmasi kepada HR atau Payroll.
+                <strong>{{ __('self_service.salary.note_label') }}</strong><br>
+                {{ __('self_service.salary.pdf_note') }}
             </td>
 
             <td width="42%" class="pdf-footer-bank">
                 <div class="bank-box">
-                    <div class="bank-title">Informasi Rekening</div>
+                    <div class="bank-title">{{ __('self_service.salary.bank_information') }}</div>
                     <strong>{{ $employeeName }}</strong><br>
-                    Bank: {{ $slip->bank_name ?? '-' }}<br>
-                    No Rekening: {{ $slip->bank_number ?? '-' }}
+                    {{ __('self_service.salary.bank') }}: {{ $slip->bank_name ?? '-' }}<br>
+                    {{ __('self_service.salary.bank_account_number') }}: {{ $slip->bank_number ?? '-' }}
                 </div>
             </td>
         </tr>

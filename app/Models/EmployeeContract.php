@@ -43,38 +43,38 @@ class EmployeeContract extends Model
     public static function statusOptions(): array
     {
         return [
-            self::STATUS_READY => 'Menunggu Tanda Tangan',
-            self::STATUS_SIGNED => 'Sudah Ditandatangani',
-            self::STATUS_CANCELLED => 'Dibatalkan',
-            self::STATUS_REJECTED => 'Ditolak',
+            self::STATUS_READY => __('self_service.contract.statuses.ready'),
+            self::STATUS_SIGNED => __('self_service.contract.statuses.signed'),
+            self::STATUS_CANCELLED => __('self_service.contract.statuses.cancelled'),
+            self::STATUS_REJECTED => __('self_service.contract.statuses.rejected'),
         ];
     }
 
     public static function signingMethodOptions(): array
     {
         return [
-            self::SIGNING_METHOD_ELECTRONIC => 'Elektronik',
-            self::SIGNING_METHOD_MANUAL => 'Manual',
+            self::SIGNING_METHOD_ELECTRONIC => __('self_service.contract.signing_methods.electronic'),
+            self::SIGNING_METHOD_MANUAL => __('self_service.contract.signing_methods.manual'),
         ];
     }
 
     public static function signatureStatusOptions(): array
     {
         return [
-            self::SIGNATURE_STATUS_DRAFT => 'Draft',
-            self::SIGNATURE_STATUS_WAITING => 'Menunggu Tanda Tangan',
-            self::SIGNATURE_STATUS_SIGNED => 'Sudah Ditandatangani',
-            self::SIGNATURE_STATUS_REJECTED => 'Ditolak',
-            self::SIGNATURE_STATUS_CANCELLED => 'Dibatalkan',
+            self::SIGNATURE_STATUS_DRAFT => __('self_service.contract.statuses.draft'),
+            self::SIGNATURE_STATUS_WAITING => __('self_service.contract.statuses.ready'),
+            self::SIGNATURE_STATUS_SIGNED => __('self_service.contract.statuses.signed'),
+            self::SIGNATURE_STATUS_REJECTED => __('self_service.contract.statuses.rejected'),
+            self::SIGNATURE_STATUS_CANCELLED => __('self_service.contract.statuses.cancelled'),
         ];
     }
 
     public static function manualVerificationStatusOptions(): array
     {
         return [
-            self::MANUAL_VERIFICATION_PENDING => 'Menunggu Review',
-            self::MANUAL_VERIFICATION_VERIFIED => 'Terverifikasi',
-            self::MANUAL_VERIFICATION_REJECTED => 'Ditolak',
+            self::MANUAL_VERIFICATION_PENDING => __('self_service.contract.statuses.pending_review'),
+            self::MANUAL_VERIFICATION_VERIFIED => __('self_service.contract.statuses.verified'),
+            self::MANUAL_VERIFICATION_REJECTED => __('self_service.contract.statuses.rejected'),
         ];
     }
 

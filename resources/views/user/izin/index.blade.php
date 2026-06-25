@@ -8,15 +8,15 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-file-signature text-primary me-2"></i>
-                    Data Izin (Paid & Unpaid)
+                    {{ __('self_service.permission.index_title') }}
                 </h4>
                 <small class="text-muted">
-                    Daftar izin berbayar dan tidak berbayar
+                    {{ __('self_service.permission.index_subtitle') }}
                 </small>
             </div>
 
             <a href="{{ route('izin.create') }}" class="btn btn-sm btn-primary">
-                <i class="fas fa-plus me-1"></i> Ajukan Izin
+                <i class="fas fa-plus me-1"></i> {{ __('self_service.actions.apply_permission') }}
             </a>
         </div>
 
@@ -49,13 +49,13 @@
                                     {{ formatDateIndonesia($row->tanggal_mulai) }}
                                     <br>
                                     <small class="text-muted">
-                                        s/d
+                                        {{ __('self_service.common.range_separator') }}
                                         {{ formatDateIndonesia($row->tanggal_berakhir) }}
                                     </small>
                                 </td>
                                 <td>
                                     <span class="fw-bold">
-                                        {{ $row->jumlah }} Hari
+                                        {{ $row->jumlah }} {{ __('self_service.common.day') }}
                                     </span>
                                 </td>
                                 <td>{!! $row->status_delegate_label !!}</td>
@@ -75,13 +75,13 @@
                                         <span class="icon text-white-50">
                                             <i class="fas fa-edit"></i>
                                         </span>
-                                        <span class="text">Edit</span>
+                                        <span class="text">{{ __('self_service.actions.edit') }}</span>
                                     </a>
                                     <a href="{{ route('izin.destroy', $row->id) }}" class="btn btn-danger btn-sm btn-icon-split" data-confirm-delete="true">
                                         <span class="icon text-white-50">
                                             <i class="fas fa-trash"></i>
                                         </span>
-                                        <span class="text">Hapus</span>
+                                        <span class="text">{{ __('self_service.actions.delete') }}</span>
                                     </a>
                                 </td>
                             </tr>

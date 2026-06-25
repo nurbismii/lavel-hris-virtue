@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Kontrak Elektronik Saya')
+@section('title', __('self_service.contract.index_title'))
 
 @section('content')
 <div class="container-fluid">
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
             <div>
-                <h4 class="fw-bold mb-1">Kontrak Elektronik Saya</h4>
-                <small class="text-muted">Baca kontrak dengan teliti sebelum memberi tanda tangan elektronik.</small>
+                <h4 class="fw-bold mb-1">{{ __('self_service.contract.index_title') }}</h4>
+                <small class="text-muted">{{ __('self_service.contract.index_subtitle') }}</small>
             </div>
         </div>
 
@@ -36,7 +36,7 @@
                                     </td>
                                     <td>
                                         {{ optional($contract->contract_start_date)->format('d M Y') ?: '-' }}
-                                        s/d
+                                        {{ __('self_service.common.range_separator') }}
                                         {{ optional($contract->contract_end_date)->format('d M Y') ?: '-' }}
                                     </td>
                                     <td>
@@ -52,14 +52,14 @@
                                     <td>{{ optional($contract->created_at)->format('d M Y H:i') }}</td>
                                     <td>
                                         <a href="{{ route('user-electronic-contracts.show', $contract) }}" class="btn btn-sm btn-primary">
-                                            Buka
+                                            {{ __('self_service.actions.open') }}
                                         </a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="6" class="text-center text-muted py-4">
-                                        Belum ada kontrak elektronik untuk akun Anda.
+                                        {{ __('self_service.contract.no_contracts') }}
                                     </td>
                                 </tr>
                             @endforelse

@@ -42,9 +42,9 @@ class Roster extends Model
 
         switch ($tipe) {
             case 1:
-                return '<span class="badge bg-success">Roster</span>';
+                return '<span class="badge bg-success">' . e(__('self_service.roster.plan_roster')) . '</span>';
             case 2:
-                return '<span class="badge bg-primary">Insentif</span>';
+                return '<span class="badge bg-primary">' . e(__('self_service.roster.plan_incentive')) . '</span>';
             default:
                 return '<span class="badge bg-secondary">-</span>';
         }
@@ -54,11 +54,11 @@ class Roster extends Model
     {
         switch ($this->status_pengajuan) {
             case 0:
-                return '<span class="badge bg-warning">Menunggu</span>';
+                return '<span class="badge bg-warning">' . e(__('self_service.status.pending')) . '</span>';
             case 1:
-                return '<span class="badge bg-success">Diterima</span>';
+                return '<span class="badge bg-success">' . e(__('self_service.status.accepted')) . '</span>';
             case 2:
-                return '<span class="badge bg-danger">Ditolak</span>';
+                return '<span class="badge bg-danger">' . e(__('self_service.status.rejected')) . '</span>';
             default:
                 return '-';
         }
@@ -68,13 +68,13 @@ class Roster extends Model
     {
         switch ($this->delegate_status) {
             case 0:
-                return '<span class="badge bg-warning">Menunggu Delegasi</span>';
+                return '<span class="badge bg-warning">' . e(__('self_service.status.pending_delegate')) . '</span>';
             case 1:
-                return '<span class="badge bg-success">Diterima Delegasi</span>';
+                return '<span class="badge bg-success">' . e(__('self_service.status.accepted_delegate')) . '</span>';
             case 2:
-                return '<span class="badge bg-danger">Ditolak Delegasi</span>';
+                return '<span class="badge bg-danger">' . e(__('self_service.status.rejected_delegate')) . '</span>';
             default:
-                return '<span class="badge bg-secondary">Tidak Ada Delegasi</span>';
+                return '<span class="badge bg-secondary">' . e(__('self_service.status.no_delegate')) . '</span>';
         }
     }
 
@@ -82,11 +82,11 @@ class Roster extends Model
     {
         switch ($this->status_pengajuan_hrd) {
             case 0:
-                return '<span class="badge bg-warning">Menunggu</span>';
+                return '<span class="badge bg-warning">' . e(__('self_service.status.pending')) . '</span>';
             case 1:
-                return '<span class="badge bg-success">Diterima</span>';
+                return '<span class="badge bg-success">' . e(__('self_service.status.accepted')) . '</span>';
             case 2:
-                return '<span class="badge bg-danger">Ditolak</span>';
+                return '<span class="badge bg-danger">' . e(__('self_service.status.rejected')) . '</span>';
             default:
                 return '-';
         }

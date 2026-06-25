@@ -7,10 +7,10 @@
             <div>
                 <h4 class="fw-bold">
                     <i class="fas fa-file-invoice-dollar text-primary me-2"></i>
-                    Data V-Payslip
+                    {{ __('self_service.salary.index_title') }}
                 </h4>
                 <small class="text-muted">
-                    Integrasi dengan data V-Payslip
+                    {{ __('self_service.salary.index_subtitle') }}
                 </small>
             </div>
         </div>

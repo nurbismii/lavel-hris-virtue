@@ -18,15 +18,15 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-edit text-primary me-2"></i>
-                    Edit pengajuan izin
+                    {{ __('self_service.permission.edit_title') }}
                 </h4>
                 <small class="text-muted">
-                    Perbarui izin berbayar atau tidak berbayar yang masih pending
+                    {{ __('self_service.permission.edit_subtitle') }}
                 </small>
             </div>
 
             <a href="{{ route('izin.index') }}" class="btn btn-sm btn-secondary">
-                <i class="fas fa-long-arrow-alt-left me-1"></i> Kembali
+                <i class="fas fa-long-arrow-alt-left me-1"></i> {{ __('self_service.actions.back') }}
             </a>
         </div>
 
@@ -37,99 +37,99 @@
                     @method('PUT')
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Jenis Izin</label>
+                        <label class="form-label fw-bold">{{ __('self_service.permission.type') }}</label>
 
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="tipe" value="PAID" id="paidRadio" {{ $selectedTipe === 'PAID' ? 'checked' : '' }}>
                             <label class="form-check-label" for="paidRadio">
-                                Izin Berbayar
+                                {{ __('self_service.permission.paid') }}
                             </label>
                         </div>
 
                         <div class="form-check">
                             <input class="form-check-input" type="radio" name="tipe" value="UNPAID" id="unpaidRadio" {{ $selectedTipe === 'UNPAID' ? 'checked' : '' }}>
                             <label class="form-check-label" for="unpaidRadio">
-                                Izin Tidak Berbayar
+                                {{ __('self_service.permission.unpaid') }}
                             </label>
                         </div>
                     </div>
 
                     <div id="paidOptions" class="{{ $selectedTipe === 'PAID' ? '' : 'izin-paid-options-hidden' }}">
-                        <label class="form-label fw-bold">Kategori Izin Berbayar</label>
+                        <label class="form-label fw-bold">{{ __('self_service.permission.paid_category') }}</label>
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Menikah ( 3 Hari )" {{ $selectedTipeIzin === 'Izin Menikah ( 3 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
-                                Izin Menikah ( 3 Hari )
+                                {{ __('self_service.permission.categories.marriage') }}
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin" value="Izin menikahkan anak ( 2 Hari )" {{ $selectedTipeIzin === 'Izin menikahkan anak ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
-                                Izin menikahkan anak ( 2 Hari )
+                                {{ __('self_service.permission.categories.child_marriage') }}
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Khitan / Baptis anak ( 2 Hari )" {{ $selectedTipeIzin === 'Izin Khitan / Baptis anak ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
-                                Izin Khitan / Baptis anak ( 2 Hari )
+                                {{ __('self_service.permission.categories.child_circumcision_baptism') }}
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin" value="Izin istri melahirkan / Keguguran ( 2 Hari )" {{ $selectedTipeIzin === 'Izin istri melahirkan / Keguguran ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
-                                Izin istri melahirkan / Keguguran ( 2 Hari )
+                                {{ __('self_service.permission.categories.wife_birth_miscarriage') }}
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin" value="Izin Duka keluarga ( 2 Hari )" {{ $selectedTipeIzin === 'Izin Duka keluarga ( 2 Hari )' ? 'checked' : '' }}>
                             <label class="form-check-label">
-                                Izin Duka keluarga ( 2 Hari )
+                                {{ __('self_service.permission.categories.family_bereavement') }}
                             </label>
                         </div>
 
                         <div class="form-check mb-2">
                             <input class="form-check-input" type="radio" name="tipe_izin" value="Cuti melahirkan ( 3 Bulan )" {{ $selectedTipeIzin === 'Cuti melahirkan ( 3 Bulan )' ? 'checked' : '' }}>
                             <label class="form-check-label">
-                                Cuti melahirkan ( 3 Bulan )
+                                {{ __('self_service.permission.categories.maternity_leave') }}
                             </label>
                         </div>
                     </div>
 
                     <div class="row mt-3">
                         <div class="col-md-6">
-                            <label class="form-label">Tanggal Mulai</label>
+                            <label class="form-label">{{ __('tables.start') }}</label>
                             <input type="date" name="tanggal_mulai" class="form-control" value="{{ old('tanggal_mulai', $izin->tanggal_mulai) }}">
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Tanggal Berakhir</label>
+                            <label class="form-label">{{ __('tables.end') }}</label>
                             <input type="date" name="tanggal_berakhir" class="form-control" value="{{ old('tanggal_berakhir', $izin->tanggal_berakhir) }}">
                         </div>
                     </div>
 
                     <div class="mt-3">
-                        <label class="form-label">Keterangan</label>
+                        <label class="form-label">{{ __('tables.information') }}</label>
                         <textarea name="keterangan" class="form-control">{{ old('keterangan', $izin->keterangan) }}</textarea>
                     </div>
 
                     <div class="mt-3">
-                        <label class="form-label">Upload Bukti (Opsional)</label>
+                        <label class="form-label">{{ __('self_service.permission.proof_optional') }}</label>
                         <input type="file" name="foto" class="form-control">
                         @if($izin->foto && $izin->foto !== '-')
                         <small class="d-block mt-2">
-                            Bukti saat ini:
-                            <a href="{{ route('izin.proof', $izin->id) }}" target="_blank">Lihat file</a>
+                            {{ __('self_service.common.current_proof') }}
+                            <a href="{{ route('izin.proof', $izin->id) }}" target="_blank">{{ __('self_service.permission.current_proof_link') }}</a>
                         </small>
                         @endif
                     </div>
 
                     <button type="submit" class="btn btn-primary mt-4">
-                        Simpan Perubahan
+                        {{ __('self_service.actions.save_changes') }}
                     </button>
                 </form>
             </div>

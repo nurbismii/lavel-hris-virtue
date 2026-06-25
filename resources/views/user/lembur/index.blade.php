@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Perintah Lembur')
+@section('title', __('self_service.overtime.title'))
 
 @section('content')
 <div class="container-fluid">
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
             <div>
-                <h4 class="fw-bold mb-1">Perintah Lembur</h4>
-                <small class="text-muted">Lihat, setujui, atau tolak perintah lembur yang dikirim kepada Anda.</small>
+                <h4 class="fw-bold mb-1">{{ __('self_service.overtime.title') }}</h4>
+                <small class="text-muted">{{ __('self_service.overtime.subtitle') }}</small>
             </div>
         </div>
 
@@ -47,30 +47,30 @@
                                         @if($overtimeOrder->employee_response_status === \App\Models\OvertimeOrder::RESPONSE_PENDING && !$overtimeOrder->isPastDate())
                                             <form action="{{ route('lembur.respond', $overtimeOrder->id) }}" method="POST" class="d-flex flex-column gap-2">
                                                 @csrf
-                                                <textarea name="employee_response_notes" rows="2" class="form-control" placeholder="Catatan opsional untuk HOD/Admin Divisi"></textarea>
+                                                <textarea name="employee_response_notes" rows="2" class="form-control" placeholder="{{ __('self_service.common.optional_note') }}"></textarea>
                                                 <div class="d-flex gap-2">
                                                     <button type="submit" name="response" value="{{ \App\Models\OvertimeOrder::RESPONSE_ACCEPTED }}" class="btn btn-success">
-                                                        Setuju
+                                                        {{ __('self_service.actions.agree') }}
                                                     </button>
                                                     <button type="submit" name="response" value="{{ \App\Models\OvertimeOrder::RESPONSE_REJECTED }}" class="btn btn-danger">
-                                                        Tolak
+                                                        {{ __('self_service.actions.reject') }}
                                                     </button>
                                                 </div>
                                             </form>
                                         @else
                                             @if($overtimeOrder->employee_response_status === \App\Models\OvertimeOrder::RESPONSE_PENDING && $overtimeOrder->isPastDate())
-                                                <div class="small text-muted mb-1">Perintah lembur sudah melewati tanggal pelaksanaan.</div>
+                                                <div class="small text-muted mb-1">{{ __('self_service.overtime.past_date') }}</div>
                                             @endif
                                             <div class="small text-muted">
-                                                Direspons {{ optional($overtimeOrder->employee_response_at)->translatedFormat('d M Y H:i') ?: '-' }}
+                                                {{ __('self_service.common.processed_at', ['time' => optional($overtimeOrder->employee_response_at)->translatedFormat('d M Y H:i') ?: '-']) }}
                                             </div>
-                                            <div class="small">{{ $overtimeOrder->employee_response_notes ?: 'Tanpa catatan tambahan.' }}</div>
+                                            <div class="small">{{ $overtimeOrder->employee_response_notes ?: __('self_service.common.without_note') }}</div>
                                         @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">Belum ada perintah lembur untuk Anda.</td>
+                                    <td colspan="6" class="text-center text-muted py-4">{{ __('self_service.overtime.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

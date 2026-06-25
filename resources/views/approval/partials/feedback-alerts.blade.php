@@ -1,6 +1,6 @@
 @if($errors->any())
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <strong>Gagal diproses.</strong>
+        <strong>{{ __('common.process_failed') }}</strong>
         <div class="mt-1">
             {{ $errors->first() }}
         </div>

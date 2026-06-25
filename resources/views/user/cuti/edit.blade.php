@@ -21,17 +21,17 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
             <div>
                 <span class="page-kicker">
                     <i class="fas fa-edit"></i>
-                    Form Perubahan
+                    {{ __('self_service.leave.form_kicker_edit') }}
                 </span>
-                <h3 class="page-title mb-1">Edit Pengajuan Cuti</h3>
+                <h3 class="page-title mb-1">{{ __('self_service.leave.edit_title') }}</h3>
                 <p class="page-subtitle mb-0">
-                    Perbarui tanggal cuti dan keterangan pengajuan sesuai kebutuhan.
+                    {{ __('self_service.leave.edit_subtitle') }}
                 </p>
             </div>
 
             <div class="leave-balance-box">
-                <small>Cuti tersedia</small>
-                <strong>{{ $maksimalCutiEdit }} hari</strong>
+                <small>{{ __('self_service.leave.available') }}</small>
+                <strong>{{ $maksimalCutiEdit }} {{ __('self_service.common.day') }}</strong>
             </div>
         </div>
 
@@ -48,9 +48,9 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
                             <div>
                                 <span class="section-kicker">
                                     <i class="fas fa-id-card"></i>
-                                    Data Karyawan
+                                    {{ __('self_service.leave.employee_data') }}
                                 </span>
-                                <h5 class="section-title">Informasi Pemohon</h5>
+                                <h5 class="section-title">{{ __('self_service.leave.applicant_information') }}</h5>
                             </div>
                         </div>
 
@@ -68,7 +68,7 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Nama</label>
+                                <label class="form-label">{{ __('tables.name') }}</label>
                                 <div class="input-modern readonly">
                                     <i class="fas fa-user"></i>
                                     <input
@@ -80,7 +80,7 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Tanggal Pengajuan</label>
+                                <label class="form-label">{{ __('tables.submission_date') }}</label>
                                 <div class="input-modern readonly">
                                     <i class="fas fa-calendar-day"></i>
                                     <input
@@ -92,7 +92,7 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Sisa Cuti Saat Ini</label>
+                                <label class="form-label">{{ __('self_service.leave.current_balance') }}</label>
                                 <div class="input-modern readonly">
                                     <i class="fas fa-calendar-check"></i>
                                     <input
@@ -113,16 +113,16 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
                             <div>
                                 <span class="section-kicker">
                                     <i class="fas fa-calendar-alt"></i>
-                                    Detail Cuti
+                                    {{ __('self_service.leave.leave_detail') }}
                                 </span>
-                                <h5 class="section-title">Periode Pengajuan</h5>
+                                <h5 class="section-title">{{ __('self_service.leave.submission_period') }}</h5>
                             </div>
                         </div>
 
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label">
-                                    Tanggal Mulai
+                                    {{ __('self_service.leave.start_date_short') }}
                                     <sup class="text-danger">*</sup>
                                 </label>
                                 <div class="input-modern">
@@ -141,7 +141,7 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
 
                             <div class="col-md-6">
                                 <label class="form-label">
-                                    Tanggal Berakhir
+                                    {{ __('self_service.leave.end_date_short') }}
                                     <sup class="text-danger">*</sup>
                                 </label>
                                 <div class="input-modern">
@@ -159,7 +159,7 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Jumlah Hari</label>
+                                <label class="form-label">{{ __('self_service.leave.day_count') }}</label>
                                 <div class="input-modern readonly">
                                     <i class="fas fa-hourglass-half"></i>
                                     <input
@@ -176,20 +176,20 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
                                 <div class="leave-info-mini">
                                     <i class="fas fa-info-circle"></i>
                                     <div>
-                                        <strong>Mode edit pengajuan</strong>
-                                        <span>Jumlah cuti akan dihitung ulang otomatis berdasarkan tanggal terbaru.</span>
+                                        <strong>{{ __('self_service.leave.edit_mode_title') }}</strong>
+                                        <span>{{ __('self_service.leave.edit_mode_text') }}</span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="col-md-12">
-                                <label class="form-label">Keterangan</label>
+                                <label class="form-label">{{ __('tables.information') }}</label>
                                 <div class="textarea-modern">
                                     <textarea
                                         class="form-control @error('keterangan') is-invalid @enderror"
                                         name="keterangan"
                                         rows="5"
-                                        placeholder="Tuliskan alasan atau keterangan pengajuan cuti">{{ old('keterangan', $cuti->keterangan) }}</textarea>
+                                        placeholder="{{ __('self_service.leave.note_placeholder') }}">{{ old('keterangan', $cuti->keterangan) }}</textarea>
                                 </div>
                                 @error('keterangan')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -205,12 +205,12 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
                                 <div class="form-actions">
                                     <button type="submit" id="submit-cuti" class="btn btn-submit-leave">
                                         <i class="fas fa-save me-1"></i>
-                                        Update Pengajuan
+                                        {{ __('self_service.actions.update_submission') }}
                                     </button>
 
                                     <a href="{{ route('cuti.index') }}" class="btn btn-back">
                                         <i class="fas fa-arrow-left me-1"></i>
-                                        Kembali
+                                        {{ __('self_service.actions.back') }}
                                     </a>
                                 </div>
                             </div>
@@ -252,7 +252,7 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
             if (end < start) {
                 jumlahHariInput.value = 0;
                 alertCuti.classList.remove('d-none');
-                alertCuti.innerText = 'Tanggal berakhir tidak boleh sebelum tanggal mulai!';
+                alertCuti.innerText = @json(__('self_service.leave.end_before_start'));
                 submitBtn.disabled = true;
                 return;
             }
@@ -263,7 +263,7 @@ $maksimalCutiEdit = $sisaCutiAktual + $jumlahCutiLama;
 
             if (selisih > maksimalCutiEdit) {
                 alertCuti.classList.remove('d-none');
-                alertCuti.innerText = 'Cuti tidak cukup! Maksimal cuti yang dapat diajukan adalah ' + maksimalCutiEdit + ' hari.';
+                alertCuti.innerText = @json(__('self_service.leave.insufficient_leave_with_max', ['days' => '__DAYS__'])).replace('__DAYS__', maksimalCutiEdit);
                 submitBtn.disabled = true;
             } else {
                 alertCuti.classList.add('d-none');

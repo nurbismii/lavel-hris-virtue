@@ -7,10 +7,10 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-sign-out-alt text-primary me-2"></i>
-                    Data pengajuan cuti
+                    {{ __('self_service.leave.index_title') }}
                 </h4>
                 <small class="text-muted">
-                    Pengajuan cuti dan status pengajuan kamu
+                    {{ __('self_service.leave.index_subtitle') }}
                 </small>
             </div>
 
@@ -19,7 +19,7 @@
                     <span class="btn-label">
                         <i class="fa fa-plus"></i>
                     </span>
-                    Pengajuan Cuti
+                    {{ __('self_service.actions.apply_leave') }}
                 </a>
             </div>
         </div>
@@ -51,7 +51,7 @@
                                     <td>{{ $c->employee->nama_karyawan }}</td>
                                     <td>{{ formatDateIndonesia($c->tanggal_mulai) }}</td>
                                     <td>{{ formatDateIndonesia($c->tanggal_berakhir) }}</td>
-                                    <td>{{ $c->jumlah }} Hari</td>
+                                    <td>{{ $c->jumlah }} {{ __('self_service.common.day') }}</td>
                                     <td>{!! $c->status_delegate_label !!}</td>
                                     <td>{!! $c->status_hod_label !!}</td>
                                     <td>{!! $c->status_hrd_label !!}</td>
@@ -60,13 +60,13 @@
                                             <span class="icon text-white-50">
                                                 <i class="fas fa-edit"></i>
                                             </span>
-                                            <span class="text">Edit</span>
+                                            <span class="text">{{ __('self_service.actions.edit') }}</span>
                                         </a>
                                         <a href="{{ route('cuti.destroy', $c->id) }}" class="btn btn-danger btn-sm btn-icon-split" data-confirm-delete="true">
                                             <span class="icon text-white-50">
                                                 <i class="fas fa-trash"></i>
                                             </span>
-                                            <span class="text">Hapus</span>
+                                            <span class="text">{{ __('self_service.actions.delete') }}</span>
                                         </a>
                                     </td>
                                 </tr>

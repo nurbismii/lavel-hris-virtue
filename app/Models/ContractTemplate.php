@@ -19,9 +19,9 @@ class ContractTemplate extends Model
     public static function typeOptions(): array
     {
         return [
-            self::TYPE_PKWT_1 => 'Kontrak PKWT 1',
-            self::TYPE_TRANSLATOR => 'Kontrak Translator',
-            self::TYPE_ADDENDUM_PKWT => 'Adendum PKWT',
+            self::TYPE_PKWT_1 => __('self_service.contract.types.pkwt_1'),
+            self::TYPE_TRANSLATOR => __('self_service.contract.types.translator'),
+            self::TYPE_ADDENDUM_PKWT => __('self_service.contract.types.addendum_pkwt'),
         ];
     }
 

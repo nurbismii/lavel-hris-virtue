@@ -43,11 +43,11 @@ class OvertimeOrder extends Model
     {
         switch ($this->overtime_type) {
             case self::TYPE_OFF:
-                return 'Lembur Off';
+                return __('self_service.overtime.types.off');
             case self::TYPE_HOLIDAY:
-                return 'Lembur Tanggal Merah';
+                return __('self_service.overtime.types.holiday');
             case self::TYPE_EXTRA_HOURS:
-                return 'Lembur Kelebihan Jam';
+                return __('self_service.overtime.types.extra_hours');
             default:
                 return $this->overtime_type ?? '-';
         }
@@ -57,12 +57,12 @@ class OvertimeOrder extends Model
     {
         switch ($this->employee_response_status) {
             case self::RESPONSE_ACCEPTED:
-                return 'Disetujui Karyawan';
+                return __('self_service.overtime.responses.accepted');
             case self::RESPONSE_REJECTED:
-                return 'Ditolak Karyawan';
+                return __('self_service.overtime.responses.rejected');
             case self::RESPONSE_PENDING:
             default:
-                return 'Menunggu Respons';
+                return __('self_service.status.pending_response');
         }
     }
 
@@ -90,7 +90,7 @@ class OvertimeOrder extends Model
         if ($this->start_time && $this->end_time) {
             $start = Carbon::parse($this->start_time);
             $end = Carbon::parse($this->end_time);
-            $overnightLabel = $end->lessThanOrEqualTo($start) ? ' (+1 hari)' : '';
+            $overnightLabel = $end->lessThanOrEqualTo($start) ? __('self_service.overtime.overnight_suffix') : '';
         }
 
         return trim($this->formatTime($this->start_time) . ' - ' . $this->formatTime($this->end_time) . $overnightLabel);

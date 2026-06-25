@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Kotak Masuk')
+@section('title', __('self_service.inbox.title'))
 
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('assets/css/user-inbox.css') }}">
@@ -23,10 +23,10 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                     <div>
                         <h1 class="inbox-hero__title">
                             <i class="fas fa-inbox"></i>
-                            Kotak Masuk
+                            {{ __('self_service.inbox.title') }}
                         </h1>
                         <p class="inbox-hero__subtitle">
-                            Semua update terkait pengajuan, approval, dan informasi penting dari perusahaan akan muncul di sini.
+                            {{ __('self_service.inbox.subtitle') }}
                         </p>
                     </div>
 
@@ -34,9 +34,9 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                         @if($unreadNotifications > 0)
                         <form action="{{ route('notif.readAll') }}" method="POST" class="m-0">
                             @csrf
-                            <button type="submit" class="inbox-button inbox-button--ghost" data-loading-text="Menandai...">
+                            <button type="submit" class="inbox-button inbox-button--ghost" data-loading-text="{{ __('self_service.inbox.marking') }}">
                                 <i class="fas fa-check-double"></i>
-                                Baca semua
+                                {{ __('self_service.actions.read_all') }}
                             </button>
                         </form>
                         @endif
@@ -46,13 +46,13 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                             action="{{ route('notif.destroyRead') }}"
                             method="POST"
                             class="m-0"
-                            data-confirm-title="Hapus notifikasi dibaca?"
-                            data-confirm-text="Semua notifikasi yang sudah dibaca pada akun Anda akan dihapus.">
+                            data-confirm-title="{{ __('self_service.inbox.delete_read_confirm_title') }}"
+                            data-confirm-text="{{ __('self_service.inbox.delete_read_confirm_text') }}">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="inbox-button inbox-button--ghost inbox-button--danger" data-loading-text="Menghapus...">
+                            <button type="submit" class="inbox-button inbox-button--ghost inbox-button--danger" data-loading-text="{{ __('self_service.inbox.deleting') }}">
                                 <i class="fas fa-trash-alt"></i>
-                                Hapus dibaca
+                                {{ __('self_service.actions.delete_read') }}
                             </button>
                         </form>
                         @endif
@@ -62,39 +62,39 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                             action="{{ route('notif.destroyAll') }}"
                             method="POST"
                             class="m-0"
-                            data-confirm-title="Hapus semua notifikasi?"
-                            data-confirm-text="Semua notifikasi pada akun Anda akan dihapus permanen, termasuk yang belum dibaca.">
+                            data-confirm-title="{{ __('self_service.inbox.delete_all_confirm_title') }}"
+                            data-confirm-text="{{ __('self_service.inbox.delete_all_confirm_text') }}">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="inbox-button inbox-button--ghost inbox-button--danger" data-loading-text="Menghapus...">
+                            <button type="submit" class="inbox-button inbox-button--ghost inbox-button--danger" data-loading-text="{{ __('self_service.inbox.deleting') }}">
                                 <i class="fas fa-trash"></i>
-                                Hapus semua
+                                {{ __('self_service.actions.delete_all') }}
                             </button>
                         </form>
                         @endif
 
                         <a href="{{ $homeUrl }}" class="inbox-button inbox-button--light">
                             <i class="fas fa-arrow-left"></i>
-                            Kembali
+                            {{ __('self_service.actions.back') }}
                         </a>
                     </div>
                 </div>
 
                 <div class="inbox-stats">
                     <div class="inbox-stat">
-                        <small>Total Notifikasi</small>
+                        <small>{{ __('self_service.inbox.total_notifications') }}</small>
                         <strong>{{ $totalNotifications }}</strong>
-                        <span>Seluruh pesan yang tercatat pada akun Anda.</span>
+                        <span>{{ __('self_service.inbox.total_notifications_help') }}</span>
                     </div>
                     <div class="inbox-stat">
-                        <small>Belum Dibaca</small>
+                        <small>{{ __('self_service.inbox.unread') }}</small>
                         <strong>{{ $unreadNotifications }}</strong>
-                        <span>Perlu Anda cek agar tidak ada informasi yang terlewat.</span>
+                        <span>{{ __('self_service.inbox.unread_help') }}</span>
                     </div>
                     <div class="inbox-stat">
-                        <small>Sudah Dibaca</small>
+                        <small>{{ __('self_service.inbox.read') }}</small>
                         <strong>{{ $readNotifications }}</strong>
-                        <span>Update yang sudah Anda buka sebelumnya.</span>
+                        <span>{{ __('self_service.inbox.read_help') }}</span>
                     </div>
                 </div>
             </div>
@@ -103,7 +103,7 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
         <section class="inbox-card">
             <div class="inbox-card__head">
                 <div>
-                    <h2 class="inbox-card__title">Daftar Notifikasi</h2>
+                    <h2 class="inbox-card__title">{{ __('self_service.inbox.list_title') }}</h2>
                 </div>
 
                 <span class="inbox-card__pill">
@@ -111,9 +111,9 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
 
                     @if($notifications->total() > 0)
                     {{ $notifications->firstItem() }} - {{ $notifications->lastItem() }}
-                    dari {{ $notifications->total() }} item
+                    {{ __('self_service.inbox.from_total', ['total' => $notifications->total()]) }}
                     @else
-                    0 item
+                    0 {{ __('self_service.common.item') }}
                     @endif
                 </span>
             </div>
@@ -121,8 +121,8 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
             <div class="inbox-list">
                 @forelse($notifications as $notif)
                 @php
-                $title = $notif->data['judul'] ?? 'Notifikasi';
-                $message = $notif->data['pesan'] ?? 'Belum ada detail pesan.';
+                $title = $notif->data['judul'] ?? __('self_service.inbox.notification_fallback');
+                $message = $notif->data['pesan'] ?? __('self_service.inbox.message_fallback');
                 $isUnread = is_null($notif->read_at);
                 @endphp
 
@@ -138,7 +138,7 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                             @if($isUnread)
                             <span class="inbox-item__badge">
                                 <i class="fas fa-circle"></i>
-                                Baru
+                                {{ __('self_service.inbox.new_badge') }}
                             </span>
                             @endif
                         </div>
@@ -152,7 +152,7 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                             </span>
                             <span class="inbox-item__hint">
                                 <i class="fas fa-arrow-up-right-from-square"></i>
-                                Buka detail
+                                {{ __('self_service.actions.open_detail') }}
                             </span>
                         </div>
                     </div>
@@ -161,9 +161,9 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                         <a
                             href="{{ route('notif.baca', $notif->id) }}"
                             class="inbox-icon-button"
-                            title="Buka notifikasi"
-                            aria-label="Buka notifikasi {{ $title }}"
-                            data-loading-text="Membuka...">
+                            title="{{ __('self_service.actions.open') }}"
+                            aria-label="{{ __('self_service.inbox.open_notification', ['title' => $title]) }}"
+                            data-loading-text="{{ __('self_service.inbox.opening') }}">
                             <i class="fas fa-chevron-right"></i>
                         </a>
 
@@ -174,10 +174,9 @@ $readNotifications = max($totalNotifications - $unreadNotifications, 0);
                     <div class="inbox-empty__icon">
                         <i class="fas fa-bell-slash"></i>
                     </div>
-                    <h5>Belum ada notifikasi</h5>
+                    <h5>{{ __('self_service.inbox.empty_title') }}</h5>
                     <p>
-                        Saat ada update baru dari approval, pengajuan, atau informasi perusahaan,
-                        notifikasinya akan muncul di halaman ini.
+                        {{ __('self_service.inbox.empty_text') }}
                     </p>
                 </div>
                 @endforelse
