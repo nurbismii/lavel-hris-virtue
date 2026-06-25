@@ -4,21 +4,21 @@ namespace App\Console\Commands;
 
 use App\Models\User;
 use App\Notifications\StatusPengajuanNotification;
-use App\Services\Presensi\TenTwoRosterPlanService;
+use App\Services\Presensi\RosterCyclePlanService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
 
-class NotifyTenTwoRosterPlanReminders extends Command
+class NotifyRosterCyclePlanReminders extends Command
 {
-    protected $signature = 'roster:notify-ten-two-plan-reminders
-        {--days=3 : H-n sebelum masa kerja 10 minggu berakhir}
+    protected $signature = 'roster:notify-cycle-plan-reminders
+        {--days=3 : H-n sebelum masa kerja siklus roster berakhir}
         {--limit=500 : Maksimal user yang diproses per run}
         {--dry-run : Cek kandidat tanpa mengirim notifikasi}';
 
-    protected $description = 'Mengirim notifikasi H-3 agar karyawan pola 10:2 mengajukan Insentif Roster atau Cuti Roster.';
+    protected $description = 'Mengirim notifikasi H-3 agar karyawan pola siklus roster mingguan mengajukan Insentif Roster atau Cuti Roster.';
 
-    public function handle(TenTwoRosterPlanService $tenTwoRosterPlanService): int
+    public function handle(RosterCyclePlanService $rosterCyclePlanService): int
     {
         $days = max(1, min((int) $this->option('days'), 30));
         $limit = max(1, min((int) $this->option('limit'), 2000));
@@ -27,7 +27,7 @@ class NotifyTenTwoRosterPlanReminders extends Command
         $users = $this->dueUsers($limit)->get();
 
         if ($users->isEmpty()) {
-            $this->info('Tidak ada user pola 10:2 yang perlu dicek.');
+            $this->info('Tidak ada user pola siklus roster mingguan yang perlu dicek.');
             return self::SUCCESS;
         }
 
@@ -43,14 +43,14 @@ class NotifyTenTwoRosterPlanReminders extends Command
                 continue;
             }
 
-            $cycle = $tenTwoRosterPlanService->reminderCycleFor($employee, $days, $today);
+            $cycle = $rosterCyclePlanService->reminderCycleFor($employee, $days, $today);
 
             if (!$cycle) {
                 $skippedNotDue++;
                 continue;
             }
 
-            if ($tenTwoRosterPlanService->hasActiveRosterPlanForCycle(
+            if ($rosterCyclePlanService->hasActiveRosterPlanForCycle(
                 $employee->nik,
                 $cycle['off_start'],
                 $cycle['off_end']
@@ -66,10 +66,12 @@ class NotifyTenTwoRosterPlanReminders extends Command
                 continue;
             }
 
+            $patternLabel = $this->patternLabel($cycle);
             $payload = [
-                'judul' => 'Pengajuan Roster 10:2 Perlu Dipilih',
+                'judul' => 'Pengajuan Roster Perlu Dipilih',
                 'pesan' => sprintf(
-                    'Masa kerja 10 minggu Anda akan berakhir pada %s. Ajukan Cuti Roster jika mengambil OFF %s - %s, atau Insentif Roster jika tetap bekerja.',
+                    'Masa kerja pola %s Anda akan berakhir pada %s. Ajukan Cuti Roster jika mengambil cuti roster %s - %s, atau Insentif Roster jika tetap bekerja.',
+                    $patternLabel,
                     $this->formatDate($cycle['work_end']),
                     $this->formatDate($cycle['off_start']),
                     $this->formatDate($cycle['off_end'])
@@ -83,6 +85,9 @@ class NotifyTenTwoRosterPlanReminders extends Command
                     'work_end' => $cycle['work_end']->toDateString(),
                     'off_start' => $cycle['off_start']->toDateString(),
                     'off_end' => $cycle['off_end']->toDateString(),
+                    'work_weeks' => $cycle['work_weeks'],
+                    'off_weeks' => $cycle['off_weeks'],
+                    'pattern_code' => $cycle['pattern_code'],
                 ],
             ];
 
@@ -94,7 +99,7 @@ class NotifyTenTwoRosterPlanReminders extends Command
         }
 
         $this->info(sprintf(
-            'Reminder roster 10:2: %d %s, %d belum jatuh tempo, %d sudah ada pengajuan aktif, %d duplikat.',
+            'Reminder siklus roster: %d %s, %d belum jatuh tempo, %d sudah ada pengajuan aktif, %d duplikat.',
             $sent,
             $dryRun ? 'kandidat' : 'terkirim',
             $skippedNotDue,
@@ -124,9 +129,9 @@ class NotifyTenTwoRosterPlanReminders extends Command
                                 $basisQuery->whereNull('pattern_basis')
                                     ->orWhere('pattern_basis', 'cycle');
                             })
-                            ->where('work_duration_value', 10)
+                            ->where('work_duration_value', '>', 0)
                             ->where('work_duration_unit', 'week')
-                            ->where('off_duration_value', 2)
+                            ->where('off_duration_value', '>', 0)
                             ->where('off_duration_unit', 'week');
                     });
             })
@@ -145,12 +150,21 @@ class NotifyTenTwoRosterPlanReminders extends Command
     private function notificationKey(string $nik, Carbon $offStart, Carbon $offEnd, int $days): string
     {
         return sprintf(
-            'ten_two_roster_plan:%s:%s:%s:h-%d',
+            'roster_cycle_plan:%s:%s:%s:h-%d',
             $nik,
             $offStart->toDateString(),
             $offEnd->toDateString(),
             $days
         );
+    }
+
+    private function patternLabel(array $cycle): string
+    {
+        if (!empty($cycle['pattern_code'])) {
+            return (string) $cycle['pattern_code'];
+        }
+
+        return sprintf('%d:%d', $cycle['work_weeks'], $cycle['off_weeks']);
     }
 
     private function formatDate(Carbon $date): string

@@ -20,7 +20,7 @@ class WorkScheduleService
 
     protected static $hasNationalHolidayTable;
     protected static $nationalHolidayDateCache = [];
-    private $tenTwoRosterPlanService;
+    private $rosterCyclePlanService;
 
     public function buildScheduleMap(Collection $employees, Collection $manualOverrides, $startDate, $endDate): array
     {
@@ -32,7 +32,7 @@ class WorkScheduleService
             ->groupBy('employee_id')
             ->map(fn(Collection $rows) => $rows->keyBy(fn($row) => Carbon::parse($row->tanggal)->toDateString()));
 
-        $this->tenTwoRosterPlanService()->preloadApprovedCutiRosterDates($employees, $start, $end);
+        $this->rosterCyclePlanService()->preloadApprovedCutiRosterDates($employees, $start, $end);
 
         foreach ($employees as $employee) {
             foreach (CarbonPeriod::create($start, $end) as $date) {
@@ -301,8 +301,8 @@ class WorkScheduleService
             if ($date->betweenIncluded($cursor, $segmentEnd)) {
                 if (
                     !$isWorkSegment
-                    && $this->tenTwoRosterPlanService()->isTenTwoPattern($pattern)
-                    && !$this->tenTwoRosterPlanService()->hasApprovedCutiRosterDate($employee, $dateString)
+                    && $this->rosterCyclePlanService()->isRosterCyclePattern($pattern)
+                    && !$this->rosterCyclePlanService()->hasApprovedCutiRosterDate($employee, $dateString)
                 ) {
                     return self::STATUS_HADIR;
                 }
@@ -351,8 +351,8 @@ class WorkScheduleService
     protected function resolveDisplayStatusForOffDate(Employee $employee, $tanggal): string
     {
         if (
-            $this->tenTwoRosterPlanService()->isDateInTenTwoOffSegment($employee, $tanggal)
-            && $this->tenTwoRosterPlanService()->hasApprovedCutiRosterDate($employee, $tanggal)
+            $this->rosterCyclePlanService()->isDateInRosterOffSegment($employee, $tanggal)
+            && $this->rosterCyclePlanService()->hasApprovedCutiRosterDate($employee, $tanggal)
         ) {
             return AttendanceStatusService::STATUS_CUTI_ROSTER;
         }
@@ -402,12 +402,12 @@ class WorkScheduleService
         }
     }
 
-    private function tenTwoRosterPlanService(): TenTwoRosterPlanService
+    private function rosterCyclePlanService(): RosterCyclePlanService
     {
-        if (!$this->tenTwoRosterPlanService) {
-            $this->tenTwoRosterPlanService = app(TenTwoRosterPlanService::class);
+        if (!$this->rosterCyclePlanService) {
+            $this->rosterCyclePlanService = app(RosterCyclePlanService::class);
         }
 
-        return $this->tenTwoRosterPlanService;
+        return $this->rosterCyclePlanService;
     }
 }

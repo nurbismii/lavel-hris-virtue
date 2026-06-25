@@ -9,28 +9,25 @@ use Carbon\CarbonPeriod;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
-class TenTwoRosterPlanService
+class RosterCyclePlanService
 {
     public const TYPE_CUTI_ROSTER = 1;
     public const TYPE_INSENTIF = 2;
 
-    private const WORK_WEEKS = 10;
-    private const OFF_WEEKS = 2;
-    private const CYCLE_DAYS = 84;
     private const APPROVED = 1;
     private const REJECTED = 2;
 
     private $approvedCutiRosterDateCache = [];
 
-    public function isTenTwoPattern($pattern): bool
+    public function isRosterCyclePattern($pattern): bool
     {
         if (!$pattern || ($pattern->pattern_basis ?: 'cycle') !== 'cycle') {
             return false;
         }
 
-        return (int) $pattern->work_duration_value === self::WORK_WEEKS
+        return (int) $pattern->work_duration_value > 0
             && (string) $pattern->work_duration_unit === 'week'
-            && (int) $pattern->off_duration_value === self::OFF_WEEKS
+            && (int) $pattern->off_duration_value > 0
             && (string) $pattern->off_duration_unit === 'week';
     }
 
@@ -46,21 +43,21 @@ class TenTwoRosterPlanService
 
         $start = Carbon::parse($startDate)->startOfDay();
         $end = Carbon::parse($endDate)->startOfDay();
-        $tenTwoEmployees = $employees
-            ->filter(fn(Employee $employee) => filled($employee->nik) && $this->isTenTwoPattern($employee->workPattern))
+        $cycleEmployees = $employees
+            ->filter(fn(Employee $employee) => filled($employee->nik) && $this->isRosterCyclePattern($employee->workPattern))
             ->values();
 
-        if ($tenTwoEmployees->isEmpty()) {
+        if ($cycleEmployees->isEmpty()) {
             return;
         }
 
-        foreach ($tenTwoEmployees as $employee) {
+        foreach ($cycleEmployees as $employee) {
             foreach (CarbonPeriod::create($start, $end) as $date) {
                 $this->approvedCutiRosterDateCache[$employee->nik][$date->toDateString()] = false;
             }
         }
 
-        $rows = $this->approvedCutiRosterQuery($tenTwoEmployees->pluck('nik')->all())
+        $rows = $this->approvedCutiRosterQuery($cycleEmployees->pluck('nik')->all())
             ->whereDate('cuti_roster.tgl_mulai_cuti', '<=', $end->toDateString())
             ->whereDate('cuti_roster.tgl_mulai_cuti_berakhir', '>=', $start->toDateString())
             ->get([
@@ -81,7 +78,7 @@ class TenTwoRosterPlanService
 
     public function hasApprovedCutiRosterDate(Employee $employee, $date): bool
     {
-        if (!$this->isTenTwoPattern($employee->workPattern)) {
+        if (!$this->isRosterCyclePattern($employee->workPattern)) {
             return false;
         }
 
@@ -101,11 +98,12 @@ class TenTwoRosterPlanService
         return $exists;
     }
 
-    public function isDateInTenTwoOffSegment(Employee $employee, $date): bool
+    public function isDateInRosterOffSegment(Employee $employee, $date): bool
     {
         $employee->loadMissing('workPattern');
+        $pattern = $employee->workPattern;
 
-        if (!$this->isTenTwoPattern($employee->workPattern) || blank($employee->work_pattern_start_date)) {
+        if (!$this->isRosterCyclePattern($pattern) || blank($employee->work_pattern_start_date)) {
             return false;
         }
 
@@ -116,39 +114,49 @@ class TenTwoRosterPlanService
             return false;
         }
 
+        $workDays = $this->workWeeks($pattern) * 7;
+        $cycleDays = $this->cycleDays($pattern);
         $daysSinceStart = $patternStart->diffInDays($targetDate);
-        $dayInCycle = $daysSinceStart % self::CYCLE_DAYS;
+        $dayInCycle = $daysSinceStart % $cycleDays;
 
-        return $dayInCycle >= (self::WORK_WEEKS * 7);
+        return $dayInCycle >= $workDays;
     }
 
     public function reminderCycleFor(Employee $employee, int $daysBeforeWorkEnd, ?Carbon $today = null): ?array
     {
         $employee->loadMissing('workPattern');
+        $pattern = $employee->workPattern;
 
-        if (!$this->isTenTwoPattern($employee->workPattern) || blank($employee->work_pattern_start_date)) {
+        if (!$this->isRosterCyclePattern($pattern) || blank($employee->work_pattern_start_date)) {
             return null;
         }
 
         $today = $today ? $today->copy()->startOfDay() : Carbon::today();
         $targetWorkEnd = $today->copy()->addDays($daysBeforeWorkEnd);
         $patternStart = Carbon::parse($employee->work_pattern_start_date)->startOfDay();
-        $firstWorkEnd = $patternStart->copy()->addWeeks(self::WORK_WEEKS)->subDay();
+        $workWeeks = $this->workWeeks($pattern);
+        $offWeeks = $this->offWeeks($pattern);
+        $cycleDays = $this->cycleDays($pattern);
+        $firstWorkEnd = $patternStart->copy()->addWeeks($workWeeks)->subDay();
         $daysSinceFirstWorkEnd = $firstWorkEnd->diffInDays($targetWorkEnd, false);
 
-        if ($daysSinceFirstWorkEnd < 0 || $daysSinceFirstWorkEnd % self::CYCLE_DAYS !== 0) {
+        if ($daysSinceFirstWorkEnd < 0 || $daysSinceFirstWorkEnd % $cycleDays !== 0) {
             return null;
         }
 
-        $workStart = $targetWorkEnd->copy()->subWeeks(self::WORK_WEEKS)->addDay();
+        $workStart = $targetWorkEnd->copy()->subWeeks($workWeeks)->addDay();
         $offStart = $targetWorkEnd->copy()->addDay();
-        $offEnd = $offStart->copy()->addWeeks(self::OFF_WEEKS)->subDay();
+        $offEnd = $offStart->copy()->addWeeks($offWeeks)->subDay();
 
         return [
             'work_start' => $workStart,
             'work_end' => $targetWorkEnd,
             'off_start' => $offStart,
             'off_end' => $offEnd,
+            'work_weeks' => $workWeeks,
+            'off_weeks' => $offWeeks,
+            'pattern_code' => $pattern->code ?? null,
+            'pattern_name' => $pattern->name ?? null,
         ];
     }
 
@@ -207,5 +215,20 @@ class TenTwoRosterPlanService
             ->where('periode_kerja_roster.tipe_rencana', self::TYPE_CUTI_ROSTER)
             ->whereNotNull('cuti_roster.tgl_mulai_cuti')
             ->whereNotNull('cuti_roster.tgl_mulai_cuti_berakhir');
+    }
+
+    private function workWeeks($pattern): int
+    {
+        return max((int) $pattern->work_duration_value, 1);
+    }
+
+    private function offWeeks($pattern): int
+    {
+        return max((int) $pattern->off_duration_value, 1);
+    }
+
+    private function cycleDays($pattern): int
+    {
+        return ($this->workWeeks($pattern) + $this->offWeeks($pattern)) * 7;
     }
 }

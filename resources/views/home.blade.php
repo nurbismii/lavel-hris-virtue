@@ -7,7 +7,7 @@
 @section('content')
 
 <div class="container-fluid dashboard-home-page"
-    data-age-labels='@json(collect($rentangUmur)->pluck(' label')->values())'
+    data-age-labels='@json(collect($rentangUmur)->pluck('label')->values())'
     data-age-totals='@json(collect($rentangUmur)->pluck('total')->values())'
     data-monthly-labels='@json(collect($summaryBulanan)->pluck('label')->values())'
     data-monthly-masuk='@json(collect($summaryBulanan)->pluck('masuk')->values())'

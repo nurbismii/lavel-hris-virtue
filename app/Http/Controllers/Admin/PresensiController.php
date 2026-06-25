@@ -20,7 +20,7 @@ use App\Models\LogPresensi;
 use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Presensi\OvertimeOrderService;
-use App\Services\Presensi\TenTwoRosterPlanService;
+use App\Services\Presensi\RosterCyclePlanService;
 use App\Services\Presensi\WorkScheduleService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Support\Facades\DB;
@@ -715,7 +715,7 @@ class PresensiController extends Controller
             return $statusPresensi;
         }
 
-        if (!app(TenTwoRosterPlanService::class)->isDateInTenTwoOffSegment($employee, $tanggal)) {
+        if (!app(RosterCyclePlanService::class)->isDateInRosterOffSegment($employee, $tanggal)) {
             return $statusPresensi;
         }
 

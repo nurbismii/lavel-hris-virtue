@@ -34,6 +34,11 @@ class AdminPresensiScopeTest extends TestCase
         $this->seedOrganization();
 
         $this->app->instance(WorkScheduleService::class, new class {
+            public function buildScheduleMap()
+            {
+                return [];
+            }
+
             public function buildOffStatusMap()
             {
                 return [];
@@ -202,6 +207,49 @@ class AdminPresensiScopeTest extends TestCase
             $table->unsignedInteger('presensi_id');
             $table->string('attendance_type');
             $table->string('status');
+        });
+
+        Schema::create('employee_attendance_settings', function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('employee_id');
+            $table->date('tanggal');
+            $table->string('status')->nullable();
+            $table->string('periode', 7)->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('roster_off_requests', function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('nik_karyawan');
+            $table->date('tanggal_off');
+            $table->unsignedTinyInteger('status_hod')->default(0);
+            $table->unsignedTinyInteger('status_hrd')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::create('cuti_roster', function (Blueprint $table) {
+            $table->increments('id');
+            $table->string('nik_karyawan');
+            $table->date('tgl_mulai_cuti')->nullable();
+            $table->date('tgl_mulai_cuti_berakhir')->nullable();
+            $table->date('tgl_mulai_cuti_tahunan')->nullable();
+            $table->date('tgl_mulai_cuti_tahunan_berakhir')->nullable();
+            $table->date('tgl_mulai_off')->nullable();
+            $table->date('tgl_mulai_off_berakhir')->nullable();
+            $table->date('tgl_awal_kerja')->nullable();
+            $table->date('tgl_akhir_kerja')->nullable();
+            $table->unsignedTinyInteger('status_pengajuan')->default(0);
+            $table->unsignedTinyInteger('status_pengajuan_hrd')->default(0);
+            $table->timestamps();
+        });
+
+        Schema::create('periode_kerja_roster', function (Blueprint $table) {
+            $table->increments('id');
+            $table->unsignedInteger('cuti_roster_id');
+            $table->date('periode_awal')->nullable();
+            $table->date('periode_akhir')->nullable();
+            $table->unsignedTinyInteger('tipe_rencana')->default(0);
+            $table->timestamps();
         });
 
         Schema::create('national_holidays', function (Blueprint $table) {

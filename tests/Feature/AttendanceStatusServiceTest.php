@@ -169,6 +169,10 @@ class AttendanceStatusServiceTest extends TestCase
             $table->date('tgl_mulai_cuti_berakhir')->nullable();
             $table->date('tgl_mulai_cuti_tahunan')->nullable();
             $table->date('tgl_mulai_cuti_tahunan_berakhir')->nullable();
+            $table->date('tgl_mulai_off')->nullable();
+            $table->date('tgl_mulai_off_berakhir')->nullable();
+            $table->date('tgl_awal_kerja')->nullable();
+            $table->date('tgl_akhir_kerja')->nullable();
             $table->unsignedTinyInteger('status_pengajuan')->default(0);
             $table->unsignedTinyInteger('status_pengajuan_hrd')->default(0);
             $table->timestamps();
@@ -177,6 +181,8 @@ class AttendanceStatusServiceTest extends TestCase
         Schema::create('periode_kerja_roster', function (Blueprint $table) {
             $table->increments('id');
             $table->unsignedInteger('cuti_roster_id');
+            $table->date('periode_awal')->nullable();
+            $table->date('periode_akhir')->nullable();
             $table->unsignedTinyInteger('tipe_rencana')->default(0);
             $table->timestamps();
         });
