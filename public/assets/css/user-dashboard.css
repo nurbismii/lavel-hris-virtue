@@ -1551,11 +1551,12 @@ button.mobile-command {
     .employee-dashboard {
         background:
             linear-gradient(180deg, #edf6ff 0%, #f8fbff 42%, #f6fbf8 100%);
-        padding-bottom: calc(112px + env(safe-area-inset-bottom));
+        min-height: auto;
+        padding-bottom: 16px;
     }
 
     .dashboard-shell {
-        padding: 0 10px 14px;
+        padding: 0 10px;
     }
 
     .dashboard-hero {
