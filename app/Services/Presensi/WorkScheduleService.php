@@ -20,6 +20,7 @@ class WorkScheduleService
 
     protected static $hasNationalHolidayTable;
     protected static $nationalHolidayDateCache = [];
+    private $tenTwoRosterPlanService;
 
     public function buildScheduleMap(Collection $employees, Collection $manualOverrides, $startDate, $endDate): array
     {
@@ -30,6 +31,8 @@ class WorkScheduleService
         $overrideMap = $manualOverrides
             ->groupBy('employee_id')
             ->map(fn(Collection $rows) => $rows->keyBy(fn($row) => Carbon::parse($row->tanggal)->toDateString()));
+
+        $this->tenTwoRosterPlanService()->preloadApprovedCutiRosterDates($employees, $start, $end);
 
         foreach ($employees as $employee) {
             foreach (CarbonPeriod::create($start, $end) as $date) {
@@ -185,28 +188,31 @@ class WorkScheduleService
             $rows[] = new Presensi([
                 'nik_karyawan' => $nikKaryawan,
                 'tanggal' => $dateString,
-                'status_presensi' => $this->resolveDisplayStatusForOffDate($dateString),
+                'status_presensi' => $this->resolveDisplayStatusForOffDate($employee, $dateString),
             ]);
         }
 
         return $rows;
     }
 
-    public function buildOffStatusMap(Collection $employees, $startDate, $endDate, array $existingPresensiMap = []): array
+    public function buildOffStatusMap(Collection $employees, $startDate, $endDate, array $existingPresensiMap = [], ?array $scheduleMap = null): array
     {
         if ($employees->isEmpty()) {
             return [];
         }
 
-        $manualOverrides = EmployeeAttendanceSetting::query()
-            ->whereIn('employee_id', $employees->pluck('nik'))
-            ->whereBetween('tanggal', [
-                Carbon::parse($startDate)->toDateString(),
-                Carbon::parse($endDate)->toDateString(),
-            ])
-            ->get();
+        if ($scheduleMap === null) {
+            $manualOverrides = EmployeeAttendanceSetting::query()
+                ->whereIn('employee_id', $employees->pluck('nik'))
+                ->whereBetween('tanggal', [
+                    Carbon::parse($startDate)->toDateString(),
+                    Carbon::parse($endDate)->toDateString(),
+                ])
+                ->get();
 
-        $scheduleMap = $this->buildScheduleMap($employees, $manualOverrides, $startDate, $endDate);
+            $scheduleMap = $this->buildScheduleMap($employees, $manualOverrides, $startDate, $endDate);
+        }
+
         $acceptedOvertimeMap = OvertimeOrder::query()
             ->whereIn('nik_karyawan', $employees->pluck('nik'))
             ->accepted()
@@ -241,7 +247,7 @@ class WorkScheduleService
                 }
 
                 $offMap[$employee->nik][$dateString] = [
-                    'status' => Presensi::shortStatus($this->resolveDisplayStatusForOffDate($dateString)),
+                    'status' => Presensi::shortStatus($this->resolveDisplayStatusForOffDate($employee, $dateString)),
                     'm' => null,
                     'i' => null,
                     'k' => null,
@@ -258,6 +264,7 @@ class WorkScheduleService
         $pattern = $employee->workPattern;
         $startDate = $employee->work_pattern_start_date;
         $date = Carbon::parse($tanggal)->startOfDay();
+        $dateString = $date->toDateString();
 
         if ($this->shouldTreatNationalHolidayAsOff($pattern) && $this->isNationalHoliday($date)) {
             return self::STATUS_OFF;
@@ -292,6 +299,14 @@ class WorkScheduleService
             $segmentEnd = $this->addDuration($cursor->copy(), $durationValue, $durationUnit)->subDay();
 
             if ($date->betweenIncluded($cursor, $segmentEnd)) {
+                if (
+                    !$isWorkSegment
+                    && $this->tenTwoRosterPlanService()->isTenTwoPattern($pattern)
+                    && !$this->tenTwoRosterPlanService()->hasApprovedCutiRosterDate($employee, $dateString)
+                ) {
+                    return self::STATUS_HADIR;
+                }
+
                 return $isWorkSegment ? self::STATUS_HADIR : self::STATUS_OFF;
             }
 
@@ -333,8 +348,15 @@ class WorkScheduleService
         return static::$hasNationalHolidayTable;
     }
 
-    protected function resolveDisplayStatusForOffDate($tanggal): string
+    protected function resolveDisplayStatusForOffDate(Employee $employee, $tanggal): string
     {
+        if (
+            $this->tenTwoRosterPlanService()->isDateInTenTwoOffSegment($employee, $tanggal)
+            && $this->tenTwoRosterPlanService()->hasApprovedCutiRosterDate($employee, $tanggal)
+        ) {
+            return AttendanceStatusService::STATUS_CUTI_ROSTER;
+        }
+
         return $this->isNationalHolidayDate($tanggal)
             ? AttendanceStatusService::STATUS_LIBUR_NASIONAL
             : AttendanceStatusService::STATUS_OFF;
@@ -378,5 +400,14 @@ class WorkScheduleService
             default:
                 return $date->addDays($value);
         }
+    }
+
+    private function tenTwoRosterPlanService(): TenTwoRosterPlanService
+    {
+        if (!$this->tenTwoRosterPlanService) {
+            $this->tenTwoRosterPlanService = app(TenTwoRosterPlanService::class);
+        }
+
+        return $this->tenTwoRosterPlanService;
     }
 }

@@ -45,12 +45,22 @@ class StatusPengajuanNotification extends Notification
 
     private function payload(): array
     {
-        return [
+        $payload = [
             'judul' => $this->data['judul'] ?? 'Notifikasi',
             'pesan' => $this->data['pesan'] ?? '-',
             'url' => $this->data['url'] ?? route('kotak-masuk.index'),
             'tipe' => $this->data['tipe'] ?? 'Sistem',
         ];
+
+        if (isset($this->data['key'])) {
+            $payload['key'] = $this->data['key'];
+        }
+
+        if (isset($this->data['metadata']) && is_array($this->data['metadata'])) {
+            $payload['metadata'] = $this->data['metadata'];
+        }
+
+        return $payload;
     }
 
     private function shouldBroadcast(): bool

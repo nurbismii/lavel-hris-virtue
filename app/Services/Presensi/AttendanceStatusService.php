@@ -53,6 +53,7 @@ class AttendanceStatusService
     {
         $this->refreshDateRange($roster->nik_karyawan, $roster->tgl_mulai_cuti, $roster->tgl_mulai_cuti_berakhir);
         $this->refreshDateRange($roster->nik_karyawan, $roster->tgl_mulai_cuti_tahunan, $roster->tgl_mulai_cuti_tahunan_berakhir);
+        $this->refreshDateRange($roster->nik_karyawan, $roster->tgl_mulai_off, $roster->tgl_mulai_off_berakhir);
     }
 
     public function refreshRosterOff(RosterOffRequest $offRequest): void
@@ -190,6 +191,8 @@ class AttendanceStatusService
                 'cuti_roster.tgl_mulai_cuti_berakhir',
                 'cuti_roster.tgl_mulai_cuti_tahunan',
                 'cuti_roster.tgl_mulai_cuti_tahunan_berakhir',
+                'cuti_roster.tgl_mulai_off',
+                'cuti_roster.tgl_mulai_off_berakhir',
             ])
             ->join('periode_kerja_roster', 'periode_kerja_roster.cuti_roster_id', '=', 'cuti_roster.id')
             ->where('cuti_roster.nik_karyawan', $nikKaryawan)
@@ -207,6 +210,11 @@ class AttendanceStatusService
                         ->whereNotNull('cuti_roster.tgl_mulai_cuti_tahunan_berakhir')
                         ->whereDate('cuti_roster.tgl_mulai_cuti_tahunan', '<=', $tanggal)
                         ->whereDate('cuti_roster.tgl_mulai_cuti_tahunan_berakhir', '>=', $tanggal);
+                })->orWhere(function ($range) use ($tanggal) {
+                    $range->whereNotNull('cuti_roster.tgl_mulai_off')
+                        ->whereNotNull('cuti_roster.tgl_mulai_off_berakhir')
+                        ->whereDate('cuti_roster.tgl_mulai_off', '<=', $tanggal)
+                        ->whereDate('cuti_roster.tgl_mulai_off_berakhir', '>=', $tanggal);
                 });
             })
             ->latest('cuti_roster.id')
@@ -222,6 +230,10 @@ class AttendanceStatusService
 
         if ($this->dateWithinRange($roster->tgl_mulai_cuti_tahunan, $roster->tgl_mulai_cuti_tahunan_berakhir, $tanggal)) {
             return self::STATUS_CUTI_TAHUNAN;
+        }
+
+        if ($this->dateWithinRange($roster->tgl_mulai_off, $roster->tgl_mulai_off_berakhir, $tanggal)) {
+            return self::STATUS_OFF;
         }
 
         return null;

@@ -7,15 +7,20 @@ use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use App\Models\Employee;
+use App\Models\EmployeeAttendanceSetting;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\NationalHoliday;
 use App\Models\Perusahaan;
 use App\Models\Presensi;
 use App\Models\PresensiVerification;
+use App\Models\Roster;
+use App\Models\RosterOffRequest;
 use App\Models\LogPresensi;
 use App\Services\Presensi\AttendancePeriodLockService;
+use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Presensi\OvertimeOrderService;
+use App\Services\Presensi\TenTwoRosterPlanService;
 use App\Services\Presensi\WorkScheduleService;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Support\Facades\DB;
@@ -433,6 +438,15 @@ class PresensiController extends Controller
             ->get();
 
         $niks = $employeePage->pluck('nik');
+        $employeeByNik = $employeePage->keyBy('nik');
+        $workScheduleService = app(WorkScheduleService::class);
+        $manualOverrides = EmployeeAttendanceSetting::query()
+            ->whereIn('employee_id', $niks)
+            ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
+            ->get();
+        $scheduleMap = $workScheduleService->buildScheduleMap($employeePage, $manualOverrides, $start, $end);
+        $approvedRosterOffDateMap = $this->approvedRosterOffDateMap($niks, $start, $end);
+        $approvedCutiRosterDateMap = $this->approvedCutiRosterDateMap($niks, $start, $end);
 
         $presensiRows = DB::table('absensis')
             ->whereIn('nik_karyawan', $niks)
@@ -451,24 +465,32 @@ class PresensiController extends Controller
 
             $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
             $verificationByType = $this->verificationStatusByType($verificationRows->get($p->id));
+            $statusPresensi = $this->normalizeStatusPresensiForSchedule(
+                $p->status_presensi,
+                $employeeByNik->get((string) $p->nik_karyawan) ?: $employeeByNik->get($p->nik_karyawan),
+                $tgl,
+                $scheduleMap,
+                $approvedRosterOffDateMap,
+                $approvedCutiRosterDateMap
+            );
 
             $presensiMap[$p->nik_karyawan][$tgl] = [
-                'status' => $p->status_presensi ? Presensi::shortStatus($p->status_presensi) : null,
-                'm' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_masuk, $tgl),
-                'i' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
-                'k' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
-                'p' => $p->status_presensi ? null : $this->formatAttendanceClock($p->jam_pulang, $tgl),
-                'm_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'masuk', $p->jam_masuk ? ($p->status_absen ?? null) : null),
-                'i_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'istirahat', $p->jam_istirahat ? ($p->status_absen ?? null) : null),
-                'k_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'kembali', $p->jam_kembali_istirahat ? ($p->status_absen ?? null) : null),
-                'p_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'pulang', $p->jam_pulang ? ($p->status_absen ?? null) : null),
+                'status' => $statusPresensi ? Presensi::shortStatus($statusPresensi) : null,
+                'm' => $statusPresensi ? null : $this->formatAttendanceClock($p->jam_masuk, $tgl),
+                'i' => $statusPresensi ? null : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
+                'k' => $statusPresensi ? null : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
+                'p' => $statusPresensi ? null : $this->formatAttendanceClock($p->jam_pulang, $tgl),
+                'm_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'masuk', $p->jam_masuk ? ($p->status_absen ?? null) : null),
+                'i_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'istirahat', $p->jam_istirahat ? ($p->status_absen ?? null) : null),
+                'k_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'kembali', $p->jam_kembali_istirahat ? ($p->status_absen ?? null) : null),
+                'p_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'pulang', $p->jam_pulang ? ($p->status_absen ?? null) : null),
                 'verification' => $p->status_absen ?? null,
             ];
         }
 
         $actualPresensiMap = $presensiMap;
 
-        $offMap = app(WorkScheduleService::class)->buildOffStatusMap($employeePage, $start, $end, $presensiMap);
+        $offMap = $workScheduleService->buildOffStatusMap($employeePage, $start, $end, $presensiMap, $scheduleMap);
 
         foreach ($offMap as $nik => $dates) {
             foreach ($dates as $tanggal => $payload) {
@@ -556,6 +578,16 @@ class PresensiController extends Controller
                         return;
                     }
 
+                    $employeeByNik = $employees->keyBy('nik');
+                    $workScheduleService = app(WorkScheduleService::class);
+                    $manualOverrides = EmployeeAttendanceSetting::query()
+                        ->whereIn('employee_id', $niks)
+                        ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
+                        ->get();
+                    $scheduleMap = $workScheduleService->buildScheduleMap($employees, $manualOverrides, $start, $end);
+                    $approvedRosterOffDateMap = $this->approvedRosterOffDateMap($niks, $start, $end);
+                    $approvedCutiRosterDateMap = $this->approvedCutiRosterDateMap($niks, $start, $end);
+
                     $presensiRows = DB::table('absensis')
                         ->whereIn('nik_karyawan', $niks)
                         ->whereBetween('tanggal', [$start, $end])
@@ -575,24 +607,32 @@ class PresensiController extends Controller
                     foreach ($presensiRows as $p) {
                         $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
                         $verificationByType = $this->verificationStatusByType($verificationRows->get($p->id));
+                        $statusPresensi = $this->normalizeStatusPresensiForSchedule(
+                            $p->status_presensi,
+                            $employeeByNik->get((string) $p->nik_karyawan) ?: $employeeByNik->get($p->nik_karyawan),
+                            $tgl,
+                            $scheduleMap,
+                            $approvedRosterOffDateMap,
+                            $approvedCutiRosterDateMap
+                        );
 
                         $presensiMap[$p->nik_karyawan][$tgl] = [
-                            'status' => $p->status_presensi ? Presensi::shortStatus($p->status_presensi) : '',
-                            'm' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_masuk, $tgl),
-                            'i' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
-                            'k' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
-                            'p' => $p->status_presensi ? '' : $this->formatAttendanceClock($p->jam_pulang, $tgl),
-                            'm_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'masuk', $p->jam_masuk ? ($p->status_absen ?? null) : null),
-                            'i_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'istirahat', $p->jam_istirahat ? ($p->status_absen ?? null) : null),
-                            'k_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'kembali', $p->jam_kembali_istirahat ? ($p->status_absen ?? null) : null),
-                            'p_status' => $p->status_presensi ? null : $this->verificationStatusForAction($verificationByType, 'pulang', $p->jam_pulang ? ($p->status_absen ?? null) : null),
+                            'status' => $statusPresensi ? Presensi::shortStatus($statusPresensi) : '',
+                            'm' => $statusPresensi ? '' : $this->formatAttendanceClock($p->jam_masuk, $tgl),
+                            'i' => $statusPresensi ? '' : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
+                            'k' => $statusPresensi ? '' : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
+                            'p' => $statusPresensi ? '' : $this->formatAttendanceClock($p->jam_pulang, $tgl),
+                            'm_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'masuk', $p->jam_masuk ? ($p->status_absen ?? null) : null),
+                            'i_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'istirahat', $p->jam_istirahat ? ($p->status_absen ?? null) : null),
+                            'k_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'kembali', $p->jam_kembali_istirahat ? ($p->status_absen ?? null) : null),
+                            'p_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'pulang', $p->jam_pulang ? ($p->status_absen ?? null) : null),
                             'verification' => $p->status_absen ?? null,
                         ];
                     }
 
                     $actualPresensiMap = $presensiMap;
 
-                    foreach (app(WorkScheduleService::class)->buildOffStatusMap($employees, $start, $end, $presensiMap) as $nik => $dates) {
+                    foreach ($workScheduleService->buildOffStatusMap($employees, $start, $end, $presensiMap, $scheduleMap) as $nik => $dates) {
                         foreach ($dates as $tanggal => $payload) {
                             $presensiMap[$nik][$tanggal] = [
                                 'status' => $payload['status'] ?? '',
@@ -660,6 +700,111 @@ class PresensiController extends Controller
         $suffix = $clock->toDateString() > Carbon::parse($attendanceDate)->toDateString() ? ' +1' : '';
 
         return $clock->format('H:i') . $suffix;
+    }
+
+    private function normalizeStatusPresensiForSchedule(
+        ?string $statusPresensi,
+        ?Employee $employee,
+        string $tanggal,
+        array $scheduleMap,
+        array $approvedRosterOffDateMap,
+        array $approvedCutiRosterDateMap
+    ): ?string
+    {
+        if ($statusPresensi !== AttendanceStatusService::STATUS_OFF || !$employee) {
+            return $statusPresensi;
+        }
+
+        if (!app(TenTwoRosterPlanService::class)->isDateInTenTwoOffSegment($employee, $tanggal)) {
+            return $statusPresensi;
+        }
+
+        if (!empty($approvedCutiRosterDateMap[$employee->nik][$tanggal])) {
+            return AttendanceStatusService::STATUS_CUTI_ROSTER;
+        }
+
+        if (!empty($approvedRosterOffDateMap[$employee->nik][$tanggal])) {
+            return $statusPresensi;
+        }
+
+        $scheduleStatus = $scheduleMap[$employee->nik][$tanggal]['final_status'] ?? null;
+
+        if ($scheduleStatus === WorkScheduleService::STATUS_OFF) {
+            return $statusPresensi;
+        }
+
+        return null;
+    }
+
+    private function approvedRosterOffDateMap($niks, Carbon $start, Carbon $end): array
+    {
+        $map = [];
+
+        RosterOffRequest::query()
+            ->effectiveForAttendance()
+            ->whereIn('nik_karyawan', $niks)
+            ->whereBetween('tanggal_off', [$start->toDateString(), $end->toDateString()])
+            ->get(['nik_karyawan', 'tanggal_off'])
+            ->each(function (RosterOffRequest $offRequest) use (&$map) {
+                $map[$offRequest->nik_karyawan][$offRequest->tanggal_off->toDateString()] = true;
+            });
+
+        Roster::query()
+            ->join('periode_kerja_roster', 'periode_kerja_roster.cuti_roster_id', '=', 'cuti_roster.id')
+            ->whereIn('cuti_roster.nik_karyawan', $niks)
+            ->where('cuti_roster.status_pengajuan', 1)
+            ->where('cuti_roster.status_pengajuan_hrd', 1)
+            ->where('periode_kerja_roster.tipe_rencana', 1)
+            ->whereNotNull('cuti_roster.tgl_mulai_off')
+            ->whereNotNull('cuti_roster.tgl_mulai_off_berakhir')
+            ->whereDate('cuti_roster.tgl_mulai_off', '<=', $end->toDateString())
+            ->whereDate('cuti_roster.tgl_mulai_off_berakhir', '>=', $start->toDateString())
+            ->get([
+                'cuti_roster.nik_karyawan',
+                'cuti_roster.tgl_mulai_off',
+                'cuti_roster.tgl_mulai_off_berakhir',
+            ])
+            ->each(function ($roster) use (&$map, $start, $end) {
+                $rangeStart = Carbon::parse($roster->tgl_mulai_off)->startOfDay()->max($start->copy());
+                $rangeEnd = Carbon::parse($roster->tgl_mulai_off_berakhir)->startOfDay()->min($end->copy());
+
+                foreach (CarbonPeriod::create($rangeStart, $rangeEnd) as $date) {
+                    $map[$roster->nik_karyawan][$date->toDateString()] = true;
+                }
+            });
+
+        return $map;
+    }
+
+    private function approvedCutiRosterDateMap($niks, Carbon $start, Carbon $end): array
+    {
+        $map = [];
+
+        Roster::query()
+            ->join('periode_kerja_roster', 'periode_kerja_roster.cuti_roster_id', '=', 'cuti_roster.id')
+            ->whereIn('cuti_roster.nik_karyawan', $niks)
+            ->where('cuti_roster.status_pengajuan', 1)
+            ->where('cuti_roster.status_pengajuan_hrd', 1)
+            ->where('periode_kerja_roster.tipe_rencana', 1)
+            ->whereNotNull('cuti_roster.tgl_mulai_cuti')
+            ->whereNotNull('cuti_roster.tgl_mulai_cuti_berakhir')
+            ->whereDate('cuti_roster.tgl_mulai_cuti', '<=', $end->toDateString())
+            ->whereDate('cuti_roster.tgl_mulai_cuti_berakhir', '>=', $start->toDateString())
+            ->get([
+                'cuti_roster.nik_karyawan',
+                'cuti_roster.tgl_mulai_cuti',
+                'cuti_roster.tgl_mulai_cuti_berakhir',
+            ])
+            ->each(function ($roster) use (&$map, $start, $end) {
+                $rangeStart = Carbon::parse($roster->tgl_mulai_cuti)->startOfDay()->max($start->copy());
+                $rangeEnd = Carbon::parse($roster->tgl_mulai_cuti_berakhir)->startOfDay()->min($end->copy());
+
+                foreach (CarbonPeriod::create($rangeStart, $rangeEnd) as $date) {
+                    $map[$roster->nik_karyawan][$date->toDateString()] = true;
+                }
+            });
+
+        return $map;
     }
 
     private function scopedActiveEmployeeQuery(Request $request, array $columns)
