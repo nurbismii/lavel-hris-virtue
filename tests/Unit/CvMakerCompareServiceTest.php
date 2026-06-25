@@ -31,6 +31,53 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertFalse($service->compareField('Status nikah', 'Belum Kawin', 'Belum', 'marital')['mismatch']);
         $this->assertFalse($service->compareField('No. HP', '0812-3456-7890', '+62 812 3456 7890', 'phone')['mismatch']);
         $this->assertFalse($service->compareField('Pendidikan', 'SLTA', 'SMA', 'education_level')['mismatch']);
+        $this->assertFalse($service->compareField('Agama', 'ISLAM', 'Islam bilingual label', 'religion')['mismatch']);
+    }
+
+    public function test_new_cv_profile_fields_are_compared_and_identity_numbers_are_masked(): void
+    {
+        $service = new CvMakerCompareService();
+        $employee = new Employee([
+            'nik' => '2200112234',
+            'nama_karyawan' => 'Rahmat Hidayat',
+            'no_ktp' => '7401010101011234',
+            'no_kk' => '7401010101015678',
+            'tgl_lahir' => '1991-05-10',
+            'jenis_kelamin' => 'L',
+            'agama' => 'ISLAM',
+            'status_perkawinan' => 'Kawin',
+            'nama_ibu_kandung' => 'Siti Aminah',
+            'nama_bapak' => 'Dewi Lestari',
+            'tanggal_menikah' => '2018-09-15',
+            'entry_date' => '2020-01-20',
+        ]);
+
+        $comparison = $service->compareEmployee($employee, [
+            'profile_id' => 14,
+            'full_name' => 'Rahmat Hidayat',
+            'ktp_number' => '7401010101011234',
+            'family_card_number' => '7401010101015678',
+            'birth_date' => '1991-05-10',
+            'gender' => 'Laki-laki',
+            'religion' => 'Islam bilingual label',
+            'marital_status' => 'Kawin',
+            'mother_name' => 'Siti Aminah',
+            'spouse_name' => 'Dewi Lestari',
+            'marriage_date' => '2018-09-15',
+            'current_job_entry_date' => '2020-01-20',
+        ]);
+
+        $identity = collect($comparison['groups']['identity'])->keyBy('key');
+        $family = collect($comparison['groups']['family'])->keyBy('key');
+        $work = collect($comparison['groups']['work'])->keyBy('key');
+
+        $this->assertSame('************1234', $identity['ktp_number']['hris']);
+        $this->assertSame('************5678', $identity['family_card_number']['cv']);
+        $this->assertFalse($identity['religion']['mismatch']);
+        $this->assertFalse($family['mother_name']['mismatch']);
+        $this->assertFalse($family['spouse_name']['mismatch']);
+        $this->assertFalse($family['marriage_date']['mismatch']);
+        $this->assertFalse($work['entry_date']['mismatch']);
     }
 
     public function test_compare_employee_counts_only_real_mismatches(): void
@@ -185,6 +232,54 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertSame('2019', $graduationYearChange['old']);
         $this->assertSame('2020', $graduationYearChange['new']);
         $this->assertSame('2020-01-01', $graduationYearChange['new_raw']);
+    }
+
+    public function test_build_update_preview_includes_new_mapped_fields(): void
+    {
+        config()->set('database.connections.cv_maker.database', 'cv_maker_test');
+        config()->set('services.cv_maker.nik_hash_key', 'test-key');
+
+        $service = new CvMakerCompareService();
+        $employee = new Employee([
+            'nik' => '2200112266',
+            'nama_karyawan' => 'Rahmat Hidayat',
+            'no_ktp' => '7401010101011234',
+            'no_kk' => '7401010101015678',
+            'agama' => 'ISLAM',
+            'nama_ibu_kandung' => 'Siti',
+            'nama_bapak' => 'Dewi',
+            'tanggal_menikah' => '2018-09-15',
+            'entry_date' => '2020-01-20',
+        ]);
+
+        $preview = $service->buildUpdatePreview($employee, [
+            'user_id' => 8,
+            'profile_id' => 13,
+            'status' => 'submitted',
+            'updated_at' => '2026-06-24 10:00:00',
+            'full_name' => 'Rahmat Hidayat',
+            'ktp_number' => '7401010101019999',
+            'family_card_number' => '7401010101018888',
+            'religion' => 'KRISTEN PROTESTAN',
+            'mother_name' => 'Siti Aminah',
+            'spouse_name' => 'Dewi Lestari',
+            'marriage_date' => '2019-01-15',
+            'current_job_entry_date' => '2021-03-01',
+        ]);
+
+        $changes = collect($preview['changes'])->keyBy('column');
+
+        $this->assertTrue($preview['success']);
+        $this->assertArrayHasKey('no_ktp', $changes);
+        $this->assertArrayHasKey('no_kk', $changes);
+        $this->assertArrayHasKey('agama', $changes);
+        $this->assertArrayHasKey('nama_ibu_kandung', $changes);
+        $this->assertArrayHasKey('nama_bapak', $changes);
+        $this->assertArrayHasKey('tanggal_menikah', $changes);
+        $this->assertArrayHasKey('entry_date', $changes);
+        $this->assertSame('************1234', $changes['no_ktp']['old']);
+        $this->assertSame('************9999', $changes['no_ktp']['new']);
+        $this->assertSame('7401010101019999', $changes['no_ktp']['new_raw']);
     }
 
     public function test_cv_list_json_strings_are_cleaned_for_vitae_display(): void

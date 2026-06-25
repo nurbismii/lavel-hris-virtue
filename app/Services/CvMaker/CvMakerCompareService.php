@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class CvMakerCompareService
@@ -18,17 +19,26 @@ class CvMakerCompareService
     private const FIELD_GROUPS = [
         'identity' => [
             ['key' => 'name', 'label' => 'Nama', 'hris' => 'nama_karyawan', 'cv' => 'full_name', 'type' => 'text'],
+            ['key' => 'ktp_number', 'label' => 'No. KTP', 'hris' => 'no_ktp', 'cv' => 'ktp_number', 'type' => 'identity_number'],
+            ['key' => 'family_card_number', 'label' => 'No. KK', 'hris' => 'no_kk', 'cv' => 'family_card_number', 'type' => 'identity_number'],
             ['key' => 'birth_date', 'label' => 'Tanggal lahir', 'hris' => 'tgl_lahir', 'cv' => 'birth_date', 'type' => 'date'],
             ['key' => 'gender', 'label' => 'Gender', 'hris' => 'jenis_kelamin', 'cv' => 'gender', 'type' => 'gender'],
+            ['key' => 'religion', 'label' => 'Agama', 'hris' => 'agama', 'cv' => 'religion', 'type' => 'religion'],
             ['key' => 'marital_status', 'label' => 'Status nikah', 'hris' => 'status_perkawinan', 'cv' => 'marital_status', 'type' => 'marital'],
             ['key' => 'phone', 'label' => 'No. HP', 'hris' => 'no_telp', 'cv' => 'phone', 'type' => 'phone'],
             ['key' => 'address', 'label' => 'Alamat', 'hris' => 'address', 'cv' => 'address', 'type' => 'address'],
+        ],
+        'family' => [
+            ['key' => 'mother_name', 'label' => 'Nama ibu kandung', 'hris' => 'nama_ibu_kandung', 'cv' => 'mother_name', 'type' => 'text'],
+            ['key' => 'spouse_name', 'label' => 'Nama suami/istri', 'hris' => 'nama_bapak', 'cv' => 'spouse_name', 'type' => 'text'],
+            ['key' => 'marriage_date', 'label' => 'Tanggal menikah', 'hris' => 'tanggal_menikah', 'cv' => 'marriage_date', 'type' => 'date'],
         ],
         'work' => [
             ['key' => 'work_area', 'label' => 'Perusahaan', 'hris' => 'area_kerja', 'cv' => 'work_area', 'type' => 'text'],
             ['key' => 'department', 'label' => 'Departemen', 'hris' => 'department_name', 'cv' => 'department', 'type' => 'text'],
             ['key' => 'division', 'label' => 'Divisi', 'hris' => 'division_name', 'cv' => 'division', 'type' => 'text'],
             ['key' => 'position', 'label' => 'Posisi', 'hris' => 'position', 'cv' => 'position', 'type' => 'text'],
+            ['key' => 'entry_date', 'label' => 'Tanggal masuk', 'hris' => 'entry_date', 'cv' => 'current_job_entry_date', 'type' => 'date'],
         ],
         'location' => [
             ['key' => 'province', 'label' => 'Provinsi', 'hris' => 'province_name', 'cv' => 'province_name', 'type' => 'text', 'compare_missing' => true],
@@ -60,12 +70,19 @@ class CvMakerCompareService
 
     private const UPDATE_FIELDS = [
         ['key' => 'name', 'label' => 'Nama', 'column' => 'nama_karyawan', 'cv' => 'full_name', 'type' => 'text', 'max' => 255],
+        ['key' => 'ktp_number', 'label' => 'No. KTP', 'column' => 'no_ktp', 'cv' => 'ktp_number', 'type' => 'identity_number'],
+        ['key' => 'family_card_number', 'label' => 'No. KK', 'column' => 'no_kk', 'cv' => 'family_card_number', 'type' => 'identity_number'],
         ['key' => 'birth_date', 'label' => 'Tanggal lahir', 'column' => 'tgl_lahir', 'cv' => 'birth_date', 'type' => 'date'],
         ['key' => 'gender', 'label' => 'Gender', 'column' => 'jenis_kelamin', 'cv' => 'gender', 'type' => 'gender'],
+        ['key' => 'religion', 'label' => 'Agama', 'column' => 'agama', 'cv' => 'religion', 'type' => 'religion', 'max' => 50],
         ['key' => 'marital_status', 'label' => 'Status nikah', 'column' => 'status_perkawinan', 'cv' => 'marital_status', 'type' => 'marital'],
+        ['key' => 'mother_name', 'label' => 'Nama ibu kandung', 'column' => 'nama_ibu_kandung', 'cv' => 'mother_name', 'type' => 'text', 'max' => 180],
+        ['key' => 'spouse_name', 'label' => 'Nama suami/istri', 'column' => 'nama_bapak', 'cv' => 'spouse_name', 'type' => 'text', 'max' => 180],
+        ['key' => 'marriage_date', 'label' => 'Tanggal menikah', 'column' => 'tanggal_menikah', 'cv' => 'marriage_date', 'type' => 'date'],
         ['key' => 'phone', 'label' => 'No. HP', 'column' => 'no_telp', 'cv' => 'phone', 'type' => 'phone', 'max' => 20],
         ['key' => 'address', 'label' => 'Alamat domisili', 'column' => 'alamat_domisili', 'cv' => 'address', 'type' => 'text', 'max' => 500],
         ['key' => 'position', 'label' => 'Posisi', 'column' => 'posisi', 'cv' => 'position', 'type' => 'text', 'max' => 255],
+        ['key' => 'entry_date', 'label' => 'Tanggal masuk', 'column' => 'entry_date', 'cv' => 'current_job_entry_date', 'type' => 'date'],
         ['key' => 'province', 'label' => 'Provinsi', 'column' => 'provinsi_id', 'cv' => 'province_id', 'cv_label' => 'province_name', 'hris_label' => 'province_name', 'type' => 'id'],
         ['key' => 'regency', 'label' => 'Kabupaten', 'column' => 'kabupaten_id', 'cv' => 'regency_id', 'cv_label' => 'regency_name', 'hris_label' => 'regency_name', 'type' => 'id'],
         ['key' => 'district', 'label' => 'Kecamatan', 'column' => 'kecamatan_id', 'cv' => 'district_id', 'cv_label' => 'district_name', 'hris_label' => 'district_name', 'type' => 'id'],
@@ -74,6 +91,44 @@ class CvMakerCompareService
         ['key' => 'education_institution', 'label' => 'Instansi pendidikan', 'column' => 'nama_instansi_pendidikan', 'cv' => 'education_institution', 'type' => 'text', 'max' => 255],
         ['key' => 'education_major', 'label' => 'Jurusan', 'column' => 'jurusan', 'cv' => 'education_major', 'type' => 'text', 'max' => 120],
         ['key' => 'graduation_year', 'label' => 'Tahun lulus', 'column' => 'tanggal_kelulusan', 'cv' => 'graduation_year', 'type' => 'year'],
+    ];
+
+    private const CV_PROFILE_COLUMNS = [
+        'status',
+        'full_name',
+        'birth_place',
+        'birth_date',
+        'ktp_number',
+        'family_card_number',
+        'gender',
+        'religion',
+        'marital_status',
+        'marriage_date',
+        'spouse_name',
+        'mother_name',
+        'has_children',
+        'children_names',
+        'province_id',
+        'province_name',
+        'regency_id',
+        'regency_name',
+        'district_id',
+        'district_name',
+        'village_id',
+        'village_name',
+        'address',
+        'phone',
+        'email',
+        'work_area',
+        'department',
+        'division',
+        'position',
+        'current_job_entry_date',
+        'profile_summary',
+        'technical_skills',
+        'non_technical_skills',
+        'last_generated_at',
+        'updated_at',
     ];
 
     public function isConfigured(): bool
@@ -234,6 +289,11 @@ class CvMakerCompareService
             case 'id':
                 return ctype_digit($value) ? (string) ((int) $value) : null;
 
+            case 'identity_number':
+                $digits = preg_replace('/\D+/', '', $value) ?: '';
+
+                return strlen($digits) === 16 ? $digits : null;
+
             case 'phone':
                 $digits = preg_replace('/\D+/', '', $value) ?: '';
 
@@ -255,6 +315,9 @@ class CvMakerCompareService
                 }
 
                 return $clean ?: null;
+
+            case 'religion':
+                return $this->normalizeReligion($value);
 
             case 'marital':
                 $clean = $this->normalizeText($value);
@@ -445,13 +508,20 @@ class CvMakerCompareService
             ->select([
                 'employees.nik',
                 'employees.nama_karyawan',
+                'employees.no_ktp',
+                'employees.no_kk',
                 'employees.tgl_lahir',
                 'employees.jenis_kelamin',
+                'employees.agama',
                 'employees.status_perkawinan',
+                'employees.nama_ibu_kandung',
+                'employees.nama_bapak',
+                'employees.tanggal_menikah',
                 'employees.no_telp',
                 'employees.alamat_domisili',
                 'employees.alamat_ktp',
                 'employees.area_kerja',
+                'employees.entry_date',
                 'employees.departemen_id',
                 'employees.divisi_id',
                 'employees.provinsi_id',
@@ -633,6 +703,7 @@ class CvMakerCompareService
             'position',
             'company',
             'department',
+            'division',
             'start_month',
             'end_month',
             'is_current',
@@ -671,9 +742,17 @@ class CvMakerCompareService
                 'name' => $cvProfile['full_name'] ?? null,
                 'position' => $cvProfile['position'] ?? null,
                 'summary' => $this->cleanLongText($cvProfile['profile_summary'] ?? null),
+                'ktp_number' => $this->maskIdentityNumber($cvProfile['ktp_number'] ?? null),
+                'family_card_number' => $this->maskIdentityNumber($cvProfile['family_card_number'] ?? null),
                 'birth' => $this->formatBirthInfo($cvProfile['birth_place'] ?? null, $cvProfile['birth_date'] ?? null),
                 'gender' => $this->plainDisplayValue($cvProfile['gender'] ?? null, 'text'),
+                'religion' => $this->plainDisplayValue($cvProfile['religion'] ?? null, 'religion'),
                 'marital_status' => $this->plainDisplayValue($cvProfile['marital_status'] ?? null, 'text'),
+                'marriage_date' => $this->formatDate($cvProfile['marriage_date'] ?? null),
+                'spouse_name' => $this->plainDisplayValue($cvProfile['spouse_name'] ?? null, 'text'),
+                'mother_name' => $this->plainDisplayValue($cvProfile['mother_name'] ?? null, 'text'),
+                'has_children' => $this->booleanLabel($cvProfile['has_children'] ?? null),
+                'children_names' => $this->splitCvList($cvProfile['children_names'] ?? null),
                 'phone' => $this->plainDisplayValue($cvProfile['phone'] ?? null, 'text'),
                 'email' => $this->plainDisplayValue($cvProfile['email'] ?? null, 'text'),
                 'address' => $this->cleanLongText($cvProfile['address'] ?? null),
@@ -688,6 +767,7 @@ class CvMakerCompareService
                     $cvProfile['department'] ?? null,
                     $cvProfile['division'] ?? null,
                 ], ' / '),
+                'entry_date' => $this->formatDate($cvProfile['current_job_entry_date'] ?? null),
                 'technical_skills' => $this->splitCvList($cvProfile['technical_skills'] ?? null),
                 'non_technical_skills' => $this->splitCvList($cvProfile['non_technical_skills'] ?? null),
                 'last_generated_at' => $this->formatDateTime($cvProfile['last_generated_at'] ?? null),
@@ -705,6 +785,7 @@ class CvMakerCompareService
                     'title' => $item->position ?? null,
                     'company' => $item->company ?? null,
                     'department' => $item->department ?? null,
+                    'division' => $item->division ?? null,
                     'period' => $this->formatMonthRange($item->start_month ?? null, $item->end_month ?? null, (bool) ($item->is_current ?? false)),
                     'responsibilities' => $this->splitCvList($item->responsibilities ?? null),
                 ];
@@ -761,6 +842,12 @@ class CvMakerCompareService
     private function fetchCvRelatedRows(int $profileId, string $table, array $columns, int $limit = 50): Collection
     {
         try {
+            $columns = $this->filterExistingCvColumns($table, $columns);
+
+            if (empty($columns)) {
+                return collect();
+            }
+
             $query = DB::connection(config('services.cv_maker.connection', 'cv_maker'))
                 ->table($table)
                 ->where('cv_profile_id', $profileId)
@@ -785,6 +872,64 @@ class CvMakerCompareService
         }
     }
 
+    private function cvProfileSelectColumns(): array
+    {
+        $availableColumns = $this->availableCvColumns('cv_profiles');
+        $hasColumnInfo = !empty($availableColumns);
+        $select = [
+            !$hasColumnInfo || in_array('id', $availableColumns, true)
+                ? 'cv_profiles.id as profile_id'
+                : DB::raw('NULL as profile_id'),
+        ];
+
+        foreach (self::CV_PROFILE_COLUMNS as $column) {
+            $select[] = !$hasColumnInfo || in_array($column, $availableColumns, true)
+                ? 'cv_profiles.' . $column
+                : DB::raw('NULL as ' . $column);
+        }
+
+        return $select;
+    }
+
+    private function filterExistingCvColumns(string $table, array $columns): array
+    {
+        $availableColumns = $this->availableCvColumns($table);
+
+        if (empty($availableColumns)) {
+            return $columns;
+        }
+
+        return collect($columns)
+            ->filter(fn($column) => in_array($column, $availableColumns, true))
+            ->values()
+            ->all();
+    }
+
+    private function availableCvColumns(string $table): array
+    {
+        static $columnsByTable = [];
+
+        $connection = config('services.cv_maker.connection', 'cv_maker');
+        $cacheKey = $connection . '.' . $table;
+
+        if (array_key_exists($cacheKey, $columnsByTable)) {
+            return $columnsByTable[$cacheKey];
+        }
+
+        try {
+            $columnsByTable[$cacheKey] = Schema::connection($connection)->getColumnListing($table);
+        } catch (Throwable $exception) {
+            Log::warning('CV Maker schema lookup failed.', [
+                'table' => $table,
+                'message' => $exception->getMessage(),
+            ]);
+
+            $columnsByTable[$cacheKey] = [];
+        }
+
+        return $columnsByTable[$cacheKey];
+    }
+
     private function fetchCvProfilesForEmployees(Collection $employees): array
     {
         if (!$this->isConfigured() || $employees->isEmpty()) {
@@ -806,39 +951,12 @@ class CvMakerCompareService
                 ->table('users')
                 ->leftJoin('cv_profiles', 'cv_profiles.user_id', '=', 'users.id')
                 ->whereIn('users.vpeople_nik_hash', array_keys($hashToNik))
-                ->select([
+                ->select(array_merge([
                     'users.id as user_id',
                     'users.email as account_email',
                     'users.vpeople_nik_hash',
                     'users.vpeople_last_synced_at',
-                    'cv_profiles.id as profile_id',
-                    'cv_profiles.status',
-                    'cv_profiles.full_name',
-                    'cv_profiles.birth_place',
-                    'cv_profiles.birth_date',
-                    'cv_profiles.gender',
-                    'cv_profiles.marital_status',
-                    'cv_profiles.province_id',
-                    'cv_profiles.province_name',
-                    'cv_profiles.regency_id',
-                    'cv_profiles.regency_name',
-                    'cv_profiles.district_id',
-                    'cv_profiles.district_name',
-                    'cv_profiles.village_id',
-                    'cv_profiles.village_name',
-                    'cv_profiles.address',
-                    'cv_profiles.phone',
-                    'cv_profiles.email',
-                    'cv_profiles.work_area',
-                    'cv_profiles.department',
-                    'cv_profiles.division',
-                    'cv_profiles.position',
-                    'cv_profiles.profile_summary',
-                    'cv_profiles.technical_skills',
-                    'cv_profiles.non_technical_skills',
-                    'cv_profiles.last_generated_at',
-                    'cv_profiles.updated_at',
-                ])
+                ], $this->cvProfileSelectColumns()))
                 ->get();
         } catch (Throwable $exception) {
             Log::warning('CV Maker compare lookup failed.', [
@@ -869,8 +987,16 @@ class CvMakerCompareService
                     'full_name' => $profile->full_name,
                     'birth_place' => $profile->birth_place,
                     'birth_date' => $profile->birth_date,
+                    'ktp_number' => $profile->ktp_number,
+                    'family_card_number' => $profile->family_card_number,
                     'gender' => $profile->gender,
+                    'religion' => $profile->religion,
                     'marital_status' => $profile->marital_status,
+                    'marriage_date' => $profile->marriage_date,
+                    'spouse_name' => $profile->spouse_name,
+                    'mother_name' => $profile->mother_name,
+                    'has_children' => $profile->has_children,
+                    'children_names' => $profile->children_names,
                     'province_id' => $profile->province_id,
                     'province_name' => $profile->province_name,
                     'regency_id' => $profile->regency_id,
@@ -886,6 +1012,7 @@ class CvMakerCompareService
                     'department' => $profile->department,
                     'division' => $profile->division,
                     'position' => $profile->position,
+                    'current_job_entry_date' => $profile->current_job_entry_date,
                     'profile_summary' => $profile->profile_summary,
                     'technical_skills' => $profile->technical_skills,
                     'non_technical_skills' => $profile->non_technical_skills,
@@ -985,6 +1112,67 @@ class CvMakerCompareService
         return trim(mb_strtoupper($value));
     }
 
+    private function normalizeReligion(string $value): ?string
+    {
+        $clean = $this->normalizeText($value);
+        $raw = trim(mb_strtoupper($value));
+        $search = $clean . ' ' . $raw;
+
+        if (trim($search) === '') {
+            return null;
+        }
+
+        if (strpos($search, 'ISLAM') !== false) {
+            return 'ISLAM';
+        }
+
+        if (strpos($search, 'KATHOLIK') !== false || strpos($search, 'KATOLIK') !== false) {
+            return 'KRISTEN KATHOLIK';
+        }
+
+        if (strpos($search, 'PROTESTAN') !== false || strpos($search, 'KRISTEN') !== false) {
+            return 'KRISTEN PROTESTAN';
+        }
+
+        if (strpos($search, 'BUDDHA') !== false || strpos($search, 'BUDHA') !== false) {
+            return 'BUDHA';
+        }
+
+        if (strpos($search, 'HINDU') !== false) {
+            return 'HINDU';
+        }
+
+        if (strpos($search, 'KHONGHUCU') !== false || strpos($search, 'KONGHUCU') !== false) {
+            return 'KHONGHUCU';
+        }
+
+        return $clean ?: null;
+    }
+
+    private function maskIdentityNumber($value): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $value) ?: '';
+
+        if ($digits === '') {
+            return '-';
+        }
+
+        if (strlen($digits) <= 4) {
+            return $digits;
+        }
+
+        return str_repeat('*', max(0, strlen($digits) - 4)) . substr($digits, -4);
+    }
+
+    private function booleanLabel($value): string
+    {
+        if ($value === null || (is_string($value) && trim($value) === '')) {
+            return '-';
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 'Ya' : 'Tidak';
+    }
+
     private function transformCvValueForUpdate($value, array $field)
     {
         if ($value === null || trim((string) $value) === '') {
@@ -1003,6 +1191,10 @@ class CvMakerCompareService
 
         if ($type === 'id') {
             return $this->cleanReferenceId($value);
+        }
+
+        if ($type === 'identity_number') {
+            return $this->normalizeForCompare($value, 'identity_number');
         }
 
         if ($type === 'year') {
@@ -1039,6 +1231,15 @@ class CvMakerCompareService
             }
 
             return null;
+        }
+
+        if ($type === 'religion') {
+            $religion = trim(preg_replace('/\s+/', ' ', (string) $value) ?: (string) $value);
+            $max = $field['max'] ?? 50;
+
+            return $this->normalizeForCompare($religion, 'religion') && mb_strlen($religion) <= $max
+                ? $religion
+                : null;
         }
 
         $text = trim(preg_replace('/\s+/', ' ', (string) $value) ?: (string) $value);
@@ -1081,6 +1282,10 @@ class CvMakerCompareService
             return '-';
         }
 
+        if ($type === 'identity_number') {
+            return $this->maskIdentityNumber($value);
+        }
+
         $decodedListText = $this->decodedCvListToText($value);
 
         if ($decodedListText !== null) {
@@ -1112,6 +1317,10 @@ class CvMakerCompareService
 
         if ($value === null || trim((string) $value) === '') {
             return '-';
+        }
+
+        if ($type === 'identity_number') {
+            return e($this->maskIdentityNumber($value));
         }
 
         $decodedListText = $this->decodedCvListToText($value);

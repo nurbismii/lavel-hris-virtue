@@ -10,6 +10,7 @@
 @php
 $groupLabels = [
     'identity' => 'Identitas',
+    'family' => 'Keluarga',
     'work' => 'Organisasi',
     'location' => 'Wilayah',
     'education' => 'Pendidikan',
@@ -63,7 +64,7 @@ $cvMultilineBullets = function ($value) use ($hasCvValue): array {
         ->values()
         ->all();
 };
-$cvPersonalMeta = collect([
+$cvHeaderMeta = collect([
     ['value' => 'NIK: ' . $employee->nik, 'keys' => []],
     ['value' => $profile['birth'] ?? null, 'keys' => ['birth_date']],
     ['value' => $profile['gender'] ?? null, 'keys' => ['gender']],
@@ -196,17 +197,21 @@ $hasAdditional = !empty($vitae['projects']) || !empty($vitae['organizations']) |
                                 @endif
                             </h1>
 
-                            <div class="cv-vitae-meta-line">
-                                @foreach($cvPersonalMeta as $meta)
+                            @if($cvHeaderMeta->isNotEmpty())
+                            <div class="cv-vitae-meta-line cv-vitae-meta-line--primary">
+                                @foreach($cvHeaderMeta as $meta)
                                 <span class="{{ $isMismatch($meta['keys']) ? 'cv-vitae-field--mismatch' : '' }}">
                                     {{ $meta['value'] }}
                                 </span>
                                 @endforeach
                             </div>
+                            @endif
 
-                            @if($hasCvValue($profile['organization'] ?? null))
+                            @if($hasCvValue($profile['organization'] ?? null) || $hasCvValue($profile['position'] ?? null))
                             <div class="cv-vitae-meta-line cv-vitae-meta-line--work{{ $isMismatch(['work_area', 'department', 'division', 'position']) ? ' cv-vitae-field--mismatch' : '' }}">
-                                {{ $cvText($profile['organization'] ?? null) }}
+                                @if($hasCvValue($profile['organization'] ?? null))
+                                <span>{{ $cvText($profile['organization'] ?? null) }}</span>
+                                @endif
                                 @if($hasCvValue($profile['position'] ?? null))
                                 <span>{{ $cvText($profile['position'] ?? null) }}</span>
                                 @endif
@@ -259,29 +264,6 @@ $hasAdditional = !empty($vitae['projects']) || !empty($vitae['organizations']) |
                     </section>
                     @endif
 
-                    @if(!empty($vitae['experiences']))
-                    <section class="cv-vitae-section">
-                        <h3>Pengalaman Kerja</h3>
-                        @foreach($vitae['experiences'] as $experience)
-                        <div class="cv-vitae-item">
-                            <h4>{{ $cvText($experience['title'] ?? null) }}</h4>
-                            <div class="cv-vitae-item__meta">
-                                @foreach(collect([$experience['company'] ?? null, $experience['department'] ?? null, $experience['period'] ?? null])->filter($hasCvValue)->values() as $meta)
-                                <span>{{ $meta }}</span>
-                                @endforeach
-                            </div>
-                            @if(!empty($experience['responsibilities']))
-                            <ul>
-                                @foreach($experience['responsibilities'] as $responsibility)
-                                <li>{{ $responsibility }}</li>
-                                @endforeach
-                            </ul>
-                            @endif
-                        </div>
-                        @endforeach
-                    </section>
-                    @endif
-
                     @if(!empty($vitae['educations']))
                     <section class="cv-vitae-section{{ $isMismatch(['education_level', 'education_institution', 'education_major', 'graduation_year']) ? ' cv-vitae-section--mismatch' : '' }}">
                         <h3>
@@ -298,6 +280,29 @@ $hasAdditional = !empty($vitae['projects']) || !empty($vitae['organizations']) |
                                 <span>{{ $meta }}</span>
                                 @endforeach
                             </div>
+                        </div>
+                        @endforeach
+                    </section>
+                    @endif
+
+                    @if(!empty($vitae['experiences']))
+                    <section class="cv-vitae-section">
+                        <h3>Pengalaman Kerja</h3>
+                        @foreach($vitae['experiences'] as $experience)
+                        <div class="cv-vitae-item">
+                            <h4>{{ $cvText($experience['title'] ?? null) }}</h4>
+                            <div class="cv-vitae-item__meta">
+                                @foreach(collect([$experience['company'] ?? null, $experience['department'] ?? null, $experience['division'] ?? null, $experience['period'] ?? null])->filter($hasCvValue)->values() as $meta)
+                                <span>{{ $meta }}</span>
+                                @endforeach
+                            </div>
+                            @if(!empty($experience['responsibilities']))
+                            <ul>
+                                @foreach($experience['responsibilities'] as $responsibility)
+                                <li>{{ $responsibility }}</li>
+                                @endforeach
+                            </ul>
+                            @endif
                         </div>
                         @endforeach
                     </section>
