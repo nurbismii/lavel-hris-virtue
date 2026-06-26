@@ -17,6 +17,8 @@ class Employee extends Model
         'entry_date',
         'tgl_resign',
         'tgl_lahir',
+        'tanggal_kelulusan',
+        'tanggal_menikah',
         'work_pattern_start_date',
     ];
 

@@ -93,6 +93,7 @@ class KaryawanController extends Controller
                 ->orderBy('name')
                 ->get(),
             'contractTimeline' => $contractTimeline,
+            'canManageSensitiveEmployeeFields' => auth()->user()->canAccessAllEmployees(),
         ]);
     }
 
@@ -156,6 +157,16 @@ class KaryawanController extends Controller
             'sio_file',
             'face_reference',
         ]);
+
+        if (($validatedData['status_resign'] ?? null) === 'AKTIF') {
+            $validatedData['tgl_resign'] = null;
+            $validatedData['kategori_keluar'] = '-';
+        }
+
+        if (strtolower(trim((string) ($validatedData['status_perkawinan'] ?? ''))) === 'belum kawin') {
+            $validatedData['tanggal_menikah'] = null;
+        }
+
         $mediaService = app()->make(\App\Services\Karyawan\EmployeeMediaService::class);
         $fileInputs = [
             'photo_file' => 'photo',

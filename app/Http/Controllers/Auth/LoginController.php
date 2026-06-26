@@ -30,6 +30,23 @@ class LoginController extends Controller
         ]);
     }
 
+    protected function validateLogin(Request $request)
+    {
+        $request->validate([
+            $this->username() => 'required|string',
+            'password' => 'required|string',
+            'remember' => 'nullable|boolean',
+        ]);
+    }
+
+    protected function attemptLogin(Request $request)
+    {
+        return $this->guard()->attempt(
+            $this->credentials($request),
+            $request->boolean('remember')
+        );
+    }
+
     protected function authenticated(Request $request, $user)
     {
         $user->markLastLogin();

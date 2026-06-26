@@ -312,6 +312,107 @@
         });
     }
 
+    function bindResignStatusFields() {
+        const statusField = document.getElementById('status_resign');
+        const resignDateField = document.getElementById('tgl_resign');
+        const resignDatePlaceholder = document.getElementById('tgl_resign_placeholder');
+        const exitCategoryField = document.getElementById('kategori_keluar');
+
+        if (!statusField) {
+            return;
+        }
+
+        function isActiveEmployee() {
+            return String(statusField.value || '').trim().toUpperCase() === 'AKTIF';
+        }
+
+        function syncResignFields() {
+            const active = isActiveEmployee();
+            const placeholder = exitCategoryField ? exitCategoryField.dataset.activePlaceholder || '-' : '-';
+
+            if (resignDateField && resignDatePlaceholder) {
+                if (active) {
+                    if (resignDateField.value) {
+                        resignDateField.dataset.previousValue = resignDateField.value;
+                    }
+
+                    resignDateField.value = '';
+                    resignDateField.disabled = true;
+                    resignDateField.classList.add('d-none');
+                    resignDatePlaceholder.classList.remove('d-none');
+                } else {
+                    resignDateField.disabled = false;
+                    resignDateField.classList.remove('d-none');
+                    resignDatePlaceholder.classList.add('d-none');
+
+                    if (!resignDateField.value && resignDateField.dataset.previousValue) {
+                        resignDateField.value = resignDateField.dataset.previousValue;
+                    }
+                }
+            }
+
+            if (exitCategoryField) {
+                if (active) {
+                    if (exitCategoryField.value && exitCategoryField.value !== placeholder) {
+                        exitCategoryField.dataset.previousValue = exitCategoryField.value;
+                    }
+
+                    exitCategoryField.value = placeholder;
+                    exitCategoryField.readOnly = true;
+                } else {
+                    exitCategoryField.readOnly = false;
+
+                    if (exitCategoryField.value === placeholder) {
+                        exitCategoryField.value = exitCategoryField.dataset.previousValue || '';
+                    }
+                }
+            }
+        }
+
+        statusField.addEventListener('change', syncResignFields);
+        syncResignFields();
+    }
+
+    function bindMarriageStatusFields() {
+        const maritalStatusField = document.getElementById('status_perkawinan');
+        const marriageDateField = document.getElementById('tanggal_menikah');
+        const marriageDatePlaceholder = document.getElementById('tanggal_menikah_placeholder');
+
+        if (!maritalStatusField || !marriageDateField || !marriageDatePlaceholder) {
+            return;
+        }
+
+        function isUnmarriedEmployee() {
+            return String(maritalStatusField.value || '').trim().toLowerCase() === 'belum kawin';
+        }
+
+        function syncMarriageDateField() {
+            if (isUnmarriedEmployee()) {
+                if (marriageDateField.value) {
+                    marriageDateField.dataset.previousValue = marriageDateField.value;
+                }
+
+                marriageDateField.value = '';
+                marriageDateField.disabled = true;
+                marriageDateField.classList.add('d-none');
+                marriageDatePlaceholder.classList.remove('d-none');
+
+                return;
+            }
+
+            marriageDateField.disabled = false;
+            marriageDateField.classList.remove('d-none');
+            marriageDatePlaceholder.classList.add('d-none');
+
+            if (!marriageDateField.value && marriageDateField.dataset.previousValue) {
+                marriageDateField.value = marriageDateField.dataset.previousValue;
+            }
+        }
+
+        maritalStatusField.addEventListener('change', syncMarriageDateField);
+        syncMarriageDateField();
+    }
+
     function bindSubmitState() {
         const form = document.getElementById('employeeEditForm');
         const button = document.getElementById('employeeSaveButton');
@@ -338,6 +439,8 @@
         loadRegionHierarchy();
         bindFileInputState();
         bindContractTimeline();
+        bindResignStatusFields();
+        bindMarriageStatusFields();
         bindSubmitState();
     });
 })(window.jQuery);

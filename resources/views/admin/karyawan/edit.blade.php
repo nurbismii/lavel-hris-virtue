@@ -69,6 +69,9 @@ $uploadedDocumentCount = $documentFields->filter(fn($document) => filled($docume
 $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondary';
 $nameParts = preg_split('/\s+/', trim((string) $employee->nama_karyawan), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($part, 0, 1))->implode('') ?: 'KR';
+$canManageSensitiveEmployeeFields = $canManageSensitiveEmployeeFields ?? false;
+$isActiveStatus = old('status_resign', $employee->status_resign) === 'AKTIF';
+$isUnmarriedStatus = old('status_perkawinan', $employee->status_perkawinan) === 'Belum Kawin';
 @endphp
 
 <div class="container-fluid employee-edit-shell"
@@ -173,6 +176,14 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                     <input type="text" class="form-control" name="nama_karyawan" value="{{ old('nama_karyawan', $employee->nama_karyawan) }}" required>
                                                 </div>
                                                 <div class="col-md-4">
+                                                    <label class="form-label">Nama Ibu Kandung</label>
+                                                    <input type="text" class="form-control" name="nama_ibu_kandung" value="{{ old('nama_ibu_kandung', $employee->nama_ibu_kandung) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Nama Suami/Istri</label>
+                                                    <input type="text" class="form-control" name="nama_bapak" value="{{ old('nama_bapak', $employee->nama_bapak) }}">
+                                                </div>
+                                                <div class="col-md-4">
                                                     <label class="form-label">No KTP</label>
                                                     <input type="text" class="form-control" name="no_ktp" value="{{ old('no_ktp', $employee->no_ktp) }}" required>
                                                 </div>
@@ -191,6 +202,11 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                 <div class="col-md-4">
                                                     <label class="form-label">Tanggal Lahir</label>
                                                     <input type="date" class="form-control" name="tgl_lahir" value="{{ old('tgl_lahir', optional($employee->tgl_lahir)->format('Y-m-d')) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Tanggal Menikah</label>
+                                                    <input type="date" class="form-control {{ $isUnmarriedStatus ? 'd-none' : '' }}" name="tanggal_menikah" id="tanggal_menikah" value="{{ old('tanggal_menikah', optional($employee->tanggal_menikah)->format('Y-m-d')) }}" {{ $isUnmarriedStatus ? 'disabled' : '' }}>
+                                                    <input type="text" class="form-control {{ $isUnmarriedStatus ? '' : 'd-none' }}" id="tanggal_menikah_placeholder" value="-" readonly>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Agama</label>
@@ -216,6 +232,22 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                 <div class="col-md-4">
                                                     <label class="form-label">No. Telp</label>
                                                     <input type="text" class="form-control" name="no_telp" value="{{ old('no_telp', $employee->no_telp) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Golongan Darah</label>
+                                                    <input type="text" class="form-control" name="golongan_darah" value="{{ old('golongan_darah', $employee->golongan_darah) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Tinggi Badan</label>
+                                                    <input type="text" class="form-control" name="tinggi" value="{{ old('tinggi', $employee->tinggi) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Berat Badan</label>
+                                                    <input type="text" class="form-control" name="berat" value="{{ old('berat', $employee->berat) }}">
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <label class="form-label">Hobi</label>
+                                                    <input type="text" class="form-control" name="hobi" value="{{ old('hobi', $employee->hobi) }}">
                                                 </div>
                                             </div>
                                         </div>
@@ -245,6 +277,14 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                         <option value="PKWTT 固定工" {{ $employee->status_karyawan == 'PKWTT 固定工' ? 'selected' : '' }}>PKWTT 固定工</option>
                                                         <option value="PKWT 合同工" {{ $employee->status_karyawan == 'PKWT 合同工' ? 'selected' : '' }}>PKWT 合同工</option>
                                                     </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Tanggal Masuk</label>
+                                                    <input type="date" class="form-control" name="entry_date" value="{{ old('entry_date', optional($employee->entry_date)->format('Y-m-d')) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Kode Area Kerja</label>
+                                                    <input type="text" class="form-control" name="kode_area_kerja" value="{{ old('kode_area_kerja', $employee->kode_area_kerja) }}">
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label">Perusahaan</label>
@@ -283,7 +323,6 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                     <label class="form-label">Status Karyawan</label>
                                                     <select name="status_resign" id="status_resign" class="form-select form-control">
                                                         <option value="">-- Pilih Status --</option>
-                                                        <option value="">Semua Status</option>
                                                         <option value="AKTIF" {{ old('status_resign', $employee->status_resign) == 'AKTIF' ? 'selected' : '' }}>Aktif</option>
                                                         <option value="RESIGN SESUAI PROSEDUR" {{ old('status_resign', $employee->status_resign) == 'RESIGN SESUAI PROSEDUR' ? 'selected' : '' }}>Resign Sesuai Prosedur</option>
                                                         <option value="RESIGN TIDAK SESUAI PROSEDUR" {{ old('status_resign', $employee->status_resign) == 'RESIGN TIDAK SESUAI PROSEDUR' ? 'selected' : '' }}>Resign Tidak Sesuai Prosedur</option>
@@ -298,6 +337,19 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                         <option value="PHK PIDANA" {{ old('status_resign', $employee->status_resign) == 'PHK PIDANA' ? 'selected' : '' }}>PHK Pidana</option>
                                                         <option value="PHK MENINGGAL DUNIA" {{ old('status_resign', $employee->status_resign) == 'PHK MENINGGAL DUNIA' ? 'selected' : '' }}>PHK Meninggal Dunia</option>
                                                     </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Tanggal Resign</label>
+                                                    <input type="date" class="form-control {{ $isActiveStatus ? 'd-none' : '' }}" name="tgl_resign" id="tgl_resign" value="{{ old('tgl_resign', optional($employee->tgl_resign)->format('Y-m-d')) }}" {{ $isActiveStatus ? 'disabled' : '' }}>
+                                                    <input type="text" class="form-control {{ $isActiveStatus ? '' : 'd-none' }}" id="tgl_resign_placeholder" value="-" readonly>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Kategori Keluar</label>
+                                                    <input type="text" class="form-control" name="kategori_keluar" id="kategori_keluar" value="{{ $isActiveStatus ? '-' : old('kategori_keluar', $employee->kategori_keluar) }}" data-active-placeholder="-" {{ $isActiveStatus ? 'readonly' : '' }}>
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <label class="form-label">Alasan Resign</label>
+                                                    <textarea class="form-control" name="alasan_resign" rows="3">{{ old('alasan_resign', $employee->alasan_resign) }}</textarea>
                                                 </div>
 
                                             </div>
@@ -330,6 +382,14 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                     <div class="invalid-feedback d-block">{{ $message }}</div>
                                                     @enderror
                                                 </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Jam Kerja</label>
+                                                    <input type="text" class="form-control" name="jam_kerja" value="{{ old('jam_kerja', $employee->jam_kerja) }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Skill</label>
+                                                    <input type="text" class="form-control" name="skill" value="{{ old('skill', $employee->skill) }}">
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -350,6 +410,69 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                                 <div class="col-md-4">
                                                     <label class="form-label">BPJS Ketenagakerjaan</label>
                                                     <input type="text" class="form-control" name="bpjs_tk" value="{{ old('bpjs_tk', $employee->bpjs_tk) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Status Pajak</label>
+                                                    <input type="text" class="form-control" name="status_pajak" value="{{ old('status_pajak', $employee->status_pajak) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Vaksin</label>
+                                                    <input type="text" class="form-control" name="vaksin" value="{{ old('vaksin', $employee->vaksin) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">No Jamsostek</label>
+                                                    <input type="text" class="form-control" name="no_jamsostek" value="{{ old('no_jamsostek', $employee->no_jamsostek) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">No Asuransi</label>
+                                                    <input type="text" class="form-control" name="no_asuransi" value="{{ old('no_asuransi', $employee->no_asuransi) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">No Kartu Asuransi</label>
+                                                    <input type="text" class="form-control" name="no_kartu_asuransi" value="{{ old('no_kartu_asuransi', $employee->no_kartu_asuransi) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Sisa Cuti</label>
+                                                    <input type="text" class="form-control" value="{{ $employee->sisa_cuti ?? 0 }}" readonly>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Sisa Cuti Covid</label>
+                                                    <input type="text" class="form-control" value="{{ $employee->sisa_cuti_covid ?? 0 }}" readonly>
+                                                </div>
+                                                @if($canManageSensitiveEmployeeFields)
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Nama Bank</label>
+                                                    <input type="text" class="form-control" name="nama_bank" value="{{ old('nama_bank', $employee->nama_bank) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">No Rekening</label>
+                                                    <input type="text" class="form-control" name="no_rekening" value="{{ old('no_rekening', $employee->no_rekening) }}">
+                                                </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="employee-edit-section">
+                                        <div class="employee-edit-section__card">
+                                            <div class="employee-edit-section__title">Pendidikan</div>
+                                            <div class="employee-edit-section__caption">Riwayat pendidikan terakhir yang tersimpan pada master data karyawan.</div>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Nama Instansi Pendidikan</label>
+                                                    <input type="text" class="form-control" name="nama_instansi_pendidikan" value="{{ old('nama_instansi_pendidikan', $employee->nama_instansi_pendidikan) }}">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Pendidikan Terakhir</label>
+                                                    <input type="text" class="form-control" name="pendidikan_terakhir" value="{{ old('pendidikan_terakhir', $employee->pendidikan_terakhir) }}">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Tanggal Kelulusan</label>
+                                                    <input type="date" class="form-control" name="tanggal_kelulusan" value="{{ old('tanggal_kelulusan', optional($employee->tanggal_kelulusan)->format('Y-m-d')) }}">
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <label class="form-label">Jurusan</label>
+                                                    <input type="text" class="form-control" name="jurusan" value="{{ old('jurusan', $employee->jurusan) }}">
                                                 </div>
                                             </div>
                                         </div>
@@ -402,6 +525,18 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
                                             <div class="employee-edit-section__title">Alamat Lengkap</div>
                                             <div class="employee-edit-section__caption">Simpan alamat KTP dan domisili dengan format yang jelas dan mudah diverifikasi.</div>
                                             <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">RT</label>
+                                                    <input type="text" class="form-control" name="rt" value="{{ old('rt', $employee->rt) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">RW</label>
+                                                    <input type="text" class="form-control" name="rw" value="{{ old('rw', $employee->rw) }}">
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Kode Pos</label>
+                                                    <input type="text" class="form-control" name="kode_pos" value="{{ old('kode_pos', $employee->kode_pos) }}">
+                                                </div>
                                                 <div class="col-md-6">
                                                     <label class="form-label">Alamat KTP</label>
                                                     <textarea class="form-control" name="alamat_ktp" rows="5">{{ old('alamat_ktp', $employee->alamat_ktp) }}</textarea>

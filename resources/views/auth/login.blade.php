@@ -143,6 +143,7 @@
                                         type="checkbox"
                                         name="remember"
                                         id="remember"
+                                        value="1"
                                         {{ old('remember') ? 'checked' : '' }}>
                                     <label class="form-check-label small text-muted" for="remember">
                                         {{ __('auth_ui.remember_me') }}
