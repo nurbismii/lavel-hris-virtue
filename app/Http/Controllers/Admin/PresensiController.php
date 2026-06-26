@@ -18,6 +18,7 @@ use App\Models\Roster;
 use App\Models\RosterOffRequest;
 use App\Models\LogPresensi;
 use App\Services\Presensi\AttendancePeriodLockService;
+use App\Services\Presensi\AttendanceHrSummaryExportService;
 use App\Services\Presensi\AttendanceStatusService;
 use App\Services\Presensi\OvertimeOrderService;
 use App\Services\Presensi\RosterCyclePlanService;
@@ -532,162 +533,15 @@ class PresensiController extends Controller
         ]);
     }
 
-    public function export(Request $request)
+    public function export(Request $request, AttendanceHrSummaryExportService $exportService)
     {
-        if (!$request->departemen) {
-            return back()->with('error', 'Departemen wajib dipilih');
-        }
-
-        [$start, $end] = $this->generateCutoff($request->cutoff_month);
-
-        $dates = collect(CarbonPeriod::create($start, $end)->toArray());
-
-        $tanggalHeaders = $dates
-            ->map(fn($date) => $date->format('Y-m-d'))
-            ->toArray();
-
-        $employeeQuery = $this->scopedActiveEmployeeQuery($request, [
-            'nik',
-            'nama_karyawan',
-            'departemen_id',
-            'divisi_id',
-            'work_pattern_id',
-            'work_pattern_start_date',
+        $validated = $request->validate([
+            'departemen' => ['required'],
+            'divisi' => ['nullable'],
+            'cutoff_month' => ['required', 'date_format:Y-m'],
         ]);
 
-        return response()->streamDownload(function () use ($employeeQuery, $start, $end, $tanggalHeaders) {
-
-            $handle = fopen('php://output', 'w');
-
-            // HEADER
-            $header = ['NIK', 'Nama'];
-
-            foreach ($tanggalHeaders as $tgl) {
-                $header[] = Carbon::parse($tgl)->format('d');
-            }
-
-            fputcsv($handle, $header);
-
-            (clone $employeeQuery)
-                ->with('workPattern')
-                ->orderBy('nik')
-                ->chunk(300, function ($employees) use ($handle, $start, $end, $tanggalHeaders) {
-                    $niks = $employees->pluck('nik')->filter()->values();
-
-                    if ($niks->isEmpty()) {
-                        return;
-                    }
-
-                    $employeeByNik = $employees->keyBy('nik');
-                    $workScheduleService = app(WorkScheduleService::class);
-                    $manualOverrides = EmployeeAttendanceSetting::query()
-                        ->whereIn('employee_id', $niks)
-                        ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
-                        ->get();
-                    $scheduleMap = $workScheduleService->buildScheduleMap($employees, $manualOverrides, $start, $end);
-                    $approvedRosterOffDateMap = $this->approvedRosterOffDateMap($niks, $start, $end);
-                    $approvedCutiRosterDateMap = $this->approvedCutiRosterDateMap($niks, $start, $end);
-
-                    $presensiRows = DB::table('absensis')
-                        ->whereIn('nik_karyawan', $niks)
-                        ->whereBetween('tanggal', [$start, $end])
-                        ->get();
-
-                    $presensiIds = $presensiRows->pluck('id')->filter()->values();
-                    $verificationRows = $presensiIds->isNotEmpty()
-                        ? DB::table('presensi_verifications')
-                            ->select('presensi_id', 'attendance_type', 'status')
-                            ->whereIn('presensi_id', $presensiIds)
-                            ->get()
-                            ->groupBy('presensi_id')
-                        : collect();
-
-                    $presensiMap = [];
-
-                    foreach ($presensiRows as $p) {
-                        $tgl = Carbon::parse($p->tanggal)->format('Y-m-d');
-                        $verificationByType = $this->verificationStatusByType($verificationRows->get($p->id));
-                        $statusPresensi = $this->normalizeStatusPresensiForSchedule(
-                            $p->status_presensi,
-                            $employeeByNik->get((string) $p->nik_karyawan) ?: $employeeByNik->get($p->nik_karyawan),
-                            $tgl,
-                            $scheduleMap,
-                            $approvedRosterOffDateMap,
-                            $approvedCutiRosterDateMap
-                        );
-
-                        $presensiMap[$p->nik_karyawan][$tgl] = [
-                            'status' => $statusPresensi ? Presensi::shortStatus($statusPresensi) : '',
-                            'm' => $statusPresensi ? '' : $this->formatAttendanceClock($p->jam_masuk, $tgl),
-                            'i' => $statusPresensi ? '' : $this->formatAttendanceClock($p->jam_istirahat, $tgl),
-                            'k' => $statusPresensi ? '' : $this->formatAttendanceClock($p->jam_kembali_istirahat, $tgl),
-                            'p' => $statusPresensi ? '' : $this->formatAttendanceClock($p->jam_pulang, $tgl),
-                            'm_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'masuk', $p->jam_masuk ? ($p->status_absen ?? null) : null),
-                            'i_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'istirahat', $p->jam_istirahat ? ($p->status_absen ?? null) : null),
-                            'k_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'kembali', $p->jam_kembali_istirahat ? ($p->status_absen ?? null) : null),
-                            'p_status' => $statusPresensi ? null : $this->verificationStatusForAction($verificationByType, 'pulang', $p->jam_pulang ? ($p->status_absen ?? null) : null),
-                            'verification' => $p->status_absen ?? null,
-                        ];
-                    }
-
-                    $actualPresensiMap = $presensiMap;
-
-                    foreach ($workScheduleService->buildOffStatusMap($employees, $start, $end, $presensiMap, $scheduleMap) as $nik => $dates) {
-                        foreach ($dates as $tanggal => $payload) {
-                            $presensiMap[$nik][$tanggal] = [
-                                'status' => $payload['status'] ?? '',
-                                'm' => $payload['m'] ?? '',
-                                'i' => $payload['i'] ?? '',
-                                'k' => $payload['k'] ?? '',
-                                'p' => $payload['p'] ?? '',
-                                'm_status' => null,
-                                'i_status' => null,
-                                'k_status' => null,
-                                'p_status' => null,
-                            ];
-                        }
-                    }
-
-                    foreach (app(OvertimeOrderService::class)->buildAcceptedAlphaMap($niks, $start, $end, $actualPresensiMap) as $nik => $dates) {
-                        foreach ($dates as $tanggal => $payload) {
-                            $presensiMap[$nik][$tanggal] = [
-                                'status' => $payload['status'] ?? '',
-                                'm' => $payload['m'] ?? '',
-                                'i' => $payload['i'] ?? '',
-                                'k' => $payload['k'] ?? '',
-                                'p' => $payload['p'] ?? '',
-                                'm_status' => null,
-                                'i_status' => null,
-                                'k_status' => null,
-                                'p_status' => null,
-                            ];
-                        }
-                    }
-
-                    foreach ($employees as $emp) {
-                        $row = [
-                            $emp->nik,
-                            $emp->nama_karyawan,
-                        ];
-
-                        foreach ($tanggalHeaders as $tgl) {
-                            if (isset($presensiMap[$emp->nik][$tgl])) {
-                                $p = $presensiMap[$emp->nik][$tgl];
-
-                                $row[] = $p['status']
-                                    ? $p['status']
-                                    : $this->formatAttendanceExportCell($p);
-                            } else {
-                                $row[] = '';
-                            }
-                        }
-
-                        fputcsv($handle, $row);
-                    }
-                });
-
-            fclose($handle);
-        }, 'Presensi_' . now()->format('Ymd_His') . '.csv');
+        return $exportService->download($request->user(), $validated);
     }
 
     private function formatAttendanceClock(?string $value, string $attendanceDate): ?string
@@ -854,41 +708,4 @@ class PresensiController extends Controller
         return $verificationByType[$type] ?? $fallback;
     }
 
-    private function formatAttendanceExportCell(array $presensi): string
-    {
-        $parts = [];
-        $types = [
-            ['label' => 'M', 'time' => 'm', 'status' => 'm_status'],
-            ['label' => 'I', 'time' => 'i', 'status' => 'i_status'],
-            ['label' => 'K', 'time' => 'k', 'status' => 'k_status'],
-            ['label' => 'P', 'time' => 'p', 'status' => 'p_status'],
-        ];
-
-        foreach ($types as $type) {
-            $time = $presensi[$type['time']] ?? null;
-
-            if (!$time) {
-                continue;
-            }
-
-            $status = $this->shortVerificationStatus($presensi[$type['status']] ?? null);
-            $parts[] = trim($type['label'] . ' ' . $time . ($status ? ' (' . $status . ')' : ''));
-        }
-
-        return trim(implode(' ', $parts));
-    }
-
-    private function shortVerificationStatus(?string $status): ?string
-    {
-        switch ($status) {
-            case Presensi::STATUS_ABSEN_VERIFIED:
-                return 'SV';
-            case Presensi::STATUS_ABSEN_PENDING_REVIEW:
-                return 'RV';
-            case Presensi::STATUS_ABSEN_REJECTED:
-                return 'RJ';
-            default:
-                return null;
-        }
-    }
 }

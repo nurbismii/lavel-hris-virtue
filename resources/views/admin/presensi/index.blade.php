@@ -49,7 +49,7 @@
                 @endif
                 <button type="button" class="btn btn-outline-primary btn-sm" id="btnExport">
                     <i class="fas fa-file-export me-1"></i>
-                    Export CSV
+                    Export Excel
                 </button>
             </div>
         </div>

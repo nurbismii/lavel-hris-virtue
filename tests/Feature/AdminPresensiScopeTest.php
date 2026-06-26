@@ -6,12 +6,15 @@ use App\Http\Controllers\Admin\PresensiController;
 use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Presensi\AttendanceHrSummaryExportService;
 use App\Services\Presensi\OvertimeOrderService;
 use App\Services\Presensi\WorkScheduleService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Collection;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use Tests\TestCase;
 
 class AdminPresensiScopeTest extends TestCase
@@ -33,20 +36,20 @@ class AdminPresensiScopeTest extends TestCase
         $this->createSchema();
         $this->seedOrganization();
 
-        $this->app->instance(WorkScheduleService::class, new class {
-            public function buildScheduleMap()
+        $this->app->instance(WorkScheduleService::class, new class extends WorkScheduleService {
+            public function buildScheduleMap(Collection $employees, Collection $manualOverrides, $startDate, $endDate): array
             {
                 return [];
             }
 
-            public function buildOffStatusMap()
+            public function buildOffStatusMap(Collection $employees, $startDate, $endDate, array $existingPresensiMap = [], ?array $scheduleMap = null): array
             {
                 return [];
             }
         });
 
-        $this->app->instance(OvertimeOrderService::class, new class {
-            public function buildAcceptedAlphaMap()
+        $this->app->instance(OvertimeOrderService::class, new class extends OvertimeOrderService {
+            public function buildAcceptedAlphaMap(iterable $niks, $startDate, $endDate, array $existingPresensiMap = []): array
             {
                 return [];
             }
@@ -144,14 +147,23 @@ class AdminPresensiScopeTest extends TestCase
             'cutoff_month' => '2026-05',
         ]);
 
-        $response = app(PresensiController::class)->export($request);
+        $response = app(PresensiController::class)->export($request, app(AttendanceHrSummaryExportService::class));
 
         ob_start();
         $response->sendContent();
-        $csv = ob_get_clean();
+        $content = ob_get_clean();
 
-        $this->assertStringContainsString('NIK,Nama', $csv);
-        $this->assertStringNotContainsString('EMP201', $csv);
+        $path = tempnam(sys_get_temp_dir(), 'presensi_export_') . '.xlsx';
+        file_put_contents($path, $content);
+
+        $spreadsheet = IOFactory::load($path);
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $this->assertSame("NIK \n工号", $sheet->getCell('B5')->getValue());
+        $this->assertNull($sheet->getCell('B9')->getValue());
+
+        $spreadsheet->disconnectWorksheets();
+        @unlink($path);
     }
 
     private function createSchema(): void
