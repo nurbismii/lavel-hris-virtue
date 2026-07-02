@@ -11,6 +11,7 @@
 $groupLabels = [
     'identity' => 'Identitas',
     'family' => 'Keluarga',
+    'address' => 'Alamat',
     'work' => 'Organisasi',
     'location' => 'Wilayah',
     'education' => 'Pendidikan',
@@ -68,12 +69,16 @@ $cvHeaderMeta = collect([
     ['value' => 'NIK: ' . $employee->nik, 'keys' => []],
     ['value' => $profile['birth'] ?? null, 'keys' => ['birth_date']],
     ['value' => $profile['gender'] ?? null, 'keys' => ['gender']],
+    ['value' => $profile['blood_type'] ?? null, 'keys' => ['blood_type']],
+    ['value' => !empty($profile['height']) ? 'Tinggi ' . $profile['height'] . ' cm' : null, 'keys' => ['height']],
+    ['value' => !empty($profile['weight']) ? 'Berat ' . $profile['weight'] . ' kg' : null, 'keys' => ['weight']],
     ['value' => $profile['marital_status'] ?? null, 'keys' => ['marital_status']],
 ])->filter(fn($item) => $hasCvValue($item['value']))->values();
 $cvAddressLines = collect([
-    $profile['address'] ?? null,
-    $profile['location'] ?? null,
-])->filter($hasCvValue)->values();
+    ['value' => !empty($profile['ktp_address']) ? 'KTP: ' . $profile['ktp_address'] : null, 'keys' => ['ktp_address']],
+    ['value' => !empty($profile['address']) ? 'Domisili: ' . $profile['address'] : null, 'keys' => ['domicile_address']],
+    ['value' => $profile['location'] ?? null, 'keys' => ['province', 'regency', 'district', 'village']],
+])->filter(fn($item) => $hasCvValue($item['value']))->values();
 $cvContactMeta = collect([
     ['value' => $profile['phone'] ?? null, 'keys' => ['phone']],
     ['value' => $profile['email'] ?? null, 'keys' => []],
@@ -219,9 +224,9 @@ $hasAdditional = !empty($vitae['projects']) || !empty($vitae['organizations']) |
                             @endif
 
                             @if($cvAddressLines->isNotEmpty())
-                            <div class="cv-vitae-address{{ $isMismatch(['address', 'province', 'regency', 'district', 'village']) ? ' cv-vitae-field--mismatch' : '' }}">
+                            <div class="cv-vitae-address{{ $isMismatch(['ktp_address', 'domicile_address', 'province', 'regency', 'district', 'village']) ? ' cv-vitae-field--mismatch' : '' }}">
                                 @foreach($cvAddressLines as $line)
-                                <div>{{ $line }}</div>
+                                <div class="{{ $isMismatch($line['keys']) ? 'cv-vitae-field--mismatch' : '' }}">{{ $line['value'] }}</div>
                                 @endforeach
                             </div>
                             @endif

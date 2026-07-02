@@ -80,6 +80,44 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertFalse($work['entry_date']['mismatch']);
     }
 
+    public function test_body_and_address_profile_fields_are_compared(): void
+    {
+        $service = new CvMakerCompareService();
+        $employee = new Employee([
+            'nik' => '2200112235',
+            'nama_karyawan' => 'Andi Saputra',
+            'tinggi' => '170',
+            'berat' => '70',
+            'golongan_darah' => 'O',
+            'alamat_ktp' => 'Jalan KTP Lama',
+            'alamat_domisili' => 'Jalan Domisili',
+        ]);
+
+        $comparison = $service->compareEmployee($employee, [
+            'profile_id' => 15,
+            'full_name' => 'Andi Saputra',
+            'height_cm' => '170.0 cm',
+            'weight_kg' => '72 kg',
+            'blood_type' => 'O',
+            'ktp_address' => 'Jalan KTP Baru',
+            'address' => 'Jalan Domisili',
+        ]);
+
+        $this->assertArrayHasKey('address', $comparison['groups']);
+
+        $identity = collect($comparison['groups']['identity'])->keyBy('key');
+        $address = collect($comparison['groups']['address'])->keyBy('key');
+
+        $this->assertArrayHasKey('height', $identity);
+        $this->assertArrayHasKey('weight', $identity);
+        $this->assertArrayHasKey('blood_type', $identity);
+        $this->assertFalse($identity['height']['mismatch']);
+        $this->assertTrue($identity['weight']['mismatch']);
+        $this->assertFalse($identity['blood_type']['mismatch']);
+        $this->assertTrue($address['ktp_address']['mismatch']);
+        $this->assertFalse($address['domicile_address']['mismatch']);
+    }
+
     public function test_compare_employee_counts_only_real_mismatches(): void
     {
         $service = new CvMakerCompareService();
@@ -280,6 +318,47 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertSame('************1234', $changes['no_ktp']['old']);
         $this->assertSame('************9999', $changes['no_ktp']['new']);
         $this->assertSame('7401010101019999', $changes['no_ktp']['new_raw']);
+    }
+
+    public function test_build_update_preview_includes_body_and_address_fields(): void
+    {
+        config()->set('database.connections.cv_maker.database', 'cv_maker_test');
+        config()->set('services.cv_maker.nik_hash_key', 'test-key');
+
+        $service = new CvMakerCompareService();
+        $employee = new Employee([
+            'nik' => '2200112267',
+            'nama_karyawan' => 'Andi Saputra',
+            'tinggi' => '168',
+            'berat' => '70',
+            'golongan_darah' => 'A',
+            'alamat_ktp' => 'Jalan KTP Lama',
+            'alamat_domisili' => 'Jalan Domisili Lama',
+        ]);
+
+        $preview = $service->buildUpdatePreview($employee, [
+            'user_id' => 9,
+            'profile_id' => 16,
+            'status' => 'submitted',
+            'updated_at' => '2026-06-25 10:00:00',
+            'height_cm' => '170.0 cm',
+            'weight_kg' => '72 kg',
+            'blood_type' => 'O+',
+            'ktp_address' => 'Jalan KTP Baru',
+            'address' => 'Jalan Domisili Baru',
+        ]);
+
+        $changes = collect($preview['changes'])->keyBy('column');
+
+        $this->assertTrue($preview['success']);
+        $this->assertArrayHasKey('tinggi', $changes);
+        $this->assertArrayHasKey('berat', $changes);
+        $this->assertArrayHasKey('golongan_darah', $changes);
+        $this->assertArrayHasKey('alamat_ktp', $changes);
+        $this->assertArrayHasKey('alamat_domisili', $changes);
+        $this->assertSame('170', $changes['tinggi']['new_raw']);
+        $this->assertSame('72', $changes['berat']['new_raw']);
+        $this->assertSame('O+', $changes['golongan_darah']['new_raw']);
     }
 
     public function test_cv_list_json_strings_are_cleaned_for_vitae_display(): void

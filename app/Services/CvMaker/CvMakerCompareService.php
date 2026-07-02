@@ -23,15 +23,21 @@ class CvMakerCompareService
             ['key' => 'family_card_number', 'label' => 'No. KK', 'hris' => 'no_kk', 'cv' => 'family_card_number', 'type' => 'identity_number'],
             ['key' => 'birth_date', 'label' => 'Tanggal lahir', 'hris' => 'tgl_lahir', 'cv' => 'birth_date', 'type' => 'date'],
             ['key' => 'gender', 'label' => 'Gender', 'hris' => 'jenis_kelamin', 'cv' => 'gender', 'type' => 'gender'],
+            ['key' => 'blood_type', 'label' => 'Golongan darah', 'hris' => 'golongan_darah', 'cv' => 'blood_type', 'type' => 'blood_type'],
+            ['key' => 'height', 'label' => 'Tinggi badan', 'hris' => 'tinggi', 'cv' => 'height_cm', 'type' => 'body_measurement'],
+            ['key' => 'weight', 'label' => 'Berat badan', 'hris' => 'berat', 'cv' => 'weight_kg', 'type' => 'body_measurement'],
             ['key' => 'religion', 'label' => 'Agama', 'hris' => 'agama', 'cv' => 'religion', 'type' => 'religion'],
             ['key' => 'marital_status', 'label' => 'Status nikah', 'hris' => 'status_perkawinan', 'cv' => 'marital_status', 'type' => 'marital'],
             ['key' => 'phone', 'label' => 'No. HP', 'hris' => 'no_telp', 'cv' => 'phone', 'type' => 'phone'],
-            ['key' => 'address', 'label' => 'Alamat', 'hris' => 'address', 'cv' => 'address', 'type' => 'address'],
         ],
         'family' => [
             ['key' => 'mother_name', 'label' => 'Nama ibu kandung', 'hris' => 'nama_ibu_kandung', 'cv' => 'mother_name', 'type' => 'text'],
             ['key' => 'spouse_name', 'label' => 'Nama suami/istri', 'hris' => 'nama_bapak', 'cv' => 'spouse_name', 'type' => 'text'],
             ['key' => 'marriage_date', 'label' => 'Tanggal menikah', 'hris' => 'tanggal_menikah', 'cv' => 'marriage_date', 'type' => 'date'],
+        ],
+        'address' => [
+            ['key' => 'ktp_address', 'label' => 'Alamat KTP', 'hris' => 'alamat_ktp', 'cv' => 'ktp_address', 'type' => 'address'],
+            ['key' => 'domicile_address', 'label' => 'Alamat domisili', 'hris' => 'alamat_domisili', 'cv' => 'address', 'type' => 'address'],
         ],
         'work' => [
             ['key' => 'work_area', 'label' => 'Perusahaan', 'hris' => 'area_kerja', 'cv' => 'work_area', 'type' => 'text'],
@@ -74,13 +80,17 @@ class CvMakerCompareService
         ['key' => 'family_card_number', 'label' => 'No. KK', 'column' => 'no_kk', 'cv' => 'family_card_number', 'type' => 'identity_number'],
         ['key' => 'birth_date', 'label' => 'Tanggal lahir', 'column' => 'tgl_lahir', 'cv' => 'birth_date', 'type' => 'date'],
         ['key' => 'gender', 'label' => 'Gender', 'column' => 'jenis_kelamin', 'cv' => 'gender', 'type' => 'gender'],
+        ['key' => 'blood_type', 'label' => 'Golongan darah', 'column' => 'golongan_darah', 'cv' => 'blood_type', 'type' => 'blood_type', 'max' => 8],
+        ['key' => 'height', 'label' => 'Tinggi badan', 'column' => 'tinggi', 'cv' => 'height_cm', 'type' => 'body_measurement', 'max' => 4],
+        ['key' => 'weight', 'label' => 'Berat badan', 'column' => 'berat', 'cv' => 'weight_kg', 'type' => 'body_measurement', 'max' => 4],
         ['key' => 'religion', 'label' => 'Agama', 'column' => 'agama', 'cv' => 'religion', 'type' => 'religion', 'max' => 50],
         ['key' => 'marital_status', 'label' => 'Status nikah', 'column' => 'status_perkawinan', 'cv' => 'marital_status', 'type' => 'marital'],
         ['key' => 'mother_name', 'label' => 'Nama ibu kandung', 'column' => 'nama_ibu_kandung', 'cv' => 'mother_name', 'type' => 'text', 'max' => 180],
         ['key' => 'spouse_name', 'label' => 'Nama suami/istri', 'column' => 'nama_bapak', 'cv' => 'spouse_name', 'type' => 'text', 'max' => 180],
         ['key' => 'marriage_date', 'label' => 'Tanggal menikah', 'column' => 'tanggal_menikah', 'cv' => 'marriage_date', 'type' => 'date'],
         ['key' => 'phone', 'label' => 'No. HP', 'column' => 'no_telp', 'cv' => 'phone', 'type' => 'phone', 'max' => 20],
-        ['key' => 'address', 'label' => 'Alamat domisili', 'column' => 'alamat_domisili', 'cv' => 'address', 'type' => 'text', 'max' => 500],
+        ['key' => 'ktp_address', 'label' => 'Alamat KTP', 'column' => 'alamat_ktp', 'cv' => 'ktp_address', 'type' => 'address', 'max' => 500],
+        ['key' => 'domicile_address', 'label' => 'Alamat domisili', 'column' => 'alamat_domisili', 'cv' => 'address', 'type' => 'address', 'max' => 500],
         ['key' => 'position', 'label' => 'Posisi', 'column' => 'posisi', 'cv' => 'position', 'type' => 'text', 'max' => 255],
         ['key' => 'entry_date', 'label' => 'Tanggal masuk', 'column' => 'entry_date', 'cv' => 'current_job_entry_date', 'type' => 'date'],
         ['key' => 'province', 'label' => 'Provinsi', 'column' => 'provinsi_id', 'cv' => 'province_id', 'cv_label' => 'province_name', 'hris_label' => 'province_name', 'type' => 'id'],
@@ -101,11 +111,16 @@ class CvMakerCompareService
         'ktp_number',
         'family_card_number',
         'gender',
+        'height_cm',
+        'weight_kg',
+        'blood_type',
         'religion',
         'marital_status',
         'marriage_date',
         'spouse_name',
         'mother_name',
+        'ktp_address',
+        'domicile_same_as_ktp',
         'has_children',
         'children_names',
         'province_id',
@@ -288,6 +303,12 @@ class CvMakerCompareService
 
             case 'id':
                 return ctype_digit($value) ? (string) ((int) $value) : null;
+
+            case 'body_measurement':
+                return $this->normalizeMeasurement($value);
+
+            case 'blood_type':
+                return $this->normalizeBloodType($value);
 
             case 'identity_number':
                 $digits = preg_replace('/\D+/', '', $value) ?: '';
@@ -513,6 +534,9 @@ class CvMakerCompareService
                 'employees.tgl_lahir',
                 'employees.jenis_kelamin',
                 'employees.agama',
+                'employees.golongan_darah',
+                'employees.tinggi',
+                'employees.berat',
                 'employees.status_perkawinan',
                 'employees.nama_ibu_kandung',
                 'employees.nama_bapak',
@@ -746,6 +770,9 @@ class CvMakerCompareService
                 'family_card_number' => $this->maskIdentityNumber($cvProfile['family_card_number'] ?? null),
                 'birth' => $this->formatBirthInfo($cvProfile['birth_place'] ?? null, $cvProfile['birth_date'] ?? null),
                 'gender' => $this->plainDisplayValue($cvProfile['gender'] ?? null, 'text'),
+                'blood_type' => $this->plainDisplayValue($cvProfile['blood_type'] ?? null, 'blood_type'),
+                'height' => $this->plainDisplayValue($cvProfile['height_cm'] ?? null, 'body_measurement'),
+                'weight' => $this->plainDisplayValue($cvProfile['weight_kg'] ?? null, 'body_measurement'),
                 'religion' => $this->plainDisplayValue($cvProfile['religion'] ?? null, 'religion'),
                 'marital_status' => $this->plainDisplayValue($cvProfile['marital_status'] ?? null, 'text'),
                 'marriage_date' => $this->formatDate($cvProfile['marriage_date'] ?? null),
@@ -755,6 +782,7 @@ class CvMakerCompareService
                 'children_names' => $this->splitCvList($cvProfile['children_names'] ?? null),
                 'phone' => $this->plainDisplayValue($cvProfile['phone'] ?? null, 'text'),
                 'email' => $this->plainDisplayValue($cvProfile['email'] ?? null, 'text'),
+                'ktp_address' => $this->cleanLongText($cvProfile['ktp_address'] ?? null),
                 'address' => $this->cleanLongText($cvProfile['address'] ?? null),
                 'location' => $this->joinNonEmpty([
                     $cvProfile['village_name'] ?? null,
@@ -990,11 +1018,16 @@ class CvMakerCompareService
                     'ktp_number' => $profile->ktp_number,
                     'family_card_number' => $profile->family_card_number,
                     'gender' => $profile->gender,
+                    'height_cm' => $profile->height_cm,
+                    'weight_kg' => $profile->weight_kg,
+                    'blood_type' => $profile->blood_type,
                     'religion' => $profile->religion,
                     'marital_status' => $profile->marital_status,
                     'marriage_date' => $profile->marriage_date,
                     'spouse_name' => $profile->spouse_name,
                     'mother_name' => $profile->mother_name,
+                    'ktp_address' => $profile->ktp_address,
+                    'domicile_same_as_ktp' => $profile->domicile_same_as_ktp,
                     'has_children' => $profile->has_children,
                     'children_names' => $profile->children_names,
                     'province_id' => $profile->province_id,
@@ -1149,6 +1182,42 @@ class CvMakerCompareService
         return $clean ?: null;
     }
 
+    private function normalizeBloodType(string $value): ?string
+    {
+        $clean = mb_strtoupper(trim($value));
+        $clean = preg_replace('/\s+/', '', $clean) ?: $clean;
+        $clean = str_replace(
+            ['GOLONGANDARAH', 'GOLONGAN', 'DARAH', 'BLOODTYPE', 'BLOOD', 'TYPE', 'TIPE'],
+            '',
+            $clean
+        );
+        $clean = str_replace(['POSITIF', 'POSITIVE', 'PLUS'], '+', $clean);
+        $clean = str_replace(['NEGATIF', 'NEGATIVE', 'MINUS'], '-', $clean);
+        $clean = str_replace('0', 'O', $clean);
+        $clean = preg_replace('/[^ABO+\-]/', '', $clean) ?: '';
+
+        return in_array($clean, ['A', 'B', 'AB', 'O', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], true)
+            ? $clean
+            : ($this->normalizeText($value) ?: null);
+    }
+
+    private function normalizeMeasurement(string $value): ?string
+    {
+        $value = str_replace(',', '.', trim($value));
+
+        if ($value === '' || !preg_match('/\d+(?:\.\d+)?/', $value, $match)) {
+            return null;
+        }
+
+        $number = $match[0];
+
+        if (strpos($number, '.') !== false) {
+            $number = rtrim(rtrim($number, '0'), '.');
+        }
+
+        return $number !== '' ? $number : null;
+    }
+
     private function maskIdentityNumber($value): string
     {
         $digits = preg_replace('/\D+/', '', (string) $value) ?: '';
@@ -1195,6 +1264,20 @@ class CvMakerCompareService
 
         if ($type === 'identity_number') {
             return $this->normalizeForCompare($value, 'identity_number');
+        }
+
+        if ($type === 'body_measurement') {
+            $measurement = $this->normalizeForCompare($value, 'body_measurement');
+            $max = $field['max'] ?? 4;
+
+            return $measurement && mb_strlen($measurement) <= $max ? $measurement : null;
+        }
+
+        if ($type === 'blood_type') {
+            $bloodType = $this->normalizeForCompare($value, 'blood_type');
+            $max = $field['max'] ?? 8;
+
+            return $bloodType && mb_strlen($bloodType) <= $max ? $bloodType : null;
         }
 
         if ($type === 'year') {
@@ -1286,6 +1369,10 @@ class CvMakerCompareService
             return $this->maskIdentityNumber($value);
         }
 
+        if ($type === 'body_measurement' || $type === 'blood_type') {
+            return $this->normalizeForCompare($value, $type) ?: (string) $value;
+        }
+
         $decodedListText = $this->decodedCvListToText($value);
 
         if ($decodedListText !== null) {
@@ -1321,6 +1408,10 @@ class CvMakerCompareService
 
         if ($type === 'identity_number') {
             return e($this->maskIdentityNumber($value));
+        }
+
+        if ($type === 'body_measurement' || $type === 'blood_type') {
+            return e($this->normalizeForCompare($value, $type) ?: (string) $value);
         }
 
         $decodedListText = $this->decodedCvListToText($value);
