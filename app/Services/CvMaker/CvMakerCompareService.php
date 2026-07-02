@@ -2,6 +2,7 @@
 
 namespace App\Services\CvMaker;
 
+use App\Models\CvMakerProgressStatus;
 use App\Models\Employee;
 use App\Models\User;
 use App\Services\Audit\AuditTrailService;
@@ -172,16 +173,18 @@ class CvMakerCompareService
             ->get();
 
         $cvProfiles = $this->fetchCvProfilesForEmployees($employees);
+        $progressStatuses = $this->fetchProgressStatusesForEmployees($employees);
 
         $rows = $employees
-            ->map(function (Employee $employee) use ($cvProfiles) {
+            ->map(function (Employee $employee) use ($cvProfiles, $progressStatuses) {
                 $cvProfile = $cvProfiles[$employee->nik] ?? null;
+                $progressStatus = $progressStatuses[$employee->nik] ?? null;
                 $comparison = $this->compareEmployee($employee, $cvProfile);
 
                 return [
                     'nik' => e($employee->nik),
                     'employee' => $this->renderEmployeeCell($employee),
-                    'cv_status' => $this->renderCvStatus($cvProfile),
+                    'cv_status' => $this->renderCvStatus($cvProfile, $progressStatus),
                     'result' => $this->renderResultCell($employee, $comparison, $cvProfile),
                 ];
             })
@@ -202,13 +205,22 @@ class CvMakerCompareService
         $employee->loadMissing(['departemen', 'divisi', 'provinsi', 'kabupaten', 'kecamatan', 'kelurahan']);
 
         $cvProfile = $this->cvProfileForEmployee($employee);
+        $progressStatus = CvMakerProgressStatus::query()
+            ->where('employee_nik', $employee->nik)
+            ->with(['histories' => function ($query) {
+                $query->latest()->limit(10);
+            }])
+            ->first();
         $comparison = $this->compareEmployee($employee, $cvProfile);
 
         return [
             'cv_profile' => $cvProfile,
+            'progress_status' => $progressStatus,
+            'progress_html' => $this->renderProgressSnapshot($progressStatus),
+            'progress_histories' => $progressStatus ? $progressStatus->histories : collect(),
             'vitae' => $this->buildVitaeView($cvProfile),
             'comparison' => $comparison,
-            'cv_status' => $this->renderCvStatus($cvProfile),
+            'cv_status' => $this->renderCvStatus($cvProfile, $progressStatus),
             'summary' => $this->renderMismatchSummary($comparison, $cvProfile),
             'can_update' => $this->isConfigured() && $cvProfile && !empty($cvProfile['profile_id']),
         ];
@@ -598,6 +610,18 @@ class CvMakerCompareService
             $query->where('employees.status_resign', $request->input('status_resign'));
         }
 
+        if ($request->input('cv_reminder') === 'needs_reminder') {
+            $query->whereIn('employees.nik', CvMakerProgressStatus::query()
+                ->select('employee_nik')
+                ->where('needs_reminder', true));
+        }
+
+        if ($request->input('cv_reminder') === 'not_needed') {
+            $query->whereNotIn('employees.nik', CvMakerProgressStatus::query()
+                ->select('employee_nik')
+                ->where('needs_reminder', true));
+        }
+
         $keyword = trim((string) $request->input('search.value', ''));
 
         if ($keyword !== '') {
@@ -635,6 +659,26 @@ class CvMakerCompareService
     private function cvProfileForEmployee(Employee $employee): ?array
     {
         return $this->fetchCvProfilesForEmployees(collect([$employee]))[$employee->nik] ?? null;
+    }
+
+    private function fetchProgressStatusesForEmployees(Collection $employees): array
+    {
+        $niks = $employees
+            ->pluck('nik')
+            ->filter()
+            ->map(fn($nik) => (string) $nik)
+            ->values()
+            ->all();
+
+        if (empty($niks)) {
+            return [];
+        }
+
+        return CvMakerProgressStatus::query()
+            ->whereIn('employee_nik', $niks)
+            ->get()
+            ->keyBy('employee_nik')
+            ->all();
     }
 
     private function validCvLocationIds(array $cvProfile): array
@@ -1652,18 +1696,63 @@ class CvMakerCompareService
             . '</div>';
     }
 
-    private function renderCvStatus(?array $cvProfile): string
+    public function renderProgressSnapshot(?CvMakerProgressStatus $progressStatus): string
+    {
+        if (!$progressStatus) {
+            return '<div class="cv-progress-snapshot cv-progress-snapshot--empty">'
+                . '<span class="badge bg-light text-dark border">Snapshot belum tersedia</span>'
+                . '<div class="cv-status-meta">Menunggu sinkronisasi terjadwal.</div>'
+                . '</div>';
+        }
+
+        if (empty($progressStatus->cv_profile_id)) {
+            return '<div class="cv-progress-snapshot cv-progress-snapshot--empty">'
+                . '<span class="badge bg-light text-dark border">Profil CV belum ditemukan</span>'
+                . '<div class="cv-status-meta">Sync terakhir: '
+                . e($progressStatus->last_synced_at ? $progressStatus->last_synced_at->format('d/m/Y H:i') : '-')
+                . '</div>'
+                . '</div>';
+        }
+
+        $badges = [];
+
+        if ($progressStatus->is_complete) {
+            $badges[] = '<span class="badge bg-success">Tahap 8 selesai</span>';
+        } elseif ($progressStatus->needs_reminder) {
+            $badges[] = '<span class="badge bg-warning text-dark">Perlu Diingatkan</span>';
+        } else {
+            $badges[] = '<span class="badge bg-light text-dark border">Dalam Progress</span>';
+        }
+
+        $stepLabel = 'Tahap ' . (int) $progressStatus->current_step
+            . '/' . (int) ($progressStatus->total_step_count ?: CvMakerProgressSnapshotService::TOTAL_STEPS)
+            . ' - ' . e($progressStatus->current_step_label ?: '-');
+        $lastActivity = $progressStatus->last_activity_at
+            ? 'Aktivitas terakhir: ' . e($progressStatus->last_activity_at->format('d/m/Y H:i'))
+            : 'Aktivitas terakhir: -';
+
+        return '<div class="cv-progress-snapshot">'
+            . '<div class="cv-progress-snapshot__badges">' . implode('', $badges) . '</div>'
+            . '<div class="cv-status-meta">' . $stepLabel . '</div>'
+            . '<div class="cv-status-meta">' . $lastActivity . '</div>'
+            . '</div>';
+    }
+
+    private function renderCvStatus(?array $cvProfile, ?CvMakerProgressStatus $progressStatus = null): string
     {
         if (!$this->isConfigured()) {
-            return '<span class="badge bg-warning text-dark">Belum dikonfigurasi</span>';
+            return '<span class="badge bg-warning text-dark">Belum dikonfigurasi</span>'
+                . $this->renderProgressSnapshot($progressStatus);
         }
 
         if (!$cvProfile) {
-            return '<span class="badge bg-secondary">Tidak ada akun CV</span>';
+            return '<span class="badge bg-secondary">Tidak ada akun CV</span>'
+                . $this->renderProgressSnapshot($progressStatus);
         }
 
         if (empty($cvProfile['profile_id'])) {
-            return '<span class="badge bg-secondary">Profil kosong</span>';
+            return '<span class="badge bg-secondary">Profil kosong</span>'
+                . $this->renderProgressSnapshot($progressStatus);
         }
 
         $status = $cvProfile['status'] ?: 'draft';
@@ -1674,7 +1763,9 @@ class CvMakerCompareService
             ? '<div class="cv-status-meta">' . e(Carbon::parse($cvProfile['updated_at'])->format('d/m/Y H:i')) . '</div>'
             : '';
 
-        return '<span class="badge ' . $badgeClass . '">' . e(ucfirst($status)) . '</span>' . $updatedAt;
+        return '<span class="badge ' . $badgeClass . '">' . e(ucfirst($status)) . '</span>'
+            . $updatedAt
+            . $this->renderProgressSnapshot($progressStatus);
     }
 
     private function renderResultCell(Employee $employee, array $comparison, ?array $cvProfile): string

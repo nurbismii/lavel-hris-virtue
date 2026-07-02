@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\Employee;
+use App\Models\CvMakerProgressStatus;
 use App\Models\Kabupaten;
 use App\Models\Kecamatan;
 use App\Models\Kelurahan;
@@ -13,6 +14,26 @@ use Tests\TestCase;
 
 class CvMakerCompareServiceTest extends TestCase
 {
+    public function test_progress_snapshot_renderer_shows_reminder_badge_and_current_step(): void
+    {
+        $service = new CvMakerCompareService();
+        $status = new CvMakerProgressStatus([
+            'cv_profile_id' => 20,
+            'current_step' => 8,
+            'current_step_label' => 'Dokumen',
+            'total_step_count' => 8,
+            'needs_reminder' => true,
+            'is_complete' => false,
+            'last_activity_at' => '2026-07-01 08:00:00',
+        ]);
+
+        $html = $service->renderProgressSnapshot($status);
+
+        $this->assertStringContainsString('Perlu Diingatkan', $html);
+        $this->assertStringContainsString('Tahap 8/8 - Dokumen', $html);
+        $this->assertStringContainsString('Aktivitas terakhir', $html);
+    }
+
     public function test_missing_value_is_skipped_and_not_counted_as_mismatch(): void
     {
         $service = new CvMakerCompareService();

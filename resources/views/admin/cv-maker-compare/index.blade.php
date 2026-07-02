@@ -128,6 +128,15 @@
                                 <option value="PHK MENINGGAL DUNIA">PHK Meninggal Dunia</option>
                             </select>
                         </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cv_filter_reminder">Reminder CV</label>
+                            <select id="cv_filter_reminder" class="form-select">
+                                <option value="">Semua Reminder</option>
+                                <option value="needs_reminder">Perlu Diingatkan</option>
+                                <option value="not_needed">Tidak Perlu Diingatkan</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -246,6 +255,7 @@
                     data.departemen = $('#cv_filter_departemen').val();
                     data.divisi = $('#cv_filter_divisi').val();
                     data.status_resign = $('#cv_filter_resign').val();
+                    data.cv_reminder = $('#cv_filter_reminder').val();
                 },
                 error: function(xhr) {
                     showCvCompareAjaxError(xhr, 'Data compare gagal dimuat.');
@@ -325,7 +335,7 @@
         });
     });
 
-    $('#cv_filter_divisi, #cv_filter_resign').on('change', function() {
+    $('#cv_filter_divisi, #cv_filter_resign, #cv_filter_reminder').on('change', function() {
         cvCompareTable.draw();
     });
 
@@ -334,6 +344,7 @@
         syncCvAreaFilter();
         resetCvDepartmentAndDivision(true);
         $('#cv_filter_resign').val('AKTIF');
+        $('#cv_filter_reminder').val('');
         cvCompareTable.draw();
     });
 </script>

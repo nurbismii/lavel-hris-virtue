@@ -173,6 +173,22 @@
     white-space: normal;
 }
 
+.cv-progress-snapshot {
+    display: grid;
+    gap: 2px;
+    margin-top: 7px;
+}
+
+.cv-progress-snapshot--empty {
+    opacity: 0.82;
+}
+
+.cv-progress-snapshot__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
 .cv-compare-fields {
     display: grid;
     gap: 6px;
@@ -266,7 +282,8 @@
 }
 
 .cv-detail-summary-panel > .ui-panel__body,
-.cv-detail-compare-panel > .ui-panel__body {
+.cv-detail-compare-panel > .ui-panel__body,
+.cv-progress-detail-panel > .ui-panel__body {
     padding: 1rem;
 }
 
@@ -304,6 +321,66 @@
     display: grid;
     gap: 8px;
     align-content: start;
+}
+
+.cv-progress-detail-grid {
+    display: grid;
+    grid-template-columns: minmax(240px, 0.9fr) minmax(0, 1.4fr);
+    gap: 16px;
+}
+
+.cv-progress-detail-summary,
+.cv-progress-history {
+    min-width: 0;
+    padding: 12px;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border-soft);
+    border-radius: var(--ui-radius);
+}
+
+.cv-progress-detail-summary__meta {
+    margin-top: 10px;
+    color: var(--ui-muted);
+    font-size: 0.78rem;
+}
+
+.cv-progress-history__title {
+    margin-bottom: 10px;
+    color: var(--ui-text);
+    font-weight: 800;
+}
+
+.cv-progress-history__empty {
+    color: var(--ui-muted);
+    font-size: 0.84rem;
+}
+
+.cv-progress-history__list {
+    display: grid;
+    gap: 8px;
+}
+
+.cv-progress-history__item {
+    padding: 9px 10px;
+    background: #ffffff;
+    border: 1px solid var(--ui-border-soft);
+    border-radius: 8px;
+}
+
+.cv-progress-history__main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    color: var(--ui-text);
+    font-size: 0.84rem;
+    line-height: 1.35;
+}
+
+.cv-progress-history__meta {
+    margin-top: 5px;
+    color: var(--ui-muted);
+    font-size: 0.75rem;
 }
 
 .cv-detail-grid {
@@ -705,6 +782,10 @@
     }
 
     .cv-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cv-progress-detail-grid {
         grid-template-columns: 1fr;
     }
 

@@ -17,6 +17,8 @@ $groupLabels = [
     'education' => 'Pendidikan',
 ];
 $cvProfile = $detail['cv_profile'] ?? null;
+$progressStatus = $detail['progress_status'] ?? null;
+$progressHistories = $detail['progress_histories'] ?? collect();
 $vitae = $detail['vitae'] ?? [];
 $comparison = $detail['comparison'] ?? ['groups' => [], 'mismatch_count' => 0, 'compared_count' => 0];
 $canUpdateFromCv = (bool) ($detail['can_update'] ?? false);
@@ -170,6 +172,56 @@ $hasAdditional = !empty($vitae['projects']) || !empty($vitae['organizations']) |
                             <small class="text-muted d-block">Update tersedia jika koneksi CV Maker aktif dan profil karyawan ditemukan.</small>
                             @endif
                         </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="ui-panel cv-progress-detail-panel mb-3">
+            <div class="ui-panel__header">
+                <div>
+                    <h5 class="ui-panel__title">Progress Pengisian CV</h5>
+                    <p class="ui-panel__meta">Snapshot HRIS dari pengisian CV Maker. Riwayat mulai tercatat sejak fitur ini aktif.</p>
+                </div>
+            </div>
+            <div class="ui-panel__body">
+                <div class="cv-progress-detail-grid">
+                    <div class="cv-progress-detail-summary">
+                        {!! $detail['progress_html'] ?? '' !!}
+                        @if($progressStatus)
+                        <div class="cv-progress-detail-summary__meta">
+                            Sync terakhir:
+                            {{ $progressStatus->last_synced_at ? $progressStatus->last_synced_at->format('d/m/Y H:i') : '-' }}
+                        </div>
+                        @else
+                        <div class="cv-progress-detail-summary__meta">Jalankan scheduler sync untuk membuat snapshot awal.</div>
+                        @endif
+                    </div>
+                    <div class="cv-progress-history">
+                        <div class="cv-progress-history__title">Riwayat Terbaru</div>
+                        @if($progressHistories->isEmpty())
+                        <div class="cv-progress-history__empty">
+                            Belum ada riwayat progress.
+                        </div>
+                        @else
+                        <div class="cv-progress-history__list">
+                            @foreach($progressHistories as $history)
+                            <div class="cv-progress-history__item">
+                                <div class="cv-progress-history__main">
+                                    <span class="badge bg-light text-dark border">{{ str_replace('_', ' ', ucfirst($history->event_type)) }}</span>
+                                    <span>{{ $history->message ?: 'Progress CV Maker diperbarui.' }}</span>
+                                </div>
+                                <div class="cv-progress-history__meta">
+                                    {{ $history->created_at ? $history->created_at->format('d/m/Y H:i') : '-' }}
+                                    @if($history->from_step || $history->to_step)
+                                    <span>&middot;</span>
+                                    Tahap {{ $history->from_step ?: '-' }} ke {{ $history->to_step ?: '-' }}
+                                    @endif
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                        @endif
                     </div>
                 </div>
             </div>
