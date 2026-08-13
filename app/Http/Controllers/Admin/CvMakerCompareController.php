@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\Perusahaan;
 use App\Models\User;
 use App\Services\CvMaker\CvMakerCompareService;
+use App\Services\CvMaker\CvMakerApiClient;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -80,6 +81,37 @@ class CvMakerCompareController extends Controller
         return response()->json($this->hideRawChangeValues($result), $result['success'] ? 200 : 422);
     }
 
+    public function document(Request $request, string $nik, int $document, CvMakerCompareService $service, CvMakerApiClient $client)
+    {
+        $this->authorizeAccess($request->user());
+        $employee = $this->scopedEmployee($request, $nik);
+        $detail = $service->detailForEmployee($employee);
+        $allowed = collect(data_get($detail, 'vitae.documents', []))->contains(fn($item) => (int) ($item['id'] ?? 0) === $document);
+        abort_unless($allowed, 404);
+
+        return $this->proxyPrivateFile(
+            $client->file('api/internal/vpeople/documents/' . $document, $service->hashNik((string) $employee->nik)),
+            'dokumen-vitae-' . $document
+        );
+    }
+
+    public function photo(Request $request, string $nik, int $profile, CvMakerCompareService $service, CvMakerApiClient $client)
+    {
+        $this->authorizeAccess($request->user());
+        $employee = $this->scopedEmployee($request, $nik);
+        $detail = $service->detailForEmployee($employee);
+        abort_unless(
+            (int) data_get($detail, 'cv_profile.profile_id', 0) === $profile
+                && (bool) data_get($detail, 'vitae.profile.photo_available', false),
+            404
+        );
+
+        return $this->proxyPrivateFile(
+            $client->file('api/internal/vpeople/profiles/' . $profile . '/photo', $service->hashNik((string) $employee->nik)),
+            'foto-vitae-' . $employee->nik
+        );
+    }
+
     private function authorizeAccess(User $user): void
     {
         abort_unless(
@@ -117,6 +149,30 @@ class CvMakerCompareController extends Controller
             return $change;
         }, $payload['changes']);
 
+        if (isset($payload['related_changes']) && is_array($payload['related_changes'])) {
+            $payload['related_changes'] = array_map(function (array $change) {
+                unset($change['rows'], $change['profile_id']);
+
+                return $change;
+            }, $payload['related_changes']);
+        }
+
         return $payload;
+    }
+
+    private function proxyPrivateFile($upstream, string $fallbackName)
+    {
+        abort_unless($upstream, 404);
+        $contentType = $upstream->header('Content-Type') ?: 'application/octet-stream';
+        $disposition = $upstream->header('Content-Disposition') ?: 'inline; filename="' . $fallbackName . '"';
+
+        return response($upstream->body(), 200, [
+            'Content-Type' => $contentType,
+            'Content-Disposition' => $disposition,
+            'Content-Length' => strlen($upstream->body()),
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox",
+        ]);
     }
 }

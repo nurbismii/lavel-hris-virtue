@@ -91,4 +91,34 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeMovement::class, 'employee_nik', 'nik');
     }
+
+    public function cvEducations()
+    {
+        return $this->hasMany(EmployeeCvEducation::class, 'employee_nik', 'nik');
+    }
+
+    public function cvExperiences()
+    {
+        return $this->hasMany(EmployeeCvExperience::class, 'employee_nik', 'nik');
+    }
+
+    public function cvOrganizations()
+    {
+        return $this->hasMany(EmployeeCvOrganization::class, 'employee_nik', 'nik');
+    }
+
+    public function cvCertifications()
+    {
+        return $this->hasMany(EmployeeCvCertification::class, 'employee_nik', 'nik');
+    }
+
+    public function cvLanguages()
+    {
+        return $this->hasMany(EmployeeCvLanguage::class, 'employee_nik', 'nik');
+    }
+
+    public function cvProjects()
+    {
+        return $this->hasMany(EmployeeCvProject::class, 'employee_nik', 'nik');
+    }
 }

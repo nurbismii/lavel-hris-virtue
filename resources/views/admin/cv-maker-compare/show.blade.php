@@ -12,6 +12,7 @@ $groupLabels = [
     'identity' => 'Identitas',
     'family' => 'Keluarga',
     'address' => 'Alamat',
+    'administration' => 'Administrasi',
     'work' => 'Organisasi',
     'location' => 'Wilayah',
     'education' => 'Pendidikan',
@@ -21,6 +22,7 @@ $progressStatus = $detail['progress_status'] ?? null;
 $progressHistories = $detail['progress_histories'] ?? collect();
 $vitae = $detail['vitae'] ?? [];
 $comparison = $detail['comparison'] ?? ['groups' => [], 'mismatch_count' => 0, 'compared_count' => 0];
+$relatedComparison = $detail['related_comparison'] ?? [];
 $canUpdateFromCv = (bool) ($detail['can_update'] ?? false);
 $mismatchKeys = collect($comparison['groups'] ?? [])
     ->flatMap(fn($items) => $items)
@@ -87,6 +89,48 @@ $cvContactMeta = collect([
 ])->filter(fn($item) => $hasCvValue($item['value']))->values();
 $hasSkills = !empty($profile['technical_skills']) || !empty($profile['non_technical_skills']);
 $hasAdditional = !empty($vitae['projects']) || !empty($vitae['organizations']) || !empty($vitae['languages']);
+$completeProfileGroups = [
+    'Identitas & keluarga' => [
+        'Nama lengkap' => $profile['name'] ?? null,
+        'Tempat lahir' => $profile['birth_place'] ?? null,
+        'Tanggal lahir' => $profile['birth_date'] ?? null,
+        'Nomor KTP' => $profile['ktp_number'] ?? null,
+        'Nomor KK' => $profile['family_card_number'] ?? null,
+        'NPWP' => $profile['npwp_number'] ?? null,
+        'Nomor rekening' => $profile['bank_account_number'] ?? null,
+        'Jenis kelamin' => $profile['gender'] ?? null,
+        'Tinggi / berat' => implode(' / ', array_filter([$profile['height'] ?? null, $profile['weight'] ?? null])),
+        'Golongan darah' => $profile['blood_type'] ?? null,
+        'Agama' => $profile['religion'] ?? null,
+        'Status perkawinan' => $profile['marital_status'] ?? null,
+        'Tanggal menikah' => $profile['marriage_date'] ?? null,
+        'Nama pasangan' => $profile['spouse_name'] ?? null,
+        'Nama ibu kandung' => $profile['mother_name'] ?? null,
+        'Memiliki anak' => $profile['has_children'] ?? null,
+        'Nama anak' => !empty($profile['children_names']) ? implode(', ', $profile['children_names']) : null,
+    ],
+    'Alamat & kontak' => [
+        'Alamat KTP' => $profile['ktp_address'] ?? null,
+        'RT / RW' => implode(' / ', array_filter([$profile['rt'] ?? null, $profile['rw'] ?? null])),
+        'Domisili sama dengan KTP' => $profile['domicile_same_as_ktp'] ?? null,
+        'Provinsi' => $profile['province'] ?? null,
+        'Kabupaten/Kota' => $profile['regency'] ?? null,
+        'Kecamatan' => $profile['district'] ?? null,
+        'Kelurahan/Desa' => $profile['village'] ?? null,
+        'Alamat domisili' => $profile['address'] ?? null,
+        'Telepon' => $profile['phone'] ?? null,
+        'Email' => $profile['email'] ?? null,
+        'Instagram' => $profile['instagram'] ?? null,
+        'LinkedIn' => $profile['linkedin'] ?? null,
+        'Facebook' => $profile['facebook'] ?? null,
+    ],
+    'Kompetensi & minat' => [
+        'Keahlian teknis' => !empty($profile['technical_skills']) ? implode(', ', $profile['technical_skills']) : null,
+        'Keahlian non-teknis' => !empty($profile['non_technical_skills']) ? implode(', ', $profile['non_technical_skills']) : null,
+        'Hobi' => !empty($profile['hobbies']) ? implode(', ', $profile['hobbies']) : null,
+        'Bakat' => !empty($profile['talents']) ? implode(', ', $profile['talents']) : null,
+    ],
+];
 @endphp
 
 <div class="container-fluid">
@@ -447,6 +491,81 @@ $hasAdditional = !empty($vitae['projects']) || !empty($vitae['organizations']) |
             </div>
         </section>
 
+        @if($cvProfile && !empty($cvProfile['profile_id']))
+        <section class="ui-panel mb-3">
+            <div class="ui-panel__header">
+                <div>
+                    <h5 class="ui-panel__title">Seluruh Data Vitae</h5>
+                    <p class="ui-panel__meta">Field tanpa pasangan kolom di V-People tetap ditampilkan sebagai referensi HR.</p>
+                </div>
+                @if(!empty($profile['photo_available']))
+                <a href="{{ route('cv-maker-compare.profiles.photo', ['nik' => $employee->nik, 'profile' => $cvProfile['profile_id']]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary ui-btn-icon">
+                    <i class="fas fa-image"></i> Foto Vitae
+                </a>
+                @endif
+            </div>
+            <div class="ui-panel__body">
+                <div class="row g-3">
+                    @foreach($completeProfileGroups as $sectionLabel => $fields)
+                    <div class="col-xl-4 col-md-6">
+                        <div class="cv-detail-group h-100">
+                            <div class="cv-detail-group__header"><h6>{{ $sectionLabel }}</h6></div>
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <tbody>
+                                        @foreach($fields as $label => $value)
+                                        <tr><th class="text-muted fw-normal">{{ $label }}</th><td>{{ filled($value) ? $value : '-' }}</td></tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+
+                @if(!empty($vitae['achievements']))
+                <div class="cv-detail-group mt-3">
+                    <div class="cv-detail-group__header"><h6>Prestasi</h6></div>
+                    <div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">
+                        <thead><tr><th>Bidang</th><th>Prestasi</th><th>Peringkat</th><th>Tingkat</th><th>Periode</th></tr></thead>
+                        <tbody>@foreach($vitae['achievements'] as $item)<tr><td>{{ $item['field'] ?: '-' }}</td><td>{{ $item['type'] ?: '-' }}</td><td>{{ $item['rank'] ?: '-' }}</td><td>{{ $item['level'] ?: '-' }}</td><td>{{ $item['period'] ?: '-' }}</td></tr>@endforeach</tbody>
+                    </table></div>
+                </div>
+                @endif
+
+                @if(!empty($vitae['emergency_contacts']))
+                <div class="cv-detail-group mt-3">
+                    <div class="cv-detail-group__header"><h6>Kontak Darurat</h6></div>
+                    <div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">
+                        <thead><tr><th>Nama</th><th>Hubungan</th><th>Nomor telepon</th></tr></thead>
+                        <tbody>@foreach($vitae['emergency_contacts'] as $item)<tr><td>{{ $item['name'] ?: '-' }}</td><td>{{ $item['relationship'] ?: '-' }}</td><td>{{ $item['phone'] ?: '-' }}</td></tr>@endforeach</tbody>
+                    </table></div>
+                </div>
+                @endif
+
+                <div class="cv-detail-group mt-3">
+                    <div class="cv-detail-group__header"><h6>File yang Diunggah</h6><span class="badge bg-light text-dark border">{{ count($vitae['documents'] ?? []) }} file</span></div>
+                    @if(!empty($vitae['documents']))
+                    <div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">
+                        <thead><tr><th>Jenis</th><th>Nama file</th><th>Format</th><th>Ukuran</th><th>Upload</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach($vitae['documents'] as $document)
+                            <tr>
+                                <td>{{ $document['label'] }}</td><td>{{ $document['original_name'] ?: '-' }}</td><td>{{ $document['mime_type'] ?: '-' }}</td><td>{{ $document['file_size'] }}</td><td>{{ $document['uploaded_at'] ?: '-' }}</td>
+                                <td><a href="{{ route('cv-maker-compare.documents.show', ['nik' => $employee->nik, 'document' => $document['id']]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i> Lihat</a></td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table></div>
+                    @else
+                    <div class="text-muted p-3">Belum ada file yang diunggah di Vitae.</div>
+                    @endif
+                </div>
+            </div>
+        </section>
+        @endif
+
         <section class="ui-panel cv-detail-compare-panel">
             <div class="ui-panel__header">
                 <div>
@@ -487,6 +606,30 @@ $hasAdditional = !empty($vitae['projects']) || !empty($vitae['organizations']) |
                     </div>
                     @endforeach
                 </div>
+
+                @if(!empty($relatedComparison))
+                <div class="cv-detail-group mt-3">
+                    <div class="cv-detail-group__header">
+                        <h6>Riwayat & Kompetensi</h6>
+                        @if(collect($relatedComparison)->where('mismatch', true)->count() > 0)
+                        <span class="badge bg-danger">{{ collect($relatedComparison)->where('mismatch', true)->count() }} mismatch</span>
+                        @else
+                        <span class="badge bg-success">Sesuai</span>
+                        @endif
+                    </div>
+                    <div class="cv-compare-fields cv-compare-fields--detail">
+                        @foreach($relatedComparison as $item)
+                        <div class="cv-compare-field{{ !empty($item['mismatch']) ? ' cv-compare-field--mismatch' : (!empty($item['skipped']) ? ' cv-compare-field--skipped' : '') }}">
+                            <div class="cv-compare-field__label">{{ $item['label'] }}</div>
+                            <div class="cv-compare-field__values">
+                                <span title="V-People">{{ $item['hris'] }}</span>
+                                <span title="Vitae">{{ $item['cv'] }}</span>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
             </div>
         </section>
     </div>

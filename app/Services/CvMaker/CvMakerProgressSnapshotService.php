@@ -11,6 +11,13 @@ use Throwable;
 
 class CvMakerProgressSnapshotService
 {
+    private $apiClient;
+
+    public function __construct(CvMakerApiClient $apiClient = null)
+    {
+        $this->apiClient = $apiClient;
+    }
+
     public const TOTAL_STEPS = 8;
     public const REMINDER_REASON_IDLE = 'Draft CV belum lengkap dan tidak ada aktivitas lebih dari 24 jam.';
 
@@ -175,7 +182,7 @@ class CvMakerProgressSnapshotService
         ?Carbon $now = null
     ): array {
         $now = $now ?: Carbon::now();
-        $limit = max(1, min($limit, 5000));
+        $limit = max(1, min($limit, 20000));
         $chunk = max(1, min($chunk, 1000));
 
         $summary = [
@@ -234,13 +241,22 @@ class CvMakerProgressSnapshotService
 
     public function isConfigured(): bool
     {
+        $transport = $this->transport();
         $connection = config('services.cv_maker.connection', 'cv_maker');
-
-        return filled(config('services.cv_maker.nik_hash_key'))
+        $apiConfigured = $this->apiClient()->isConfigured();
+        $databaseConfigured = filled(config('services.cv_maker.nik_hash_key'))
             && (
                 filled(config('database.connections.' . $connection . '.database'))
                 || filled(config('database.connections.' . $connection . '.url'))
             );
+
+        if ($transport === 'api') {
+            return $apiConfigured;
+        }
+
+        return $transport === 'auto'
+            ? ($apiConfigured || $databaseConfigured)
+            : $databaseConfigured;
     }
 
     public function hashNik(string $nik): string
@@ -339,6 +355,10 @@ class CvMakerProgressSnapshotService
             $hashToNik[$this->hashNik((string) $nik)] = (string) $nik;
         }
 
+        if ($this->usesApi()) {
+            return $this->fetchCvMakerPayloadsFromApi($hashToNik);
+        }
+
         try {
             $profiles = DB::connection($connection)
                 ->table('users')
@@ -395,6 +415,52 @@ class CvMakerProgressSnapshotService
         }
 
         return $payloads;
+    }
+
+    private function fetchCvMakerPayloadsFromApi(array $hashToNik): array
+    {
+        $profiles = $this->apiClient()->profiles(array_keys($hashToNik));
+        $payloads = [];
+
+        foreach ($profiles as $hash => $profile) {
+            $nik = $hashToNik[$hash] ?? null;
+
+            if (!$nik || empty($profile['profile_id'])) {
+                continue;
+            }
+
+            $related = is_array($profile['related'] ?? null)
+                ? $profile['related']
+                : $this->emptyRelatedRows();
+            unset($profile['related']);
+
+            $payloads[$nik] = [
+                'profile' => $profile,
+                'related' => array_merge($this->emptyRelatedRows(), $related),
+            ];
+        }
+
+        return $payloads;
+    }
+
+    private function apiClient(): CvMakerApiClient
+    {
+        if (!$this->apiClient) {
+            $this->apiClient = app(CvMakerApiClient::class);
+        }
+
+        return $this->apiClient;
+    }
+
+    private function usesApi(): bool
+    {
+        return $this->apiClient()->isConfigured()
+            && in_array($this->transport(), ['api', 'auto'], true);
+    }
+
+    private function transport(): string
+    {
+        return strtolower(trim((string) config('services.cv_maker.transport', 'database')));
     }
 
     private function fetchRelatedRowsByProfileIds(string $connection, array $profileIds): array

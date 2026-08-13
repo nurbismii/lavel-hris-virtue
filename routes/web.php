@@ -223,6 +223,12 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::post('/cv-maker-compare/{nik}/update-hris', [CvMakerCompareController::class, 'updateHris'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
             ->name('cv-maker-compare.update-hris');
+        Route::get('/cv-maker-compare/{nik}/documents/{document}', [CvMakerCompareController::class, 'document'])
+            ->whereNumber('document')
+            ->name('cv-maker-compare.documents.show');
+        Route::get('/cv-maker-compare/{nik}/profiles/{profile}/photo', [CvMakerCompareController::class, 'photo'])
+            ->whereNumber('profile')
+            ->name('cv-maker-compare.profiles.photo');
 
         Route::prefix('/pergerakan-karyawan')
             ->name('employee-movements.')

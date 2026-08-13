@@ -80,9 +80,11 @@
             cvUpdateLoading.classList.add('d-none');
 
             const changes = payload.changes || [];
+            const relatedChanges = payload.related_changes || [];
             const skipped = payload.skipped || [];
+            const allChanges = changes.concat(relatedChanges);
 
-            if (!changes.length) {
+            if (!allChanges.length) {
                 cvUpdateEmpty.textContent = payload.message || 'Tidak ada perubahan yang bisa diperbarui dari CV Maker.';
                 cvUpdateEmpty.classList.remove('d-none');
 
@@ -95,7 +97,7 @@
                 return;
             }
 
-            cvUpdateRows.innerHTML = changes.map(function(change) {
+            cvUpdateRows.innerHTML = allChanges.map(function(change) {
                 return `<tr>
                     <td>${escapeHtml(change.label)}</td>
                     <td>${escapeHtml(change.old)}</td>

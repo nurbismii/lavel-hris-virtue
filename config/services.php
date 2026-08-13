@@ -52,8 +52,13 @@ return [
     ],
 
     'cv_maker' => [
+        'transport' => env('CV_MAKER_TRANSPORT', 'database'),
         'connection' => env('CV_MAKER_DB_CONNECTION_NAME', 'cv_maker'),
         'nik_hash_key' => env('CV_MAKER_NIK_HASH_KEY'),
+        'api_base_url' => env('CV_MAKER_API_BASE_URL'),
+        'api_token' => env('CV_MAKER_API_TOKEN'),
+        'api_timeout' => env('CV_MAKER_API_TIMEOUT', 15),
+        'api_connect_timeout' => env('CV_MAKER_API_CONNECT_TIMEOUT', 5),
         'max_page_size' => env('CV_MAKER_COMPARE_MAX_PAGE_SIZE', 100),
     ],
 

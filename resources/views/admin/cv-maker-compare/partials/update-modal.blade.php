@@ -18,7 +18,7 @@
                 <div id="cvUpdatePreviewContent" class="d-none">
                     <div class="cv-update-warning mb-3">
                         <i class="fas fa-info-circle"></i>
-                        Sistem hanya mengisi nilai CV Maker yang valid dan tidak kosong. Departemen, divisi, dan perusahaan tidak di-update otomatis karena memakai foreign key dan berdampak ke scope akses.
+                        Sistem hanya mengisi nilai CV Maker yang valid dan tidak kosong. Bagian riwayat akan mengganti data yang sebelumnya berasal dari Vitae; data manual/sumber lain tetap dipertahankan. Data V-People tidak dihapus jika bagian Vitae kosong. Departemen, divisi, dan perusahaan tidak di-update otomatis karena memakai foreign key dan berdampak ke scope akses.
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered align-middle cv-update-table mb-0">

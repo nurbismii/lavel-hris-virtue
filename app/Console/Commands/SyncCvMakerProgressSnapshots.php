@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 class SyncCvMakerProgressSnapshots extends Command
 {
     protected $signature = 'cv-maker:sync-progress
-        {--limit=500 : Maksimal karyawan aktif yang diperiksa per run}
+        {--limit=500 : Maksimal karyawan aktif yang diperiksa per run, hingga 20000}
         {--chunk=100 : Ukuran batch query ke database CV Maker}
         {--now= : Waktu referensi untuk testing, format Y-m-d H:i:s}
         {--dry-run : Hitung progress tanpa menulis snapshot dan histori}';
@@ -18,7 +18,7 @@ class SyncCvMakerProgressSnapshots extends Command
 
     public function handle(CvMakerProgressSnapshotService $service): int
     {
-        $limit = max(1, min((int) $this->option('limit'), 5000));
+        $limit = max(1, min((int) $this->option('limit'), 20000));
         $chunk = max(1, min((int) $this->option('chunk'), 1000));
         $dryRun = (bool) $this->option('dry-run');
         $now = $this->resolveNow();
@@ -30,7 +30,7 @@ class SyncCvMakerProgressSnapshots extends Command
         $summary = $service->syncActiveEmployees($limit, $chunk, $dryRun, $now);
 
         if (!$summary['configured']) {
-            $this->error('Koneksi CV Maker belum dikonfigurasi. Set CV_MAKER_DB_* dan CV_MAKER_NIK_HASH_KEY.');
+            $this->error('Integrasi CV Maker belum dikonfigurasi. Set transport API atau koneksi database CV Maker.');
 
             return self::FAILURE;
         }
