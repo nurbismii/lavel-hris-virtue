@@ -151,6 +151,7 @@ class CvMakerCompareServiceTest extends TestCase
             'no_telp' => '081234567890',
             'alamat_domisili' => 'Morosi',
             'area_kerja' => 'VDNI',
+            'jabatan' => 'Operator Produksi',
             'posisi' => 'Operator',
             'pendidikan_terakhir' => 'SMA',
         ]);
@@ -166,6 +167,7 @@ class CvMakerCompareServiceTest extends TestCase
             'work_area' => 'VDNI',
             'department' => null,
             'division' => null,
+            'job_title' => 'Operator Produksi',
             'position' => 'Supervisor',
             'province_name' => null,
             'regency_name' => null,
@@ -249,6 +251,7 @@ class CvMakerCompareServiceTest extends TestCase
             'status_perkawinan' => 'Belum Kawin',
             'no_telp' => '081234567890',
             'alamat_domisili' => 'Morosi',
+            'jabatan' => 'Operator Produksi',
             'posisi' => 'Operator',
             'pendidikan_terakhir' => 'SMA',
             'tanggal_kelulusan' => '2019-01-01',
@@ -265,6 +268,7 @@ class CvMakerCompareServiceTest extends TestCase
             'marital_status' => 'Belum',
             'phone' => '+62 812 3456 7890',
             'address' => 'Morosi Baru',
+            'job_title' => 'Supervisor Produksi',
             'position' => 'Supervisor',
             'province_name' => 'Sulawesi Tenggara',
             'education_level' => 'S1',
@@ -281,6 +285,7 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertTrue($preview['success']);
         $this->assertContains('nama_karyawan', $columns);
         $this->assertContains('alamat_domisili', $columns);
+        $this->assertContains('jabatan', $columns);
         $this->assertContains('posisi', $columns);
         $this->assertContains('pendidikan_terakhir', $columns);
         $this->assertContains('tanggal_kelulusan', $columns);

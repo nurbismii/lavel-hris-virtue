@@ -19,4 +19,9 @@ class Divisi extends Model
     {
         return $this->hasMany(Employee::class, 'divisi_id')->where('status_resign', 'AKTIF');
     }
+
+    public function organizationPositions()
+    {
+        return $this->hasMany(OrganizationPosition::class, 'divisi_id');
+    }
 }

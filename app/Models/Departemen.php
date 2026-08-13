@@ -24,4 +24,9 @@ class Departemen extends Model
     {
         return $this->belongsTo(Perusahaan::class, 'perusahaan_id');
     }
+
+    public function organizationPositions()
+    {
+        return $this->hasMany(OrganizationPosition::class, 'departemen_id');
+    }
 }

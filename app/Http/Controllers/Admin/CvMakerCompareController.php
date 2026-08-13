@@ -129,6 +129,9 @@ class CvMakerCompareController extends Controller
             ->with([
                 'departemen',
                 'divisi',
+                'jobTitle.level',
+                'organizationPosition.levelOverride',
+                'organizationPosition.jobTitle.level',
                 'provinsi',
                 'kabupaten',
                 'kecamatan',

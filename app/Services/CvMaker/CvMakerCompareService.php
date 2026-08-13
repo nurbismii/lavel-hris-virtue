@@ -71,7 +71,10 @@ class CvMakerCompareService
             ['key' => 'work_area', 'label' => 'Perusahaan', 'hris' => 'area_kerja', 'cv' => 'work_area', 'type' => 'text'],
             ['key' => 'department', 'label' => 'Departemen', 'hris' => 'department_name', 'cv' => 'department', 'type' => 'text'],
             ['key' => 'division', 'label' => 'Divisi', 'hris' => 'division_name', 'cv' => 'division', 'type' => 'text'],
+            ['key' => 'job_title', 'label' => 'Jabatan', 'hris' => 'job_title', 'cv' => 'job_title', 'type' => 'text'],
             ['key' => 'position', 'label' => 'Posisi', 'hris' => 'position', 'cv' => 'position', 'type' => 'text'],
+            ['key' => 'job_title_master', 'label' => 'ID Master Jabatan', 'hris' => 'job_title_id', 'cv' => 'job_title_id', 'type' => 'id'],
+            ['key' => 'job_level', 'label' => 'Level Jabatan', 'hris' => 'job_level_code', 'cv' => 'job_level_code', 'type' => 'text'],
             ['key' => 'entry_date', 'label' => 'Tanggal masuk', 'hris' => 'entry_date', 'cv' => 'current_job_entry_date', 'type' => 'date'],
         ],
         'location' => [
@@ -123,6 +126,7 @@ class CvMakerCompareService
         ['key' => 'domicile_address', 'label' => 'Alamat domisili', 'column' => 'alamat_domisili', 'cv' => 'address', 'type' => 'address', 'max' => 500],
         ['key' => 'npwp_number', 'label' => 'NPWP', 'column' => 'npwp', 'cv' => 'npwp_number', 'type' => 'numeric_identifier', 'max' => 32],
         ['key' => 'bank_account_number', 'label' => 'Nomor rekening', 'column' => 'no_rekening', 'cv' => 'bank_account_number', 'type' => 'numeric_identifier', 'max' => 64],
+        ['key' => 'job_title', 'label' => 'Jabatan', 'column' => 'jabatan', 'cv' => 'job_title', 'type' => 'text', 'max' => 255],
         ['key' => 'position', 'label' => 'Posisi', 'column' => 'posisi', 'cv' => 'position', 'type' => 'text', 'max' => 255],
         ['key' => 'entry_date', 'label' => 'Tanggal masuk', 'column' => 'entry_date', 'cv' => 'current_job_entry_date', 'type' => 'date'],
         ['key' => 'province', 'label' => 'Provinsi', 'column' => 'provinsi_id', 'cv' => 'province_id', 'cv_label' => 'province_name', 'hris_label' => 'province_name', 'type' => 'id'],
@@ -177,7 +181,13 @@ class CvMakerCompareService
         'work_area',
         'department',
         'division',
+        'job_title',
         'position',
+        'job_title_id',
+        'organization_position_id',
+        'job_level_code',
+        'job_level_rank',
+        'organization_updated_at',
         'current_job_entry_date',
         'profile_summary',
         'technical_skills',
@@ -255,7 +265,7 @@ class CvMakerCompareService
 
     public function detailForEmployee(Employee $employee): array
     {
-        $employee->loadMissing(['departemen', 'divisi', 'provinsi', 'kabupaten', 'kecamatan', 'kelurahan']);
+        $employee->loadMissing(['departemen', 'divisi', 'jobTitle.level', 'organizationPosition.levelOverride', 'organizationPosition.jobTitle.level', 'provinsi', 'kabupaten', 'kecamatan', 'kelurahan']);
 
         $cvProfile = $this->cvProfileForEmployee($employee);
         $progressStatus = CvMakerProgressStatus::query()
@@ -464,7 +474,7 @@ class CvMakerCompareService
 
     public function previewUpdateForEmployee(Employee $employee): array
     {
-        $employee->loadMissing(['departemen', 'divisi', 'provinsi', 'kabupaten', 'kecamatan', 'kelurahan']);
+        $employee->loadMissing(['departemen', 'divisi', 'jobTitle.level', 'organizationPosition.levelOverride', 'organizationPosition.jobTitle.level', 'provinsi', 'kabupaten', 'kecamatan', 'kelurahan']);
         $cvProfile = $this->cvProfileForEmployee($employee);
 
         return $this->buildUpdatePreview($employee, $cvProfile);
@@ -472,7 +482,7 @@ class CvMakerCompareService
 
     public function updateHrisFromCv(Employee $employee, User $actor): array
     {
-        $employee->loadMissing(['departemen', 'divisi', 'provinsi', 'kabupaten', 'kecamatan', 'kelurahan']);
+        $employee->loadMissing(['departemen', 'divisi', 'jobTitle.level', 'organizationPosition.levelOverride', 'organizationPosition.jobTitle.level', 'provinsi', 'kabupaten', 'kecamatan', 'kelurahan']);
         $cvProfile = $this->cvProfileForEmployee($employee);
         $preview = $this->buildUpdatePreview($employee, $cvProfile);
 
@@ -692,6 +702,8 @@ class CvMakerCompareService
                 'employees.kelurahan_id',
                 'employees.posisi',
                 'employees.jabatan',
+                'employees.job_title_id',
+                'employees.organization_position_id',
                 'employees.status_resign',
                 'employees.pendidikan_terakhir',
                 'employees.nama_instansi_pendidikan',
@@ -702,6 +714,12 @@ class CvMakerCompareService
             ->with([
                 'departemen:id,departemen',
                 'divisi:id,nama_divisi',
+                'jobTitle:id,job_level_id,name,name_zh',
+                'jobTitle.level:id,code,name,rank',
+                'organizationPosition:id,position_name,job_title_id,job_level_id',
+                'organizationPosition.levelOverride:id,code,name,rank',
+                'organizationPosition.jobTitle:id,job_level_id,name,name_zh',
+                'organizationPosition.jobTitle.level:id,code,name,rank',
                 'provinsi:id,provinsi',
                 'kabupaten:id,kabupaten',
                 'kecamatan:id,kecamatan',
@@ -1309,7 +1327,13 @@ class CvMakerCompareService
                     'work_area' => $profile->work_area,
                     'department' => $profile->department,
                     'division' => $profile->division,
+                    'job_title' => $profile->job_title ?? null,
                     'position' => $profile->position,
+                    'job_title_id' => $profile->job_title_id ?? null,
+                    'organization_position_id' => $profile->organization_position_id ?? null,
+                    'job_level_code' => $profile->job_level_code ?? null,
+                    'job_level_rank' => $profile->job_level_rank ?? null,
+                    'organization_updated_at' => $profile->organization_updated_at ?? null,
                     'current_job_entry_date' => $profile->current_job_entry_date,
                     'profile_summary' => $profile->profile_summary,
                     'technical_skills' => $profile->technical_skills,
@@ -1458,8 +1482,17 @@ class CvMakerCompareService
             return optional($employee->kelurahan)->kelurahan;
         }
 
+        if ($key === 'job_title') {
+            return optional($employee->jobTitle)->display_name ?: $employee->jabatan;
+        }
+
         if ($key === 'position') {
-            return $employee->posisi ?: $employee->jabatan;
+            return optional($employee->organizationPosition)->display_name ?: $employee->posisi;
+        }
+
+        if ($key === 'job_level_code') {
+            return optional(optional($employee->organizationPosition)->effective_level)->code
+                ?: optional(optional($employee->jobTitle)->level)->code;
         }
 
         return $employee->{$key};

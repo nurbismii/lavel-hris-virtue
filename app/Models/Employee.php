@@ -37,6 +37,31 @@ class Employee extends Model
         return $this->belongsTo(Divisi::class, 'divisi_id');
     }
 
+    public function jobTitle()
+    {
+        return $this->belongsTo(JobTitle::class, 'job_title_id');
+    }
+
+    public function organizationPosition()
+    {
+        return $this->belongsTo(OrganizationPosition::class, 'organization_position_id');
+    }
+
+    public function directSupervisor()
+    {
+        return $this->belongsTo(self::class, 'reports_to_nik', 'nik');
+    }
+
+    public function directReports()
+    {
+        return $this->hasMany(self::class, 'reports_to_nik', 'nik');
+    }
+
+    public function positionAssignments()
+    {
+        return $this->hasMany(EmployeePositionAssignment::class, 'employee_nik', 'nik');
+    }
+
     public function provinsi()
     {
         return $this->belongsTo(Provinsi::class, 'provinsi_id');

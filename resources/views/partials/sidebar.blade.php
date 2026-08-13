@@ -21,6 +21,7 @@ $approvalHodDashboardActive = request()->routeIs('approval.hod.dashboard');
 $centralMonitorActive = request()->routeIs('central-monitor.*');
 $employeeMovementActive = request()->routeIs('employee-movements.*');
 $cvMakerCompareActive = request()->routeIs('cv-maker-compare.*');
+$organizationStructureActive = request()->routeIs('organization-structure.*');
 @endphp
 
 <div class="sidebar" data-background-color="white">
@@ -513,7 +514,7 @@ $cvMakerCompareActive = request()->routeIs('cv-maker-compare.*');
                 </li>
                 @endif
 
-                @if($can('setting_hari_off') || $can('master_tanggal_merah') || $can('jadwal_kerja') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan') || $can('leave_balance') || $can('attendance_period_lock'))
+                @if($can('setting_hari_off') || $can('master_tanggal_merah') || $can('jadwal_kerja') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan') || $can('organization_structure') || $can('leave_balance') || $can('attendance_period_lock'))
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
@@ -619,6 +620,34 @@ $cvMakerCompareActive = request()->routeIs('cv-maker-compare.*');
                         <i class="fas fa-hotel"></i>
                         <p>{{ __('navigation.company') }}</p>
                     </a>
+                </li>
+                @endif
+
+                @if($can('organization_structure'))
+                <li class="nav-item {{ $organizationStructureActive ? 'active' : '' }}">
+                    <a data-bs-toggle="collapse" href="#organizationStructureMenu"
+                        class="{{ $organizationStructureActive ? '' : 'collapsed' }}"
+                        aria-expanded="{{ $organizationStructureActive ? 'true' : 'false' }}">
+                        <i class="fas fa-sitemap"></i>
+                        <p>{{ __('navigation.organization_structure') }}</p>
+                        <span class="caret"></span>
+                    </a>
+                    <div class="collapse {{ $organizationStructureActive ? 'show' : '' }}" id="organizationStructureMenu">
+                        <ul class="nav nav-collapse">
+                            <li class="{{ request()->routeIs('organization-structure.chart') ? 'active' : '' }}">
+                                <a href="{{ route('organization-structure.chart') }}">
+                                    <span class="sub-item">{{ __('navigation.organization_chart') }}</span>
+                                </a>
+                            </li>
+                            @if($user->hasRole(['Super Admin', 'HR']))
+                            <li class="{{ request()->routeIs('organization-structure.index') ? 'active' : '' }}">
+                                <a href="{{ route('organization-structure.index') }}">
+                                    <span class="sub-item">{{ __('navigation.organization_master') }}</span>
+                                </a>
+                            </li>
+                            @endif
+                        </ul>
+                    </div>
                 </li>
                 @endif
 

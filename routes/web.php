@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\LeaveBalanceController;
 use App\Http\Controllers\Admin\NationalHolidayController;
 use App\Http\Controllers\Admin\OvertimeMasterController;
 use App\Http\Controllers\Admin\OvertimeOrderController as AdminOvertimeOrderController;
+use App\Http\Controllers\Admin\OrganizationStructureController;
 use App\Http\Controllers\Admin\SettingRoleController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\SlipGajiController;
@@ -317,6 +318,42 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::delete('/perusahaan/{id}', [App\Http\Controllers\Admin\PerusahaanController::class, 'delete'])
             ->middleware('menu:perusahaan')
             ->name('perusahaan.destroy');
+
+        Route::prefix('/struktur-organisasi')
+            ->middleware('menu:organization_structure')
+            ->name('organization-structure.')
+            ->group(function () {
+                Route::get('/chart', [OrganizationStructureController::class, 'chart'])
+                    ->middleware('role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi')
+                    ->name('chart');
+                Route::get('/employees/search', [OrganizationStructureController::class, 'searchEmployees'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('employees.search');
+                Route::get('/', [OrganizationStructureController::class, 'index'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('index');
+                Route::post('/levels', [OrganizationStructureController::class, 'storeLevel'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('levels.store');
+                Route::put('/levels/{jobLevel}', [OrganizationStructureController::class, 'updateLevel'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('levels.update');
+                Route::post('/job-titles', [OrganizationStructureController::class, 'storeJobTitle'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('job-titles.store');
+                Route::put('/job-titles/{jobTitle}', [OrganizationStructureController::class, 'updateJobTitle'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('job-titles.update');
+                Route::post('/positions', [OrganizationStructureController::class, 'storePosition'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('positions.store');
+                Route::put('/positions/{organizationPosition}', [OrganizationStructureController::class, 'updatePosition'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('positions.update');
+                Route::post('/positions/{organizationPosition}/assignments', [OrganizationStructureController::class, 'assignEmployee'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('assignments.store');
+            });
 
         // === DEPARTEMEN ===
         Route::get('/departemen/{perusahaan_id}', [App\Http\Controllers\Admin\DepartemenController::class, 'create'])->middleware('menu:perusahaan')->name('departemen.create');

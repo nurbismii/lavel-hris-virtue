@@ -25,6 +25,10 @@ $menus = [
         'label' => 'Perubahan posisi',
         'group' => 'Data Master',
     ],
+    'organization_structure' => [
+        'label' => 'Struktur Organisasi',
+        'group' => 'Operasional',
+    ],
     'data_user' => [
         'label' => 'Data User',
         'group' => 'Data Master',
@@ -242,6 +246,7 @@ return [
             'pengaturan_shift',
             'lembur',
             'perusahaan',
+            'organization_structure',
             'leave_balance',
             'audit_trail',
             'import_history',
@@ -264,6 +269,7 @@ return [
             'master_shift',
             'pengaturan_shift',
             'lembur',
+            'organization_structure',
         ],
         'Manager' => [
             'dashboard_karyawan',
@@ -276,6 +282,7 @@ return [
             'presensi',
             'attendance_correction',
             'lembur',
+            'organization_structure',
         ],
         'Supervisor' => [
             'dashboard_karyawan',
@@ -288,6 +295,7 @@ return [
             'presensi',
             'attendance_correction',
             'lembur',
+            'organization_structure',
         ],
         'Staff' => [
             'dashboard_karyawan',
@@ -327,6 +335,7 @@ return [
             'master_shift',
             'pengaturan_shift',
             'lembur',
+            'organization_structure',
         ],
     ],
 ];

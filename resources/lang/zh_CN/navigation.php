@@ -69,4 +69,7 @@ return [
     'user_data' => '用户数据',
     'violation' => '违规记录',
     'work_pattern_master' => '工作排班主数据',
+    'organization_structure' => '组织结构',
+    'organization_chart' => '组织架构图',
+    'organization_master' => '组织主数据',
 ];

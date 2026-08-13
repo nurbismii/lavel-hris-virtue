@@ -17,6 +17,7 @@ class HrDefaultMenuPermissionTest extends TestCase
         $this->assertContains('approval_hr', $hrMenus);
         $this->assertContains('lembur', $hrMenus);
         $this->assertContains('audit_trail', $hrMenus);
+        $this->assertContains('organization_structure', $hrMenus);
 
         foreach ([
             'dashboard_karyawan',
@@ -37,5 +38,6 @@ class HrDefaultMenuPermissionTest extends TestCase
         $this->assertContains('employee_movement', $hodMenus);
         $this->assertContains('cv_maker_compare', $hodMenus);
         $this->assertContains('approval_hod', $hodMenus);
+        $this->assertContains('organization_structure', $hodMenus);
     }
 }
