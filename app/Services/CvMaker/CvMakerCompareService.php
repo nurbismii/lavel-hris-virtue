@@ -1490,7 +1490,10 @@ class CvMakerCompareService
         }
 
         if ($key === 'position') {
-            return optional($employee->organizationPosition)->display_name ?: $employee->posisi;
+            // CV Maker updates the legacy display column only. Keep the organization
+            // assignment as a fallback because changing it must go through the
+            // dedicated assignment workflow and its audit trail.
+            return $employee->posisi ?: optional($employee->organizationPosition)->display_name;
         }
 
         if ($key === 'job_level_code') {

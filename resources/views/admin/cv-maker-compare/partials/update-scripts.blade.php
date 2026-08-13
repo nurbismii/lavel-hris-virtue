@@ -177,16 +177,27 @@
                 },
                 success: function(payload) {
                     cvUpdateModal.hide();
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil',
-                        text: payload.message || 'Data HRIS berhasil diperbarui dari CV Maker.',
-                        confirmButtonText: 'OK'
-                    }).then(function() {
-                        if (typeof window.onCvMakerHrisUpdated === 'function') {
-                            window.onCvMakerHrisUpdated(payload);
-                        }
-                    });
+                    const refreshRequest = typeof window.onCvMakerHrisUpdated === 'function'
+                        ? window.onCvMakerHrisUpdated(payload)
+                        : null;
+
+                    Promise.resolve(refreshRequest)
+                        .then(function() {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil',
+                                text: payload.message || 'Data HRIS berhasil diperbarui dari CV Maker.',
+                                confirmButtonText: 'OK'
+                            });
+                        })
+                        .catch(function() {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Data berhasil diperbarui',
+                                text: 'Tampilan terbaru gagal dimuat otomatis. Silakan refresh halaman untuk melihat hasilnya.',
+                                confirmButtonText: 'OK'
+                            });
+                        });
                 },
                 error: function(xhr) {
                     Swal.fire({

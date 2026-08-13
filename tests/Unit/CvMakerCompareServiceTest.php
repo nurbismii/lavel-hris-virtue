@@ -184,6 +184,29 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertSame('position', collect($comparison['groups']['work'])->firstWhere('mismatch', true)['key']);
     }
 
+    public function test_compare_position_uses_updatable_employee_value_before_organization_fallback(): void
+    {
+        $service = new CvMakerCompareService();
+        $employee = new Employee([
+            'nik' => '2200112234',
+            'nama_karyawan' => 'Budi Santoso',
+            'posisi' => 'Supervisor',
+        ]);
+        $employee->setRelation('organizationPosition', new \App\Models\OrganizationPosition([
+            'position_name' => 'Posisi Master Lama',
+        ]));
+
+        $comparison = $service->compareEmployee($employee, [
+            'profile_id' => 10,
+            'full_name' => 'Budi Santoso',
+            'position' => 'Supervisor',
+        ]);
+        $position = collect($comparison['groups']['work'])->firstWhere('key', 'position');
+
+        $this->assertFalse($position['mismatch']);
+        $this->assertSame('Supervisor', $position['hris']);
+    }
+
     public function test_location_fields_are_compared_when_both_sides_have_values(): void
     {
         $service = new CvMakerCompareService();

@@ -641,7 +641,22 @@ $completeProfileGroups = [
 @push('scripts')
 <script>
     window.onCvMakerHrisUpdated = function() {
-        window.location.reload();
+        return $.ajax({
+            url: window.location.href,
+            method: 'GET',
+            dataType: 'html',
+            cache: false
+        }).then(function(html) {
+            const documentFromResponse = new DOMParser().parseFromString(html, 'text/html');
+            const refreshedPage = documentFromResponse.querySelector('.cv-compare-page');
+            const currentPage = document.querySelector('.cv-compare-page');
+
+            if (!refreshedPage || !currentPage) {
+                return $.Deferred().reject().promise();
+            }
+
+            currentPage.replaceWith(refreshedPage);
+        });
     };
 </script>
 @include('admin.cv-maker-compare.partials.update-scripts')
