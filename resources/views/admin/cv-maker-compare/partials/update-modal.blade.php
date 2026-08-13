@@ -18,7 +18,7 @@
                 <div id="cvUpdatePreviewContent" class="d-none">
                     <div class="cv-update-warning mb-3">
                         <i class="fas fa-info-circle"></i>
-                        Sistem hanya mengisi nilai CV Maker yang valid dan tidak kosong. Bagian riwayat akan mengganti data yang sebelumnya berasal dari Vitae; data manual/sumber lain tetap dipertahankan. Data V-People tidak dihapus jika bagian Vitae kosong. Departemen, divisi, dan perusahaan tidak di-update otomatis karena memakai foreign key dan berdampak ke scope akses.
+                        Sistem hanya mengisi nilai CV Maker yang valid dan tidak kosong. Jabatan dan posisi yang valid juga akan dipakai untuk membuat atau memperbarui penempatan pada struktur organisasi. Parent disusun dari level terdekat yang lebih tinggi, dengan prioritas divisi yang sama lalu posisi tingkat departemen. Jika kandidat parent lebih dari satu, sistem tidak memilih otomatis dan HR perlu memverifikasinya. Parent yang sudah diatur manual tidak ditimpa. Bagian riwayat akan mengganti data yang sebelumnya berasal dari Vitae; data manual/sumber lain tetap dipertahankan. Departemen, divisi, dan perusahaan tidak di-update otomatis karena memakai foreign key dan berdampak ke scope akses.
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered align-middle cv-update-table mb-0">

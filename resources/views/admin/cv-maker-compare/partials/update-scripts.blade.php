@@ -81,8 +81,9 @@
 
             const changes = payload.changes || [];
             const relatedChanges = payload.related_changes || [];
+            const organizationChanges = payload.organization_changes || [];
             const skipped = payload.skipped || [];
-            const allChanges = changes.concat(relatedChanges);
+            const allChanges = changes.concat(relatedChanges, organizationChanges);
 
             if (!allChanges.length) {
                 cvUpdateEmpty.textContent = payload.message || 'Tidak ada perubahan yang bisa diperbarui dari CV Maker.';

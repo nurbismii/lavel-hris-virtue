@@ -31,14 +31,21 @@ class CvMakerCompareService
 
     private $relatedDataService;
 
+    private $organizationSyncService;
+
     private $apiRelatedRowsByProfileId = [];
 
     private $jobLevelCodesByTitleId;
 
-    public function __construct(CvMakerApiClient $apiClient = null, CvMakerRelatedDataService $relatedDataService = null)
+    public function __construct(
+        CvMakerApiClient $apiClient = null,
+        CvMakerRelatedDataService $relatedDataService = null,
+        CvMakerOrganizationSyncService $organizationSyncService = null
+    )
     {
         $this->apiClient = $apiClient;
         $this->relatedDataService = $relatedDataService;
+        $this->organizationSyncService = $organizationSyncService;
     }
 
     private const FIELD_GROUPS = [
@@ -489,7 +496,14 @@ class CvMakerCompareService
         $cvProfile = $this->cvProfileForEmployee($employee);
         $preview = $this->buildUpdatePreview($employee, $cvProfile);
 
-        if (!$preview['success'] || (empty($preview['changes']) && empty($preview['related_changes']))) {
+        if (
+            !$preview['success']
+            || (
+                empty($preview['changes'])
+                && empty($preview['related_changes'])
+                && empty($preview['organization_changes'])
+            )
+        ) {
             return $preview;
         }
 
@@ -501,12 +515,13 @@ class CvMakerCompareService
             $newValues[$change['column']] = $change['new_raw'];
         }
 
-        DB::transaction(function () use ($employee, $actor, $oldValues, $newValues, $preview) {
+        $organizationResult = DB::transaction(function () use ($employee, $actor, $oldValues, $newValues, $preview, $cvProfile) {
             if ($newValues) {
                 $employee->forceFill($newValues)->save();
             }
 
             $this->relatedDataService()->sync((string) $employee->nik, $preview['related_changes'] ?? []);
+            $organizationResult = $this->organizationSyncService()->sync($employee, $cvProfile, $actor);
 
             app(AuditTrailService::class)->record([
                 'event' => 'cv_maker.hris_updated',
@@ -525,15 +540,20 @@ class CvMakerCompareService
                     'cv_profile_id' => $preview['cv_profile']['profile_id'] ?? null,
                     'changed_fields' => collect($preview['changes'])->pluck('column')->values()->all(),
                     'changed_sections' => collect($preview['related_changes'] ?? [])->pluck('key')->values()->all(),
+                    'organization_sync' => $organizationResult,
                 ],
                 'note' => 'Update data V-People dari CV Maker.',
             ]);
+
+            return $organizationResult;
         });
 
         return array_merge($preview, [
             'updated' => true,
+            'organization_result' => $organizationResult,
             'message' => count($preview['changes']) . ' field dan '
-                . count($preview['related_changes'] ?? []) . ' bagian riwayat berhasil diperbarui dari CV Maker.',
+                . count($preview['related_changes'] ?? []) . ' bagian riwayat berhasil diperbarui dari CV Maker'
+                . (!empty($organizationResult['synced']) ? ', termasuk struktur organisasi.' : '.'),
         ]);
     }
 
@@ -612,8 +632,9 @@ class CvMakerCompareService
             (int) $cvProfile['profile_id'],
             $this->cvRelatedSections((int) $cvProfile['profile_id'])
         );
-        $skipped = array_merge($skipped, $relatedPreview['skipped']);
-        $totalChanges = count($changes) + count($relatedPreview['changes']);
+        $organizationPreview = $this->organizationSyncService()->preview($employee, $cvProfile);
+        $skipped = array_merge($skipped, $relatedPreview['skipped'], $organizationPreview['skipped']);
+        $totalChanges = count($changes) + count($relatedPreview['changes']) + count($organizationPreview['changes']);
 
         return [
             'success' => true,
@@ -632,6 +653,7 @@ class CvMakerCompareService
             ],
             'changes' => $changes,
             'related_changes' => $relatedPreview['changes'],
+            'organization_changes' => $organizationPreview['changes'],
             'skipped' => $skipped,
         ];
     }
@@ -668,6 +690,15 @@ class CvMakerCompareService
         }
 
         return $this->relatedDataService;
+    }
+
+    private function organizationSyncService(): CvMakerOrganizationSyncService
+    {
+        if (!$this->organizationSyncService) {
+            $this->organizationSyncService = app(CvMakerOrganizationSyncService::class);
+        }
+
+        return $this->organizationSyncService;
     }
 
     private function employeeBaseQuery(User $user): Builder

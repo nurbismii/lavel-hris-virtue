@@ -9,6 +9,7 @@ use App\Models\JobTitle;
 use App\Models\OrganizationPosition;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\CvMaker\CvMakerOrganizationSyncService;
 use App\Services\Organization\OrganizationStructureService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -136,6 +137,145 @@ class OrganizationStructureServiceTest extends TestCase
         }
 
         $this->assertDatabaseMissing('organization_positions', ['code' => 'OSS_POSITION']);
+    }
+
+    public function test_cv_compare_sync_creates_position_and_assignment_idempotently(): void
+    {
+        $employee = Employee::query()->whereKey('EMP001')->with('departemen.perusahaan')->firstOrFail();
+        $profile = [
+            'job_title' => 'SUPERVISOR',
+            'position' => 'Supervisor Operasional',
+            'job_level_code' => 'L5',
+            'current_job_entry_date' => '2026-08-01',
+        ];
+        $service = app(CvMakerOrganizationSyncService::class);
+
+        $preview = $service->preview($employee, $profile);
+        $firstResult = $service->sync($employee, $profile, $this->actor());
+        $employee->refresh()->load('departemen.perusahaan', 'organizationPosition.jobTitle');
+        $secondResult = $service->sync($employee, $profile, $this->actor());
+
+        $this->assertCount(1, $preview['changes']);
+        $this->assertTrue($firstResult['synced']);
+        $this->assertTrue($firstResult['created_position']);
+        $this->assertFalse($secondResult['synced']);
+        $this->assertSame(1, EmployeePositionAssignment::query()->where('employee_nik', 'EMP001')->count());
+        $this->assertDatabaseHas('organization_positions', [
+            'position_name' => 'Supervisor Operasional',
+            'departemen_id' => 10,
+            'divisi_id' => 100,
+        ]);
+        $this->assertSame('Supervisor Operasional', $employee->posisi);
+        $this->assertSame('SUPERVISOR', $employee->organizationPosition->jobTitle->name);
+    }
+
+    public function test_cv_compare_sync_creates_unknown_job_title_when_level_is_mapped(): void
+    {
+        $employee = Employee::query()->whereKey('EMP001')->with('departemen.perusahaan')->firstOrFail();
+        $service = app(CvMakerOrganizationSyncService::class);
+
+        $result = $service->sync($employee, [
+            'job_title' => 'ENGINEER OTOMASI',
+            'position' => 'Engineer Otomasi Furnace 1',
+            'job_level_rank' => 3,
+        ], $this->actor());
+
+        $this->assertTrue($result['synced']);
+        $this->assertTrue($result['created_job_title']);
+        $this->assertDatabaseHas('job_titles', [
+            'name' => 'ENGINEER OTOMASI',
+            'job_level_id' => JobLevel::query()->where('rank', 3)->value('id'),
+        ]);
+        $this->assertDatabaseHas('job_title_aliases', [
+            'normalized_alias' => 'ENGINEER OTOMASI',
+        ]);
+    }
+
+    public function test_cv_compare_sync_assigns_unique_nearest_higher_level_as_parent(): void
+    {
+        $organizationService = app(OrganizationStructureService::class);
+        $parent = $organizationService->savePosition(
+            $this->positionPayload('DIVISION_HEAD', 'WAKIL_KEPALA_DEPT_GA'),
+            $this->actor()
+        );
+        $employee = Employee::query()->whereKey('EMP001')->with('departemen.perusahaan')->firstOrFail();
+
+        app(CvMakerOrganizationSyncService::class)->sync($employee, [
+            'job_title' => 'SUPERVISOR',
+            'position' => 'Supervisor Operasional',
+            'job_level_code' => 'L5',
+        ], $this->actor());
+
+        $position = OrganizationPosition::query()->where('position_name', 'Supervisor Operasional')->firstOrFail();
+
+        $this->assertSame((int) $parent->id, (int) $position->parent_position_id);
+    }
+
+    public function test_cv_compare_sync_reconciles_orphan_when_higher_level_arrives_later(): void
+    {
+        $service = app(CvMakerOrganizationSyncService::class);
+        $employee = Employee::query()->whereKey('EMP001')->with('departemen.perusahaan')->firstOrFail();
+        $supervisor = Employee::query()->whereKey('SUP001')->with('departemen.perusahaan')->firstOrFail();
+
+        $service->sync($employee, [
+            'job_title' => 'SUPERVISOR',
+            'position' => 'Supervisor Operasional',
+            'job_level_code' => 'L5',
+        ], $this->actor());
+
+        $child = OrganizationPosition::query()->where('position_name', 'Supervisor Operasional')->firstOrFail();
+        $this->assertNull($child->parent_position_id);
+
+        $result = $service->sync($supervisor, [
+            'job_title' => 'WAKIL KEPALA DEPARTEMEN GENERAL AFFAIR',
+            'position' => 'Pimpinan General Affair',
+            'job_level_code' => 'L8',
+        ], $this->actor());
+
+        $parent = OrganizationPosition::query()->where('position_name', 'Pimpinan General Affair')->firstOrFail();
+
+        $this->assertSame((int) $parent->id, (int) $child->fresh()->parent_position_id);
+        $this->assertContains((int) $child->id, $result['reconciled_position_ids']);
+    }
+
+    public function test_cv_compare_sync_leaves_parent_empty_when_nearest_level_is_ambiguous(): void
+    {
+        $organizationService = app(OrganizationStructureService::class);
+        $organizationService->savePosition($this->positionPayload('SUPERVISOR_A', 'SUPERVISOR'), $this->actor());
+        $organizationService->savePosition($this->positionPayload('SUPERVISOR_B', 'SUPERVISOR'), $this->actor());
+        $employee = Employee::query()->whereKey('EMP001')->with('departemen.perusahaan')->firstOrFail();
+
+        app(CvMakerOrganizationSyncService::class)->sync($employee, [
+            'job_title' => 'KOORDINATOR',
+            'position' => 'Koordinator Operasional',
+            'job_level_code' => 'L3',
+        ], $this->actor());
+
+        $position = OrganizationPosition::query()->where('position_name', 'Koordinator Operasional')->firstOrFail();
+
+        $this->assertNull($position->parent_position_id);
+    }
+
+    public function test_cv_compare_sync_does_not_replace_existing_manual_parent(): void
+    {
+        $organizationService = app(OrganizationStructureService::class);
+        $manualParent = $organizationService->savePosition(
+            $this->positionPayload('MANUAL_PARENT', 'WAKIL_KEPALA_DEPT_GA'),
+            $this->actor()
+        );
+        $existingPosition = $organizationService->savePosition(
+            $this->positionPayload('EXISTING_CHILD', 'SUPERVISOR', $manualParent->id),
+            $this->actor()
+        );
+        $employee = Employee::query()->whereKey('EMP001')->with('departemen.perusahaan')->firstOrFail();
+
+        app(CvMakerOrganizationSyncService::class)->sync($employee, [
+            'job_title' => 'SUPERVISOR',
+            'position' => $existingPosition->position_name,
+            'job_level_code' => 'L5',
+        ], $this->actor());
+
+        $this->assertSame((int) $manualParent->id, (int) $existingPosition->fresh()->parent_position_id);
     }
 
     private function createLegacySchema(): void
