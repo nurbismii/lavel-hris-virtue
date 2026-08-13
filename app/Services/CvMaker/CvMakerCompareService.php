@@ -4,6 +4,7 @@ namespace App\Services\CvMaker;
 
 use App\Models\CvMakerProgressStatus;
 use App\Models\Employee;
+use App\Models\JobTitle;
 use App\Models\User;
 use App\Services\Audit\AuditTrailService;
 use Carbon\Carbon;
@@ -31,6 +32,8 @@ class CvMakerCompareService
     private $relatedDataService;
 
     private $apiRelatedRowsByProfileId = [];
+
+    private $jobLevelCodesByTitleId;
 
     public function __construct(CvMakerApiClient $apiClient = null, CvMakerRelatedDataService $relatedDataService = null)
     {
@@ -310,7 +313,7 @@ class CvMakerCompareService
                 $result = $this->compareField(
                     $field['label'],
                     $this->employeeComparableValue($employee, $field['hris']),
-                    $cvProfile ? ($cvProfile[$field['cv']] ?? null) : null,
+                    $this->cvComparableValue($cvProfile, $field),
                     $field['type'],
                     !empty($cvProfile['profile_id']) && !empty($field['compare_missing'])
                 );
@@ -1496,6 +1499,32 @@ class CvMakerCompareService
         }
 
         return $employee->{$key};
+    }
+
+    private function cvComparableValue(?array $cvProfile, array $field)
+    {
+        if (!$cvProfile) {
+            return null;
+        }
+
+        if (
+            $field['key'] === 'job_level'
+            && !empty($cvProfile['job_title_id'])
+            && Schema::hasTable('job_titles')
+            && Schema::hasTable('job_levels')
+        ) {
+            if ($this->jobLevelCodesByTitleId === null) {
+                $this->jobLevelCodesByTitleId = JobTitle::query()
+                    ->join('job_levels', 'job_titles.job_level_id', '=', 'job_levels.id')
+                    ->pluck('job_levels.code', 'job_titles.id')
+                    ->all();
+            }
+
+            return $this->jobLevelCodesByTitleId[(int) $cvProfile['job_title_id']]
+                ?? ($cvProfile[$field['cv']] ?? null);
+        }
+
+        return $cvProfile[$field['cv']] ?? null;
     }
 
     private function normalizeText(string $value): string
