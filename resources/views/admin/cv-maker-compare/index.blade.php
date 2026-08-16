@@ -241,6 +241,7 @@
 @endsection
 
 @push('scripts')
+@include('admin.cv-maker-compare.partials.dialog-scripts')
 <script>
     const selectedCvReminderNiks = new Set();
 
@@ -325,7 +326,7 @@
             message = 'Koneksi bermasalah atau request diblokir. Silakan cek jaringan Anda.';
         }
 
-        Swal.fire({
+        window.CvMakerDialog.fire({
             icon: 'error',
             title: 'Gagal',
             text: message,
@@ -467,7 +468,7 @@
             ? `${selectedNiks.length} karyawan terpilih`
             : 'semua karyawan Perlu Diingatkan pada hasil filter';
 
-        Swal.fire({
+        window.CvMakerDialog.fire({
             icon: 'question',
             title: 'Kirim reminder CV?',
             text: `Sistem akan memvalidasi ${targetLabel}, email, scope akses, dan cooldown sebelum memasukkan email ke antrean.`,
@@ -494,7 +495,7 @@
                 success: function(response) {
                     clearCvReminderSelection();
                     renderCvReminderBatchStatus(response.data || {});
-                    Swal.fire({
+                    window.CvMakerDialog.fire({
                         icon: 'success',
                         title: 'Antrean dibuat',
                         text: response.message,

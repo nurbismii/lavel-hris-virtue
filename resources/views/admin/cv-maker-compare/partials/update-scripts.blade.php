@@ -177,7 +177,7 @@
             const originalHtml = button.html();
 
             if (!previewUrl || !updateUrl) {
-                Swal.fire({
+                window.CvMakerDialog.fire({
                     icon: 'warning',
                     title: 'Tidak bisa update',
                     text: 'URL update CV Maker belum tersedia untuk data ini.',
@@ -241,7 +241,7 @@
 
                     Promise.resolve(refreshRequest)
                         .then(function() {
-                            Swal.fire({
+                            window.CvMakerDialog.fire({
                                 icon: 'success',
                                 title: 'Berhasil',
                                 text: payload.message || 'Data HRIS berhasil diperbarui dari CV Maker.',
@@ -249,7 +249,7 @@
                             });
                         })
                         .catch(function() {
-                            Swal.fire({
+                            window.CvMakerDialog.fire({
                                 icon: 'warning',
                                 title: 'Data berhasil diperbarui',
                                 text: 'Tampilan terbaru gagal dimuat otomatis. Silakan refresh halaman untuk melihat hasilnya.',
@@ -258,7 +258,7 @@
                         });
                 },
                 error: function(xhr) {
-                    Swal.fire({
+                    window.CvMakerDialog.fire({
                         icon: 'error',
                         title: 'Gagal',
                         text: errorMessageFromXhr(xhr, 'Data HRIS gagal diperbarui.'),

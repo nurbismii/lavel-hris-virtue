@@ -720,6 +720,7 @@ $completeProfileGroups = [
 @endsection
 
 @push('scripts')
+@include('admin.cv-maker-compare.partials.dialog-scripts')
 <script>
     function cvInlineCorrectionError(xhr) {
         let message = xhr.responseJSON && xhr.responseJSON.message
@@ -752,11 +753,11 @@ $completeProfileGroups = [
         const value = String(input.val() || '').trim();
 
         if (!value) {
-            Swal.fire({ icon: 'warning', title: 'Nilai belum diisi', text: `Masukkan koreksi untuk ${label}.`, confirmButtonText: 'OK' });
+            window.CvMakerDialog.fire({ icon: 'warning', title: 'Nilai belum diisi', text: `Masukkan koreksi untuk ${label}.`, confirmButtonText: 'OK' });
             return;
         }
 
-        Swal.fire({
+        window.CvMakerDialog.fire({
             icon: 'question',
             title: `Simpan koreksi ${label}?`,
             text: isSensitive
@@ -787,14 +788,14 @@ $completeProfileGroups = [
                         : null;
 
                     Promise.resolve(refreshRequest).then(function() {
-                        Swal.fire({
+                        window.CvMakerDialog.fire({
                             icon: 'success',
                             title: response.updated === false ? 'Tidak ada perubahan' : 'Berhasil',
                             text: response.message || 'Koreksi field berhasil disimpan.',
                             confirmButtonText: 'OK'
                         });
                     }).catch(function() {
-                        Swal.fire({
+                        window.CvMakerDialog.fire({
                             icon: 'warning',
                             title: 'Koreksi tersimpan',
                             text: 'Tampilan terbaru gagal dimuat. Silakan refresh halaman.',
@@ -803,7 +804,7 @@ $completeProfileGroups = [
                     });
                 },
                 error: function(xhr) {
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: cvInlineCorrectionError(xhr), confirmButtonText: 'OK' });
+                    window.CvMakerDialog.fire({ icon: 'error', title: 'Gagal', text: cvInlineCorrectionError(xhr), confirmButtonText: 'OK' });
                 },
                 complete: function() {
                     button.prop('disabled', false).html(originalHtml);
@@ -822,7 +823,7 @@ $completeProfileGroups = [
         const isHighRisk = String(button.data('high-risk')) === '1';
 
         if (!updateUrl || !fieldKey) {
-            Swal.fire({
+            window.CvMakerDialog.fire({
                 icon: 'warning',
                 title: 'Update tidak tersedia',
                 text: 'Informasi field yang akan diperbarui tidak lengkap.',
@@ -831,7 +832,7 @@ $completeProfileGroups = [
             return;
         }
 
-        Swal.fire({
+        window.CvMakerDialog.fire({
             icon: isHighRisk ? 'warning' : 'question',
             title: `Update ${fieldLabel}?`,
             text: isHighRisk
@@ -862,14 +863,14 @@ $completeProfileGroups = [
                         : null;
 
                     Promise.resolve(refreshRequest).then(function() {
-                        Swal.fire({
+                        window.CvMakerDialog.fire({
                             icon: 'success',
                             title: 'Berhasil',
                             text: response.message || `${fieldLabel} berhasil diperbarui dari CV Maker.`,
                             confirmButtonText: 'OK'
                         });
                     }).catch(function() {
-                        Swal.fire({
+                        window.CvMakerDialog.fire({
                             icon: 'warning',
                             title: 'Update tersimpan',
                             text: 'Tampilan terbaru gagal dimuat otomatis. Silakan refresh halaman.',
@@ -878,7 +879,7 @@ $completeProfileGroups = [
                     });
                 },
                 error: function(xhr) {
-                    Swal.fire({
+                    window.CvMakerDialog.fire({
                         icon: 'error',
                         title: 'Gagal',
                         text: cvInlineCorrectionError(xhr),
@@ -905,7 +906,7 @@ $completeProfileGroups = [
             dataType: 'json',
             data: form.serialize(),
             success: function(response) {
-                Swal.fire({
+                window.CvMakerDialog.fire({
                     icon: 'success',
                     title: 'Berhasil',
                     text: response.message || 'Status pemeriksaan berhasil diperbarui.',
@@ -920,7 +921,7 @@ $completeProfileGroups = [
                     const firstKey = Object.keys(xhr.responseJSON.errors)[0];
                     if (firstKey) message = xhr.responseJSON.errors[firstKey][0];
                 }
-                Swal.fire({ icon: 'error', title: 'Gagal', text: message, confirmButtonText: 'OK' });
+                window.CvMakerDialog.fire({ icon: 'error', title: 'Gagal', text: message, confirmButtonText: 'OK' });
             },
             complete: function() {
                 button.prop('disabled', false).html(originalHtml);
