@@ -18,12 +18,20 @@
                 <div id="cvUpdatePreviewContent" class="d-none">
                     <div class="cv-update-warning mb-3">
                         <i class="fas fa-info-circle"></i>
-                        Sistem hanya mengisi nilai CV Maker yang valid dan tidak kosong. Jabatan dan posisi yang valid juga akan dipakai untuk membuat atau memperbarui penempatan pada struktur organisasi. Parent disusun dari level terdekat yang lebih tinggi, dengan prioritas divisi yang sama lalu posisi tingkat departemen. Jika kandidat parent lebih dari satu, sistem tidak memilih otomatis dan HR perlu memverifikasinya. Parent yang sudah diatur manual tidak ditimpa. Bagian riwayat akan mengganti data yang sebelumnya berasal dari Vitae; data manual/sumber lain tetap dipertahankan. Departemen, divisi, dan perusahaan tidak di-update otomatis karena memakai foreign key dan berdampak ke scope akses.
+                        Pilih hanya data yang telah diverifikasi. Field identitas, keuangan, organisasi, dan wilayah tidak dipilih otomatis. Bagian riwayat mengganti data yang sebelumnya bersumber dari Vitae; data manual/sumber lain tetap dipertahankan. Sinkronisasi struktur organisasi merupakan tindakan terpisah karena dapat membuat master jabatan, posisi, dan penempatan karyawan.
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="cvUpdateSelectSafeButton">
+                            <i class="fas fa-check-double"></i> Pilih Field Aman
+                        </button>
+                        <button type="button" class="btn btn-sm btn-light border" id="cvUpdateClearSelectionButton">Kosongkan Pilihan</button>
+                        <span class="small text-muted" id="cvUpdateSelectionSummary">0 item dipilih</span>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered align-middle cv-update-table mb-0">
                             <thead>
                                 <tr>
+                                    <th class="text-center" style="width: 44px">Pilih</th>
                                     <th>Field</th>
                                     <th>HRIS sekarang</th>
                                     <th>CV Maker</th>
@@ -42,7 +50,7 @@
                 </button>
                 <button type="button" class="btn btn-danger ui-btn-icon" id="cvUpdateConfirmButton" disabled>
                     <i class="fas fa-sync-alt"></i>
-                    Update HRIS
+                    Update Pilihan
                 </button>
             </div>
         </div>

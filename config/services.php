@@ -60,6 +60,11 @@ return [
         'api_timeout' => env('CV_MAKER_API_TIMEOUT', 15),
         'api_connect_timeout' => env('CV_MAKER_API_CONNECT_TIMEOUT', 5),
         'max_page_size' => env('CV_MAKER_COMPARE_MAX_PAGE_SIZE', 100),
+        'public_url' => env('CV_MAKER_PUBLIC_URL'),
+        'reminder_queue' => env('CV_MAKER_REMINDER_QUEUE', env('QUEUE_NAME', 'default')),
+        'reminder_batch_limit' => env('CV_MAKER_REMINDER_BATCH_LIMIT', 500),
+        'reminder_cooldown_days' => env('CV_MAKER_REMINDER_COOLDOWN_DAYS', 3),
+        'reminder_delay_seconds' => env('CV_MAKER_REMINDER_DELAY_SECONDS', 2),
     ],
 
     'presensi_face' => [

@@ -3,6 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CvMaker\UpdateHrisFromCvRequest;
+use App\Http\Requests\CvMaker\StoreReminderBatchRequest;
+use App\Http\Requests\CvMaker\UpdateReviewStatusRequest;
+use App\Http\Requests\CvMaker\CorrectHrisFieldRequest;
+use App\Models\CvMakerReminderBatch;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
@@ -10,6 +15,8 @@ use App\Models\Perusahaan;
 use App\Models\User;
 use App\Services\CvMaker\CvMakerCompareService;
 use App\Services\CvMaker\CvMakerApiClient;
+use App\Services\CvMaker\CvMakerReminderService;
+use App\Services\CvMaker\CvMakerReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -48,6 +55,29 @@ class CvMakerCompareController extends Controller
         return response()->json($service->datatable($request, $request->user()));
     }
 
+    public function storeReminderBatch(StoreReminderBatchRequest $request, CvMakerReminderService $service): JsonResponse
+    {
+        $this->authorizeAccess($request->user());
+        $batch = $service->createBatch($request, $request->user());
+
+        return response()->json([
+            'success' => true,
+            'message' => $batch->pending_count > 0
+                ? 'Reminder masuk antrean dan akan dikirim bertahap.'
+                : 'Batch selesai tanpa email yang perlu dikirim.',
+            'data' => $service->statusPayload($batch)['data'],
+            'status_url' => route('cv-maker-compare.reminders.status', $batch),
+        ], 202);
+    }
+
+    public function reminderBatchStatus(Request $request, CvMakerReminderBatch $batch, CvMakerReminderService $service): JsonResponse
+    {
+        $this->authorizeAccess($request->user());
+        abort_unless((string) $batch->requested_by === (string) $request->user()->id, 403);
+
+        return response()->json($service->statusPayload($batch));
+    }
+
     public function show(Request $request, string $nik, CvMakerCompareService $service)
     {
         $this->authorizeAccess($request->user());
@@ -71,14 +101,55 @@ class CvMakerCompareController extends Controller
         return response()->json($this->hideRawChangeValues($preview), $preview['success'] ? 200 : 422);
     }
 
-    public function updateHris(Request $request, string $nik, CvMakerCompareService $service): JsonResponse
+    public function updateHris(UpdateHrisFromCvRequest $request, string $nik, CvMakerCompareService $service): JsonResponse
     {
         $this->authorizeAccess($request->user());
 
         $employee = $this->scopedEmployee($request, $nik);
-        $result = $service->updateHrisFromCv($employee, $request->user());
+        $result = $service->updateHrisFromCv(
+            $employee,
+            $request->user(),
+            $request->input('selected_fields', []),
+            $request->input('selected_sections', []),
+            $request->boolean('include_organization')
+        );
 
         return response()->json($this->hideRawChangeValues($result), $result['success'] ? 200 : 422);
+    }
+
+    public function updateReviewStatus(UpdateReviewStatusRequest $request, string $nik, CvMakerReviewService $service): JsonResponse
+    {
+        $this->authorizeAccess($request->user());
+        $this->scopedEmployee($request, $nik);
+        $progress = $service->update(
+            $nik,
+            $request->input('review_status'),
+            $request->input('review_note'),
+            $request->user()
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Status pemeriksaan berhasil diperbarui.',
+            'data' => [
+                'review_status' => $progress->review_status,
+                'review_label' => \App\Models\CvMakerProgressStatus::reviewLabels()[$progress->review_status] ?? $progress->review_status,
+            ],
+        ]);
+    }
+
+    public function correctField(CorrectHrisFieldRequest $request, string $nik, CvMakerCompareService $service): JsonResponse
+    {
+        $this->authorizeAccess($request->user());
+        $employee = $this->scopedEmployee($request, $nik);
+        $result = $service->correctHrisField(
+            $employee,
+            $request->user(),
+            $request->input('field_key'),
+            $request->input('value')
+        );
+
+        return response()->json($result);
     }
 
     public function document(Request $request, string $nik, int $document, CvMakerCompareService $service, CvMakerApiClient $client)

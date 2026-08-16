@@ -240,6 +240,28 @@ $completeProfileGroups = [
                         @else
                         <div class="cv-progress-detail-summary__meta">Jalankan scheduler sync untuk membuat snapshot awal.</div>
                         @endif
+                        @if($progressStatus)
+                        <form id="cvReviewStatusForm" action="{{ route('cv-maker-compare.review-status.update', $employee->nik) }}" method="POST" class="mt-3">
+                            @csrf
+                            <label class="form-label fw-semibold" for="cvReviewStatus">Status pemeriksaan HR</label>
+                            <select class="form-select form-select-sm" id="cvReviewStatus" name="review_status">
+                                @foreach(\App\Models\CvMakerProgressStatus::reviewLabels() as $value => $label)
+                                <option value="{{ $value }}" {{ ($progressStatus->review_status ?: 'unreviewed') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            <label class="form-label fw-semibold mt-2" for="cvReviewNote">Catatan</label>
+                            <textarea class="form-control form-control-sm" id="cvReviewNote" name="review_note" rows="3" maxlength="500" placeholder="Wajib jika perlu konfirmasi karyawan">{{ $progressStatus->review_note }}</textarea>
+                            @if($progressStatus->reviewer)
+                            <div class="small text-muted mt-1">
+                                Terakhir oleh {{ $progressStatus->reviewer->name }}
+                                {{ $progressStatus->reviewed_at ? 'pada ' . $progressStatus->reviewed_at->format('d/m/Y H:i') : '' }}
+                            </div>
+                            @endif
+                            <button type="submit" class="btn btn-sm btn-primary ui-btn-icon mt-2">
+                                <i class="fas fa-save"></i> Simpan Status Pemeriksaan
+                            </button>
+                        </form>
+                        @endif
                     </div>
                     <div class="cv-progress-history">
                         <div class="cv-progress-history__title">Riwayat Terbaru</div>
@@ -570,7 +592,7 @@ $completeProfileGroups = [
             <div class="ui-panel__header">
                 <div>
                     <h5 class="ui-panel__title">Perbandingan Field</h5>
-                    <p class="ui-panel__meta">Nilai merah berarti HRIS dan CV Maker sama-sama tersedia tetapi berbeda.</p>
+                    <p class="ui-panel__meta">Field HRIS yang memiliki mapping aman dapat dikoreksi langsung. Nilai merah berarti data HRIS dan CV Maker berbeda.</p>
                 </div>
             </div>
             <div class="ui-panel__body">
@@ -597,8 +619,54 @@ $completeProfileGroups = [
                             <div class="cv-compare-field{{ $item['mismatch'] ? ' cv-compare-field--mismatch' : ($item['skipped'] ? ' cv-compare-field--skipped' : '') }}">
                                 <div class="cv-compare-field__label">{{ $item['label'] }}</div>
                                 <div class="cv-compare-field__values">
-                                    <span title="HRIS">{!! $item['hris'] !!}</span>
-                                    <span title="CV Maker">{!! $item['cv'] !!}</span>
+                                    <div class="cv-compare-field__source cv-compare-field__source--hris">
+                                        <div class="cv-compare-field__source-label">HRIS</div>
+                                        @if(!empty($item['editable']))
+                                        <form class="js-cv-inline-correction" action="{{ route('cv-maker-compare.correct-field', $employee->nik) }}" method="POST" data-label="{{ $item['label'] }}" data-sensitive="{{ !empty($item['sensitive']) ? '1' : '0' }}">
+                                            @csrf
+                                            <input type="hidden" name="field_key" value="{{ $item['key'] }}">
+                                            <div class="cv-inline-correction__current">Saat ini: {!! $item['hris'] !!}</div>
+                                            <div class="input-group input-group-sm">
+                                                @if($item['key'] === 'gender')
+                                                <select name="value" class="form-select js-cv-correction-value" aria-label="Koreksi {{ $item['label'] }}">
+                                                    <option value="L" {{ ($item['edit_value'] ?? '') === 'L' ? 'selected' : '' }}>Laki-laki</option>
+                                                    <option value="P" {{ ($item['edit_value'] ?? '') === 'P' ? 'selected' : '' }}>Perempuan</option>
+                                                </select>
+                                                @elseif($item['key'] === 'marital_status')
+                                                <select name="value" class="form-select js-cv-correction-value" aria-label="Koreksi {{ $item['label'] }}">
+                                                    @foreach(['Belum Kawin', 'Kawin', 'Cerai'] as $maritalOption)
+                                                    <option value="{{ $maritalOption }}" {{ ($item['edit_value'] ?? '') === $maritalOption ? 'selected' : '' }}>{{ $maritalOption }}</option>
+                                                    @endforeach
+                                                </select>
+                                                @else
+                                                <input
+                                                    type="{{ $item['input_type'] ?? 'text' }}"
+                                                    name="value"
+                                                    class="form-control js-cv-correction-value"
+                                                    value="{{ $item['edit_value'] ?? '' }}"
+                                                    placeholder="{{ !empty($item['sensitive']) ? 'Masukkan nilai baru' : 'Koreksi nilai HRIS' }}"
+                                                    aria-label="Koreksi {{ $item['label'] }}"
+                                                    autocomplete="off"
+                                                    @if(in_array($item['key'], ['ktp_number', 'family_card_number'], true)) inputmode="numeric" maxlength="16" pattern="[0-9]{16}" @endif
+                                                    @if(($item['input_type'] ?? '') === 'number') min="0" @endif>
+                                                @endif
+                                                <button type="submit" class="btn btn-primary" title="Simpan koreksi {{ $item['label'] }}">
+                                                    <i class="fas fa-save"></i>
+                                                </button>
+                                            </div>
+                                            @if(!empty($item['sensitive']))
+                                            <small class="cv-inline-correction__hint">Nilai asli tetap disamarkan. Isi hanya jika memang akan diganti.</small>
+                                            @endif
+                                        </form>
+                                        @else
+                                        <span>{!! $item['hris'] !!}</span>
+                                        <small class="cv-inline-correction__hint">Gunakan menu Edit HRIS untuk field relasi/organisasi.</small>
+                                        @endif
+                                    </div>
+                                    <div class="cv-compare-field__source cv-compare-field__source--cv">
+                                        <div class="cv-compare-field__source-label">CV Maker</div>
+                                        <span>{!! $item['cv'] !!}</span>
+                                    </div>
                                 </div>
                             </div>
                             @endforeach
@@ -640,6 +708,134 @@ $completeProfileGroups = [
 
 @push('scripts')
 <script>
+    function cvInlineCorrectionError(xhr) {
+        let message = xhr.responseJSON && xhr.responseJSON.message
+            ? xhr.responseJSON.message
+            : 'Koreksi field gagal disimpan.';
+
+        if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+            const firstKey = Object.keys(xhr.responseJSON.errors)[0];
+            if (firstKey && xhr.responseJSON.errors[firstKey][0]) {
+                message = xhr.responseJSON.errors[firstKey][0];
+            }
+        } else if (xhr.status === 401 || xhr.status === 419) {
+            message = 'Sesi login berakhir. Silakan login ulang.';
+        } else if (xhr.status === 403) {
+            message = 'Anda tidak memiliki akses untuk mengoreksi data ini.';
+        } else if (xhr.status === 0) {
+            message = 'Koneksi bermasalah. Silakan cek jaringan lalu coba kembali.';
+        }
+
+        return message;
+    }
+
+    $(document).on('submit', '.js-cv-inline-correction', function(event) {
+        event.preventDefault();
+        const form = $(this);
+        const button = form.find('button[type="submit"]');
+        const input = form.find('.js-cv-correction-value');
+        const label = form.data('label') || 'Field';
+        const isSensitive = String(form.data('sensitive')) === '1';
+        const value = String(input.val() || '').trim();
+
+        if (!value) {
+            Swal.fire({ icon: 'warning', title: 'Nilai belum diisi', text: `Masukkan koreksi untuk ${label}.`, confirmButtonText: 'OK' });
+            return;
+        }
+
+        Swal.fire({
+            icon: 'question',
+            title: `Simpan koreksi ${label}?`,
+            text: isSensitive
+                ? 'Nilai sensitif akan diperbarui dan dicatat pada audit trail tanpa ditampilkan penuh.'
+                : `Nilai HRIS akan diubah menjadi "${value}".`,
+            showCancelButton: true,
+            confirmButtonText: 'Simpan Koreksi',
+            cancelButtonText: 'Batal'
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+
+            const originalHtml = button.html();
+            button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+            input.prop('disabled', true);
+
+            $.ajax({
+                url: form.attr('action'),
+                method: 'POST',
+                dataType: 'json',
+                data: {
+                    _token: form.find('input[name="_token"]').val(),
+                    field_key: form.find('input[name="field_key"]').val(),
+                    value: value
+                },
+                success: function(response) {
+                    const refreshRequest = typeof window.onCvMakerHrisUpdated === 'function'
+                        ? window.onCvMakerHrisUpdated(response)
+                        : null;
+
+                    Promise.resolve(refreshRequest).then(function() {
+                        Swal.fire({
+                            icon: 'success',
+                            title: response.updated === false ? 'Tidak ada perubahan' : 'Berhasil',
+                            text: response.message || 'Koreksi field berhasil disimpan.',
+                            confirmButtonText: 'OK'
+                        });
+                    }).catch(function() {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Koreksi tersimpan',
+                            text: 'Tampilan terbaru gagal dimuat. Silakan refresh halaman.',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+                },
+                error: function(xhr) {
+                    Swal.fire({ icon: 'error', title: 'Gagal', text: cvInlineCorrectionError(xhr), confirmButtonText: 'OK' });
+                },
+                complete: function() {
+                    button.prop('disabled', false).html(originalHtml);
+                    input.prop('disabled', false);
+                }
+            });
+        });
+    });
+
+    $(document).on('submit', '#cvReviewStatusForm', function(event) {
+        event.preventDefault();
+        const form = $(this);
+        const button = form.find('button[type="submit"]');
+        const originalHtml = button.html();
+        button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Menyimpan...');
+
+        $.ajax({
+            url: form.attr('action'),
+            method: 'POST',
+            dataType: 'json',
+            data: form.serialize(),
+            success: function(response) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil',
+                    text: response.message || 'Status pemeriksaan berhasil diperbarui.',
+                    confirmButtonText: 'OK'
+                }).then(function() { window.location.reload(); });
+            },
+            error: function(xhr) {
+                let message = xhr.responseJSON && xhr.responseJSON.message
+                    ? xhr.responseJSON.message
+                    : 'Status pemeriksaan gagal diperbarui.';
+                if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                    const firstKey = Object.keys(xhr.responseJSON.errors)[0];
+                    if (firstKey) message = xhr.responseJSON.errors[firstKey][0];
+                }
+                Swal.fire({ icon: 'error', title: 'Gagal', text: message, confirmButtonText: 'OK' });
+            },
+            complete: function() {
+                button.prop('disabled', false).html(originalHtml);
+            }
+        });
+    });
+
     window.onCvMakerHrisUpdated = function() {
         return $.ajax({
             url: window.location.href,

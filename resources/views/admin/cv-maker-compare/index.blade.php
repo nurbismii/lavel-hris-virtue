@@ -137,13 +137,94 @@
                                 <option value="not_needed">Tidak Perlu Diingatkan</option>
                             </select>
                         </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cv_filter_progress_status">Status Progress</label>
+                            <select id="cv_filter_progress_status" class="form-select">
+                                <option value="">Semua Progress</option>
+                                <option value="not_synced">Snapshot Belum Tersedia</option>
+                                <option value="no_account">Belum Memiliki Akun CV</option>
+                                <option value="no_profile">Profil CV Belum Dibuat</option>
+                                <option value="in_progress">Dalam Progress</option>
+                                <option value="complete">Sudah Lengkap</option>
+                            </select>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cvProgressStepDropdown">Tahap Progress</label>
+                            <div class="company-filter">
+                                <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="cvProgressStepDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="cvProgressStepLabel">Semua tahap</span>
+                                </button>
+                                <div class="dropdown-menu company-filter__menu" aria-labelledby="cvProgressStepDropdown">
+                                    <div class="company-filter__menu-header">
+                                        <span>Pilih tahap progress</span>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-link btn-sm p-0" id="btnSelectAllCvProgressSteps">Pilih semua</button>
+                                            <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvProgressSteps">Kosongkan</button>
+                                        </div>
+                                    </div>
+                                    @foreach([
+                                        1 => 'Data Pribadi',
+                                        2 => 'Ringkasan Profil',
+                                        3 => 'Pendidikan',
+                                        4 => 'Pengalaman',
+                                        5 => 'Keahlian',
+                                        6 => 'Sertifikasi',
+                                        7 => 'Tambahan',
+                                        8 => 'Dokumen',
+                                    ] as $stepNumber => $stepLabel)
+                                    <label class="company-filter__option">
+                                        <input type="checkbox" class="form-check-input cv-progress-step-check" value="{{ $stepNumber }}" data-label="{{ $stepLabel }}">
+                                        <span>{{ $stepNumber }} - {{ $stepLabel }}</span>
+                                    </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                            <select id="cv_filter_progress_step" class="d-none" multiple aria-hidden="true">
+                                <option value="1">1 - Data Pribadi</option>
+                                <option value="2">2 - Ringkasan Profil</option>
+                                <option value="3">3 - Pendidikan</option>
+                                <option value="4">4 - Pengalaman</option>
+                                <option value="5">5 - Keahlian</option>
+                                <option value="6">6 - Sertifikasi</option>
+                                <option value="7">7 - Tambahan</option>
+                                <option value="8">8 - Dokumen</option>
+                            </select>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cv_filter_review_status">Status Pemeriksaan</label>
+                            <select id="cv_filter_review_status" class="form-select">
+                                <option value="">Semua Pemeriksaan</option>
+                                <option value="unreviewed">Belum Diperiksa</option>
+                                <option value="in_review">Sedang Diperiksa</option>
+                                <option value="needs_employee_confirmation">Perlu Konfirmasi Karyawan</option>
+                                <option value="completed">Selesai Diperiksa</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
+
+                <div class="d-flex flex-wrap gap-2 align-items-center mt-3 mb-2">
+                    <button type="button" class="btn btn-sm btn-primary ui-btn-icon" id="btnCvReminderSelected" disabled>
+                        <i class="fas fa-envelope"></i>
+                        Email Pilihan (<span id="cvReminderSelectedCount">0</span>)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary ui-btn-icon" id="btnCvReminderFiltered">
+                        <i class="fas fa-mail-bulk"></i>
+                        Email Semua Hasil Filter
+                    </button>
+                    <span class="small text-muted">Hanya karyawan berstatus Perlu Diingatkan yang akan diproses. Cooldown pengiriman tetap diperiksa oleh server.</span>
+                </div>
+
+                <div class="alert ui-alert d-none mb-3" id="cvReminderBatchStatus" role="status" aria-live="polite"></div>
 
                 <div class="cv-compare-table-section ui-table-wrap">
                     <table id="cvMakerCompareTable" class="table table-bordered table-striped table-sm small text-sm nowrap align-middle ui-table">
                         <thead>
                             <tr>
+                                <th class="text-center" style="width: 42px"><input type="checkbox" class="form-check-input" id="cvReminderSelectPage" aria-label="Pilih semua reminder pada halaman ini"></th>
                                 <th>NIK</th>
                                 <th>Karyawan</th>
                                 <th>CV Maker</th>
@@ -161,10 +242,45 @@
 
 @push('scripts')
 <script>
+    const selectedCvReminderNiks = new Set();
+
+    function updateCvReminderSelectionUi() {
+        $('#cvReminderSelectedCount').text(selectedCvReminderNiks.size);
+        $('#btnCvReminderSelected').prop('disabled', selectedCvReminderNiks.size < 1);
+        const eligibleCount = $('.js-cv-reminder-row').length;
+        const checkedCount = $('.js-cv-reminder-row:checked').length;
+        $('#cvReminderSelectPage').prop('checked', eligibleCount > 0 && checkedCount === eligibleCount);
+    }
+
+    function clearCvReminderSelection() {
+        selectedCvReminderNiks.clear();
+        $('#cvReminderSelectPage').prop('checked', false);
+        updateCvReminderSelectionUi();
+    }
+
     function selectedCvAreaCodes() {
         return $('.cv-filter-area-check:checked').map(function() {
             return this.value;
         }).get();
+    }
+
+    function syncCvProgressStepFilter() {
+        const checkedSteps = $('.cv-progress-step-check:checked');
+        const values = checkedSteps.map(function() {
+            return $(this).val();
+        }).get();
+        let label = 'Semua tahap';
+
+        if (values.length === 1) {
+            const checkbox = checkedSteps.first();
+            label = `Tahap ${checkbox.val()} - ${checkbox.data('label')}`;
+        } else if (values.length > 1) {
+            label = `${values.length} tahap dipilih`;
+        }
+
+        $('#cv_filter_progress_step').val(values);
+        $('#cvProgressStepLabel').text(label);
+        $('#cvProgressStepDropdown').toggleClass('is-active', values.length > 0);
     }
 
     function syncCvAreaFilter() {
@@ -229,6 +345,7 @@
             responsive: true,
             autoWidth: false,
             searchDelay: 450,
+            order: [[2, 'asc']],
             language: {
                 processing: 'Memuat data compare...',
                 search: 'Cari:',
@@ -256,21 +373,169 @@
                     data.divisi = $('#cv_filter_divisi').val();
                     data.status_resign = $('#cv_filter_resign').val();
                     data.cv_reminder = $('#cv_filter_reminder').val();
+                    data.cv_progress_status = $('#cv_filter_progress_status').val();
+                    data.cv_progress_step = $('#cv_filter_progress_step').val();
+                    data.cv_review_status = $('#cv_filter_review_status').val();
                 },
                 error: function(xhr) {
                     showCvCompareAjaxError(xhr, 'Data compare gagal dimuat.');
                 }
             },
             columns: [
+                { data: 'select', orderable: false, searchable: false, width: '42px', className: 'text-center' },
                 { data: 'nik', width: '90px' },
                 { data: 'employee', orderable: true },
                 { data: 'cv_status', orderable: false, searchable: false, width: '120px' },
                 { data: 'result', orderable: false, searchable: false, width: '190px' }
-            ]
+            ],
+            drawCallback: function() {
+                clearCvReminderSelection();
+            }
         });
 
+    $(document).on('change', '.js-cv-reminder-row', function() {
+        const nik = String($(this).val());
+        if (this.checked) selectedCvReminderNiks.add(nik);
+        else selectedCvReminderNiks.delete(nik);
+        updateCvReminderSelectionUi();
+    });
+
+    $('#cvReminderSelectPage').on('change', function() {
+        const checked = this.checked;
+        $('.js-cv-reminder-row').each(function() {
+            $(this).prop('checked', checked);
+            if (checked) selectedCvReminderNiks.add(String($(this).val()));
+            else selectedCvReminderNiks.delete(String($(this).val()));
+        });
+        updateCvReminderSelectionUi();
+    });
+
+    function cvReminderRequestId() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return window.crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(character) {
+            const random = Math.random() * 16 | 0;
+            return (character === 'x' ? random : (random & 0x3 | 0x8)).toString(16);
+        });
+    }
+
+    function cvReminderFilterPayload() {
+        return {
+            area: selectedCvAreaCodes(),
+            departemen: $('#cv_filter_departemen').val(),
+            divisi: $('#cv_filter_divisi').val(),
+            status_resign: $('#cv_filter_resign').val(),
+            cv_reminder: 'needs_reminder',
+            cv_progress_status: $('#cv_filter_progress_status').val(),
+            cv_progress_step: $('#cv_filter_progress_step').val() || [],
+            cv_review_status: $('#cv_filter_review_status').val(),
+            search: cvCompareTable.search()
+        };
+    }
+
+    function renderCvReminderBatchStatus(data) {
+        const terminal = ['completed', 'partial_failed', 'failed'].includes(data.status);
+        const statusText = terminal ? 'Proses selesai' : 'Reminder sedang diproses';
+        $('#cvReminderBatchStatus')
+            .removeClass('d-none alert-danger alert-warning alert-success')
+            .addClass(data.failed_count > 0 ? 'alert-warning' : (terminal ? 'alert-success' : 'alert-info'))
+            .html(`<strong>${statusText} (${data.progress}%)</strong><br>` +
+                `${data.processed_count} dari ${data.total_count} diproses — ` +
+                `${data.sent_count} terkirim, ${data.skipped_count} dilewati, ${data.failed_count} gagal.`);
+        return terminal;
+    }
+
+    function pollCvReminderBatch(statusUrl, attempt = 0) {
+        if (!statusUrl || attempt >= 120) return;
+        $.get(statusUrl).done(function(response) {
+            if (!renderCvReminderBatchStatus(response.data || {})) {
+                window.setTimeout(function() { pollCvReminderBatch(statusUrl, attempt + 1); }, 5000);
+            } else {
+                cvCompareTable.ajax.reload(null, false);
+            }
+        }).fail(function(xhr) {
+            showCvCompareAjaxError(xhr, 'Status pengiriman reminder gagal diperbarui.');
+        });
+    }
+
+    function queueCvReminder(selectionMode) {
+        const selectedNiks = Array.from(selectedCvReminderNiks);
+        if (selectionMode === 'selected' && !selectedNiks.length) return;
+
+        const targetLabel = selectionMode === 'selected'
+            ? `${selectedNiks.length} karyawan terpilih`
+            : 'semua karyawan Perlu Diingatkan pada hasil filter';
+
+        Swal.fire({
+            icon: 'question',
+            title: 'Kirim reminder CV?',
+            text: `Sistem akan memvalidasi ${targetLabel}, email, scope akses, dan cooldown sebelum memasukkan email ke antrean.`,
+            showCancelButton: true,
+            confirmButtonText: 'Masukkan ke Antrean',
+            cancelButtonText: 'Batal'
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+
+            const buttons = $('#btnCvReminderSelected, #btnCvReminderFiltered');
+            const payload = Object.assign(cvReminderFilterPayload(), {
+                _token: $('meta[name="csrf-token"]').attr('content'),
+                idempotency_key: cvReminderRequestId(),
+                selection_mode: selectionMode,
+                employee_niks: selectedNiks
+            });
+            buttons.prop('disabled', true);
+
+            $.ajax({
+                url: "{{ route('cv-maker-compare.reminders.store') }}",
+                method: 'POST',
+                dataType: 'json',
+                data: payload,
+                success: function(response) {
+                    clearCvReminderSelection();
+                    renderCvReminderBatchStatus(response.data || {});
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Antrean dibuat',
+                        text: response.message,
+                        confirmButtonText: 'OK'
+                    });
+                    pollCvReminderBatch(response.status_url);
+                },
+                error: function(xhr) {
+                    showCvCompareAjaxError(xhr, 'Bulk reminder gagal dibuat.');
+                },
+                complete: function() {
+                    buttons.prop('disabled', false);
+                    updateCvReminderSelectionUi();
+                }
+            });
+        });
+    }
+
+    $('#btnCvReminderSelected').on('click', function() { queueCvReminder('selected'); });
+    $('#btnCvReminderFiltered').on('click', function() { queueCvReminder('filtered'); });
+
     syncCvAreaFilter();
+    syncCvProgressStepFilter();
     resetCvDepartmentAndDivision(true);
+
+    $('.cv-progress-step-check').on('change', function() {
+        syncCvProgressStepFilter();
+        $('#cv_filter_progress_step').trigger('change');
+    });
+
+    $('#btnSelectAllCvProgressSteps').on('click', function() {
+        $('.cv-progress-step-check').prop('checked', true);
+        syncCvProgressStepFilter();
+        $('#cv_filter_progress_step').trigger('change');
+    });
+
+    $('#btnClearCvProgressSteps').on('click', function() {
+        $('.cv-progress-step-check').prop('checked', false);
+        syncCvProgressStepFilter();
+        $('#cv_filter_progress_step').trigger('change');
+    });
 
     $('.cv-filter-area-check').on('change', function() {
         syncCvAreaFilter();
@@ -335,7 +600,7 @@
         });
     });
 
-    $('#cv_filter_divisi, #cv_filter_resign, #cv_filter_reminder').on('change', function() {
+    $('#cv_filter_divisi, #cv_filter_resign, #cv_filter_reminder, #cv_filter_progress_status, #cv_filter_progress_step, #cv_filter_review_status').on('change', function() {
         cvCompareTable.draw();
     });
 
@@ -345,6 +610,10 @@
         resetCvDepartmentAndDivision(true);
         $('#cv_filter_resign').val('AKTIF');
         $('#cv_filter_reminder').val('');
+        $('#cv_filter_progress_status').val('');
+        $('.cv-progress-step-check').prop('checked', false);
+        syncCvProgressStepFilter();
+        $('#cv_filter_review_status').val('');
         cvCompareTable.draw();
     });
 </script>

@@ -149,6 +149,14 @@ class CvMakerCompareService
         ['key' => 'graduation_year', 'label' => 'Tahun lulus', 'column' => 'tanggal_kelulusan', 'cv' => 'graduation_year', 'type' => 'year'],
     ];
 
+    private const MANUAL_CORRECTION_FIELDS = [
+        'name', 'ktp_number', 'family_card_number', 'birth_date', 'gender', 'blood_type',
+        'height', 'weight', 'religion', 'marital_status', 'mother_name', 'spouse_name',
+        'marriage_date', 'phone', 'ktp_address', 'rt', 'rw', 'domicile_address',
+        'npwp_number', 'bank_account_number', 'entry_date', 'education_level',
+        'education_institution', 'education_major', 'graduation_year',
+    ];
+
     private const CV_PROFILE_COLUMNS = [
         'status',
         'full_name',
@@ -255,6 +263,9 @@ class CvMakerCompareService
                 $comparison = $this->compareEmployee($employee, $cvProfile);
 
                 return [
+                    'select' => $progressStatus && $progressStatus->needs_reminder
+                        ? '<input type="checkbox" class="form-check-input js-cv-reminder-row" value="' . e($employee->nik) . '" aria-label="Pilih ' . e($employee->nama_karyawan ?: $employee->nik) . '">'
+                        : '',
                     'nik' => e($employee->nik),
                     'employee' => $this->renderEmployeeCell($employee),
                     'cv_status' => $this->renderCvStatus($cvProfile, $progressStatus),
@@ -273,6 +284,11 @@ class CvMakerCompareService
         ];
     }
 
+    public function filteredEmployeeQuery(Request $request, User $user): Builder
+    {
+        return $this->applyFilters($this->employeeBaseQuery($user), $request);
+    }
+
     public function detailForEmployee(Employee $employee): array
     {
         $employee->loadMissing(['departemen', 'divisi', 'jobTitle.level', 'organizationPosition.levelOverride', 'organizationPosition.jobTitle.level', 'provinsi', 'kabupaten', 'kecamatan', 'kelurahan']);
@@ -280,7 +296,7 @@ class CvMakerCompareService
         $cvProfile = $this->cvProfileForEmployee($employee);
         $progressStatus = CvMakerProgressStatus::query()
             ->where('employee_nik', $employee->nik)
-            ->with(['histories' => function ($query) {
+            ->with(['reviewer', 'histories' => function ($query) {
                 $query->latest()->limit(10);
             }])
             ->first();
@@ -334,6 +350,7 @@ class CvMakerCompareService
                 }
 
                 $result['key'] = $field['key'];
+                $result = array_merge($result, $this->manualCorrectionMeta($employee, $field['key']));
                 $groups[$group][] = $result;
             }
         }
@@ -490,7 +507,13 @@ class CvMakerCompareService
         return $this->buildUpdatePreview($employee, $cvProfile);
     }
 
-    public function updateHrisFromCv(Employee $employee, User $actor): array
+    public function updateHrisFromCv(
+        Employee $employee,
+        User $actor,
+        ?array $selectedFieldKeys = null,
+        ?array $selectedRelatedKeys = null,
+        ?bool $syncOrganization = null
+    ): array
     {
         $employee->loadMissing(['departemen', 'divisi', 'jobTitle.level', 'organizationPosition.levelOverride', 'organizationPosition.jobTitle.level', 'provinsi', 'kabupaten', 'kecamatan', 'kelurahan']);
         $cvProfile = $this->cvProfileForEmployee($employee);
@@ -507,21 +530,50 @@ class CvMakerCompareService
             return $preview;
         }
 
+        $selection = $this->selectedUpdateChanges(
+            $preview,
+            $selectedFieldKeys,
+            $selectedRelatedKeys,
+            $syncOrganization
+        );
+        $selectedChanges = $selection['changes'];
+        $selectedRelatedChanges = $selection['related_changes'];
+        $hasOrganizationChange = $selection['has_organization_change'];
+
+        if (empty($selectedChanges) && empty($selectedRelatedChanges) && !$hasOrganizationChange) {
+            return array_merge($preview, [
+                'success' => false,
+                'message' => 'Pilihan tidak lagi memiliki perubahan. Muat ulang preview lalu coba kembali.',
+            ]);
+        }
+
         $oldValues = [];
         $newValues = [];
 
-        foreach ($preview['changes'] as $change) {
+        foreach ($selectedChanges as $change) {
             $oldValues[$change['column']] = $change['old_raw'];
             $newValues[$change['column']] = $change['new_raw'];
         }
 
-        $organizationResult = DB::transaction(function () use ($employee, $actor, $oldValues, $newValues, $preview, $cvProfile) {
+        $organizationResult = DB::transaction(function () use (
+            $employee,
+            $actor,
+            $oldValues,
+            $newValues,
+            $selectedChanges,
+            $selectedRelatedChanges,
+            $hasOrganizationChange,
+            $preview,
+            $cvProfile
+        ) {
             if ($newValues) {
                 $employee->forceFill($newValues)->save();
             }
 
-            $this->relatedDataService()->sync((string) $employee->nik, $preview['related_changes'] ?? []);
-            $organizationResult = $this->organizationSyncService()->sync($employee, $cvProfile, $actor);
+            $this->relatedDataService()->sync((string) $employee->nik, $selectedRelatedChanges);
+            $organizationResult = $hasOrganizationChange
+                ? $this->organizationSyncService()->sync($employee, $cvProfile, $actor)
+                : ['synced' => false, 'reason' => 'Sinkronisasi organisasi tidak dipilih.'];
 
             app(AuditTrailService::class)->record([
                 'event' => 'cv_maker.hris_updated',
@@ -538,8 +590,9 @@ class CvMakerCompareService
                     'source' => 'cv_maker',
                     'cv_user_id' => $preview['cv_profile']['user_id'] ?? null,
                     'cv_profile_id' => $preview['cv_profile']['profile_id'] ?? null,
-                    'changed_fields' => collect($preview['changes'])->pluck('column')->values()->all(),
-                    'changed_sections' => collect($preview['related_changes'] ?? [])->pluck('key')->values()->all(),
+                    'changed_fields' => collect($selectedChanges)->pluck('column')->values()->all(),
+                    'changed_sections' => collect($selectedRelatedChanges)->pluck('key')->values()->all(),
+                    'organization_selected' => $hasOrganizationChange,
                     'organization_sync' => $organizationResult,
                 ],
                 'note' => 'Update data V-People dari CV Maker.',
@@ -551,10 +604,141 @@ class CvMakerCompareService
         return array_merge($preview, [
             'updated' => true,
             'organization_result' => $organizationResult,
-            'message' => count($preview['changes']) . ' field dan '
-                . count($preview['related_changes'] ?? []) . ' bagian riwayat berhasil diperbarui dari CV Maker'
+            'message' => count($selectedChanges) . ' field dan '
+                . count($selectedRelatedChanges) . ' bagian riwayat berhasil diperbarui dari CV Maker'
                 . (!empty($organizationResult['synced']) ? ', termasuk struktur organisasi.' : '.'),
         ]);
+    }
+
+    public function correctHrisField(Employee $employee, User $actor, string $fieldKey, $value): array
+    {
+        $prepared = $this->prepareManualCorrection($fieldKey, $value);
+
+        return DB::transaction(function () use ($employee, $actor, $prepared) {
+            $lockedEmployee = Employee::query()->whereKey($employee->getKey())->lockForUpdate()->firstOrFail();
+            $field = $prepared['field'];
+            $oldValue = $lockedEmployee->{$field['column']};
+            $newValue = $prepared['value'];
+
+            if (
+                $this->normalizeForCompare($oldValue, $field['type'])
+                === $this->normalizeForCompare($newValue, $field['type'])
+            ) {
+                return [
+                    'success' => true,
+                    'updated' => false,
+                    'message' => 'Nilai HRIS tidak berubah.',
+                    'data' => ['field_key' => $field['key']],
+                ];
+            }
+
+            $lockedEmployee->forceFill([$field['column'] => $newValue])->save();
+
+            app(AuditTrailService::class)->record([
+                'event' => 'cv_maker.hris_field_corrected',
+                'module' => 'cv_maker_compare',
+                'auditable_type' => Employee::class,
+                'auditable_id' => (string) $lockedEmployee->nik,
+                'reference_table' => 'employees',
+                'reference_id' => (string) $lockedEmployee->nik,
+                'employee_nik' => (string) $lockedEmployee->nik,
+                'actor' => $actor,
+                'old_values' => [$field['column'] => $oldValue],
+                'new_values' => [$field['column'] => $newValue],
+                'metadata' => [
+                    'source' => 'cv_maker_compare_manual_correction',
+                    'field_key' => $field['key'],
+                ],
+                'note' => 'Koreksi satu field HRIS dari halaman detail Compare CV Maker.',
+            ]);
+
+            return [
+                'success' => true,
+                'updated' => true,
+                'message' => $field['label'] . ' berhasil dikoreksi.',
+                'data' => [
+                    'field_key' => $field['key'],
+                    'display_value' => $this->plainDisplayValue($newValue, $field['type']),
+                ],
+            ];
+        });
+    }
+
+    private function prepareManualCorrection(string $fieldKey, $value): array
+    {
+        $field = collect(self::UPDATE_FIELDS)->firstWhere('key', $fieldKey);
+
+        if (!$field || !in_array($fieldKey, self::MANUAL_CORRECTION_FIELDS, true)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'field_key' => 'Field ini tidak dapat dikoreksi langsung dari halaman Compare CV Maker.',
+            ]);
+        }
+
+        $transformed = $this->transformCvValueForUpdate($value, $field);
+
+        if ($transformed === null) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'value' => 'Nilai koreksi tidak sesuai format field ' . $field['label'] . '.',
+            ]);
+        }
+
+        if (in_array($fieldKey, ['ktp_number', 'family_card_number'], true) && !preg_match('/^\d{16}$/', (string) $transformed)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'value' => $field['label'] . ' harus terdiri dari tepat 16 digit angka.',
+            ]);
+        }
+
+        return ['field' => $field, 'value' => $transformed];
+    }
+
+    private function manualCorrectionMeta(Employee $employee, string $fieldKey): array
+    {
+        $field = collect(self::UPDATE_FIELDS)->firstWhere('key', $fieldKey);
+
+        if (!$field || !in_array($fieldKey, self::MANUAL_CORRECTION_FIELDS, true)) {
+            return ['editable' => false];
+        }
+
+        $value = $employee->{$field['column']};
+        $sensitive = in_array($field['type'], ['identity_number', 'numeric_identifier'], true);
+
+        if ($value instanceof Carbon) {
+            $value = $field['type'] === 'year' ? $value->format('Y') : $value->format('Y-m-d');
+        } elseif ($field['type'] === 'year' && filled($value)) {
+            $value = $this->normalizeForCompare($value, 'year');
+        }
+
+        return [
+            'editable' => true,
+            'edit_value' => $sensitive ? '' : ($value === null ? '' : (string) $value),
+            'input_type' => $field['type'] === 'date'
+                ? 'date'
+                : (in_array($field['type'], ['year', 'body_measurement'], true) ? 'number' : 'text'),
+            'sensitive' => $sensitive,
+        ];
+    }
+
+    private function selectedUpdateChanges(
+        array $preview,
+        ?array $selectedFieldKeys,
+        ?array $selectedRelatedKeys,
+        ?bool $syncOrganization
+    ): array {
+        $changes = collect($preview['changes'] ?? [])
+            ->filter(fn(array $change) => $selectedFieldKeys === null || in_array($change['key'], $selectedFieldKeys, true))
+            ->values()
+            ->all();
+        $relatedChanges = collect($preview['related_changes'] ?? [])
+            ->filter(fn(array $change) => $selectedRelatedKeys === null || in_array($change['key'], $selectedRelatedKeys, true))
+            ->values()
+            ->all();
+        $organizationRequested = $syncOrganization === null ? true : $syncOrganization;
+
+        return [
+            'changes' => $changes,
+            'related_changes' => $relatedChanges,
+            'has_organization_change' => $organizationRequested && !empty($preview['organization_changes']),
+        ];
     }
 
     public function buildUpdatePreview(Employee $employee, ?array $cvProfile): array
@@ -788,6 +972,52 @@ class CvMakerCompareService
             $query->where('employees.status_resign', $request->input('status_resign'));
         }
 
+        $progressStatus = trim((string) $request->input('cv_progress_status', ''));
+
+        if ($progressStatus === 'not_synced') {
+            $query->whereNotIn('employees.nik', CvMakerProgressStatus::query()->select('employee_nik'));
+        } elseif ($progressStatus !== '') {
+            $progressQuery = CvMakerProgressStatus::query()->select('employee_nik');
+
+            if ($progressStatus === 'no_account') {
+                $progressQuery->whereNull('cv_user_id');
+            } elseif ($progressStatus === 'no_profile') {
+                $progressQuery->whereNotNull('cv_user_id')->whereNull('cv_profile_id');
+            } elseif ($progressStatus === 'in_progress') {
+                $progressQuery->whereNotNull('cv_profile_id')->where('is_complete', false);
+            } elseif ($progressStatus === 'complete') {
+                $progressQuery->whereNotNull('cv_profile_id')->where('is_complete', true);
+            } else {
+                $progressQuery = null;
+            }
+
+            if ($progressQuery) {
+                $query->whereIn('employees.nik', $progressQuery);
+            }
+        }
+
+        $progressSteps = collect((array) $request->input('cv_progress_step'))
+            ->filter(fn($value) => is_numeric($value) && (int) $value >= 1 && (int) $value <= 8)
+            ->map(fn($value) => (int) $value)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($progressSteps) {
+            $query->whereIn('employees.nik', CvMakerProgressStatus::query()
+                ->select('employee_nik')
+                ->whereNotNull('cv_profile_id')
+                ->whereIn('current_step', $progressSteps));
+        }
+
+        $reviewStatus = trim((string) $request->input('cv_review_status', ''));
+
+        if (in_array($reviewStatus, array_keys(CvMakerProgressStatus::reviewLabels()), true)) {
+            $query->whereIn('employees.nik', CvMakerProgressStatus::query()
+                ->select('employee_nik')
+                ->where('review_status', $reviewStatus));
+        }
+
         if ($request->input('cv_reminder') === 'needs_reminder') {
             $query->whereIn('employees.nik', CvMakerProgressStatus::query()
                 ->select('employee_nik')
@@ -821,11 +1051,11 @@ class CvMakerCompareService
     private function applyOrdering(Builder $query, Request $request): Builder
     {
         $columns = [
-            0 => 'employees.nik',
-            1 => 'employees.nama_karyawan',
-            2 => 'employees.status_resign',
+            1 => 'employees.nik',
+            2 => 'employees.nama_karyawan',
+            3 => 'employees.status_resign',
         ];
-        $columnIndex = (int) $request->input('order.0.column', 1);
+        $columnIndex = (int) $request->input('order.0.column', 2);
         $column = $columns[$columnIndex] ?? 'employees.nama_karyawan';
         $direction = strtolower((string) $request->input('order.0.dir', 'asc')) === 'desc' ? 'desc' : 'asc';
 
@@ -2147,6 +2377,17 @@ class CvMakerCompareService
         } else {
             $badges[] = '<span class="badge bg-light text-dark border">Dalam Progress</span>';
         }
+
+        $reviewStatus = $progressStatus->review_status ?: CvMakerProgressStatus::REVIEW_UNREVIEWED;
+        $reviewLabels = CvMakerProgressStatus::reviewLabels();
+        $reviewClasses = [
+            CvMakerProgressStatus::REVIEW_UNREVIEWED => 'bg-secondary',
+            CvMakerProgressStatus::REVIEW_IN_PROGRESS => 'bg-info text-dark',
+            CvMakerProgressStatus::REVIEW_NEEDS_CONFIRMATION => 'bg-warning text-dark',
+            CvMakerProgressStatus::REVIEW_COMPLETED => 'bg-success',
+        ];
+        $badges[] = '<span class="badge ' . ($reviewClasses[$reviewStatus] ?? 'bg-secondary') . '">'
+            . e($reviewLabels[$reviewStatus] ?? $reviewStatus) . '</span>';
 
         $stepLabel = 'Tahap ' . (int) $progressStatus->current_step
             . '/' . (int) ($progressStatus->total_step_count ?: CvMakerProgressSnapshotService::TOTAL_STEPS)

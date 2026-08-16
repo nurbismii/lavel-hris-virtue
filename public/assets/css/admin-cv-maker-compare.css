@@ -246,7 +246,53 @@
     overflow-wrap: anywhere;
 }
 
+.cv-compare-field__source {
+    min-width: 0;
+    min-height: 52px;
+    padding: 7px;
+    color: #111827;
+    background: #f9fafb;
+    border: 1px solid #eef2f7;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.cv-compare-field__source-label {
+    margin-bottom: 6px;
+    color: #667085;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.cv-inline-correction__current {
+    margin-bottom: 6px;
+    font-weight: 700;
+}
+
+.cv-inline-correction__hint {
+    display: block;
+    margin-top: 5px;
+    color: #667085;
+    line-height: 1.35;
+}
+
+.cv-compare-field__source .form-control,
+.cv-compare-field__source .form-select,
+.cv-compare-field__source .btn {
+    font-size: 0.76rem;
+}
+
 .cv-compare-field--mismatch .cv-compare-field__values span {
+    color: #7f1d1d;
+    background: #fff7f7;
+    border-color: #fecaca;
+}
+
+.cv-compare-field--mismatch .cv-compare-field__source {
     color: #7f1d1d;
     background: #fff7f7;
     border-color: #fecaca;

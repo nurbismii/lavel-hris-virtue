@@ -10,10 +10,74 @@ use App\Models\Kelurahan;
 use App\Models\Provinsi;
 use App\Services\CvMaker\CvMakerCompareService;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Tests\TestCase;
 
 class CvMakerCompareServiceTest extends TestCase
 {
+    public function test_progress_status_and_steps_are_applied_as_server_side_filters(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'cv_progress_status' => 'in_progress',
+            'cv_progress_step' => ['3', '8', '99', 'invalid'],
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+        $sql = $query->toSql();
+        $bindings = $query->getBindings();
+
+        $this->assertStringContainsString('cv_maker_progress_statuses', $sql);
+        $this->assertContains('in_progress', [$request->input('cv_progress_status')]);
+        $this->assertContains(3, $bindings);
+        $this->assertContains(8, $bindings);
+        $this->assertNotContains(99, $bindings);
+    }
+
+    public function test_update_selection_keeps_only_explicit_fields_and_sections(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'selectedUpdateChanges');
+        $method->setAccessible(true);
+        $selection = $method->invoke($service, [
+            'changes' => [
+                ['key' => 'name'],
+                ['key' => 'ktp_number'],
+            ],
+            'related_changes' => [
+                ['key' => 'educations'],
+                ['key' => 'experiences'],
+            ],
+            'organization_changes' => [['key' => 'organization_structure']],
+        ], ['name'], ['educations'], false);
+
+        $this->assertSame(['name'], collect($selection['changes'])->pluck('key')->all());
+        $this->assertSame(['educations'], collect($selection['related_changes'])->pluck('key')->all());
+        $this->assertFalse($selection['has_organization_change']);
+    }
+
+    public function test_compare_marks_safe_fields_editable_but_keeps_organization_fields_locked(): void
+    {
+        $service = new CvMakerCompareService();
+        $employee = new Employee([
+            'nik' => 'EMP001',
+            'nama_karyawan' => 'Budi',
+            'posisi' => 'Operator',
+        ]);
+        $comparison = $service->compareEmployee($employee, [
+            'profile_id' => 10,
+            'full_name' => 'Budi Baru',
+            'position' => 'Supervisor',
+        ]);
+        $identity = collect($comparison['groups']['identity'])->firstWhere('key', 'name');
+        $position = collect($comparison['groups']['work'])->firstWhere('key', 'position');
+
+        $this->assertTrue($identity['editable']);
+        $this->assertFalse($position['editable']);
+    }
+
     public function test_progress_snapshot_renderer_shows_reminder_badge_and_current_step(): void
     {
         $service = new CvMakerCompareService();

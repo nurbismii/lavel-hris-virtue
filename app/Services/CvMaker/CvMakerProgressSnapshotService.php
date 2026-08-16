@@ -7,6 +7,7 @@ use App\Models\CvMakerProgressStatus;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 class CvMakerProgressSnapshotService
@@ -132,6 +133,20 @@ class CvMakerProgressSnapshotService
 
             if ($existing) {
                 $historyEvents = $this->historyEventsForChange($existing, $payload, $progress);
+                $previousActivity = $existing->last_activity_at;
+                $newActivity = $payload['last_activity_at'];
+                $hasNewActivity = $newActivity && (
+                    !$previousActivity || Carbon::parse($newActivity)->gt($previousActivity)
+                );
+
+                if ($hasNewActivity && Schema::hasColumn('cv_maker_progress_statuses', 'review_status')) {
+                    $existing->forceFill([
+                        'review_status' => CvMakerProgressStatus::REVIEW_UNREVIEWED,
+                        'reviewed_by' => null,
+                        'reviewed_at' => null,
+                        'review_note' => null,
+                    ]);
+                }
                 $existing->fill($payload)->save();
                 $status = $existing;
             } else {

@@ -215,6 +215,13 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/cv-maker-compare/data', [CvMakerCompareController::class, 'data'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
             ->name('cv-maker-compare.data');
+        Route::post('/cv-maker-compare/reminders', [CvMakerCompareController::class, 'storeReminderBatch'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-compare.reminders.store');
+        Route::get('/cv-maker-compare/reminders/{batch}', [CvMakerCompareController::class, 'reminderBatchStatus'])
+            ->whereNumber('batch')
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-compare.reminders.status');
         Route::get('/cv-maker-compare/{nik}', [CvMakerCompareController::class, 'show'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
             ->name('cv-maker-compare.show');
@@ -224,6 +231,12 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::post('/cv-maker-compare/{nik}/update-hris', [CvMakerCompareController::class, 'updateHris'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
             ->name('cv-maker-compare.update-hris');
+        Route::post('/cv-maker-compare/{nik}/review-status', [CvMakerCompareController::class, 'updateReviewStatus'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-compare.review-status.update');
+        Route::post('/cv-maker-compare/{nik}/correct-field', [CvMakerCompareController::class, 'correctField'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-compare.correct-field');
         Route::get('/cv-maker-compare/{nik}/documents/{document}', [CvMakerCompareController::class, 'document'])
             ->whereNumber('document')
             ->name('cv-maker-compare.documents.show');
