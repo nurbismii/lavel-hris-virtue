@@ -268,6 +268,12 @@
     text-transform: uppercase;
 }
 
+.cv-compare-field__apply {
+    align-self: flex-start;
+    margin-top: .55rem;
+    white-space: nowrap;
+}
+
 .cv-inline-correction__current {
     margin-bottom: 6px;
     font-weight: 700;

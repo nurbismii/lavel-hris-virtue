@@ -351,6 +351,7 @@ class CvMakerCompareService
 
                 $result['key'] = $field['key'];
                 $result = array_merge($result, $this->manualCorrectionMeta($employee, $field['key']));
+                $result = array_merge($result, $this->singleFieldUpdateMeta($field['key'], $result));
                 $groups[$group][] = $result;
             }
         }
@@ -706,6 +707,15 @@ class CvMakerCompareService
             $value = $field['type'] === 'year' ? $value->format('Y') : $value->format('Y-m-d');
         } elseif ($field['type'] === 'year' && filled($value)) {
             $value = $this->normalizeForCompare($value, 'year');
+        } elseif ($field['type'] === 'gender' && filled($value)) {
+            $value = $this->normalizeForCompare($value, 'gender');
+        } elseif ($field['type'] === 'marital' && filled($value)) {
+            $marital = $this->normalizeForCompare($value, 'marital');
+            $value = [
+                'BELUM' => 'Belum Kawin',
+                'KAWIN' => 'Kawin',
+                'CERAI' => 'Cerai',
+            ][$marital] ?? '';
         }
 
         return [
@@ -715,6 +725,22 @@ class CvMakerCompareService
                 ? 'date'
                 : (in_array($field['type'], ['year', 'body_measurement'], true) ? 'number' : 'text'),
             'sensitive' => $sensitive,
+        ];
+    }
+
+    private function singleFieldUpdateMeta(string $fieldKey, array $comparison): array
+    {
+        $field = collect(self::UPDATE_FIELDS)->firstWhere('key', $fieldKey);
+        $highRiskKeys = [
+            'ktp_number', 'family_card_number', 'npwp_number', 'bank_account_number',
+            'job_title', 'position', 'province', 'regency', 'district', 'village',
+        ];
+
+        return [
+            'updatable_from_cv' => (bool) $field
+                && !empty($comparison['mismatch'])
+                && empty($comparison['skipped']),
+            'update_from_cv_high_risk' => in_array($fieldKey, $highRiskKeys, true),
         ];
     }
 
@@ -1747,7 +1773,9 @@ class CvMakerCompareService
         }
 
         if ($key === 'job_title') {
-            return optional($employee->jobTitle)->display_name ?: $employee->jabatan;
+            // Update field CV Maker writes the legacy display column. The master
+            // relation is compared separately through job_title_master/job_level.
+            return $employee->jabatan ?: optional($employee->jobTitle)->display_name;
         }
 
         if ($key === 'position') {

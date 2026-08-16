@@ -78,6 +78,26 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertFalse($position['editable']);
     }
 
+    public function test_compare_exposes_single_field_update_only_for_real_mismatch(): void
+    {
+        $employee = new Employee([
+            'nik' => 'EMP001',
+            'nama_karyawan' => 'Nama HRIS',
+            'jenis_kelamin' => 'Laki-laki',
+        ]);
+
+        $comparison = (new CvMakerCompareService())->compareEmployee($employee, [
+            'profile_id' => 10,
+            'full_name' => 'Nama CV Maker',
+            'gender' => 'L',
+        ]);
+        $identity = collect($comparison['groups']['identity'])->keyBy('key');
+
+        $this->assertTrue($identity['name']['updatable_from_cv']);
+        $this->assertFalse($identity['gender']['updatable_from_cv']);
+        $this->assertSame('L', $identity['gender']['edit_value']);
+    }
+
     public function test_progress_snapshot_renderer_shows_reminder_badge_and_current_step(): void
     {
         $service = new CvMakerCompareService();
@@ -269,6 +289,25 @@ class CvMakerCompareServiceTest extends TestCase
 
         $this->assertFalse($position['mismatch']);
         $this->assertSame('Supervisor', $position['hris']);
+    }
+
+    public function test_compare_job_title_uses_updatable_employee_value_before_master_fallback(): void
+    {
+        $employee = new Employee([
+            'nik' => 'EMP001',
+            'jabatan' => 'Foreman Vitae',
+        ]);
+        $employee->setRelation('jobTitle', new \App\Models\JobTitle([
+            'name' => 'Foreman Master Lama',
+        ]));
+
+        $comparison = (new CvMakerCompareService())->compareEmployee($employee, [
+            'profile_id' => 10,
+            'job_title' => 'Foreman Vitae',
+        ]);
+        $work = collect($comparison['groups']['work'])->keyBy('key');
+
+        $this->assertFalse($work['job_title']['mismatch']);
     }
 
     public function test_location_fields_are_compared_when_both_sides_have_values(): void

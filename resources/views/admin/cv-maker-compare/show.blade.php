@@ -666,6 +666,19 @@ $completeProfileGroups = [
                                     <div class="cv-compare-field__source cv-compare-field__source--cv">
                                         <div class="cv-compare-field__source-label">CV Maker</div>
                                         <span>{!! $item['cv'] !!}</span>
+                                        @if($canUpdateFromCv && !empty($item['updatable_from_cv']))
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-primary ui-btn-icon cv-compare-field__apply js-cv-apply-single-field"
+                                            data-update-url="{{ route('cv-maker-compare.update-hris', $employee->nik) }}"
+                                            data-field-key="{{ $item['key'] }}"
+                                            data-field-label="{{ $item['label'] }}"
+                                            data-new-value="{{ strip_tags($item['cv']) }}"
+                                            data-high-risk="{{ !empty($item['update_from_cv_high_risk']) ? '1' : '0' }}">
+                                            <i class="fas fa-arrow-left"></i>
+                                            Gunakan nilai ini
+                                        </button>
+                                        @endif
                                     </div>
                                 </div>
                             </div>
@@ -795,6 +808,85 @@ $completeProfileGroups = [
                 complete: function() {
                     button.prop('disabled', false).html(originalHtml);
                     input.prop('disabled', false);
+                }
+            });
+        });
+    });
+
+    $(document).on('click', '.js-cv-apply-single-field', function() {
+        const button = $(this);
+        const updateUrl = button.data('update-url');
+        const fieldKey = String(button.data('field-key') || '');
+        const fieldLabel = button.data('field-label') || 'Field';
+        const newValue = String(button.data('new-value') || '-');
+        const isHighRisk = String(button.data('high-risk')) === '1';
+
+        if (!updateUrl || !fieldKey) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Update tidak tersedia',
+                text: 'Informasi field yang akan diperbarui tidak lengkap.',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+
+        Swal.fire({
+            icon: isHighRisk ? 'warning' : 'question',
+            title: `Update ${fieldLabel}?`,
+            text: isHighRisk
+                ? 'Field ini termasuk data penting. Pastikan nilai CV Maker telah diverifikasi sebelum melanjutkan.'
+                : `Nilai HRIS akan diganti menggunakan nilai CV Maker: "${newValue}".`,
+            showCancelButton: true,
+            confirmButtonText: 'Ya, Update Field',
+            cancelButtonText: 'Batal'
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+
+            const originalHtml = button.html();
+            button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Mengupdate...');
+
+            $.ajax({
+                url: updateUrl,
+                method: 'POST',
+                dataType: 'json',
+                data: {
+                    _token: $('meta[name="csrf-token"]').attr('content'),
+                    selected_fields: [fieldKey],
+                    selected_sections: [],
+                    include_organization: 0
+                },
+                success: function(response) {
+                    const refreshRequest = typeof window.onCvMakerHrisUpdated === 'function'
+                        ? window.onCvMakerHrisUpdated(response)
+                        : null;
+
+                    Promise.resolve(refreshRequest).then(function() {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil',
+                            text: response.message || `${fieldLabel} berhasil diperbarui dari CV Maker.`,
+                            confirmButtonText: 'OK'
+                        });
+                    }).catch(function() {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Update tersimpan',
+                            text: 'Tampilan terbaru gagal dimuat otomatis. Silakan refresh halaman.',
+                            confirmButtonText: 'OK'
+                        });
+                    });
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal',
+                        text: cvInlineCorrectionError(xhr),
+                        confirmButtonText: 'OK'
+                    });
+                },
+                complete: function() {
+                    button.prop('disabled', false).html(originalHtml);
                 }
             });
         });
