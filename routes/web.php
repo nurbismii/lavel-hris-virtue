@@ -255,6 +255,9 @@ Route::middleware(['android.redirect'])->group(function () {
                 Route::post('/approval/hrd/{movement}', [EmployeeMovementController::class, 'hrdProcess'])->name('hrd.process');
             });
 
+        Route::get('/user/datatable', [App\Http\Controllers\Admin\UserController::class, 'dataTable'])
+            ->name('user.datatable')
+            ->middleware('menu:data_user');
         Route::resource('/user', 'App\Http\Controllers\Admin\UserController')
             ->only(['index', 'edit', 'update', 'destroy'])
             ->middleware('menu:data_user');

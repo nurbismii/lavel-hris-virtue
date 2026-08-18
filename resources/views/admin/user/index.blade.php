@@ -11,7 +11,6 @@
                     {{ __('access.user_management.index_title') }}
                 </h4>
 
-
                 <small class="text-muted">
                     {{ __('access.user_management.index_subtitle') }}
                 </small>
@@ -22,7 +21,7 @@
             <div class="card">
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table id="table-user" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap">
+                        <table id="table-user" class="table table-bordered table-striped mb-0 table-sm small text-sm nowrap" width="100%">
                             <thead>
                                 <tr>
                                     <th>{{ __('tables.nik') }}</th>
@@ -34,38 +33,7 @@
                                     <th>{{ __('tables.action') }}</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                @foreach ($users as $user)
-                                <tr>
-                                    <td>{{ $user->nik_karyawan }}</td>
-                                    <td>{{ optional($user->employee)->nama_karyawan ?? $user->name }}</td>
-                                    <td>{{ $user->email }}</td>
-                                    <td>{{ ucfirst($user->status) }}</td>
-                                    <td>{{ $user->display_role_name }}</td>
-                                    <td>{{ $user->terakhir_login ?? '-' }}</td>
-                                    <td>
-                                        <a href="{{ route('user.edit', $user->nik_karyawan) }}" class="btn btn-sm btn-primary btn-sm btn-icon-split">
-                                            <span class="icon text-white-50">
-                                                <i class="fas fa-edit"></i>
-                                            </span>
-                                            <span class="text">{{ __('access.setting_role.edit') }}</span>
-                                        </a>
-                                        <a href="{{ route('user.destroy', $user->nik_karyawan) }}" class="btn btn-danger btn-sm btn-icon-split" data-confirm-delete="true">
-                                            <span class="icon text-white-50">
-                                                <i class="fas fa-trash"></i>
-                                            </span>
-                                            <span class="text">{{ __('access.setting_role.delete') }}</span>
-                                        </a>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
                         </table>
-                        @if(method_exists($users, 'links'))
-                        <div class="mt-3">
-                            {{ $users->links() }}
-                        </div>
-                        @endif
                     </div>
                 </div>
             </div>
@@ -76,8 +44,48 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
-        $("#table-user").DataTable({
+        $('#table-user').DataTable({
+            processing: true,
+            serverSide: true,
             responsive: true,
+            ajax: {
+                url: '{{route('user.datatable')}}',
+                type: 'GET'
+            },
+            columns: [{
+                    data: 'nik_karyawan',
+                    name: 'nik_karyawan'
+                },
+                {
+                    data: 'nama_karyawan',
+                    name: 'nama_karyawan'
+                },
+                {
+                    data: 'email',
+                    name: 'email'
+                },
+                {
+                    data: 'status',
+                    name: 'status'
+                },
+                {
+                    data: 'role',
+                    name: 'role'
+                },
+                {
+                    data: 'terakhir_login',
+                    name: 'terakhir_login'
+                },
+                {
+                    data: 'action',
+                    name: 'action',
+                    orderable: false,
+                    searchable: false
+                }
+            ],
+            order: [
+                [1, 'asc']
+            ]
         });
     });
 </script>
