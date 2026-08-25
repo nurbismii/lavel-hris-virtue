@@ -412,7 +412,7 @@ class ApprovalSlaService
             : Carbon::parse($row->created_at);
         $slaHours = $this->slaHours($stage);
         $dueAt = $startedAt->copy()->addHours($slaHours);
-        $ageMinutes = $startedAt->diffInMinutes(now());
+        $ageMinutes = (int) $startedAt->diffInMinutes(now(), true);
         $status = $this->resolveStatus($ageMinutes, $slaHours);
 
         return [
@@ -446,7 +446,7 @@ class ApprovalSlaService
             return 0.0;
         }
 
-        return round(now()->diffInMinutes($dueAt) / 60, 1);
+        return round((int) now()->diffInMinutes($dueAt, true) / 60, 1);
     }
 
     private function resolveStatus(int $ageMinutes, int $slaHours): string

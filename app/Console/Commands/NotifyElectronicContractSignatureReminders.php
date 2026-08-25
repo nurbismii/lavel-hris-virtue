@@ -56,7 +56,7 @@ class NotifyElectronicContractSignatureReminders extends Command
                 continue;
             }
 
-            $daysBeforeEnd = $today->diffInDays($dueDate, false);
+            $daysBeforeEnd = (int) $today->diffInDays($dueDate, false);
 
             if (!$days->contains($daysBeforeEnd)) {
                 continue;

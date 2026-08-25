@@ -78,7 +78,7 @@ class AttendanceAnomalyService
             [$start, $end] = [$end, $start];
         }
 
-        if ($start->diffInDays($end) > self::MAX_DATE_RANGE_DAYS) {
+        if ((int) $start->diffInDays($end, true) > self::MAX_DATE_RANGE_DAYS) {
             $end = $start->copy()->addDays(self::MAX_DATE_RANGE_DAYS);
         }
 

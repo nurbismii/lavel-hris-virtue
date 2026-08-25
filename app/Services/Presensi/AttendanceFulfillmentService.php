@@ -165,7 +165,7 @@ class AttendanceFulfillmentService
 
     private function resolveFallbackActualWorkMinutes(Presensi $presensi, array $scheduleData, string $attendanceDate, Carbon $actualStart, Carbon $actualEnd): int
     {
-        $grossMinutes = $actualStart->diffInMinutes($actualEnd);
+        $grossMinutes = (int) $actualStart->diffInMinutes($actualEnd, true);
 
         if ($presensi->jam_istirahat && $presensi->jam_kembali_istirahat) {
             $breakStart = $this->parseActualDateTime($presensi->jam_istirahat, $attendanceDate, $actualStart);
@@ -236,7 +236,7 @@ class AttendanceFulfillmentService
     {
         if (
             $actualTime->greaterThan($scheduledTime)
-            && $scheduledTime->diffInMinutes($actualTime) <= self::LATE_TOLERANCE_MINUTES
+            && (int) $scheduledTime->diffInMinutes($actualTime, true) <= self::LATE_TOLERANCE_MINUTES
         ) {
             return $scheduledTime->copy();
         }
@@ -264,7 +264,7 @@ class AttendanceFulfillmentService
             return 0;
         }
 
-        return $overlapStart->diffInMinutes($overlapEnd);
+        return (int) $overlapStart->diffInMinutes($overlapEnd, true);
     }
 
     public function formatMinutes(?int $minutes): string

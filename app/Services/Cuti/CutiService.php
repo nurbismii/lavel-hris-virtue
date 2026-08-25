@@ -51,7 +51,7 @@ class CutiService
 
             $startDate = Carbon::parse($data['tanggal_mulai'])->toDateString();
             $endDate = Carbon::parse($data['tanggal_berakhir'])->toDateString();
-            $jumlahHari = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
+            $jumlahHari = (int) Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate), true) + 1;
 
             $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange($startDate, $endDate, 'Pengajuan cuti');
 
@@ -128,7 +128,7 @@ class CutiService
 
             $startDate = Carbon::parse($data['tanggal_mulai'])->toDateString();
             $endDate = Carbon::parse($data['tanggal_berakhir'])->toDateString();
-            $jumlahHari = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
+            $jumlahHari = (int) Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate), true) + 1;
 
             $periodLockMessage = app(AttendancePeriodLockService::class)->guardRange($startDate, $endDate, 'Perubahan pengajuan cuti');
 

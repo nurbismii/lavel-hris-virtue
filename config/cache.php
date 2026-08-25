@@ -21,6 +21,12 @@ return [
     'default' => env('CACHE_DRIVER', 'file'),
 
     /*
+    | Laravel 13 hardening: reject serialized PHP objects from cache payloads.
+    | This application only caches scalar/array DTO data.
+    */
+    'serializable_classes' => false,
+
+    /*
     |--------------------------------------------------------------------------
     | Cache Stores
     |--------------------------------------------------------------------------

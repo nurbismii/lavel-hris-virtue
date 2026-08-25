@@ -232,7 +232,7 @@ class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkR
         $number = (int) preg_replace('/[^0-9]+/', '', $raw);
 
         if ($number < 1 && $startDate && $endDate) {
-            $number = max(1, $startDate->diffInMonths($endDate));
+            $number = max(1, (int) $startDate->diffInMonths($endDate, true));
         }
 
         if (Str::contains($raw, ['hari', 'day'])) {

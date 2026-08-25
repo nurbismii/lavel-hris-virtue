@@ -76,7 +76,7 @@ class Shift extends Model
         }
 
         [$start, $end] = $this->buildShiftRange();
-        $grossMinutes = $start->diffInMinutes($end);
+        $grossMinutes = (int) $start->diffInMinutes($end, true);
 
         return max($grossMinutes - $this->scheduled_break_minutes, 0);
     }
@@ -155,7 +155,7 @@ class Shift extends Model
             return 0;
         }
 
-        return $overlapStart->diffInMinutes($overlapEnd);
+        return (int) $overlapStart->diffInMinutes($overlapEnd, true);
     }
 
     private function formatMinutes(int $minutes): string

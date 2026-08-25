@@ -234,7 +234,7 @@ class ContractMonitoringDashboardService
 
     private function daysTo($date): ?int
     {
-        return $date ? Carbon::today()->diffInDays(Carbon::parse($date)->startOfDay(), false) : null;
+        return $date ? (int) Carbon::today()->diffInDays(Carbon::parse($date)->startOfDay(), false) : null;
     }
 
     private function normalizeDays($days): int

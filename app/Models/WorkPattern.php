@@ -351,7 +351,7 @@ class WorkPattern extends Model
         }
 
         [$shiftStart, $shiftEnd] = $this->buildShiftRange($startTime, $endTime);
-        $grossMinutes = $shiftStart->diffInMinutes($shiftEnd);
+        $grossMinutes = (int) $shiftStart->diffInMinutes($shiftEnd, true);
         $scheduledBreakMinutes = 0;
 
         if ($breakStartTime && $breakEndTime) {
@@ -428,7 +428,7 @@ class WorkPattern extends Model
             return 0;
         }
 
-        return $overlapStart->diffInMinutes($overlapEnd);
+        return (int) $overlapStart->diffInMinutes($overlapEnd, true);
     }
 
     private function formatMinutes(int $minutes): string

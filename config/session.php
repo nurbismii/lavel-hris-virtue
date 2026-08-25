@@ -21,6 +21,13 @@ return [
     'driver' => env('SESSION_DRIVER', 'file'),
 
     /*
+    | Keep PHP serialization during the zero-downtime upgrade so existing
+    | authenticated sessions remain valid. JSON can be enabled in a planned
+    | deployment that intentionally invalidates all active sessions.
+    */
+    'serialization' => env('SESSION_SERIALIZATION', 'php'),
+
+    /*
     |--------------------------------------------------------------------------
     | Session Lifetime
     |--------------------------------------------------------------------------

@@ -329,8 +329,8 @@ class HodApprovalDashboardService
             'effective_start' => $effectiveStart,
             'effective_end' => $effectiveEnd,
             'amount' => $definition['amount_column'] ? $model->{$definition['amount_column']} : null,
-            'age_hours' => $createdAt ? $createdAt->diffInHours(now()) : null,
-            'age_days' => $createdAt ? $createdAt->diffInDays(now()) : null,
+            'age_hours' => $createdAt ? (int) $createdAt->diffInHours(now(), true) : null,
+            'age_days' => $createdAt ? (int) $createdAt->diffInDays(now(), true) : null,
             'route' => route($stage === 'hod' ? $definition['route_hod'] : $definition['route_hrd']),
         ];
     }

@@ -88,7 +88,7 @@ class IzinController extends Controller
             return back()->withInput();
         }
 
-        $jumlahHari = $tanggalMulai->diffInDays($tanggalBerakhir) + 1;
+        $jumlahHari = (int) $tanggalMulai->diffInDays($tanggalBerakhir, true) + 1;
 
         $fotoPath = '-';
 
@@ -186,7 +186,7 @@ class IzinController extends Controller
             return back()->withInput();
         }
 
-        $jumlahHari = $tanggalMulai->diffInDays($tanggalBerakhir) + 1;
+        $jumlahHari = (int) $tanggalMulai->diffInDays($tanggalBerakhir, true) + 1;
         $oldFotoPath = $izin->foto;
         $hasNewFoto = $request->hasFile('foto');
         $fotoPath = $oldFotoPath ?: '-';

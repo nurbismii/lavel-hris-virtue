@@ -13,13 +13,13 @@ class Employee extends Model
 
     protected $guarded = [];
 
-    protected $dates = [
-        'entry_date',
-        'tgl_resign',
-        'tgl_lahir',
-        'tanggal_kelulusan',
-        'tanggal_menikah',
-        'work_pattern_start_date',
+    protected $casts = [
+        'entry_date' => 'datetime',
+        'tgl_resign' => 'datetime',
+        'tgl_lahir' => 'datetime',
+        'tanggal_kelulusan' => 'datetime',
+        'tanggal_menikah' => 'datetime',
+        'work_pattern_start_date' => 'datetime',
     ];
 
     public function getDocumentPhotoUrlAttribute(): ?string

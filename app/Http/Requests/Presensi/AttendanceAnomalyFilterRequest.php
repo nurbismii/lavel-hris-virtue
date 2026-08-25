@@ -42,7 +42,7 @@ class AttendanceAnomalyFilterRequest extends FormRequest
                 return;
             }
 
-            if (Carbon::parse($dateFrom)->diffInDays(Carbon::parse($dateTo)) > 62) {
+            if ((int) Carbon::parse($dateFrom)->diffInDays(Carbon::parse($dateTo), true) > 62) {
                 $validator->errors()->add('date_to', 'Rentang tanggal maksimal 62 hari agar query tetap ringan.');
             }
         });

@@ -116,7 +116,7 @@ class RosterCyclePlanService
 
         $workDays = $this->workWeeks($pattern) * 7;
         $cycleDays = $this->cycleDays($pattern);
-        $daysSinceStart = $patternStart->diffInDays($targetDate);
+        $daysSinceStart = (int) $patternStart->diffInDays($targetDate, true);
         $dayInCycle = $daysSinceStart % $cycleDays;
 
         return $dayInCycle >= $workDays;
@@ -138,7 +138,7 @@ class RosterCyclePlanService
         $offWeeks = $this->offWeeks($pattern);
         $cycleDays = $this->cycleDays($pattern);
         $firstWorkEnd = $patternStart->copy()->addWeeks($workWeeks)->subDay();
-        $daysSinceFirstWorkEnd = $firstWorkEnd->diffInDays($targetWorkEnd, false);
+        $daysSinceFirstWorkEnd = (int) $firstWorkEnd->diffInDays($targetWorkEnd, false);
 
         if ($daysSinceFirstWorkEnd < 0 || $daysSinceFirstWorkEnd % $cycleDays !== 0) {
             return null;

@@ -754,7 +754,7 @@ class AttendanceHrSummaryExportService
             $end->addDay();
         }
 
-        return $start->diffInMinutes($end);
+        return (int) $start->diffInMinutes($end, true);
     }
 
     private function parseAttendanceDateTime(string $date, $value): ?Carbon
