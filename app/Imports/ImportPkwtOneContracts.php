@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Imports\Concerns\TracksImportHistory;
 use App\Models\EmployeeContract;
 use App\Models\OnboardingCandidate;
+use App\Models\ImportHistoryItem;
 use App\Services\Vhire\VhireOnboardingContractService;
 use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,6 +13,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 use Maatwebsite\Excel\Concerns\RegistersEventListeners;
+use Maatwebsite\Excel\Concerns\RemembersChunkOffset;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -23,6 +25,7 @@ use Throwable;
 class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkReading, WithEvents, WithCalculatedFormulas, ShouldQueue
 {
     use RegistersEventListeners;
+    use RemembersChunkOffset;
     use TracksImportHistory;
 
     private string $signingMethod;
@@ -51,9 +54,10 @@ class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkR
         $insertedCount = 0;
         $updatedCount = 0;
         $failureSamples = [];
+        $detailItems = [];
 
         foreach ($rows as $index => $row) {
-            $rowNumber = (int) $index + 2;
+            $rowNumber = (int) (isset($this->chunkOffset) ? $this->chunkOffset : 2) + (int) $index;
             $payload = $this->payloadFromRow($row);
 
             if ($payload['no_ktp'] === '' && $payload['nama'] === '') {
@@ -65,6 +69,13 @@ class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkR
             if ($validationMessage !== null) {
                 $skippedCount++;
                 $this->addFailureSample($failureSamples, $rowNumber, $payload['no_ktp'], $validationMessage);
+                $detailItems[] = [
+                    'category' => ImportHistoryItem::CATEGORY_SKIPPED,
+                    'row' => $rowNumber,
+                    'nik' => $payload['no_ktp'],
+                    'message' => $validationMessage,
+                    'payload' => $payload,
+                ];
                 continue;
             }
 
@@ -77,12 +88,26 @@ class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkR
 
                 if ($alreadyExists) {
                     $updatedCount++;
+                    $detailItems[] = [
+                        'category' => ImportHistoryItem::CATEGORY_UPDATED,
+                        'row' => $rowNumber,
+                        'nik' => $payload['no_ktp'],
+                        'message' => 'Data kandidat/kontrak yang sudah ada diperbarui.',
+                        'payload' => $payload,
+                    ];
                 } else {
                     $insertedCount++;
                 }
             } catch (Throwable $exception) {
                 $failedCount++;
                 $this->addFailureSample($failureSamples, $rowNumber, $payload['no_ktp'], $exception->getMessage());
+                $detailItems[] = [
+                    'category' => ImportHistoryItem::CATEGORY_FAILED,
+                    'row' => $rowNumber,
+                    'nik' => $payload['no_ktp'],
+                    'message' => $exception->getMessage(),
+                    'payload' => $payload,
+                ];
             }
         }
 
@@ -98,7 +123,8 @@ class ImportPkwtOneContracts implements ToCollection, WithHeadingRow, WithChunkR
                 'chunk_processed_at' => now()->toIso8601String(),
             ],
             $insertedCount,
-            $updatedCount
+            $updatedCount,
+            $detailItems
         );
     }
 

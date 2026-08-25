@@ -47,7 +47,8 @@ trait TracksImportHistory
         array $failureSamples = [],
         array $summary = [],
         int $insertedCount = 0,
-        int $updatedCount = 0
+        int $updatedCount = 0,
+        array $detailItems = []
     ): void {
         app(ImportHistoryService::class)->addChunkResult(
             $this->importHistoryId(),
@@ -58,7 +59,8 @@ trait TracksImportHistory
             $failureSamples,
             $summary,
             $insertedCount,
-            $updatedCount
+            $updatedCount,
+            $detailItems
         );
     }
 }

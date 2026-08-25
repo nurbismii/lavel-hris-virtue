@@ -5,11 +5,13 @@ namespace App\Imports;
 use App\Imports\Concerns\TracksImportHistory;
 use App\Models\ContractTemplate;
 use App\Models\EmployeeContractHistory;
+use App\Models\ImportHistoryItem;
 use Carbon\Carbon;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\RegistersEventListeners;
+use Maatwebsite\Excel\Concerns\RemembersChunkOffset;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
@@ -22,6 +24,7 @@ use Throwable;
 class ImportEmployeeContractHistories implements ToCollection, WithHeadingRow, WithChunkReading, WithEvents, WithCalculatedFormulas, ShouldQueue
 {
     use RegistersEventListeners;
+    use RemembersChunkOffset;
     use TracksImportHistory;
 
     private ?string $actorUserId;
@@ -40,9 +43,10 @@ class ImportEmployeeContractHistories implements ToCollection, WithHeadingRow, W
         $insertedCount = 0;
         $updatedCount = 0;
         $failureSamples = [];
+        $detailItems = [];
 
         foreach ($rows as $index => $row) {
-            $rowNumber = (int) $index + 2;
+            $rowNumber = (int) (isset($this->chunkOffset) ? $this->chunkOffset : 2) + (int) $index;
             $payload = $this->payloadFromRow($row, $rowNumber);
 
             if ($payload['nik'] === '' && $payload['employee_name'] === '' && $payload['contract_number'] === '') {
@@ -54,6 +58,13 @@ class ImportEmployeeContractHistories implements ToCollection, WithHeadingRow, W
             if ($validationMessage !== null) {
                 $skippedCount++;
                 $this->addFailureSample($failureSamples, $rowNumber, $payload['nik'], $validationMessage);
+                $detailItems[] = [
+                    'category' => ImportHistoryItem::CATEGORY_SKIPPED,
+                    'row' => $rowNumber,
+                    'nik' => $payload['nik'],
+                    'message' => $validationMessage,
+                    'payload' => $payload,
+                ];
                 continue;
             }
 
@@ -73,12 +84,26 @@ class ImportEmployeeContractHistories implements ToCollection, WithHeadingRow, W
 
                 if ($exists) {
                     $updatedCount++;
+                    $detailItems[] = [
+                        'category' => ImportHistoryItem::CATEGORY_UPDATED,
+                        'row' => $rowNumber,
+                        'nik' => $payload['nik'],
+                        'message' => 'History kontrak yang sudah ada diperbarui.',
+                        'payload' => $payload,
+                    ];
                 } else {
                     $insertedCount++;
                 }
             } catch (Throwable $exception) {
                 $failedCount++;
                 $this->addFailureSample($failureSamples, $rowNumber, $payload['nik'], $exception->getMessage());
+                $detailItems[] = [
+                    'category' => ImportHistoryItem::CATEGORY_FAILED,
+                    'row' => $rowNumber,
+                    'nik' => $payload['nik'],
+                    'message' => $exception->getMessage(),
+                    'payload' => $payload,
+                ];
             }
         }
 
@@ -90,7 +115,8 @@ class ImportEmployeeContractHistories implements ToCollection, WithHeadingRow, W
             $failureSamples,
             ['source_format' => 'vertical_contract_history'],
             $insertedCount,
-            $updatedCount
+            $updatedCount,
+            $detailItems
         );
     }
 

@@ -3,11 +3,14 @@
 namespace App\Imports;
 
 use App\Imports\Concerns\TracksImportHistory;
+use App\Models\Employee;
 use App\Models\Resign;
+use App\Models\ImportHistoryItem;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Maatwebsite\Excel\Concerns\RegistersEventListeners;
+use Maatwebsite\Excel\Concerns\RemembersChunkOffset;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -25,6 +28,7 @@ class ImportResign implements
     ShouldQueue
 {
     use RegistersEventListeners;
+    use RemembersChunkOffset;
     use TracksImportHistory;
 
     public function __construct(?int $importHistoryId = null)
@@ -37,6 +41,7 @@ class ImportResign implements
         $datas = [];
         $skippedCount = 0;
         $failureSamples = [];
+        $detailItems = [];
 
         // Ambil semua NIK dalam 1 chunk
         $niks = $collection->pluck('nik_karyawan')
@@ -51,8 +56,14 @@ class ImportResign implements
             ->pluck('nik_karyawan')
             ->map(fn($nik) => (string) $nik)
             ->toArray();
+        $employeeNames = Employee::query()
+            ->whereIn('nik', $niks)
+            ->pluck('nama_karyawan', 'nik')
+            ->mapWithKeys(function ($name, $nik) {
+                return [(string) $nik => $name];
+            });
 
-        foreach ($collection as $collect) {
+        foreach ($collection as $index => $collect) {
 
             $nikKaryawan = (string) ($collect['nik_karyawan'] ?? '');
 
@@ -66,6 +77,15 @@ class ImportResign implements
                         'message' => "Data resign untuk NIK {$nikKaryawan} sudah ada.",
                     ];
                 }
+
+                $detailItems[] = [
+                    'category' => ImportHistoryItem::CATEGORY_SKIPPED,
+                    'row' => (int) (isset($this->chunkOffset) ? $this->chunkOffset : 2) + (int) $index,
+                    'nik' => $nikKaryawan,
+                    'employee_name' => $employeeNames->get($nikKaryawan),
+                    'message' => "Data resign untuk NIK {$nikKaryawan} sudah ada.",
+                    'payload' => method_exists($collect, 'toArray') ? $collect->toArray() : (array) $collect,
+                ];
 
                 continue;
             }
@@ -101,7 +121,8 @@ class ImportResign implements
             $failureSamples,
             ['chunk_processed_at' => now()->toIso8601String()],
             count($datas),
-            0
+            0,
+            $detailItems
         );
     }
 

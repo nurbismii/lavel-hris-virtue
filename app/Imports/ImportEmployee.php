@@ -6,6 +6,7 @@ use App\Imports\Concerns\TracksImportHistory;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
+use App\Models\ImportHistoryItem;
 use App\Models\Perusahaan;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -18,11 +19,13 @@ use Maatwebsite\Excel\Concerns\WithValidation;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\RegistersEventListeners;
+use Maatwebsite\Excel\Concerns\RemembersChunkOffset;
 use Maatwebsite\Excel\Concerns\WithEvents;
 
 class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, WithBatchInserts, WithValidation, WithEvents, ShouldQueue
 {
     use RegistersEventListeners;
+    use RemembersChunkOffset;
     use TracksImportHistory;
 
     protected $allDepartemen;
@@ -45,6 +48,8 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
         $newNiks = [];
         $skippedCount = 0;
         $failureSamples = [];
+        $detailItems = [];
+        $processedRows = [];
 
         // AMBIL SELURUH KELURAHAN PADA FILE EXCEL
         $namaKelurahanUnik = collect($rows)
@@ -71,7 +76,9 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
             ->get()
             ->groupBy(fn($k) => strtolower(trim($k->kelurahan)));
 
-        foreach ($rows as $row) {
+        foreach ($rows as $index => $row) {
+            $rowNumber = (int) (isset($this->chunkOffset) ? $this->chunkOffset : 2) + (int) $index;
+            $sourcePayload = method_exists($row, 'toArray') ? $row->toArray() : (array) $row;
             $nik = trim((string) ($row['nik'] ?? ''));
 
             // skip jika NIK kosong atau duplikat dalam 1 file
@@ -87,6 +94,16 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
                             : "NIK {$nik} duplikat dalam chunk import.",
                     ];
                 }
+
+                $detailItems[] = [
+                    'category' => ImportHistoryItem::CATEGORY_SKIPPED,
+                    'row' => $rowNumber,
+                    'nik' => $nik ?: null,
+                    'message' => $nik === ''
+                        ? 'NIK kosong pada file import.'
+                        : "NIK {$nik} duplikat dalam chunk import.",
+                    'payload' => $sourcePayload,
+                ];
 
                 continue;
             }
@@ -176,6 +193,10 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
                 'sisa_cuti' => $row['sisa_cuti'] ?? null,
                 'sisa_cuti_covid' => $row['sisa_cuti_covid'] ?? null,
             ];
+            $processedRows[$nik] = [
+                'row' => $rowNumber,
+                'payload' => $sourcePayload,
+            ];
         }
 
         $insertedCount = 0;
@@ -189,6 +210,20 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
             $updatedCount = count(array_intersect($newNiks, $existingNiks));
             $insertedCount = max(0, count($newRows) - $updatedCount);
 
+            foreach ($existingNiks as $existingNik) {
+                $processed = $processedRows[(string) $existingNik] ?? null;
+
+                if ($processed) {
+                    $detailItems[] = [
+                        'category' => ImportHistoryItem::CATEGORY_UPDATED,
+                        'row' => $processed['row'],
+                        'nik' => (string) $existingNik,
+                        'message' => 'Data karyawan diperbarui berdasarkan NIK yang sudah ada.',
+                        'payload' => $processed['payload'],
+                    ];
+                }
+            }
+
             Employee::upsert($newRows, ['nik'], array_keys($newRows[0]));
         }
 
@@ -200,7 +235,8 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
             $failureSamples,
             ['chunk_processed_at' => now()->toIso8601String()],
             $insertedCount,
-            $updatedCount
+            $updatedCount,
+            $detailItems
         );
     }
 

@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Exports\ImportHistoryItemsExport;
 use App\Models\ImportHistory;
+use App\Models\ImportHistoryItem;
 use App\Services\ImportHistory\ImportHistoryService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +46,22 @@ class ImportHistoryServiceTest extends TestCase
             'status' => 'skip',
             'nik' => 'EMP001',
             'message' => 'Duplikat dalam file.',
-        ]], [], 5, 3);
+        ]], [], 5, 3, [
+            [
+                'category' => ImportHistoryItem::CATEGORY_SKIPPED,
+                'row' => 4,
+                'nik' => 'EMP001',
+                'message' => 'Duplikat dalam file.',
+                'payload' => ['nik' => 'EMP001', 'nama_karyawan' => 'Karyawan A'],
+            ],
+            [
+                'category' => ImportHistoryItem::CATEGORY_UPDATED,
+                'row' => 5,
+                'nik' => 'EMP002',
+                'message' => 'Data diperbarui.',
+                'payload' => ['nik' => 'EMP002', 'nama_karyawan' => 'Karyawan B'],
+            ],
+        ]);
         $service->markCompleted($history->id);
 
         $history = $history->fresh();
@@ -56,6 +73,19 @@ class ImportHistoryServiceTest extends TestCase
         $this->assertSame(5, $history->inserted_count);
         $this->assertSame(3, $history->updated_count);
         $this->assertCount(1, $history->failure_samples);
+        $this->assertDatabaseHas('import_history_items', [
+            'import_history_id' => $history->id,
+            'category' => ImportHistoryItem::CATEGORY_SKIPPED,
+            'row_number' => 4,
+            'nik' => 'EMP001',
+        ]);
+        $this->assertDatabaseHas('import_history_items', [
+            'import_history_id' => $history->id,
+            'category' => ImportHistoryItem::CATEGORY_UPDATED,
+            'row_number' => 5,
+            'nik' => 'EMP002',
+            'employee_name' => 'Karyawan B',
+        ]);
         $this->assertNotNull($history->started_at);
         $this->assertNotNull($history->finished_at);
     }
@@ -78,6 +108,53 @@ class ImportHistoryServiceTest extends TestCase
         $this->assertSame(1, $history->failed_count);
         $this->assertSame('File tidak dapat dibaca.', $history->error_message);
         $this->assertNotNull($history->finished_at);
+        $this->assertDatabaseHas('import_history_items', [
+            'import_history_id' => $history->id,
+            'category' => ImportHistoryItem::CATEGORY_FAILED,
+            'message' => 'File tidak dapat dibaca.',
+        ]);
+    }
+
+    public function test_full_detail_items_are_not_limited_to_display_samples(): void
+    {
+        $service = app(ImportHistoryService::class);
+        $history = $service->createQueued([
+            'import_type' => ImportHistory::TYPE_EMPLOYEE,
+            'source' => ImportHistory::SOURCE_EXCEL,
+            'file_name' => 'employees.xlsx',
+            'created_by' => 'user-1',
+        ]);
+        $samples = [];
+        $details = [];
+
+        for ($index = 1; $index <= 75; $index++) {
+            $samples[] = [
+                'status' => 'skip',
+                'row' => $index + 1,
+                'nik' => 'EMP' . $index,
+                'message' => 'Data dilewati.',
+            ];
+            $details[] = [
+                'category' => ImportHistoryItem::CATEGORY_SKIPPED,
+                'row' => $index + 1,
+                'nik' => 'EMP' . $index,
+                'message' => 'Data dilewati.',
+                'payload' => ['nama_karyawan' => 'Karyawan ' . $index],
+            ];
+        }
+
+        $service->addChunkResult($history->id, 75, 0, 75, 0, $samples, [], 0, 0, $details);
+        $history = $history->fresh();
+
+        $this->assertCount(50, $history->failure_samples);
+        $this->assertSame(75, $history->items()->where('category', ImportHistoryItem::CATEGORY_SKIPPED)->count());
+
+        $export = new ImportHistoryItemsExport($history, ImportHistoryItem::CATEGORY_SKIPPED);
+        $exportRows = iterator_to_array($export->generator());
+
+        $this->assertCount(75, $exportRows);
+        $this->assertContains('Nama Karyawan', $export->headings());
+        $this->assertSame('Karyawan 1', $export->map($exportRows[0])[3]);
     }
 
     public function test_zip_import_history_syncs_absolute_progress_summary(): void
@@ -146,6 +223,19 @@ class ImportHistoryServiceTest extends TestCase
             $table->string('created_by', 36)->nullable();
             $table->timestamp('started_at')->nullable();
             $table->timestamp('finished_at')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('import_history_items', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->unsignedBigInteger('import_history_id');
+            $table->string('category', 20);
+            $table->unsignedInteger('row_number')->nullable();
+            $table->string('nik', 100)->nullable();
+            $table->string('employee_name', 255)->nullable();
+            $table->string('file_name', 255)->nullable();
+            $table->string('message', 500)->nullable();
+            $table->longText('payload')->nullable();
             $table->timestamps();
         });
     }

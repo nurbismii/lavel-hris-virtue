@@ -55,6 +55,11 @@ class ImportHistory extends Model
         return $this->belongsTo(User::class, 'created_by', 'id');
     }
 
+    public function items()
+    {
+        return $this->hasMany(ImportHistoryItem::class);
+    }
+
     public function getImportTypeLabelAttribute(): string
     {
         return static::typeLabels()[$this->import_type] ?? $this->import_type;

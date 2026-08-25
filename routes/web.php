@@ -456,6 +456,10 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/import-histories', [ImportHistoryController::class, 'index'])
             ->middleware(['menu:import_history', 'role:Super Admin,HR'])
             ->name('import-histories.index');
+        Route::get('/import-histories/{importHistory}/export/{category}', [ImportHistoryController::class, 'export'])
+            ->middleware(['menu:import_history', 'role:Super Admin,HR'])
+            ->where('category', 'failed|skipped|updated')
+            ->name('import-histories.export');
 
         Route::resource('/setting-role', '\App\Http\Controllers\Admin\SettingRoleController')
             ->except(['show'])

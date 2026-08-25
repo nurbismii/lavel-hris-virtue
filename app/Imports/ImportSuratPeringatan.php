@@ -3,11 +3,14 @@
 namespace App\Imports;
 
 use App\Imports\Concerns\TracksImportHistory;
+use App\Models\Employee;
 use App\Models\SuratPeringatan;
+use App\Models\ImportHistoryItem;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Maatwebsite\Excel\Concerns\RegistersEventListeners;
+use Maatwebsite\Excel\Concerns\RemembersChunkOffset;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -25,6 +28,7 @@ class ImportSuratPeringatan implements
     ShouldQueue
 {
     use RegistersEventListeners;
+    use RemembersChunkOffset;
     use TracksImportHistory;
 
     public function __construct(?int $importHistoryId = null)
@@ -37,6 +41,7 @@ class ImportSuratPeringatan implements
         $datas = [];
         $skippedCount = 0;
         $failureSamples = [];
+        $detailItems = [];
 
         // Ambil kombinasi nik + no_sp dari file
         $pairs = $collection->map(function ($row) {
@@ -66,7 +71,14 @@ class ImportSuratPeringatan implements
                 ->toArray();
         }
 
-        foreach ($collection as $collect) {
+        $employeeNames = Employee::query()
+            ->whereIn('nik', $pairs->pluck('nik_karyawan')->unique()->values()->all())
+            ->pluck('nama_karyawan', 'nik')
+            ->mapWithKeys(function ($name, $nik) {
+                return [(string) $nik => $name];
+            });
+
+        foreach ($collection as $index => $collect) {
 
             $key = $collect['nik'] . '-' . $collect['no_sp'];
 
@@ -80,6 +92,15 @@ class ImportSuratPeringatan implements
                         'message' => "Pelanggaran {$key} sudah ada.",
                     ];
                 }
+
+                $detailItems[] = [
+                    'category' => ImportHistoryItem::CATEGORY_SKIPPED,
+                    'row' => (int) (isset($this->chunkOffset) ? $this->chunkOffset : 2) + (int) $index,
+                    'nik' => (string) ($collect['nik'] ?? ''),
+                    'employee_name' => $employeeNames->get((string) ($collect['nik'] ?? '')),
+                    'message' => "Pelanggaran {$key} sudah ada.",
+                    'payload' => method_exists($collect, 'toArray') ? $collect->toArray() : (array) $collect,
+                ];
 
                 continue;
             }
@@ -112,7 +133,8 @@ class ImportSuratPeringatan implements
             $failureSamples,
             ['chunk_processed_at' => now()->toIso8601String()],
             count($datas),
-            0
+            0,
+            $detailItems
         );
     }
 

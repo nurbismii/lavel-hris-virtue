@@ -3,6 +3,7 @@
 namespace App\Services\ImportHistory;
 
 use App\Models\ImportHistory;
+use App\Models\ImportHistoryItem;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -71,7 +72,8 @@ class ImportHistoryService
         array $failureSamples = [],
         array $summary = [],
         int $insertedCount = 0,
-        int $updatedCount = 0
+        int $updatedCount = 0,
+        array $detailItems = []
     ): void {
         if (!$this->canWrite($historyId)) {
             return;
@@ -86,7 +88,8 @@ class ImportHistoryService
             $failureSamples,
             $summary,
             $insertedCount,
-            $updatedCount
+            $updatedCount,
+            $detailItems
         ) {
             $history = ImportHistory::whereKey($historyId)->lockForUpdate()->first();
 
@@ -105,6 +108,8 @@ class ImportHistoryService
             $history->summary = $this->mergeArray($history->summary, $summary);
             $history->failure_samples = $this->appendSamples($history->failure_samples, $failureSamples);
             $history->save();
+
+            $this->insertDetailItems($history->id, $detailItems);
         });
     }
 
@@ -146,6 +151,7 @@ class ImportHistoryService
                 return;
             }
 
+            $shouldRecordFatalDetail = (int) $history->failed_count < 1;
             $history->status = ImportHistory::STATUS_FAILED;
             $history->started_at = $history->started_at ?: now();
             $history->finished_at = now();
@@ -154,6 +160,13 @@ class ImportHistoryService
             $history->failure_samples = $this->appendSamples($history->failure_samples, $failureSamples);
             $history->error_message = $this->formatErrorMessage($error);
             $history->save();
+
+            if ($shouldRecordFatalDetail) {
+                $this->insertDetailItems($history->id, [[
+                    'category' => ImportHistoryItem::CATEGORY_FAILED,
+                    'message' => $history->error_message,
+                ]]);
+            }
         });
     }
 
@@ -173,6 +186,8 @@ class ImportHistoryService
             $status = $summary['status'] ?? ImportHistory::STATUS_PROCESSING;
             $successCount = (int) ($summary['success_count'] ?? 0);
             $skippedCount = (int) ($summary['skipped_count'] ?? 0);
+            $isFailed = $status === ImportHistory::STATUS_FAILED || $status === 'failed';
+            $shouldRecordFatalDetail = $isFailed && (int) $history->failed_count < 1;
 
             $history->started_at = $history->started_at ?: now();
             $history->total_rows = (int) ($summary['total_entries'] ?? $history->total_rows);
@@ -184,7 +199,7 @@ class ImportHistoryService
                 $this->mediaFailureSamples($summary['items'] ?? [])
             );
 
-            if ($status === ImportHistory::STATUS_FAILED || $status === 'failed') {
+            if ($isFailed) {
                 $history->status = ImportHistory::STATUS_FAILED;
                 $history->failed_count = max(1, (int) $history->failed_count);
                 $history->finished_at = now();
@@ -201,6 +216,55 @@ class ImportHistoryService
             }
 
             $history->save();
+
+            if ($shouldRecordFatalDetail) {
+                $this->insertDetailItems($history->id, [[
+                    'category' => ImportHistoryItem::CATEGORY_FAILED,
+                    'message' => $history->error_message,
+                ]]);
+            }
+
+            if ($isFailed && $skippedCount > 0 && Schema::hasTable('import_history_items')) {
+                $storedSkippedCount = ImportHistoryItem::query()
+                    ->where('import_history_id', $history->id)
+                    ->where('category', ImportHistoryItem::CATEGORY_SKIPPED)
+                    ->count();
+                $missingSkippedCount = max(0, $skippedCount - $storedSkippedCount);
+
+                if ($missingSkippedCount > 0) {
+                    $missingItems = collect($summary['items'] ?? [])
+                        ->filter(function ($item) {
+                            return is_array($item) && ($item['status'] ?? null) !== 'success';
+                        })
+                        ->take($missingSkippedCount)
+                        ->map(function ($item) {
+                            return [
+                                'category' => ImportHistoryItem::CATEGORY_SKIPPED,
+                                'file' => $item['file'] ?? null,
+                                'message' => $item['message'] ?? 'File dilewati.',
+                            ];
+                        })
+                        ->values()
+                        ->all();
+
+                    $this->insertDetailItems($history->id, $missingItems);
+                }
+            }
+        });
+    }
+
+    public function addDetailItems(?int $historyId, array $items): void
+    {
+        if (!$this->canWrite($historyId) || empty($items)) {
+            return;
+        }
+
+        DB::transaction(function () use ($historyId, $items) {
+            if (!ImportHistory::whereKey($historyId)->exists()) {
+                return;
+            }
+
+            $this->insertDetailItems((int) $historyId, $items);
         });
     }
 
@@ -270,6 +334,57 @@ class ImportHistoryService
         }
 
         return Str::limit((string) $error, 500, '');
+    }
+
+    private function insertDetailItems(int $historyId, array $items): void
+    {
+        if (empty($items) || !Schema::hasTable('import_history_items')) {
+            return;
+        }
+
+        $allowedCategories = array_keys(ImportHistoryItem::categoryLabels());
+        $timestamp = now();
+        $rows = [];
+        $hasEmployeeNameColumn = Schema::hasColumn('import_history_items', 'employee_name');
+
+        foreach ($items as $item) {
+            if (!is_array($item) || !in_array($item['category'] ?? null, $allowedCategories, true)) {
+                continue;
+            }
+
+            $payload = $this->normalizeArray($item['payload'] ?? []);
+            $row = [
+                'import_history_id' => $historyId,
+                'category' => $item['category'],
+                'row_number' => isset($item['row']) ? (int) $item['row'] : null,
+                'nik' => isset($item['nik']) ? Str::limit((string) $item['nik'], 100, '') : null,
+                'file_name' => isset($item['file']) ? Str::limit((string) $item['file'], 255, '') : null,
+                'message' => isset($item['message']) ? Str::limit((string) $item['message'], 500, '') : null,
+                'payload' => json_encode(
+                    $payload,
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE
+                ),
+                'created_at' => $timestamp,
+                'updated_at' => $timestamp,
+            ];
+
+            if ($hasEmployeeNameColumn) {
+                $employeeName = $item['employee_name']
+                    ?? $payload['nama_karyawan']
+                    ?? $payload['employee_name']
+                    ?? $payload['nama']
+                    ?? null;
+                $row['employee_name'] = $employeeName !== null
+                    ? Str::limit(trim((string) $employeeName), 255, '')
+                    : null;
+            }
+
+            $rows[] = $row;
+        }
+
+        foreach (array_chunk($rows, 500) as $chunk) {
+            DB::table('import_history_items')->insertOrIgnore($chunk);
+        }
     }
 
     private function publicMediaSummary(array $summary): array

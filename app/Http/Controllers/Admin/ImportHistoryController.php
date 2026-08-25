@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\ImportHistoryItemsExport;
 use App\Http\Controllers\Controller;
 use App\Models\ImportHistory;
+use App\Models\ImportHistoryItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ImportHistoryController extends Controller
 {
@@ -100,5 +104,56 @@ class ImportHistoryController extends Controller
             'statusOptions' => ImportHistory::statusLabels(),
             'typeOptions' => ImportHistory::typeLabels(),
         ]);
+    }
+
+    public function export(Request $request, ImportHistory $importHistory, string $category)
+    {
+        abort_unless(
+            array_key_exists($category, ImportHistoryItem::categoryLabels()),
+            404
+        );
+        abort_unless(
+            $request->user()->canAccessAllEmployees()
+                || (string) $importHistory->created_by === (string) $request->user()->id,
+            403,
+            'Anda tidak memiliki akses ke hasil import ini.'
+        );
+
+        $expectedCount = $this->categoryCount($importHistory, $category);
+        $storedCount = Schema::hasTable('import_history_items')
+            ? $importHistory->items()->where('category', $category)->count()
+            : 0;
+
+        if ($expectedCount !== $storedCount) {
+            toast()->warning(
+                'Detail export belum lengkap',
+                "Kategori ini memiliki {$expectedCount} data, tetapi detail lengkap yang tersimpan hanya {$storedCount}. History lama tidak diexport secara terpotong; lakukan import baru setelah migration diterapkan."
+            );
+
+            return back();
+        }
+
+        $label = strtolower(ImportHistoryItem::categoryLabels()[$category]);
+        $baseName = pathinfo((string) $importHistory->file_name, PATHINFO_FILENAME) ?: 'import';
+        $safeName = Str::slug($baseName) ?: 'import';
+        $filename = "history-import-{$safeName}-{$label}-{$importHistory->id}.xlsx";
+
+        return Excel::download(
+            new ImportHistoryItemsExport($importHistory, $category),
+            $filename
+        );
+    }
+
+    private function categoryCount(ImportHistory $history, string $category): int
+    {
+        if ($category === ImportHistoryItem::CATEGORY_FAILED) {
+            return (int) $history->failed_count;
+        }
+
+        if ($category === ImportHistoryItem::CATEGORY_SKIPPED) {
+            return (int) $history->skipped_count;
+        }
+
+        return (int) $history->updated_count;
     }
 }

@@ -120,6 +120,7 @@
                                     <th style="width: 220px;">{{ __('tables.summary') }}</th>
                                     <th style="width: 190px;">{{ __('tables.actor') }}</th>
                                     <th>{{ __('tables.note') }}</th>
+                                    <th style="width: 145px;">Export Excel</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -222,10 +223,29 @@
                                                 <span class="text-muted">-</span>
                                             @endif
                                         </td>
+                                        <td>
+                                            <div class="d-grid gap-1">
+                                                <a href="{{ route('import-histories.export', [$history, 'failed']) }}"
+                                                   class="btn btn-sm btn-outline-danger {{ $history->failed_count < 1 ? 'disabled' : '' }}"
+                                                   @if($history->failed_count < 1) aria-disabled="true" tabindex="-1" @endif>
+                                                    <i class="fas fa-file-excel me-1"></i> Gagal ({{ number_format($history->failed_count) }})
+                                                </a>
+                                                <a href="{{ route('import-histories.export', [$history, 'skipped']) }}"
+                                                   class="btn btn-sm btn-outline-warning {{ $history->skipped_count < 1 ? 'disabled' : '' }}"
+                                                   @if($history->skipped_count < 1) aria-disabled="true" tabindex="-1" @endif>
+                                                    <i class="fas fa-file-excel me-1"></i> Dilewati ({{ number_format($history->skipped_count) }})
+                                                </a>
+                                                <a href="{{ route('import-histories.export', [$history, 'updated']) }}"
+                                                   class="btn btn-sm btn-outline-primary {{ $history->updated_count < 1 ? 'disabled' : '' }}"
+                                                   @if($history->updated_count < 1) aria-disabled="true" tabindex="-1" @endif>
+                                                    <i class="fas fa-file-excel me-1"></i> Update ({{ number_format($history->updated_count) }})
+                                                </a>
+                                            </div>
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center text-muted py-4">
+                                        <td colspan="8" class="text-center text-muted py-4">
                                             Belum ada history import untuk filter ini.
                                         </td>
                                     </tr>

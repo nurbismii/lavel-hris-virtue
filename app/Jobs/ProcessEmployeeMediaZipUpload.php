@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Employee;
+use App\Models\ImportHistoryItem;
 use App\Models\User;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\ImportHistory\ImportHistoryService;
@@ -39,6 +40,7 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
     protected $offset;
     protected $importId;
     protected $importHistoryId;
+    protected $pendingImportHistoryItems = [];
 
     public function __construct(string $zipPath, string $mediaType, string $uploaderId, int $offset = 0, ?string $importId = null, ?int $importHistoryId = null)
     {
@@ -451,6 +453,14 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 
     protected function rememberItem(array &$summary, string $status, string $file, string $message): void
     {
+        if ($status === 'skip') {
+            $this->pendingImportHistoryItems[] = [
+                'category' => ImportHistoryItem::CATEGORY_SKIPPED,
+                'file' => $file,
+                'message' => $message,
+            ];
+        }
+
         if (count($summary['items']) >= 20) {
             return;
         }
@@ -603,7 +613,14 @@ class ProcessEmployeeMediaZipUpload implements ShouldQueue
 
     protected function syncImportHistory(array $summary, ?string $errorMessage = null): void
     {
-        app(ImportHistoryService::class)->syncMediaSummary(
+        $service = app(ImportHistoryService::class);
+
+        if (!empty($this->pendingImportHistoryItems)) {
+            $service->addDetailItems($this->importHistoryId, $this->pendingImportHistoryItems);
+            $this->pendingImportHistoryItems = [];
+        }
+
+        $service->syncMediaSummary(
             $this->importHistoryId,
             $this->toPublicSummary($summary),
             $errorMessage
