@@ -3,6 +3,7 @@
 
     var page = $('#roster-import-page');
     var form = $('#roster-import-form');
+    var confirmForm = $('#roster-import-confirm-form');
     var terminal = page.data('terminal') === 1 || page.data('terminal') === '1';
     var statusUrl = page.data('status-url');
     var started = Date.now();
@@ -50,6 +51,44 @@
             }).always(function () {
                 button.prop('disabled', false).html(original);
             });
+        });
+    }
+
+    if (confirmForm.length) {
+        confirmForm.on('submit', function (event) {
+            event.preventDefault();
+            var button = confirmForm.find('button[type="submit"]');
+            var original = button.data('label') || button.html();
+            if (button.prop('disabled')) { return; }
+
+            function submitConfirmation() {
+                button.data('label', original).prop('disabled', true).html('Memasukkan antrean...');
+                $.ajax({
+                    url: confirmForm.attr('action'), method: 'POST', data: confirmForm.serialize(), headers: { Accept: 'application/json' }
+                }).done(function (response) {
+                    if (response.success) {
+                        terminal = false;
+                        started = Date.now();
+                        window.setTimeout(poll, 0);
+                        return;
+                    }
+                    notify('error', response.message || 'Import gagal dimasukkan ke antrean.');
+                    button.prop('disabled', false).html(original);
+                }).fail(function (xhr) {
+                    notify('error', errorMessage(xhr));
+                    button.prop('disabled', false).html(original);
+                });
+            }
+
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'warning', title: 'Konfirmasi import?', text: 'Jadwal akan diproses di antrean.',
+                    showCancelButton: true, confirmButtonText: 'Ya, proses', cancelButtonText: 'Batal'
+                }).then(function (result) { if (result.isConfirmed) { submitConfirmation(); } });
+                return;
+            }
+
+            submitConfirmation();
         });
     }
 

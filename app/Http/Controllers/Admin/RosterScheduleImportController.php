@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roster\UploadRosterScheduleImportRequest;
+use App\Http\Requests\Roster\ConfirmRosterScheduleImportRequest;
+use App\Jobs\ProcessRosterScheduleImport;
 use App\Models\ImportHistory;
 use App\Services\Audit\AuditTrailService;
 use App\Services\Roster\RosterScheduleImportPreviewService;
@@ -23,6 +25,12 @@ final class RosterScheduleImportController extends Controller
         'total_rows',
         'blocker_count',
         'warning_count',
+        'employees',
+        'history_created',
+        'history_updated',
+        'unchanged',
+        'future_generated',
+        'need_review',
     ];
 
     public function create(Request $request)
@@ -132,6 +140,38 @@ final class RosterScheduleImportController extends Controller
                     ImportHistory::STATUS_EXPIRED,
                 ], true),
             ],
+        ]);
+    }
+
+    public function confirm(ConfirmRosterScheduleImportRequest $request, ImportHistory $history, AuditTrailService $audit)
+    {
+        $history = $this->ownedImport($request, $history);
+        $confirmed = ImportHistory::query()
+            ->whereKey($history->id)
+            ->where('import_type', ImportHistory::TYPE_ROSTER_SCHEDULE)
+            ->where('status', ImportHistory::STATUS_AWAITING_CONFIRMATION)
+            ->where('expires_at', '>', now())
+            ->update([
+                'status' => ImportHistory::STATUS_QUEUED,
+                'confirmed_by' => (string) $request->user()->id,
+                'confirmed_at' => now(),
+            ]);
+
+        if ($confirmed !== 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Import sudah dikonfirmasi, kedaluwarsa, atau tidak valid.',
+            ], 409);
+        }
+
+        $history = $history->fresh();
+        $this->audit($audit, 'roster_schedule_import.confirmed', $history, $request->user());
+        ProcessRosterScheduleImport::dispatch($history->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Import diterima dan masuk antrean pemrosesan.',
+            'data' => ['status' => $history->status],
         ]);
     }
 

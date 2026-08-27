@@ -34,8 +34,14 @@
             @if($history->status === 'validation_failed')
             <a class="btn btn-outline-danger mt-3" href="{{ route('roster-schedules.import.failure', $history) }}">Unduh File Kegagalan</a>
             @endif
+            @if($history->status === 'awaiting_confirmation' && $history->expires_at?->isFuture() && (($history->summary['blocker_count'] ?? 0) === 0))
+            <form id="roster-import-confirm-form" class="d-inline" method="POST" action="{{ route('roster-schedules.import.confirm', $history) }}">
+                @csrf
+                <button class="btn btn-primary mt-3" type="submit">Konfirmasi dan Proses</button>
+            </form>
+            @endif
         </div></div>
-        <div class="alert alert-info">Pratinjau rinci tersedia saat upload selesai. Konfirmasi import belum tersedia pada tahap ini.</div>
+        <div class="alert alert-info">Pratinjau rinci tersedia saat upload selesai. Konfirmasi akan memproses jadwal melalui antrean.</div>
         <div class="card border-0 shadow-sm"><div class="card-body p-0"><div class="table-responsive">
             <table class="table table-sm align-middle mb-0"><thead class="table-light"><tr>
                 <th>Baris</th><th>NIK</th><th>Nomor KTP</th><th>Nama Excel</th><th>Nama HRIS</th><th>Periode</th><th>Off</th><th>Aksi</th><th>Validasi</th>

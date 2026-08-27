@@ -53,11 +53,14 @@ trait CreatesRosterImportSchema
             $table->string('file_path')->nullable();
             $table->string('failure_file_path')->nullable();
             $table->string('file_checksum')->nullable();
+            $table->string('error_message')->nullable();
             $table->longText('summary')->nullable();
             $table->longText('failure_samples')->nullable();
             $table->string('confirmed_by')->nullable();
             $table->timestamp('expires_at')->nullable();
             $table->timestamp('confirmed_at')->nullable();
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('finished_at')->nullable();
             $table->timestamps();
         });
         Schema::create('import_history_items', function (Blueprint $table): void {
@@ -80,8 +83,18 @@ trait CreatesRosterImportSchema
             $table->string('employee_nik');
             $table->unsignedSmallInteger('period_year');
             $table->unsignedTinyInteger('period_number');
+            $table->date('work_start')->nullable();
+            $table->date('work_end')->nullable();
             $table->date('off_start');
+            $table->date('off_end')->nullable();
+            $table->unsignedTinyInteger('earned_off_days')->nullable();
+            $table->string('realization_type')->nullable();
             $table->string('source')->default('import');
+            $table->text('notes')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->unsignedInteger('cycle_number')->nullable();
+            $table->string('created_by')->nullable();
+            $table->string('updated_by')->nullable();
             $table->timestamps();
             $table->unique(['employee_nik', 'off_start']);
         });
@@ -89,6 +102,24 @@ trait CreatesRosterImportSchema
             $table->id();
             $table->unsignedBigInteger('roster_schedule_id')->nullable();
             $table->string('employee_nik');
+            $table->unsignedSmallInteger('period_year')->nullable();
+            $table->unsignedTinyInteger('period_number')->nullable();
+            $table->date('scheduled_off_start')->nullable();
+            $table->date('scheduled_off_end')->nullable();
+            $table->string('classification')->nullable();
+            $table->string('review_status')->nullable();
+            $table->text('remark_segment')->nullable();
+            $table->text('raw_remark')->nullable();
+            $table->string('source_file')->nullable();
+            $table->string('source_sheet')->nullable();
+            $table->unsignedInteger('source_row')->nullable();
+            $table->string('source_column')->nullable();
+            $table->string('source_remark_column')->nullable();
+            $table->timestamp('imported_at')->nullable();
+            $table->string('imported_by')->nullable();
+            $table->timestamp('reviewed_at')->nullable();
+            $table->string('reviewed_by')->nullable();
+            $table->string('review_note')->nullable();
             $table->timestamps();
         });
         Schema::create('cuti_roster', function (Blueprint $table): void {

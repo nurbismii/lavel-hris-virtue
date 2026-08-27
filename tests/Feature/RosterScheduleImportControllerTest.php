@@ -7,10 +7,12 @@ use App\Models\ImportHistory;
 use App\Models\User;
 use App\Services\Audit\AuditTrailService;
 use App\Services\Storage\SensitiveFileStorageService;
+use App\Jobs\ProcessRosterScheduleImport;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Http\UploadedFile;
 use Maatwebsite\Excel\Facades\Excel;
 use RuntimeException;
@@ -54,14 +56,14 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->assertContains('max:10240', $this->requestFor($hr)->rules()['file']);
     }
 
-    public function test_all_preview_routes_are_named_without_confirmation_route(): void
+    public function test_all_preview_routes_are_named_with_confirmation_route(): void
     {
         $this->assertTrue(route('roster-schedules.import.create') !== '');
         $this->assertTrue(route('roster-schedules.import.store') !== '');
         $this->assertTrue(route('roster-schedules.import.show', 1) !== '');
         $this->assertTrue(route('roster-schedules.import.status', 1) !== '');
         $this->assertTrue(route('roster-schedules.import.failure', 1) !== '');
-        $this->assertFalse(app('router')->getRoutes()->hasNamedRoute('roster-schedules.import.confirm'));
+        $this->assertTrue(app('router')->getRoutes()->hasNamedRoute('roster-schedules.import.confirm'));
     }
 
     public function test_non_hr_and_hr_without_menu_are_forbidden_by_real_routes(): void
@@ -258,6 +260,27 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->actingAs($hr)->get(route('roster-schedules.import.show', $wrongType))->assertNotFound();
         $this->actingAs($hr)->get(route('roster-schedules.import.failure', $expired))->assertGone();
         $this->actingAs($hr)->get(route('roster-schedules.import.failure', $missing))->assertNotFound();
+    }
+
+    public function test_authorized_confirmation_dispatches_one_job_and_rejects_duplicate_or_invalid_state(): void
+    {
+        Queue::fake();
+        $hr = $this->user('hr-confirm', 'HR', ['roster_schedule']);
+        $history = ImportHistory::create([
+            'import_id' => 'confirm-import', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
+            'summary' => ['total_rows' => 1, 'blocker_count' => 0, 'warning_count' => 0],
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $history), [
+            'file_path' => 'attacker-path', 'file_checksum' => 'attacker-checksum', 'status' => 'completed',
+        ])->assertOk()->assertJsonPath('data.status', ImportHistory::STATUS_QUEUED);
+        Queue::assertPushed(ProcessRosterScheduleImport::class, fn (ProcessRosterScheduleImport $job) => $job->historyId === $history->id);
+        $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $history))->assertStatus(409);
+        Queue::assertPushed(ProcessRosterScheduleImport::class, 1);
+        $this->assertSame(ImportHistory::STATUS_QUEUED, $history->fresh()->status);
+        $this->assertSame(null, $history->fresh()->file_path);
     }
 
     public function test_hr_can_access_another_hr_import_while_an_ordinary_menu_holder_is_forbidden(): void

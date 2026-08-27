@@ -193,6 +193,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::post('/roster-schedules/import', [RosterScheduleImportController::class, 'store'])
             ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
             ->name('roster-schedules.import.store');
+        Route::post('/roster-schedules/import/{history}/confirm', [RosterScheduleImportController::class, 'confirm'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.import.confirm');
         Route::get('/roster-schedules/import/{history}', [RosterScheduleImportController::class, 'show'])
             ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
             ->name('roster-schedules.import.show');
