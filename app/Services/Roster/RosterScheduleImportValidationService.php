@@ -9,6 +9,8 @@ use Illuminate\Support\Collection;
 
 final class RosterScheduleImportValidationService
 {
+    private const SCHEDULE_DATE_GROUP_CHUNK_SIZE = 250;
+
     public function validate(RosterWorkbookData $data): array
     {
         $periodRows = [];
@@ -91,14 +93,28 @@ final class RosterScheduleImportValidationService
         })->groupBy(fn (array $pair) => $pair[1]['off_start']);
         if ($groups->isEmpty()) { return collect(); }
 
-        return RosterSchedule::query()->where(function ($query) use ($groups): void {
-            foreach ($groups as $date => $group) {
-                $query->orWhere(function ($dateQuery) use ($date, $group): void {
-                    $dateQuery->where('off_start', $date)->whereIn('employee_nik', collect($group)->map(fn (array $pair) => (string) $pair[0]['nik'])->unique()->all());
-                });
-            }
-        })->get(['employee_nik', 'off_start', 'source', 'period_year', 'period_number'])
-            ->keyBy(fn (RosterSchedule $schedule) => $schedule->employee_nik . '|' . $schedule->getRawOriginal('off_start'));
+        $schedules = collect();
+
+        foreach ($groups->chunk(self::SCHEDULE_DATE_GROUP_CHUNK_SIZE) as $groupChunk) {
+            $chunkSchedules = RosterSchedule::query()
+                ->where(function ($query) use ($groupChunk): void {
+                    foreach ($groupChunk as $date => $group) {
+                        $query->orWhere(function ($dateQuery) use ($date, $group): void {
+                            $niks = collect($group)
+                                ->map(fn (array $pair) => (string) $pair[0]['nik'])
+                                ->unique()
+                                ->all();
+
+                            $dateQuery->where('off_start', $date)->whereIn('employee_nik', $niks);
+                        });
+                    }
+                })
+                ->get(['employee_nik', 'off_start', 'source', 'period_year', 'period_number']);
+
+            $schedules = $schedules->merge($chunkSchedules);
+        }
+
+        return $schedules->keyBy(fn (RosterSchedule $schedule) => $schedule->employee_nik . '|' . $schedule->getRawOriginal('off_start'));
     }
 
     private function result(array $rows, array $errors, array $warnings): array

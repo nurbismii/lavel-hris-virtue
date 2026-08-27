@@ -81,6 +81,62 @@ class RosterScheduleImportPreviewTest extends TestCase
         $this->assertSame('name_mismatch', $result['warnings'][0]['code']);
     }
 
+    public function test_missing_nik_ktp_mismatch_duplicate_nik_and_remark_review_codes_are_explicit(): void
+    {
+        $this->seedRosterEmployee(self::NIK, self::KTP);
+        $result = $this->validate([
+            ['nik' => '', 'ktp' => self::KTP],
+            ['nik' => self::NIK, 'ktp' => '7402243101930002', 'remark' => 'Need review HR'],
+            ['nik' => self::NIK, 'ktp' => self::KTP],
+        ]);
+
+        $this->assertContains('missing_nik', array_column($result['errors'], 'code'));
+        $this->assertContains('ktp_mismatch', array_column($result['errors'], 'code'));
+        $this->assertContains('duplicate_nik', array_column($result['errors'], 'code'));
+        $this->assertContains('remark_need_review', array_column($result['warnings'], 'code'));
+    }
+
+    public function test_schedule_lookup_chunks_large_date_groups_without_losing_classification(): void
+    {
+        $rows = [];
+        $start = now()->startOfDay();
+
+        for ($index = 0; $index < 251; $index++) {
+            $nik = '01609' . str_pad((string) $index, 5, '0', STR_PAD_LEFT);
+            $ktp = '74022431' . str_pad((string) $index, 8, '0', STR_PAD_LEFT);
+            $date = $start->copy()->addDays($index)->toDateString();
+            $this->seedRosterEmployee($nik, $ktp);
+            $rows[] = ['nik' => $nik, 'ktp' => $ktp, 'off_start' => $date];
+        }
+
+        DB::table('roster_schedules')->insert([
+            'employee_nik' => $rows[0]['nik'],
+            'period_year' => 2026,
+            'period_number' => 1,
+            'off_start' => $rows[0]['off_start'],
+            'source' => 'import',
+        ]);
+        DB::table('roster_schedules')->insert([
+            'employee_nik' => $rows[250]['nik'],
+            'period_year' => 2025,
+            'period_number' => 1,
+            'off_start' => $rows[250]['off_start'],
+            'source' => 'import',
+        ]);
+
+        DB::enableQueryLog();
+        $result = $this->validate($rows);
+        $scheduleQueries = array_values(array_filter(DB::getQueryLog(), fn (array $query): bool => str_contains(strtolower($query['query']), 'roster_schedules')));
+
+        $this->assertCount(2, $scheduleQueries);
+        foreach ($scheduleQueries as $query) {
+            $this->assertLessThanOrEqual(500, count($query['bindings']));
+            $this->assertLessThan(250, substr_count(strtolower($query['query']), ' or '));
+        }
+        $this->assertSame('unchanged', $result['rows'][0]['action']);
+        $this->assertSame('update', $result['rows'][250]['action']);
+    }
+
     public function test_numeric_unsafe_ktp_and_malformed_nik_are_blocked(): void
     {
         $this->seedRosterEmployee(self::NIK, self::KTP);
