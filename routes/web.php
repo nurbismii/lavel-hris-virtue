@@ -18,6 +18,8 @@ use App\Http\Controllers\Admin\NationalHolidayController;
 use App\Http\Controllers\Admin\OvertimeMasterController;
 use App\Http\Controllers\Admin\OvertimeOrderController as AdminOvertimeOrderController;
 use App\Http\Controllers\Admin\OrganizationStructureController;
+use App\Http\Controllers\Admin\RosterScheduleController;
+use App\Http\Controllers\Admin\RosterScheduleImportController;
 use App\Http\Controllers\Admin\SettingRoleController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\SlipGajiController;
@@ -185,6 +187,36 @@ Route::middleware(['android.redirect'])->group(function () {
     });
 
     Route::group(['prefix' => 'admin', 'middleware' => ['redirect.role', 'auth']], function () {
+        Route::get('/roster-schedules/import', [RosterScheduleImportController::class, 'create'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.import.create');
+        Route::post('/roster-schedules/import', [RosterScheduleImportController::class, 'store'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.import.store');
+        Route::get('/roster-schedules/import/{history}', [RosterScheduleImportController::class, 'show'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.import.show');
+        Route::get('/roster-schedules/import/{history}/status', [RosterScheduleImportController::class, 'status'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.import.status');
+        Route::get('/roster-schedules/import/{history}/failure', [RosterScheduleImportController::class, 'failure'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.import.failure');
+        Route::get('/roster-schedules/employees/search', [RosterScheduleController::class, 'searchEmployees'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.employees.search');
+        Route::get('/roster-schedules/history', [RosterScheduleController::class, 'history'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.history');
+        Route::get('/roster-schedules/history/{history}/review', [RosterScheduleController::class, 'reviewHistory'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.history.review');
+        Route::put('/roster-schedules/history/{history}/review', [RosterScheduleController::class, 'updateHistoryReview'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.history.update');
+        Route::resource('/roster-schedules', RosterScheduleController::class)
+            ->only(['index', 'create', 'store', 'edit', 'update'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR']);
 
         Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->middleware('menu:dashboard_admin')->name('home');
         Route::get('/home/upload-progress', [App\Http\Controllers\HomeController::class, 'uploadProgress'])->middleware('menu:dashboard_admin')->name('home.upload-progress');

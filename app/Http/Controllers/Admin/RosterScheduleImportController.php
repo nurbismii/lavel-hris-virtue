@@ -1,0 +1,148 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Roster\UploadRosterScheduleImportRequest;
+use App\Models\ImportHistory;
+use App\Services\Audit\AuditTrailService;
+use App\Services\Roster\RosterScheduleImportPreviewService;
+use App\Services\Storage\SensitiveFileStorageService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
+
+final class RosterScheduleImportController extends Controller
+{
+    public function create(Request $request)
+    {
+        $this->authorizeActor($request);
+
+        return view('admin.roster-schedules.import');
+    }
+
+    public function store(
+        UploadRosterScheduleImportRequest $request,
+        SensitiveFileStorageService $storage,
+        RosterScheduleImportPreviewService $previewService,
+        AuditTrailService $audit
+    ) {
+        $file = $request->file('file');
+        $importId = (string) Str::uuid();
+        $relativePath = null;
+
+        try {
+            $relativePath = $storage->storeUploadedFileAs($file, 'roster-imports/' . $importId, 'source.xlsx');
+            $absolutePath = $storage->resolvePath($relativePath, ['roster-imports/']);
+            if ($absolutePath === null) {
+                throw new RuntimeException('File upload tidak dapat diproses.');
+            }
+
+            $history = ImportHistory::create([
+                'import_id' => $importId,
+                'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+                'status' => ImportHistory::STATUS_QUEUED,
+                'created_by' => (string) $request->user()->id,
+                'file_path' => $relativePath,
+                'file_checksum' => hash_file('sha256', $absolutePath),
+                'expires_at' => now()->addHours((int) config('roster.import.retention_hours', 12)),
+            ]);
+            $this->audit($audit, 'roster_schedule_import.uploaded', $history, $request->user());
+            $preview = $previewService->preview($history, $request->user());
+            $history = $history->fresh();
+            $this->audit($audit, 'roster_schedule_import.previewed', $history, $request->user());
+
+            return redirect()->route('roster-schedules.import.show', $history)
+                ->with('success', 'File diterima dan hasil validasi siap ditinjau.');
+        } catch (Throwable $exception) {
+            if ($relativePath !== null) {
+                $storage->delete($relativePath, ['roster-imports/']);
+            }
+
+            report($exception);
+
+            return back()->withInput()->withErrors(['file' => 'File gagal diproses. Silakan periksa format workbook dan coba lagi.']);
+        }
+    }
+
+    public function show(Request $request, ImportHistory $history)
+    {
+        $history = $this->ownedImport($request, $history);
+
+        return view('admin.roster-schedules.import', ['history' => $history]);
+    }
+
+    public function status(Request $request, ImportHistory $history)
+    {
+        $history = $this->ownedImport($request, $history);
+
+        return response()->json([
+            'success' => true,
+            'message' => $history->status_label,
+            'data' => [
+                'status' => $history->status,
+                'summary' => $history->summary ?: [],
+                'terminal' => in_array($history->status, [
+                    ImportHistory::STATUS_COMPLETED,
+                    ImportHistory::STATUS_FAILED,
+                    ImportHistory::STATUS_VALIDATION_FAILED,
+                    ImportHistory::STATUS_EXPIRED,
+                ], true),
+            ],
+        ]);
+    }
+
+    public function failure(Request $request, ImportHistory $history, SensitiveFileStorageService $storage, AuditTrailService $audit)
+    {
+        $history = $this->ownedImport($request, $history);
+        abort_if($history->status === ImportHistory::STATUS_EXPIRED, 410);
+        abort_unless($history->status === ImportHistory::STATUS_VALIDATION_FAILED && $history->expires_at?->isFuture(), 404);
+
+        $path = $storage->resolvePath((string) $history->failure_file_path, ['roster-imports/']);
+        abort_unless($path, 404);
+        $this->audit($audit, 'roster_schedule_import.failure_downloaded', $history, $request->user());
+
+        return response()->download($path, 'roster-import-failures.xlsx', [
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    private function ownedImport(Request $request, ImportHistory $history): ImportHistory
+    {
+        abort_unless($history->import_type === ImportHistory::TYPE_ROSTER_SCHEDULE, 404);
+        $this->authorizeActor($request);
+        abort_unless((string) $history->created_by === (string) $request->user()->id || $request->user()->canAccessAllEmployees(), 403);
+
+        return $history;
+    }
+
+    private function authorizeActor(Request $request): void
+    {
+        abort_unless(
+            $request->user()
+                && $request->user()->hasRole(['Super Admin', 'HR'])
+                && $request->user()->hasMenuAccess('roster_schedule'),
+            403
+        );
+    }
+
+    private function audit(AuditTrailService $audit, string $event, ImportHistory $history, $actor): void
+    {
+        $audit->record([
+            'event' => $event,
+            'module' => 'roster_schedule_import',
+            'reference_table' => 'import_histories',
+            'reference_id' => (string) $history->id,
+            'actor' => $actor,
+            'metadata' => [
+                'import_id' => $history->import_id,
+                'safe_filename' => 'source.xlsx',
+                'checksum' => $history->file_checksum,
+                'status' => $history->status,
+                'summary' => $history->summary ?: [],
+            ],
+        ]);
+    }
+}
