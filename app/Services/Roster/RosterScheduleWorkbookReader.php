@@ -162,6 +162,10 @@ final class RosterScheduleWorkbookReader
             return ['value' => null, 'error' => null];
         }
 
+        if ($cell->isFormula() && is_string($value) && str_starts_with($value, '#')) {
+            return ['value' => null, 'error' => 'date_calculation_failed'];
+        }
+
         try {
             if ($value instanceof DateTimeInterface) {
                 return ['value' => Carbon::instance(\DateTime::createFromInterface($value))->toDateString(), 'error' => null];
@@ -186,9 +190,9 @@ final class RosterScheduleWorkbookReader
             return null;
         }
 
-        $value = trim((string) $sheet->getCell($column['remark_column'] . $row)->getValue());
+        $value = (string) $sheet->getCell($column['remark_column'] . $row)->getValue();
 
-        return $value === '' ? null : mb_substr($value, 0, 2000);
+        return trim($value) === '' ? null : $value;
     }
 
     private function hasRowData(string $nik, string $ktp, string $employeeName, array $periods): bool
