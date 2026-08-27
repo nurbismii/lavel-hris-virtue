@@ -8,10 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('roster_schedule_histories')) {
-            return;
-        }
-
         Schema::create('roster_schedule_histories', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('roster_schedule_id')->nullable();

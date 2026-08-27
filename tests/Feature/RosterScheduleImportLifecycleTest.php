@@ -6,6 +6,7 @@ use App\Models\ImportHistory;
 use App\Models\Roster;
 use App\Models\RosterSchedule;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -22,6 +23,17 @@ class RosterScheduleImportLifecycleTest extends TestCase
         DB::reconnect('sqlite');
 
         $this->createModelContractTables();
+    }
+
+    protected function tearDown(): void
+    {
+        Schema::dropIfExists('roster_schedule_histories');
+        Schema::dropIfExists('roster_schedules');
+        Schema::dropIfExists('cuti_roster');
+        Schema::dropIfExists('import_histories');
+        DB::disconnect('sqlite');
+
+        parent::tearDown();
     }
 
     private function createModelContractTables(): void
@@ -137,5 +149,40 @@ class RosterScheduleImportLifecycleTest extends TestCase
         ]));
         $this->assertFalse(Schema::hasTable('roster_schedule_histories'));
         $this->assertFalse(Schema::hasTable('roster_schedules'));
+    }
+
+    public function test_roster_schedule_foundation_migration_fails_without_touching_an_existing_table(): void
+    {
+        Schema::drop('roster_schedules');
+        Schema::create('roster_schedules', function (Blueprint $table) {
+            $table->id();
+            $table->string('marker');
+        });
+        DB::table('roster_schedules')->insert(['marker' => 'pre-existing-schedule']);
+
+        try {
+            $this->runMigration('2026_08_27_000001_create_roster_schedules_table.php', 'up');
+            $this->fail('The migration must fail when roster_schedules already exists.');
+        } catch (QueryException $exception) {
+            $this->assertTrue(Schema::hasTable('roster_schedules'));
+            $this->assertSame('pre-existing-schedule', DB::table('roster_schedules')->value('marker'));
+        }
+    }
+
+    public function test_roster_schedule_history_foundation_migration_fails_without_touching_an_existing_table(): void
+    {
+        Schema::create('roster_schedule_histories', function (Blueprint $table) {
+            $table->id();
+            $table->string('marker');
+        });
+        DB::table('roster_schedule_histories')->insert(['marker' => 'pre-existing-history']);
+
+        try {
+            $this->runMigration('2026_08_27_000003_create_roster_schedule_histories_table.php', 'up');
+            $this->fail('The migration must fail when roster_schedule_histories already exists.');
+        } catch (QueryException $exception) {
+            $this->assertTrue(Schema::hasTable('roster_schedule_histories'));
+            $this->assertSame('pre-existing-history', DB::table('roster_schedule_histories')->value('marker'));
+        }
     }
 }
