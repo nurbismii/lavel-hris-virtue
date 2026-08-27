@@ -36,6 +36,11 @@ class Roster extends Model
         return $this->hasOne(PeriodeKerjaRoster::class, 'cuti_roster_id');
     }
 
+    public function schedule()
+    {
+        return $this->belongsTo(RosterSchedule::class, 'roster_schedule_id');
+    }
+
     public function getStatusRencanaLabelAttribute()
     {
         $tipe = optional($this->periodeKerjaRoster)->tipe_rencana;

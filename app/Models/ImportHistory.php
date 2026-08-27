@@ -11,6 +11,9 @@ class ImportHistory extends Model
     public const STATUS_COMPLETED = 'completed';
     public const STATUS_COMPLETED_WITH_ERRORS = 'completed_with_errors';
     public const STATUS_FAILED = 'failed';
+    public const STATUS_AWAITING_CONFIRMATION = 'awaiting_confirmation';
+    public const STATUS_VALIDATION_FAILED = 'validation_failed';
+    public const STATUS_EXPIRED = 'expired';
 
     public const SOURCE_EXCEL = 'excel';
     public const SOURCE_ZIP = 'zip';
@@ -26,6 +29,7 @@ class ImportHistory extends Model
     public const TYPE_FACE_REFERENCE = 'face_reference';
     public const TYPE_PKWT_ONE_CONTRACT = 'pkwt_one_contract';
     public const TYPE_CONTRACT_HISTORY = 'contract_history';
+    public const TYPE_ROSTER_SCHEDULE = 'roster_schedule';
 
     protected $guarded = [];
 
@@ -41,6 +45,8 @@ class ImportHistory extends Model
         'failure_samples' => 'array',
         'started_at' => 'datetime',
         'finished_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'confirmed_at' => 'datetime',
     ];
 
     protected $appends = [
@@ -88,6 +94,9 @@ class ImportHistory extends Model
             self::STATUS_COMPLETED => 'Berhasil',
             self::STATUS_COMPLETED_WITH_ERRORS => 'Berhasil dengan catatan',
             self::STATUS_FAILED => 'Gagal',
+            self::STATUS_AWAITING_CONFIRMATION => 'Menunggu konfirmasi',
+            self::STATUS_VALIDATION_FAILED => 'Validasi gagal',
+            self::STATUS_EXPIRED => 'Kedaluwarsa',
         ];
     }
 
@@ -99,6 +108,9 @@ class ImportHistory extends Model
             self::STATUS_COMPLETED => 'success',
             self::STATUS_COMPLETED_WITH_ERRORS => 'warning',
             self::STATUS_FAILED => 'danger',
+            self::STATUS_AWAITING_CONFIRMATION => 'warning',
+            self::STATUS_VALIDATION_FAILED => 'danger',
+            self::STATUS_EXPIRED => 'secondary',
         ];
     }
 
@@ -124,6 +136,7 @@ class ImportHistory extends Model
             self::TYPE_FACE_REFERENCE => 'Import Foto Referensi Presensi',
             self::TYPE_PKWT_ONE_CONTRACT => 'Import PKWT 1 V-Hire',
             self::TYPE_CONTRACT_HISTORY => 'Import History Kontrak',
+            self::TYPE_ROSTER_SCHEDULE => 'Import Jadwal Roster',
         ];
     }
 
