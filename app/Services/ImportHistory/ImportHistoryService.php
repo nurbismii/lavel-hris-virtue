@@ -270,22 +270,46 @@ class ImportHistoryService
 
     public function markAwaitingConfirmation(int $id, array $summary): void
     {
-        ImportHistory::whereKey($id)->update(['status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'summary' => $this->rosterSafe($summary), 'expires_at' => now()->addHours((int) config('roster.import.retention_hours', 12))]);
+        ImportHistory::whereKey($id)->update([
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION,
+            'summary' => $this->rosterSafe($summary),
+            'expires_at' => now()->addHours((int) config('roster.import.retention_hours', 12)),
+        ]);
     }
 
     public function markValidationFailed(int $id, array $summary, array $details, string $failurePath): void
     {
-        ImportHistory::whereKey($id)->update(['status' => ImportHistory::STATUS_VALIDATION_FAILED, 'summary' => $this->rosterSafe($summary), 'failure_samples' => $this->rosterSafe($details), 'failure_file_path' => $failurePath, 'expires_at' => now()->addHours((int) config('roster.import.retention_hours', 12))]);
+        ImportHistory::whereKey($id)->update([
+            'status' => ImportHistory::STATUS_VALIDATION_FAILED,
+            'summary' => $this->rosterSafe($summary),
+            'failure_samples' => $this->rosterSafe($details),
+            'failure_file_path' => $failurePath,
+            'expires_at' => now()->addHours((int) config('roster.import.retention_hours', 12)),
+        ]);
     }
 
     public function markConfirmed(int $id, string $actorId): bool
     {
-        return ImportHistory::whereKey($id)->where('status', ImportHistory::STATUS_AWAITING_CONFIRMATION)->whereNotNull('expires_at')->where('expires_at', '>', now())->update(['status' => ImportHistory::STATUS_QUEUED, 'confirmed_by' => $actorId, 'confirmed_at' => now()]) === 1;
+        return ImportHistory::whereKey($id)
+            ->where('status', ImportHistory::STATUS_AWAITING_CONFIRMATION)
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now())
+            ->update([
+                'status' => ImportHistory::STATUS_QUEUED,
+                'confirmed_by' => $actorId,
+                'confirmed_at' => now(),
+            ]) === 1;
     }
 
     public function markExpired(int $id): void
     {
-        ImportHistory::whereKey($id)->whereIn('status', [ImportHistory::STATUS_AWAITING_CONFIRMATION, ImportHistory::STATUS_VALIDATION_FAILED, ImportHistory::STATUS_QUEUED])->update(['status' => ImportHistory::STATUS_EXPIRED]);
+        ImportHistory::whereKey($id)
+            ->whereIn('status', [
+                ImportHistory::STATUS_AWAITING_CONFIRMATION,
+                ImportHistory::STATUS_VALIDATION_FAILED,
+                ImportHistory::STATUS_QUEUED,
+            ])
+            ->update(['status' => ImportHistory::STATUS_EXPIRED]);
     }
 
     public function isEnabled(): bool
@@ -349,11 +373,26 @@ class ImportHistoryService
 
     private function rosterSafe(array $value): array
     {
-        $walk = function ($item, $key = null) use (&$walk) {
-            if (is_array($item)) { $out=[]; foreach ($item as $k => $v) { if (in_array(strtolower((string)$k), ['no_ktp','ktp','nomor_ktp'], true)) continue; $out[$k]=$walk($v,$k); } return $out; }
-            if (is_string($item) && preg_match('/\b\d{16}\b/', $item)) return '[redacted]';
+        $walk = function ($item) use (&$walk) {
+            if (is_array($item)) {
+                $sanitized = [];
+                foreach ($item as $key => $nested) {
+                    if (in_array(strtolower((string) $key), ['no_ktp', 'ktp', 'nomor_ktp'], true)) {
+                        continue;
+                    }
+                    $sanitized[$key] = $walk($nested);
+                }
+
+                return $sanitized;
+            }
+
+            if (is_string($item) && preg_match('/\b\d{16}\b/', $item)) {
+                return '[redacted]';
+            }
+
             return $item;
         };
+
         return $walk($value);
     }
 
