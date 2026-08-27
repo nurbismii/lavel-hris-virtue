@@ -12,6 +12,7 @@ use App\Services\Roster\RosterScheduleWorkbookReader;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
@@ -38,7 +39,7 @@ final class RosterScheduleImportController extends Controller
 
         try {
             $relativePath = $storage->storeUploadedFileAs($file, 'roster-imports/' . $importId, 'source.xlsx');
-            $absolutePath = $storage->resolvePath($relativePath, ['roster-imports/']);
+            $absolutePath = $this->resolvePrivatePath($storage, $relativePath);
             if ($absolutePath === null) {
                 throw new RuntimeException('File upload tidak dapat diproses.');
             }
@@ -100,7 +101,7 @@ final class RosterScheduleImportController extends Controller
     {
         $history = $this->ownedImport($request, $history);
         abort_if($history->status === ImportHistory::STATUS_EXPIRED || !$history->expires_at?->isFuture(), 410);
-        $path = $storage->resolvePath((string) $history->file_path, ['roster-imports/']);
+        $path = $this->resolvePrivatePath($storage, (string) $history->file_path);
         abort_unless($path, 404);
         $rows = $validator->validate($reader->read($path))['rows'];
 
@@ -133,7 +134,7 @@ final class RosterScheduleImportController extends Controller
         abort_if($history->status === ImportHistory::STATUS_EXPIRED, 410);
         abort_unless($history->status === ImportHistory::STATUS_VALIDATION_FAILED && $history->expires_at?->isFuture(), 404);
 
-        $path = $storage->resolvePath((string) $history->failure_file_path, ['roster-imports/']);
+        $path = $this->resolvePrivatePath($storage, (string) $history->failure_file_path);
         abort_unless($path, 404);
         $this->audit($audit, 'roster_schedule_import.failure_downloaded', $history, $request->user());
 
@@ -178,5 +179,23 @@ final class RosterScheduleImportController extends Controller
                 'summary' => $history->summary ?: [],
             ],
         ]);
+    }
+
+    private function resolvePrivatePath(SensitiveFileStorageService $storage, string $relativePath): ?string
+    {
+        $resolved = $storage->resolvePath($relativePath, ['roster-imports/']);
+        if ($resolved !== null) {
+            return $resolved;
+        }
+
+        if (!str_starts_with($relativePath, 'roster-imports/') || str_contains($relativePath, '..')) {
+            return null;
+        }
+
+        $diskPath = 'private/' . $relativePath;
+
+        return Storage::disk('local')->exists($diskPath)
+            ? Storage::disk('local')->path($diskPath)
+            : null;
     }
 }

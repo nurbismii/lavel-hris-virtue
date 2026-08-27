@@ -21,6 +21,14 @@ trait CreatesRosterImportSchema
             $table->string('no_ktp');
             $table->string('nama_karyawan');
             $table->string('status_resign')->nullable();
+            $table->string('departemen_id')->nullable();
+            $table->string('divisi_id')->nullable();
+            $table->integer('sisa_cuti')->nullable();
+            $table->string('posisi')->nullable();
+            $table->string('photo_path')->nullable();
+            $table->string('face_reference_path')->nullable();
+            $table->unsignedBigInteger('work_pattern_id')->nullable();
+            $table->date('work_pattern_start_date')->nullable();
         });
         Schema::create('roles', function (Blueprint $table): void {
             $table->id();
@@ -33,6 +41,7 @@ trait CreatesRosterImportSchema
             $table->string('email')->nullable();
             $table->string('password')->nullable();
             $table->unsignedBigInteger('role_id')->nullable();
+            $table->string('nik_karyawan')->nullable();
             $table->timestamps();
         });
         Schema::create('import_histories', function (Blueprint $table): void {
