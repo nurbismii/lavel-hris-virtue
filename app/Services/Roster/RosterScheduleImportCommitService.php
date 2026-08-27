@@ -23,7 +23,7 @@ final class RosterScheduleImportCommitService
 
     public function commit(ImportHistory $history): array
     {
-        $path = $this->sourcePath($history);
+        $path = $this->preflightPath($history, [ImportHistory::STATUS_PROCESSING]);
         $data = $this->reader->read($path);
         $validation = $this->validator->validate($data);
 
@@ -92,6 +92,7 @@ final class RosterScheduleImportCommitService
                     ];
 
                     if ($existing) {
+                        $previousRealization = $existing->realization_type;
                         $existing->fill($scheduleValues)->save();
                         $schedule = $existing;
                         $result['unchanged']++;
@@ -127,11 +128,17 @@ final class RosterScheduleImportCommitService
                     ];
                     if ($wasHistory && $historyRecord->review_status === RosterScheduleHistory::REVIEW_CONFIRMED) {
                         unset($historyValues['classification'], $historyValues['review_status']);
+                        if ($existing) {
+                            $schedule->update(['realization_type' => $previousRealization]);
+                        }
                     }
                     $historyRecord->fill($historyValues)->save();
                     $result[$wasHistory ? 'history_updated' : 'history_created']++;
                     if ($historyRecord->review_status === RosterScheduleHistory::REVIEW_PENDING) {
                         $result['need_review']++;
+                    }
+                    if ($offStart->betweenIncluded(Carbon::today(), Carbon::today()->addDays(13))) {
+                        $result['late_candidate_schedule_ids'][] = $schedule->id;
                     }
                 }
             }
@@ -161,10 +168,19 @@ final class RosterScheduleImportCommitService
         });
     }
 
-    private function sourcePath(ImportHistory $history): string
+    public function preflight(ImportHistory $history): void
+    {
+        $path = $this->preflightPath($history, [ImportHistory::STATUS_AWAITING_CONFIRMATION]);
+        $validation = $this->validator->validate($this->reader->read($path));
+        if (!$validation['is_valid']) {
+            throw new RuntimeException('Workbook roster tidak lagi valid untuk diproses.');
+        }
+    }
+
+    private function preflightPath(ImportHistory $history, array $statuses): string
     {
         if ($history->import_type !== ImportHistory::TYPE_ROSTER_SCHEDULE
-            || $history->status !== ImportHistory::STATUS_PROCESSING
+            || !in_array($history->status, $statuses, true)
             || !$history->expires_at?->isFuture()
             || !str_starts_with((string) $history->file_path, 'roster-imports/')
             || str_contains((string) $history->file_path, '..')) {

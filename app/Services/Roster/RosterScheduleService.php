@@ -203,6 +203,10 @@ class RosterScheduleService
 
         foreach ($schedules as $index => $schedule) {
             $year = (int) $schedule->off_start->year;
+            if ($schedule->source === RosterSchedule::SOURCE_MANUAL) {
+                $yearCounters[$year] = max($yearCounters[$year] ?? 0, (int) $schedule->period_number);
+                continue;
+            }
             if ($schedule->source === RosterSchedule::SOURCE_IMPORT && (int) $schedule->period_number > 0) {
                 $periodNumber = (int) $schedule->period_number;
                 $yearCounters[$year] = max($yearCounters[$year] ?? 0, $periodNumber);

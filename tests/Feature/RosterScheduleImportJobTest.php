@@ -56,8 +56,9 @@ class RosterScheduleImportJobTest extends TestCase
         $result = app(RosterScheduleImportCommitService::class)->commit($history);
         $this->assertSame(1, $result['employees']);
         $this->assertGreaterThanOrEqual(1, $result['history_created']);
-        $this->assertIsArray($result['late_candidate_schedule_ids']);
+        $this->assertNotEmpty($result['late_candidate_schedule_ids']);
         $this->assertSame(ImportHistory::STATUS_COMPLETED, $history->fresh()->status);
+        $this->assertStringNotContainsString('late_candidate_schedule_ids', json_encode($history->fresh()->summary));
         $this->assertGreaterThanOrEqual(1, RosterSchedule::query()->count());
 
         $history = $history->fresh();
@@ -101,6 +102,26 @@ class RosterScheduleImportJobTest extends TestCase
         $this->assertSame(ImportHistory::STATUS_FAILED, $failed->status);
         $this->assertSame('Import roster gagal diproses. Silakan unggah ulang workbook.', $failed->error_message);
         $this->assertStringNotContainsString('7402243101930013', $failed->error_message);
+    }
+
+    public function test_retryable_job_failure_returns_processing_claim_to_queued(): void
+    {
+        $history = ImportHistory::query()->create([
+            'import_id' => 'retry-job', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_QUEUED, 'created_by' => 'actor',
+            'file_path' => 'roster-imports/retry-job/source.xlsx', 'file_checksum' => 'missing',
+            'expires_at' => now()->addHour(),
+        ]);
+
+        try {
+            (new ProcessRosterScheduleImport($history->id))->handle(
+                app(RosterScheduleImportCommitService::class),
+                app(\App\Services\Audit\AuditTrailService::class)
+            );
+            $this->fail('Retryable source failure must be rethrown.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame(ImportHistory::STATUS_QUEUED, $history->fresh()->status);
+        }
     }
 
     private function processingHistory(array $rows): ImportHistory

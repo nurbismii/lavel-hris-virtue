@@ -266,9 +266,16 @@ class RosterScheduleImportControllerTest extends TestCase
     {
         Queue::fake();
         $hr = $this->user('hr-confirm', 'HR', ['roster_schedule']);
+        $nik = '016090948';
+        $ktp = '7402243101930009';
+        $this->seedRosterEmployee($nik, $ktp);
+        $workbook = $this->makeRosterWorkbook([['nik' => $nik, 'ktp' => $ktp]]);
+        Storage::disk('local')->put('private/roster-imports/confirm-import/source.xlsx', file_get_contents($workbook));
         $history = ImportHistory::create([
             'import_id' => 'confirm-import', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
             'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
+            'file_path' => 'roster-imports/confirm-import/source.xlsx',
+            'file_checksum' => hash_file('sha256', Storage::disk('local')->path('private/roster-imports/confirm-import/source.xlsx')),
             'summary' => ['total_rows' => 1, 'blocker_count' => 0, 'warning_count' => 0],
             'expires_at' => now()->addHour(),
         ]);
@@ -280,7 +287,25 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $history))->assertStatus(409);
         Queue::assertPushed(ProcessRosterScheduleImport::class, 1);
         $this->assertSame(ImportHistory::STATUS_QUEUED, $history->fresh()->status);
-        $this->assertSame(null, $history->fresh()->file_path);
+        $this->assertSame('roster-imports/confirm-import/source.xlsx', $history->fresh()->file_path);
+    }
+
+    public function test_confirmation_preflight_rejects_missing_or_changed_source_without_queueing(): void
+    {
+        Queue::fake();
+        $hr = $this->user('hr-confirm-preflight', 'HR', ['roster_schedule']);
+        $history = ImportHistory::create([
+            'import_id' => 'missing-confirm-source', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
+            'file_path' => 'roster-imports/missing-confirm-source/source.xlsx', 'file_checksum' => 'changed',
+            'summary' => ['total_rows' => 1, 'blocker_count' => 0], 'expires_at' => now()->addHour(),
+        ]);
+
+        $response = $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $history));
+        $response->assertStatus(409)->assertJsonPath('message', 'Import sudah dikonfirmasi, kedaluwarsa, atau tidak valid.');
+        Queue::assertNothingPushed();
+        $this->assertSame(ImportHistory::STATUS_AWAITING_CONFIRMATION, $history->fresh()->status);
+        $this->assertStringNotContainsString('roster-imports/missing-confirm-source', $response->getContent());
     }
 
     public function test_hr_can_access_another_hr_import_while_an_ordinary_menu_holder_is_forbidden(): void

@@ -10,6 +10,7 @@ use App\Models\ImportHistory;
 use App\Services\Audit\AuditTrailService;
 use App\Services\Roster\RosterScheduleImportPreviewService;
 use App\Services\Roster\RosterScheduleImportValidationService;
+use App\Services\Roster\RosterScheduleImportCommitService;
 use App\Services\Roster\RosterScheduleWorkbookReader;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Http\Request;
@@ -143,9 +144,17 @@ final class RosterScheduleImportController extends Controller
         ]);
     }
 
-    public function confirm(ConfirmRosterScheduleImportRequest $request, ImportHistory $history, AuditTrailService $audit)
+    public function confirm(ConfirmRosterScheduleImportRequest $request, ImportHistory $history, AuditTrailService $audit, RosterScheduleImportCommitService $commit)
     {
         $history = $this->ownedImport($request, $history);
+        try {
+            $commit->preflight($history);
+        } catch (Throwable $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Import sudah dikonfirmasi, kedaluwarsa, atau tidak valid.',
+            ], 409);
+        }
         $confirmed = ImportHistory::query()
             ->whereKey($history->id)
             ->where('import_type', ImportHistory::TYPE_ROSTER_SCHEDULE)

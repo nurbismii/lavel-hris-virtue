@@ -54,7 +54,18 @@ final class ProcessRosterScheduleImport implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        $result = $commit->commit($history);
+        try {
+            $result = $commit->commit($history);
+        } catch (Throwable $exception) {
+            if ($this->attempts() < $this->tries) {
+                ImportHistory::query()
+                    ->whereKey($this->historyId)
+                    ->where('status', ImportHistory::STATUS_PROCESSING)
+                    ->update(['status' => ImportHistory::STATUS_QUEUED]);
+            }
+
+            throw $exception;
+        }
         $audit->record([
             'event' => 'roster_schedule_import.completed',
             'module' => 'roster_schedule_import',
