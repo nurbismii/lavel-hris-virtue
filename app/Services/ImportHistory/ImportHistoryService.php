@@ -275,12 +275,12 @@ class ImportHistoryService
 
     public function markValidationFailed(int $id, array $summary, array $details, string $failurePath): void
     {
-        ImportHistory::whereKey($id)->update(['status' => ImportHistory::STATUS_VALIDATION_FAILED, 'summary' => $this->rosterSafe($summary), 'failure_samples' => $this->rosterSafe($details), 'failure_file_path' => $failurePath]);
+        ImportHistory::whereKey($id)->update(['status' => ImportHistory::STATUS_VALIDATION_FAILED, 'summary' => $this->rosterSafe($summary), 'failure_samples' => $this->rosterSafe($details), 'failure_file_path' => $failurePath, 'expires_at' => now()->addHours((int) config('roster.import.retention_hours', 12))]);
     }
 
     public function markConfirmed(int $id, string $actorId): bool
     {
-        return ImportHistory::whereKey($id)->where('status', ImportHistory::STATUS_AWAITING_CONFIRMATION)->update(['status' => ImportHistory::STATUS_QUEUED, 'confirmed_by' => $actorId, 'confirmed_at' => now()]) === 1;
+        return ImportHistory::whereKey($id)->where('status', ImportHistory::STATUS_AWAITING_CONFIRMATION)->whereNotNull('expires_at')->where('expires_at', '>', now())->update(['status' => ImportHistory::STATUS_QUEUED, 'confirmed_by' => $actorId, 'confirmed_at' => now()]) === 1;
     }
 
     public function markExpired(int $id): void
