@@ -5,10 +5,14 @@ namespace Tests\Feature;
 use App\Http\Requests\Roster\UploadRosterScheduleImportRequest;
 use App\Models\ImportHistory;
 use App\Models\User;
+use App\Services\Audit\AuditTrailService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
+use Maatwebsite\Excel\Facades\Excel;
+use RuntimeException;
 use Tests\Support\CreatesRosterImportSchema;
 use Tests\TestCase;
 
@@ -29,6 +33,7 @@ class RosterScheduleImportControllerTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->cleanRosterImportFixtures();
         Schema::dropAllTables();
         DB::disconnect('sqlite');
         parent::tearDown();
@@ -43,7 +48,9 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->assertFalse($this->requestFor($employee)->authorize());
         $this->assertFalse($this->requestFor($hrWithoutMenu)->authorize());
         $this->assertTrue($this->requestFor($hr)->authorize());
-        $this->assertSame(['required', 'file', 'mimes:xlsx', 'max:10240'], $this->requestFor($hr)->rules()['file']);
+        $this->assertContains('mimes:xlsx', $this->requestFor($hr)->rules()['file']);
+        $this->assertContains('mimetypes:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', $this->requestFor($hr)->rules()['file']);
+        $this->assertContains('max:10240', $this->requestFor($hr)->rules()['file']);
     }
 
     public function test_all_preview_routes_are_named_without_confirmation_route(): void
@@ -54,15 +61,6 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->assertTrue(route('roster-schedules.import.status', 1) !== '');
         $this->assertTrue(route('roster-schedules.import.failure', 1) !== '');
         $this->assertFalse(app('router')->getRoutes()->hasNamedRoute('roster-schedules.import.confirm'));
-    }
-
-    public function test_authorized_preview_view_renders_full_identity_rows_without_persisting_them_in_status_data(): void
-    {
-        $template = file_get_contents(resource_path('views/admin/roster-schedules/import.blade.php'));
-
-        $this->assertStringContainsString("{{ \$row['no_ktp'] }}", $template);
-        $this->assertStringContainsString("{{ \$error['code'] }}", $template);
-        $this->assertStringContainsString('Tidak ada baris roster untuk ditampilkan.', $template);
     }
 
     public function test_non_hr_and_hr_without_menu_are_forbidden_by_real_routes(): void
@@ -82,6 +80,10 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->actingAs($hr)->postJson(route('roster-schedules.import.store'), [
             'file' => UploadedFile::fake()->create('roster.txt', 10, 'text/plain'),
         ])->assertUnprocessable()->assertJsonValidationErrors('file');
+
+        $disguised = UploadedFile::fake()->createWithContent('roster.xlsx', 'not an xlsx workbook');
+        $this->actingAs($hr)->postJson(route('roster-schedules.import.store'), ['file' => $disguised])
+            ->assertUnprocessable()->assertJsonValidationErrors('file');
         $this->actingAs($hr)->postJson(route('roster-schedules.import.store'), [
             'file' => UploadedFile::fake()->create('roster.xlsx', 10241, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
         ])->assertUnprocessable()->assertJsonValidationErrors('file');
@@ -126,6 +128,223 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->actingAs($other)->get(route('roster-schedules.import.failure', $history))->assertForbidden();
     }
 
+    public function test_authorized_show_renders_full_identity_and_has_no_confirmation_action(): void
+    {
+        $nik = '016090940';
+        $ktp = '7402243101930001';
+        $this->seedRosterEmployee($nik, $ktp, 'Nama HRIS');
+        $hr = $this->user('hr-show', 'HR', ['roster_schedule']);
+        $hr->update(['nik_karyawan' => $nik]);
+        $path = $this->makeRosterWorkbook([['nik' => $nik, 'ktp' => $ktp, 'name' => '<b>Nama Excel</b>']]);
+        Storage::disk('local')->put('private/roster-imports/show-import/source.xlsx', file_get_contents($path));
+        $history = ImportHistory::create([
+            'import_id' => 'show-import', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
+            'file_path' => 'roster-imports/show-import/source.xlsx', 'expires_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($hr)->get(route('roster-schedules.import.show', $history))
+            ->assertOk()->assertSee($nik)->assertSee($ktp)->assertSee('&lt;b&gt;Nama Excel&lt;/b&gt;', false)
+            ->assertDontSee('roster-schedules.import.confirm')
+            ->assertDontSee('Konfirmasi Import');
+    }
+
+    public function test_invalid_preview_show_renders_blocker_and_failure_download_without_confirmation(): void
+    {
+        $nik = '016090942';
+        $ktp = '7402243101930003';
+        $actorNik = '016090999';
+        $this->seedRosterEmployee($actorNik, '7402243101930099', 'HR Preview');
+        $hr = $this->user('hr-invalid-show', 'HR', ['roster_schedule']);
+        $hr->update(['nik_karyawan' => $actorNik]);
+        $path = $this->makeRosterWorkbook([['nik' => $nik, 'ktp' => $ktp, 'name' => 'Tidak Ditemukan']]);
+        Storage::disk('local')->put('private/roster-imports/invalid-show/source.xlsx', file_get_contents($path));
+        Storage::disk('local')->put('private/roster-imports/invalid-show/failures.xlsx', 'failure content');
+        $history = ImportHistory::create([
+            'import_id' => 'invalid-show', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_VALIDATION_FAILED, 'created_by' => $hr->id,
+            'file_path' => 'roster-imports/invalid-show/source.xlsx',
+            'failure_file_path' => 'roster-imports/invalid-show/failures.xlsx',
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($hr)->get(route('roster-schedules.import.show', $history))
+            ->assertOk()->assertSee('employee_not_found')->assertSee('Unduh File Kegagalan')
+            ->assertSee(route('roster-schedules.import.failure', $history), false)
+            ->assertDontSee('Konfirmasi Import');
+    }
+
+    public function test_status_and_failure_endpoints_keep_sensitive_values_private_and_download_safe_file(): void
+    {
+        $nik = '016090941';
+        $ktp = '7402243101930002';
+        $this->seedRosterEmployee($nik, $ktp);
+        $hr = $this->user('hr-status', 'HR', ['roster_schedule']);
+        $history = ImportHistory::create([
+            'import_id' => 'failure-import', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_VALIDATION_FAILED, 'created_by' => $hr->id,
+            'file_path' => 'roster-imports/failure-import/source.xlsx',
+            'failure_file_path' => 'roster-imports/failure-import/failures.xlsx',
+            'file_checksum' => 'secret-checksum', 'summary' => ['total_rows' => 1], 'expires_at' => now()->addHour(),
+        ]);
+        Storage::disk('local')->put('private/' . $history->failure_file_path, 'failure content');
+
+        $json = $this->actingAs($hr)->getJson(route('roster-schedules.import.status', $history))
+            ->assertOk()->assertJsonPath('data.terminal', true)->getContent();
+        $this->assertStringNotContainsString($ktp, $json);
+        $this->assertStringNotContainsString($history->file_path, $json);
+        $this->assertStringNotContainsString($history->failure_file_path, $json);
+        $this->assertStringNotContainsString('secret-checksum', $json);
+
+        $download = $this->actingAs($hr)->get(route('roster-schedules.import.failure', $history))
+            ->assertOk()->assertHeader('X-Content-Type-Options', 'nosniff')
+            ->assertHeader('Content-Disposition', 'attachment; filename=roster-import-failures.xlsx')
+            ->assertStreamedContent('failure content');
+        $this->assertStringContainsString('private', $download->headers->get('Cache-Control'));
+        $this->assertStringContainsString('no-store', $download->headers->get('Cache-Control'));
+    }
+
+    public function test_status_json_marks_awaiting_and_expired_records_and_redacts_untrusted_summary(): void
+    {
+        $nik = '016090943';
+        $ktp = '7402243101930004';
+        $hr = $this->user('hr-status-lifecycle', 'HR', ['roster_schedule']);
+        $awaiting = ImportHistory::create([
+            'import_id' => 'awaiting-status', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
+            'file_path' => 'roster-imports/awaiting-status/source.xlsx',
+            'failure_file_path' => 'roster-imports/awaiting-status/failures.xlsx',
+            'file_checksum' => 'checksum-must-not-leak',
+            'summary' => [
+                'total_rows' => 1,
+                'no_ktp' => $ktp,
+                'nested' => ['source_path' => 'C:/private/' . $nik, 'rows' => [['no_ktp' => $ktp]], 'note' => $ktp],
+            ],
+            'expires_at' => now()->addHour(),
+        ]);
+        $expired = ImportHistory::create([
+            'import_id' => 'expired-status', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_EXPIRED, 'created_by' => $hr->id, 'expires_at' => now()->subMinute(),
+        ]);
+
+        $awaitingJson = $this->actingAs($hr)->getJson(route('roster-schedules.import.status', $awaiting))
+            ->assertOk()->assertJsonPath('data.terminal', false)->getContent();
+        $this->assertStringNotContainsString($ktp, $awaitingJson);
+        $this->assertStringNotContainsString('source_path', $awaitingJson);
+        $this->assertStringNotContainsString('checksum-must-not-leak', $awaitingJson);
+        $this->actingAs($hr)->getJson(route('roster-schedules.import.status', $expired))
+            ->assertOk()->assertJsonPath('data.terminal', true);
+    }
+
+    public function test_wrong_type_expired_and_missing_failure_file_return_safe_http_errors(): void
+    {
+        $hr = $this->user('hr-errors', 'HR', ['roster_schedule']);
+        $wrongType = ImportHistory::create(['import_id' => 'wrong-type', 'import_type' => ImportHistory::TYPE_EMPLOYEE, 'status' => 'queued', 'created_by' => $hr->id]);
+        $expired = ImportHistory::create(['import_id' => 'expired', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE, 'status' => 'expired', 'created_by' => $hr->id, 'expires_at' => now()->subMinute()]);
+        $missing = ImportHistory::create(['import_id' => 'missing', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE, 'status' => ImportHistory::STATUS_VALIDATION_FAILED, 'created_by' => $hr->id, 'failure_file_path' => 'roster-imports/missing/failures.xlsx', 'expires_at' => now()->addHour()]);
+
+        $this->actingAs($hr)->get(route('roster-schedules.import.show', $wrongType))->assertNotFound();
+        $this->actingAs($hr)->get(route('roster-schedules.import.failure', $expired))->assertGone();
+        $this->actingAs($hr)->get(route('roster-schedules.import.failure', $missing))->assertNotFound();
+    }
+
+    public function test_hr_can_access_another_hr_import_while_an_ordinary_menu_holder_is_forbidden(): void
+    {
+        $owner = $this->user('owner-all-access', 'HR', ['roster_schedule']);
+        $otherHr = $this->user('other-all-access', 'HR', ['roster_schedule']);
+        $menuHolder = $this->user('employee-menu-holder', 'Employee', ['roster_schedule']);
+        $history = ImportHistory::create([
+            'import_id' => 'cross-access', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $owner->id,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($otherHr)->getJson(route('roster-schedules.import.status', $history))->assertOk();
+        $this->actingAs($menuHolder)->getJson(route('roster-schedules.import.status', $history))->assertForbidden();
+    }
+
+    public function test_audit_metadata_for_upload_preview_and_failure_download_excludes_identity_and_paths(): void
+    {
+        $nik = '016090944';
+        $ktp = '7402243101930005';
+        $this->seedRosterEmployee($nik, $ktp);
+        $hr = $this->user('hr-audit', 'HR', ['roster_schedule']);
+        $audit = new class extends AuditTrailService {
+            public array $records = [];
+
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                $this->records[] = $data;
+
+                return null;
+            }
+        };
+        $this->app->instance(AuditTrailService::class, $audit);
+        $path = $this->makeRosterWorkbook([['nik' => $nik, 'ktp' => $ktp]]);
+        $file = new UploadedFile($path, 'employee-private-name.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
+
+        $this->actingAs($hr)->postJson(route('roster-schedules.import.store'), ['file' => $file])->assertOk();
+        $history = ImportHistory::firstOrFail();
+        $history->update([
+            'status' => ImportHistory::STATUS_VALIDATION_FAILED,
+            'failure_file_path' => 'roster-imports/' . $history->import_id . '/failures.xlsx',
+        ]);
+        Storage::disk('local')->put('private/' . $history->failure_file_path, 'failure content');
+        $this->actingAs($hr)->get(route('roster-schedules.import.failure', $history))->assertOk();
+
+        $this->assertSame([
+            'roster_schedule_import.uploaded',
+            'roster_schedule_import.previewed',
+            'roster_schedule_import.failure_downloaded',
+        ], array_column($audit->records, 'event'));
+        foreach ($audit->records as $record) {
+            $this->assertAuditDataIsSafe($record['metadata'], [$ktp, $history->file_path, 'employee-private-name.xlsx']);
+        }
+    }
+
+    public function test_preview_exception_after_failure_file_creation_removes_private_files_history_and_sensitive_log_details(): void
+    {
+        $nik = '016090945';
+        $ktp = '7402243101930006';
+        $hr = $this->user('hr-preview-exception', 'HR', ['roster_schedule']);
+        $path = $this->makeRosterWorkbook([['nik' => '', 'ktp' => $ktp]]);
+        $file = new UploadedFile($path, 'roster.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
+        $failurePath = null;
+        $audit = new class extends AuditTrailService {
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                return null;
+            }
+        };
+        $this->app->instance(AuditTrailService::class, $audit);
+        Log::spy();
+        Excel::shouldReceive('store')->once()->andReturnUsing(function ($export, string $path, string $disk) use (&$failurePath, $ktp): bool {
+            $failurePath = $path;
+            Storage::disk($disk)->put($path, 'deterministic failure workbook');
+
+            throw new RuntimeException('exception path C:/private/roster-imports/secret.xlsx KTP ' . $ktp);
+        });
+
+        $response = $this->actingAs($hr)->postJson(route('roster-schedules.import.store'), ['file' => $file]);
+
+        $response->assertStatus(500)->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'File gagal diproses. Silakan periksa format workbook dan coba lagi.');
+        $this->assertNotNull($failurePath);
+        $relativeFailurePath = substr($failurePath, strlen('private/'));
+        $this->assertFalse(Storage::disk('local')->exists($failurePath));
+        $this->assertFalse(Storage::disk('local')->exists(dirname($failurePath) . '/source.xlsx'));
+        $this->assertSame(0, ImportHistory::query()->count());
+        $this->assertStringNotContainsString($ktp, $response->getContent());
+        Log::shouldHaveReceived('warning')->once()->withArgs(function (string $message, array $context) use ($ktp, $relativeFailurePath): bool {
+            return $message === 'Roster import preview failed.'
+                && ($context['code'] ?? null) === 'roster_import_preview_failed'
+                && ($context['exception_class'] ?? null) === RuntimeException::class
+                && !str_contains(json_encode($context), $ktp)
+                && !str_contains(json_encode($context), $relativeFailurePath)
+                && !str_contains(json_encode($context), 'C:/private');
+        });
+    }
+
     private function requestFor(User $user): UploadRosterScheduleImportRequest
     {
         $request = UploadRosterScheduleImportRequest::create('/admin/roster-schedules/import', 'POST');
@@ -139,5 +358,28 @@ class RosterScheduleImportControllerTest extends TestCase
         $roleId = DB::table('roles')->insertGetId(['permission_role' => $role, 'menu_permissions' => json_encode($menus)]);
 
         return User::create(['id' => $id, 'name' => $role, 'role_id' => $roleId]);
+    }
+
+    private function assertAuditDataIsSafe(array $data, array $forbiddenValues): void
+    {
+        foreach ($data as $key => $value) {
+            $this->assertNotContains(strtolower((string) $key), [
+                'ktp',
+                'no_ktp',
+                'row',
+                'rows',
+                'source_path',
+                'failure_file_path',
+                'original_filename',
+            ]);
+            if (is_array($value)) {
+                $this->assertAuditDataIsSafe($value, $forbiddenValues);
+                continue;
+            }
+
+            foreach ($forbiddenValues as $forbiddenValue) {
+                $this->assertStringNotContainsString($forbiddenValue, (string) $value);
+            }
+        }
     }
 }

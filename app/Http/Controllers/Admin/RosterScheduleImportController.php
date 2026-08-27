@@ -70,9 +70,9 @@ final class RosterScheduleImportController extends Controller
                 ->with('success', 'File diterima dan hasil validasi siap ditinjau.');
         } catch (Throwable $exception) {
             if ($relativePath !== null) {
-                $storage->delete($relativePath, ['roster-imports/']);
+                $this->deletePrivateFile($storage, $relativePath);
             }
-            $storage->delete('roster-imports/' . $importId . '/failures.xlsx', ['roster-imports/']);
+            $this->deletePrivateFile($storage, 'roster-imports/' . $importId . '/failures.xlsx');
             if ($history instanceof ImportHistory) {
                 $history->delete();
             }
@@ -117,7 +117,7 @@ final class RosterScheduleImportController extends Controller
             'message' => $history->status_label,
             'data' => [
                 'status' => $history->status,
-                'summary' => $history->summary ?: [],
+                'summary' => $this->safeSummary($history->summary ?: []),
                 'terminal' => in_array($history->status, [
                     ImportHistory::STATUS_COMPLETED,
                     ImportHistory::STATUS_FAILED,
@@ -138,10 +138,12 @@ final class RosterScheduleImportController extends Controller
         abort_unless($path, 404);
         $this->audit($audit, 'roster_schedule_import.failure_downloaded', $history, $request->user());
 
-        return response()->download($path, 'roster-import-failures.xlsx', [
+        $response = response()->download($path, 'roster-import-failures.xlsx', [
             'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, no-store',
         ]);
+        $response->headers->set('Cache-Control', 'private, no-store', true);
+
+        return $response;
     }
 
     private function ownedImport(Request $request, ImportHistory $history): ImportHistory
@@ -176,9 +178,55 @@ final class RosterScheduleImportController extends Controller
                 'safe_filename' => 'source.xlsx',
                 'checksum' => $history->file_checksum,
                 'status' => $history->status,
-                'summary' => $history->summary ?: [],
+                'summary' => $this->safeSummary($history->summary ?: []),
             ],
         ]);
+    }
+
+    private function deletePrivateFile(SensitiveFileStorageService $storage, string $relativePath): void
+    {
+        if (!str_starts_with($relativePath, 'roster-imports/') || str_contains($relativePath, '..')) {
+            return;
+        }
+
+        $storage->delete($relativePath, ['roster-imports/']);
+        Storage::disk('local')->delete('private/' . $relativePath);
+    }
+
+    private function safeSummary(array $summary): array
+    {
+        $sanitize = function ($value, ?string $key = null) use (&$sanitize) {
+            $normalizedKey = strtolower((string) $key);
+            if (
+                $normalizedKey !== ''
+                && (
+                    preg_match('/ktp|path|checksum|filename/', $normalizedKey) === 1
+                    || in_array($normalizedKey, ['row', 'rows', 'raw_rows'], true)
+                )
+            ) {
+                return null;
+            }
+
+            if (is_array($value)) {
+                $result = [];
+                foreach ($value as $nestedKey => $nestedValue) {
+                    $sanitized = $sanitize($nestedValue, (string) $nestedKey);
+                    if ($sanitized !== null) {
+                        $result[$nestedKey] = $sanitized;
+                    }
+                }
+
+                return $result;
+            }
+
+            if (is_string($value) && preg_match('/\\b\\d{16}\\b/', $value) === 1) {
+                return '[redacted]';
+            }
+
+            return $value;
+        };
+
+        return $sanitize($summary);
     }
 
     private function resolvePrivatePath(SensitiveFileStorageService $storage, string $relativePath): ?string
