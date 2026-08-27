@@ -19,6 +19,12 @@ use Throwable;
 
 final class RosterScheduleImportController extends Controller
 {
+    private const PUBLIC_SUMMARY_KEYS = [
+        'total_rows',
+        'blocker_count',
+        'warning_count',
+    ];
+
     public function create(Request $request)
     {
         $this->authorizeActor($request);
@@ -111,14 +117,15 @@ final class RosterScheduleImportController extends Controller
     public function status(Request $request, ImportHistory $history)
     {
         $history = $this->ownedImport($request, $history);
+        $status = $this->effectiveStatus($history);
 
         return response()->json([
             'success' => true,
-            'message' => $history->status_label,
+            'message' => ImportHistory::statusLabels()[$status] ?? $status,
             'data' => [
-                'status' => $history->status,
+                'status' => $status,
                 'summary' => $this->safeSummary($history->summary ?: []),
-                'terminal' => in_array($history->status, [
+                'terminal' => in_array($status, [
                     ImportHistory::STATUS_COMPLETED,
                     ImportHistory::STATUS_FAILED,
                     ImportHistory::STATUS_VALIDATION_FAILED,
@@ -195,38 +202,32 @@ final class RosterScheduleImportController extends Controller
 
     private function safeSummary(array $summary): array
     {
-        $sanitize = function ($value, ?string $key = null) use (&$sanitize) {
-            $normalizedKey = strtolower((string) $key);
-            if (
-                $normalizedKey !== ''
-                && (
-                    preg_match('/ktp|path|checksum|filename/', $normalizedKey) === 1
-                    || in_array($normalizedKey, ['row', 'rows', 'raw_rows'], true)
-                )
-            ) {
-                return null;
+        $safe = [];
+
+        foreach (self::PUBLIC_SUMMARY_KEYS as $key) {
+            $value = $summary[$key] ?? null;
+            if (is_bool($value) || is_int($value) || is_float($value) || (is_string($value) && is_numeric($value))) {
+                $safe[$key] = max(0, (int) $value);
             }
+        }
 
-            if (is_array($value)) {
-                $result = [];
-                foreach ($value as $nestedKey => $nestedValue) {
-                    $sanitized = $sanitize($nestedValue, (string) $nestedKey);
-                    if ($sanitized !== null) {
-                        $result[$nestedKey] = $sanitized;
-                    }
-                }
+        return $safe;
+    }
 
-                return $result;
-            }
+    private function effectiveStatus(ImportHistory $history): string
+    {
+        if (
+            $history->expires_at !== null
+            && !$history->expires_at->isFuture()
+            && in_array($history->status, [
+                ImportHistory::STATUS_AWAITING_CONFIRMATION,
+                ImportHistory::STATUS_VALIDATION_FAILED,
+            ], true)
+        ) {
+            return ImportHistory::STATUS_EXPIRED;
+        }
 
-            if (is_string($value) && preg_match('/\\b\\d{16}\\b/', $value) === 1) {
-                return '[redacted]';
-            }
-
-            return $value;
-        };
-
-        return $sanitize($summary);
+        return $history->status;
     }
 
     private function resolvePrivatePath(SensitiveFileStorageService $storage, string $relativePath): ?string
