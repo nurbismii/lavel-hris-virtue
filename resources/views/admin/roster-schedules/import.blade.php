@@ -36,6 +36,27 @@
             @endif
         </div></div>
         <div class="alert alert-info">Pratinjau rinci tersedia saat upload selesai. Konfirmasi import belum tersedia pada tahap ini.</div>
+        <div class="card border-0 shadow-sm"><div class="card-body p-0"><div class="table-responsive">
+            <table class="table table-sm align-middle mb-0"><thead class="table-light"><tr>
+                <th>Baris</th><th>NIK</th><th>Nomor KTP</th><th>Nama Excel</th><th>Nama HRIS</th><th>Periode</th><th>Off</th><th>Aksi</th><th>Validasi</th>
+            </tr></thead><tbody>
+            @forelse($rows as $row)
+            <tr>
+                <td>{{ $row['row_number'] }}</td><td>{{ $row['nik'] }}</td><td>{{ $row['no_ktp'] }}</td>
+                <td>{{ $row['employee_name'] }}</td><td>{{ $row['hris_name'] ?: '-' }}</td>
+                <td>{{ $row['year'] }} / {{ $row['period_number'] }}</td><td>{{ $row['off_start'] ?: '-' }}</td>
+                <td><span class="badge bg-{{ $row['action'] === 'blocked' ? 'danger' : 'secondary' }}">{{ $row['action'] }}</span></td>
+                <td>
+                    @foreach($row['errors'] as $error)<div><span class="badge bg-danger">{{ $error['code'] }}</span> {{ $error['reason'] }}</div>@endforeach
+                    @foreach($row['warnings'] as $warning)<div><span class="badge bg-warning text-dark">{{ $warning['code'] }}</span> {{ $warning['reason'] }}</div>@endforeach
+                    @if(empty($row['errors']) && empty($row['warnings']))<span class="text-muted">Tidak ada catatan</span>@endif
+                </td>
+            </tr>
+            @empty
+            <tr><td colspan="9" class="text-center py-4 text-muted">Tidak ada baris roster untuk ditampilkan.</td></tr>
+            @endforelse
+            </tbody></table>
+        </div></div></div>
         @endif
     </div>
 </div>

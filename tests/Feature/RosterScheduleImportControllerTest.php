@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Requests\Roster\UploadRosterScheduleImportRequest;
+use App\Models\ImportHistory;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -50,6 +51,30 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->assertTrue(route('roster-schedules.import.status', 1) !== '');
         $this->assertTrue(route('roster-schedules.import.failure', 1) !== '');
         $this->assertFalse(app('router')->getRoutes()->hasNamedRoute('roster-schedules.import.confirm'));
+    }
+
+    public function test_authorized_preview_view_renders_full_identity_rows_without_persisting_them_in_status_data(): void
+    {
+        $history = new ImportHistory([
+            'id' => 1,
+            'import_id' => 'preview-test',
+            'status' => ImportHistory::STATUS_VALIDATION_FAILED,
+            'summary' => ['total_rows' => 1, 'blocker_count' => 1, 'warning_count' => 0],
+            'expires_at' => now()->addHour(),
+        ]);
+        $html = view('admin.roster-schedules.import', [
+            'history' => $history,
+            'rows' => [[
+                'row_number' => 3, 'nik' => '016090940', 'no_ktp' => '7402243101930001',
+                'employee_name' => 'Nama Excel', 'hris_name' => 'Nama HRIS', 'year' => 2026,
+                'period_number' => 1, 'off_start' => '2026-09-10', 'action' => 'blocked',
+                'errors' => [['code' => 'ktp_mismatch', 'reason' => 'Nomor KTP tidak sesuai']], 'warnings' => [],
+            ]],
+        ])->render();
+
+        $this->assertStringContainsString('7402243101930001', $html);
+        $this->assertStringContainsString('ktp_mismatch', $html);
+        $this->assertStringContainsString('Tidak ada baris roster untuk ditampilkan.', view('admin.roster-schedules.import', ['history' => $history, 'rows' => []])->render());
     }
 
     private function requestFor(User $user): UploadRosterScheduleImportRequest
