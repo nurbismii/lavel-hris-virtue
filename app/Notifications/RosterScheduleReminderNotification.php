@@ -29,8 +29,8 @@ class RosterScheduleReminderNotification extends Notification
             ->greeting('Halo ' . $employeeName . ',')
             ->line('Jadwal roster periode ' . $this->schedule->period_label . ' akan dimulai ' . $this->daysBefore . ' hari lagi.')
             ->line('Masa kerja: ' . $this->schedule->work_start->format('d M Y') . ' - ' . $this->schedule->work_end->format('d M Y') . '.')
-            ->line('Periode off roster: ' . $this->schedule->off_start->format('d M Y') . ' - ' . $this->schedule->off_end->format('d M Y') . '.')
-            ->line('Silakan ajukan Cuti Roster jika mengambil jadwal off, atau pilih Insentif jika tetap bekerja sesuai ketentuan HR.')
+            ->line('Periode cuti roster: ' . $this->schedule->off_start->format('d M Y') . ' - ' . $this->schedule->off_end->format('d M Y') . '.')
+            ->line('Silakan ajukan Cuti Roster jika mengambil cuti roster atau pilih Insentif jika tetap bekerja sesuai permintaan HOD departemen.')
             ->action('Buka Pengajuan Roster', $this->rosterUrl())
             ->line('Abaikan email ini bila pilihan roster Anda sudah diproses oleh HR.')
             ->salutation('HRIS V-People');
