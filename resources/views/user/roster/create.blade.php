@@ -25,6 +25,12 @@ $weekLabels = ['MINGGU KE-1', 'MINGGU KE-2', 'MINGGU KE-3', 'MINGGU KE-4', 'MING
 
             <form id="rosterWizardForm" action="{{ route('roster.store') }}" method="POST" enctype="multipart/form-data" data-off-dates-url="{{ Auth::user()->hasRole(['Staff Roster', 'Super Admin']) ? route('roster-off.effective-dates') : '' }}">
                 @csrf
+                @if(isset($schedule) && $schedule)
+                    <input type="hidden" name="roster_schedule_id" value="{{ $schedule->id }}">
+                    <div class="alert alert-info mb-3">
+                        Jadwal roster terpilih: OFF {{ $schedule->off_start?->format('d M Y') }} sampai {{ $schedule->off_end?->format('d M Y') }}.
+                    </div>
+                @endif
                 <input type="hidden" name="nik_karyawan" value="{{ $employee->nik }}">
 
                 <div class="card wizard-card">

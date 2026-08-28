@@ -20,6 +20,7 @@ class RosterRequest extends FormRequest
             'periode_awal' => ['required', 'date'],
             'periode_akhir' => ['required', 'date', 'after_or_equal:periode_awal'],
             'tipe_rencana' => ['required', Rule::in(['1', '2'])],
+            'roster_schedule_id' => ['nullable', 'integer', 'exists:roster_schedules,id'],
             'berkas_cuti' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:4096'],
         ];
     }

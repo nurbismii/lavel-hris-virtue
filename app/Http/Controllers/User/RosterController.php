@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\PeriodeKerjaRoster;
 use App\Models\Roster;
 use App\Models\RosterOffRequest;
+use App\Models\RosterSchedule;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendancePeriodLockService;
@@ -49,7 +50,27 @@ class RosterController extends Controller
 
     public function create()
     {
-        return view('user.roster.create');
+        $schedule = null;
+        $requestedScheduleId = request()->query('roster_schedule');
+        $scheduleId = is_scalar($requestedScheduleId) && ctype_digit((string) $requestedScheduleId)
+            ? (int) $requestedScheduleId
+            : null;
+        if ($scheduleId) {
+            $schedule = RosterSchedule::query()
+                ->whereKey($scheduleId)
+                ->where('employee_nik', Auth::user()->nik_karyawan)
+                ->where('is_active', true)
+                ->whereDate('off_start', '>=', Carbon::today()->toDateString())
+                ->first();
+            abort_unless($schedule, 404);
+            abort_if(
+                $this->hasActiveScheduleApplication($schedule->id),
+                409,
+                'Jadwal roster ini sudah memiliki pengajuan aktif.'
+            );
+        }
+
+        return view('user.roster.create', compact('schedule'));
     }
 
     public function store(RosterRequest $request)
@@ -82,6 +103,20 @@ class RosterController extends Controller
                 ->where('nik', $nikKaryawan)
                 ->lockForUpdate()
                 ->firstOrFail();
+            $schedule = null;
+            $scheduleId = $validated['roster_schedule_id'] ?? null;
+            if ($scheduleId !== null) {
+                $schedule = RosterSchedule::query()
+                    ->whereKey($scheduleId)
+                    ->where('employee_nik', $nikKaryawan)
+                    ->where('is_active', true)
+                    ->whereDate('off_start', '>=', Carbon::today()->toDateString())
+                    ->lockForUpdate()
+                    ->first();
+                if (!$schedule || $this->hasActiveScheduleApplication($schedule->id, true)) {
+                    throw new \RuntimeException('Jadwal roster tidak tersedia untuk diajukan.');
+                }
+            }
             $delegationService = app(ApprovalDelegationService::class);
             $delegations = $delegationService->activeDelegationsForEmployee(
                 $employee,
@@ -103,6 +138,7 @@ class RosterController extends Controller
             $roster = Roster::create(array_merge([
                 'nomor_surat' => $nomor_surat,
                 'nik_karyawan' => $nikKaryawan,
+                'roster_schedule_id' => $schedule?->id,
                 'email' => $validated['email'],
                 'no_telp' => $validated['no_telp'],
                 'tanggal_pengajuan' => now(),
@@ -139,6 +175,15 @@ class RosterController extends Controller
                 'status_pengajuan' => $statusPengajuanHod, // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
                 'status_pengajuan_hrd' => $statusPengajuanHrd // 0 = Menunggu, 1 = Disetujui, 2 = Ditolak
             ], $delegationService->submissionPayload('cuti_roster', $delegations)));
+
+            if ($schedule) {
+                $schedule->update([
+                    'realization_type' => $validated['tipe_rencana'] === '1'
+                        ? RosterSchedule::REALIZATION_CUTI
+                        : RosterSchedule::REALIZATION_INSENTIF,
+                    'updated_by' => (string) Auth::id(),
+                ]);
+            }
 
             $delegationService->createAssignments($roster, $delegations, ApprovalDelegation::MODULE_ROSTER);
 
@@ -378,6 +423,27 @@ class RosterController extends Controller
         $jml_cuti = no_urut_surat($this->nextRosterNumberSequence($tahun));
 
         return '02-' . $jml_cuti . '/BR/HRD-VDNI/' . $bulan . '/' . $tahun;
+    }
+
+    private function hasActiveScheduleApplication(int $scheduleId, bool $lock = false): bool
+    {
+        $query = Roster::query()
+            ->where('roster_schedule_id', $scheduleId)
+            ->where(function ($query) {
+                $query->where(function ($statusQuery) {
+                    $statusQuery->whereNull('status_pengajuan')
+                        ->orWhere('status_pengajuan', '!=', 2);
+                })->where(function ($statusQuery) {
+                    $statusQuery->whereNull('status_pengajuan_hrd')
+                        ->orWhere('status_pengajuan_hrd', '!=', 2);
+                });
+            });
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        return $query->exists();
     }
 
     private function nextRosterNumberSequence(string $tahun): int
