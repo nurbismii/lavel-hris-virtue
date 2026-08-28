@@ -284,6 +284,13 @@ final class RosterScheduleImportCommitService
         };
     }
 
-    private function workDays(): int { return max(1, (int) config('roster.work_weeks', 10)) * 7; }
-    private function offDays(): int { return max(1, (int) config('roster.off_weeks', 2)) * 7; }
+    private function workDays(): int
+    {
+        return max(1, (int) config('roster.work_weeks', 10)) * 7;
+    }
+
+    private function offDays(): int
+    {
+        return max(1, (int) config('roster.off_weeks', 2)) * 7;
+    }
 }

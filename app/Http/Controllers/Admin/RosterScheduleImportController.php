@@ -8,6 +8,7 @@ use App\Http\Requests\Roster\ConfirmRosterScheduleImportRequest;
 use App\Jobs\ProcessRosterScheduleImport;
 use App\Models\ImportHistory;
 use App\Services\Audit\AuditTrailService;
+use App\Services\ImportHistory\ImportHistoryService;
 use App\Services\Roster\RosterScheduleImportPreviewService;
 use App\Services\Roster\RosterScheduleImportValidationService;
 use App\Services\Roster\RosterScheduleImportCommitService;
@@ -144,8 +145,13 @@ final class RosterScheduleImportController extends Controller
         ]);
     }
 
-    public function confirm(ConfirmRosterScheduleImportRequest $request, ImportHistory $history, AuditTrailService $audit, RosterScheduleImportCommitService $commit)
-    {
+    public function confirm(
+        ConfirmRosterScheduleImportRequest $request,
+        ImportHistory $history,
+        AuditTrailService $audit,
+        ImportHistoryService $historyService,
+        RosterScheduleImportCommitService $commit
+    ) {
         $history = $this->ownedImport($request, $history);
         try {
             $commit->preflight($history);
@@ -155,18 +161,7 @@ final class RosterScheduleImportController extends Controller
                 'message' => 'Import sudah dikonfirmasi, kedaluwarsa, atau tidak valid.',
             ], 409);
         }
-        $confirmed = ImportHistory::query()
-            ->whereKey($history->id)
-            ->where('import_type', ImportHistory::TYPE_ROSTER_SCHEDULE)
-            ->where('status', ImportHistory::STATUS_AWAITING_CONFIRMATION)
-            ->where('expires_at', '>', now())
-            ->update([
-                'status' => ImportHistory::STATUS_QUEUED,
-                'confirmed_by' => (string) $request->user()->id,
-                'confirmed_at' => now(),
-            ]);
-
-        if ($confirmed !== 1) {
+        if (!$historyService->markConfirmed($history->id, (string) $request->user()->id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Import sudah dikonfirmasi, kedaluwarsa, atau tidak valid.',
@@ -223,19 +218,23 @@ final class RosterScheduleImportController extends Controller
 
     private function audit(AuditTrailService $audit, string $event, ImportHistory $history, $actor): void
     {
+        $metadata = [
+            'import_id' => $history->import_id,
+            'status' => $history->status,
+            'summary' => $this->safeSummary($history->summary ?: []),
+        ];
+        if ($event !== 'roster_schedule_import.confirmed') {
+            $metadata['safe_filename'] = 'source.xlsx';
+            $metadata['checksum'] = $history->file_checksum;
+        }
+
         $audit->record([
             'event' => $event,
             'module' => 'roster_schedule_import',
             'reference_table' => 'import_histories',
             'reference_id' => (string) $history->id,
             'actor' => $actor,
-            'metadata' => [
-                'import_id' => $history->import_id,
-                'safe_filename' => 'source.xlsx',
-                'checksum' => $history->file_checksum,
-                'status' => $history->status,
-                'summary' => $this->safeSummary($history->summary ?: []),
-            ],
+            'metadata' => $metadata,
         ]);
     }
 

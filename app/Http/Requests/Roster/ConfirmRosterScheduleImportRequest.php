@@ -15,6 +15,13 @@ final class ConfirmRosterScheduleImportRequest extends FormRequest
 
     public function rules(): array
     {
-        return [];
+        return [
+            'file_path' => ['prohibited'],
+            'failure_file_path' => ['prohibited'],
+            'file_checksum' => ['prohibited'],
+            'status' => ['prohibited'],
+            'actor_id' => ['prohibited'],
+            'confirmed_by' => ['prohibited'],
+        ];
     }
 }

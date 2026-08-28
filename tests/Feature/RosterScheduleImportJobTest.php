@@ -6,7 +6,9 @@ use App\Jobs\ProcessRosterScheduleImport;
 use App\Models\ImportHistory;
 use App\Models\RosterSchedule;
 use App\Models\RosterScheduleHistory;
+use App\Services\Audit\AuditTrailService;
 use App\Services\Roster\RosterScheduleImportCommitService;
+use App\Services\Roster\RosterScheduleWorkbookImportService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -255,6 +257,71 @@ class RosterScheduleImportJobTest extends TestCase
         $this->assertSame(0, RosterSchedule::query()->count());
         $this->assertSame(0, RosterScheduleHistory::query()->count());
         $this->assertSame(ImportHistory::STATUS_PROCESSING, $history->fresh()->status);
+    }
+
+    public function test_completed_job_audit_contains_only_safe_counts(): void
+    {
+        $ktp = '7402243101930026';
+        $history = $this->processingHistory([['nik' => '016090966', 'ktp' => $ktp]]);
+        $history->update(['status' => ImportHistory::STATUS_QUEUED]);
+        $audit = new class extends AuditTrailService {
+            public array $records = [];
+
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                $this->records[] = $data;
+
+                return null;
+            }
+        };
+
+        (new ProcessRosterScheduleImport($history->id))->handle(
+            app(RosterScheduleImportCommitService::class),
+            $audit
+        );
+
+        $this->assertSame(ImportHistory::STATUS_COMPLETED, $history->fresh()->status);
+        $this->assertCount(1, $audit->records);
+        $encoded = json_encode($audit->records[0], JSON_UNESCAPED_SLASHES);
+        $this->assertStringNotContainsString($ktp, $encoded);
+        $this->assertStringNotContainsString('late_candidate_schedule_ids', $encoded);
+        $this->assertStringNotContainsString((string) $history->file_path, $encoded);
+        $this->assertSame('roster_schedule_import.completed', $audit->records[0]['event']);
+        $this->assertSame([
+            'employees', 'history_created', 'history_updated', 'unchanged', 'future_generated', 'need_review',
+        ], array_keys($audit->records[0]['metadata']['summary']));
+    }
+
+    public function test_cli_adapter_keeps_signature_and_dry_run_has_zero_writes(): void
+    {
+        $method = new \ReflectionMethod(RosterScheduleWorkbookImportService::class, 'import');
+        $this->assertSame(['path', 'dryRun', 'actorId'], array_map(
+            fn (\ReflectionParameter $parameter): string => $parameter->getName(),
+            $method->getParameters()
+        ));
+        $this->assertSame('string', (string) $method->getParameters()[0]->getType());
+        $this->assertSame('bool', (string) $method->getParameters()[1]->getType());
+        $this->assertSame('?string', (string) $method->getParameters()[2]->getType());
+
+        $nik = '016090967';
+        $ktp = '7402243101930027';
+        $this->seedRosterEmployee($nik, $ktp);
+        $path = $this->makeRosterWorkbook([['nik' => $nik, 'ktp' => $ktp]]);
+        $service = app(RosterScheduleWorkbookImportService::class);
+
+        $dryRun = $service->import($path, true, 'cli-actor');
+        $this->assertSame(1, $dryRun['total_rows']);
+        $this->assertSame(0, $dryRun['blocker_count']);
+        $this->assertSame(0, ImportHistory::query()->count());
+        $this->assertSame(0, RosterSchedule::query()->count());
+        $this->assertSame(0, RosterScheduleHistory::query()->count());
+
+        $result = $service->import($path, false, 'cli-actor');
+        $this->assertSame(1, $result['employees']);
+        $this->assertSame(ImportHistory::STATUS_COMPLETED, ImportHistory::query()->firstOrFail()->status);
+        $this->assertGreaterThan(0, RosterSchedule::query()->count());
+        $this->assertGreaterThan(0, RosterScheduleHistory::query()->count());
+        $this->assertStringNotContainsString($ktp, json_encode($result));
     }
 
     private function processingHistory(array $rows): ImportHistory

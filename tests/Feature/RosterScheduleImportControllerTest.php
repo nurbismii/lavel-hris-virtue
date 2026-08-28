@@ -66,6 +66,19 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->assertTrue(app('router')->getRoutes()->hasNamedRoute('roster-schedules.import.confirm'));
     }
 
+    public function test_confirmation_javascript_has_confirmation_duplicate_guard_and_bounded_polling(): void
+    {
+        $script = file_get_contents(public_path('assets/js/roster-schedule-import.js'));
+
+        $this->assertIsString($script);
+        $this->assertStringContainsString("button.prop('disabled')", $script);
+        $this->assertStringContainsString("button.data('label', original).prop('disabled', true)", $script);
+        $this->assertStringContainsString("title: 'Konfirmasi import?'", $script);
+        $this->assertStringContainsString('window.setTimeout(poll, 0)', $script);
+        $this->assertStringContainsString('Date.now() - started > 720000', $script);
+        $this->assertStringContainsString('xhr.status === 419', $script);
+    }
+
     public function test_non_hr_and_hr_without_menu_are_forbidden_by_real_routes(): void
     {
         foreach ([$this->user('employee-http', 'Employee', ['roster_schedule']), $this->user('no-menu-http', 'HR', [])] as $user) {
@@ -131,7 +144,7 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->actingAs($other)->get(route('roster-schedules.import.failure', $history))->assertForbidden();
     }
 
-    public function test_authorized_show_renders_full_identity_and_has_no_confirmation_action(): void
+    public function test_authorized_valid_show_renders_full_identity_and_confirmation_action(): void
     {
         $nik = '016090940';
         $ktp = '7402243101930001';
@@ -143,13 +156,15 @@ class RosterScheduleImportControllerTest extends TestCase
         $history = ImportHistory::create([
             'import_id' => 'show-import', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
             'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
-            'file_path' => 'roster-imports/show-import/source.xlsx', 'expires_at' => now()->addHour(),
+            'file_path' => 'roster-imports/show-import/source.xlsx',
+            'summary' => ['total_rows' => 1, 'blocker_count' => 0, 'warning_count' => 0],
+            'expires_at' => now()->addHour(),
         ]);
 
         $this->actingAs($hr)->get(route('roster-schedules.import.show', $history))
             ->assertOk()->assertSee($nik)->assertSee($ktp)->assertSee('&lt;b&gt;Nama Excel&lt;/b&gt;', false)
-            ->assertDontSee('roster-schedules.import.confirm')
-            ->assertDontSee('Konfirmasi Import');
+            ->assertSee('id="roster-import-confirm-form"', false)
+            ->assertSee('Konfirmasi dan Proses');
     }
 
     public function test_invalid_preview_show_renders_blocker_and_failure_download_without_confirmation(): void
@@ -174,7 +189,7 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->actingAs($hr)->get(route('roster-schedules.import.show', $history))
             ->assertOk()->assertSee('employee_not_found')->assertSee('Unduh File Kegagalan')
             ->assertSee(route('roster-schedules.import.failure', $history), false)
-            ->assertDontSee('Konfirmasi Import');
+            ->assertDontSee('Konfirmasi dan Proses');
     }
 
     public function test_status_and_failure_endpoints_keep_sensitive_values_private_and_download_safe_file(): void
@@ -265,6 +280,17 @@ class RosterScheduleImportControllerTest extends TestCase
     public function test_authorized_confirmation_dispatches_one_job_and_rejects_duplicate_or_invalid_state(): void
     {
         Queue::fake();
+        $audit = new class extends AuditTrailService {
+            public array $records = [];
+
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                $this->records[] = $data;
+
+                return null;
+            }
+        };
+        $this->app->instance(AuditTrailService::class, $audit);
         $hr = $this->user('hr-confirm', 'HR', ['roster_schedule']);
         $nik = '016090948';
         $ktp = '7402243101930009';
@@ -282,12 +308,23 @@ class RosterScheduleImportControllerTest extends TestCase
 
         $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $history), [
             'file_path' => 'attacker-path', 'file_checksum' => 'attacker-checksum', 'status' => 'completed',
-        ])->assertOk()->assertJsonPath('data.status', ImportHistory::STATUS_QUEUED);
+        ])->assertUnprocessable();
+        Queue::assertNothingPushed();
+
+        $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $history))
+            ->assertOk()->assertJsonPath('data.status', ImportHistory::STATUS_QUEUED);
         Queue::assertPushed(ProcessRosterScheduleImport::class, fn (ProcessRosterScheduleImport $job) => $job->historyId === $history->id);
         $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $history))->assertStatus(409);
         Queue::assertPushed(ProcessRosterScheduleImport::class, 1);
         $this->assertSame(ImportHistory::STATUS_QUEUED, $history->fresh()->status);
         $this->assertSame('roster-imports/confirm-import/source.xlsx', $history->fresh()->file_path);
+        $this->assertCount(1, $audit->records);
+        $this->assertSame('roster_schedule_import.confirmed', $audit->records[0]['event']);
+        $this->assertSame([
+            'import_id' => 'confirm-import',
+            'status' => ImportHistory::STATUS_QUEUED,
+            'summary' => ['total_rows' => 1, 'blocker_count' => 0, 'warning_count' => 0],
+        ], $audit->records[0]['metadata']);
     }
 
     public function test_confirmation_preflight_rejects_missing_or_changed_source_without_queueing(): void
@@ -306,6 +343,67 @@ class RosterScheduleImportControllerTest extends TestCase
         Queue::assertNothingPushed();
         $this->assertSame(ImportHistory::STATUS_AWAITING_CONFIRMATION, $history->fresh()->status);
         $this->assertStringNotContainsString('roster-imports/missing-confirm-source', $response->getContent());
+    }
+
+    public function test_expired_changed_blocked_wrong_type_and_unauthorized_confirmations_never_queue(): void
+    {
+        Queue::fake();
+        $hr = $this->user('hr-confirm-rejected', 'HR', ['roster_schedule']);
+        $ordinary = $this->user('ordinary-confirm-rejected', 'Employee', []);
+        $nik = '016090949';
+        $ktp = '7402243101930019';
+        $this->seedRosterEmployee($nik, $ktp);
+
+        $validWorkbook = $this->makeRosterWorkbook([['nik' => $nik, 'ktp' => $ktp]]);
+        Storage::disk('local')->put('private/roster-imports/expired-confirm/source.xlsx', file_get_contents($validWorkbook));
+        Storage::disk('local')->put('private/roster-imports/changed-confirm/source.xlsx', file_get_contents($validWorkbook));
+        Storage::disk('local')->put('private/roster-imports/unauthorized-confirm/source.xlsx', file_get_contents($validWorkbook));
+
+        $expired = ImportHistory::create([
+            'import_id' => 'expired-confirm', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
+            'file_path' => 'roster-imports/expired-confirm/source.xlsx',
+            'file_checksum' => hash_file('sha256', Storage::disk('local')->path('private/roster-imports/expired-confirm/source.xlsx')),
+            'expires_at' => now()->subMinute(),
+        ]);
+        $changed = ImportHistory::create([
+            'import_id' => 'changed-confirm', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
+            'file_path' => 'roster-imports/changed-confirm/source.xlsx', 'file_checksum' => str_repeat('0', 64),
+            'expires_at' => now()->addHour(),
+        ]);
+        $blockedWorkbook = $this->makeRosterWorkbook([['nik' => '', 'ktp' => $ktp]]);
+        Storage::disk('local')->put('private/roster-imports/blocked-confirm/source.xlsx', file_get_contents($blockedWorkbook));
+        $blocked = ImportHistory::create([
+            'import_id' => 'blocked-confirm', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
+            'file_path' => 'roster-imports/blocked-confirm/source.xlsx',
+            'file_checksum' => hash_file('sha256', Storage::disk('local')->path('private/roster-imports/blocked-confirm/source.xlsx')),
+            'expires_at' => now()->addHour(),
+        ]);
+        $wrongType = ImportHistory::create([
+            'import_id' => 'wrong-confirm-type', 'import_type' => ImportHistory::TYPE_EMPLOYEE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
+            'expires_at' => now()->addHour(),
+        ]);
+        $unauthorized = ImportHistory::create([
+            'import_id' => 'unauthorized-confirm', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION, 'created_by' => $hr->id,
+            'file_path' => 'roster-imports/unauthorized-confirm/source.xlsx',
+            'file_checksum' => hash_file('sha256', Storage::disk('local')->path('private/roster-imports/unauthorized-confirm/source.xlsx')),
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $expired))->assertStatus(409);
+        $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $changed))->assertStatus(409);
+        $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $blocked))->assertStatus(409);
+        $this->actingAs($hr)->postJson(route('roster-schedules.import.confirm', $wrongType))->assertNotFound();
+        $this->actingAs($ordinary)->postJson(route('roster-schedules.import.confirm', $unauthorized))->assertForbidden();
+
+        Queue::assertNothingPushed();
+        foreach ([$expired, $changed, $blocked, $unauthorized] as $history) {
+            $this->assertSame(ImportHistory::STATUS_AWAITING_CONFIRMATION, $history->fresh()->status);
+        }
     }
 
     public function test_hr_can_access_another_hr_import_while_an_ordinary_menu_holder_is_forbidden(): void
