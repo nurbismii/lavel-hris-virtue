@@ -52,8 +52,20 @@ class RosterScheduleService
                 ];
             })->all();
 
-            foreach (array_chunk($rows, 250) as $chunk) {
-                RosterSchedule::query()->insertOrIgnore($chunk);
+            $existingOffStarts = RosterSchedule::query()
+                ->where('employee_nik', $employee->nik)
+                ->whereIn('off_start', array_column($rows, 'off_start'))
+                ->lockForUpdate()
+                ->pluck('off_start')
+                ->map(fn ($date): string => Carbon::parse((string) $date)->toDateString())
+                ->flip();
+            $missingRows = array_values(array_filter(
+                $rows,
+                fn (array $row): bool => !$existingOffStarts->has($row['off_start'])
+            ));
+
+            foreach (array_chunk($missingRows, 250) as $chunk) {
+                RosterSchedule::query()->insert($chunk);
             }
 
             if ($synchronize) {
@@ -116,7 +128,9 @@ class RosterScheduleService
             ->first();
 
         if ($lastExisting) {
-            $nextWorkStart = $lastExisting->off_end->copy()->addDay();
+            $nextWorkStart = $lastExisting->off_end
+                ? $lastExisting->off_end->copy()->addDay()
+                : $lastExisting->off_start->copy()->addDays($this->offDays());
         } else {
             if (!$employee->work_pattern_start_date) {
                 return collect();
@@ -148,6 +162,93 @@ class RosterScheduleService
             RosterSchedule::SOURCE_GENERATED,
             $synchronize
         );
+    }
+
+    public function generateUntilMany(
+        Collection $employees,
+        Carbon $until,
+        ?string $actorId = null
+    ): int {
+        if ($employees->isEmpty()) {
+            return 0;
+        }
+
+        $generated = 0;
+        $timestamp = now();
+
+        foreach ($employees->chunk(250) as $employeeChunk) {
+            $employeeChunk->each(fn (Employee $employee) => $this->assertActiveRosterEmployee($employee));
+            $niks = $employeeChunk->pluck('nik')->map('strval')->values()->all();
+            $scheduleGroups = RosterSchedule::query()
+                ->whereIn('employee_nik', $niks)
+                ->orderBy('employee_nik')
+                ->orderBy('off_start')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->groupBy(fn (RosterSchedule $schedule): string => (string) $schedule->employee_nik);
+
+            $rows = [];
+            foreach ($employeeChunk as $employee) {
+                $existing = $scheduleGroups->get((string) $employee->nik, collect());
+                $lastExisting = $existing->last();
+
+                if ($lastExisting) {
+                    $nextWorkStart = $lastExisting->off_end
+                        ? $lastExisting->off_end->copy()->addDay()
+                        : $lastExisting->off_start->copy()->addDays($this->offDays());
+                } else {
+                    if (!$employee->work_pattern_start_date) {
+                        continue;
+                    }
+
+                    $anchor = Carbon::parse($employee->work_pattern_start_date)->startOfDay();
+                    $firstOffStart = $anchor->copy()->addDays($this->workDays());
+                    if ($firstOffStart->gt($until)) {
+                        continue;
+                    }
+
+                    $daysToToday = max(0, (int) $firstOffStart->diffInDays(Carbon::today(), false));
+                    $skipCycles = max(0, intdiv($daysToToday, $this->cycleDays()) - 1);
+                    $nextWorkStart = $anchor->copy()->addDays($skipCycles * $this->cycleDays());
+                }
+
+                $existingKeys = $existing
+                    ->mapWithKeys(fn (RosterSchedule $schedule): array => [$schedule->off_start->toDateString() => true]);
+                $cycles = $this->previewCyclesUntil($nextWorkStart, $until);
+                foreach ($cycles as $dates) {
+                    $offStart = $dates['off_start']->toDateString();
+                    if ($existingKeys->has($offStart)) {
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'employee_nik' => (string) $employee->nik,
+                        'period_year' => (int) $dates['off_start']->year,
+                        'period_number' => 1,
+                        'work_start' => $dates['work_start']->toDateString(),
+                        'work_end' => $dates['work_end']->toDateString(),
+                        'off_start' => $offStart,
+                        'off_end' => $dates['off_end']->toDateString(),
+                        'earned_off_days' => max(0, (int) config('roster.earned_off_days', 5)),
+                        'realization_type' => RosterSchedule::REALIZATION_PENDING,
+                        'source' => RosterSchedule::SOURCE_GENERATED,
+                        'is_active' => true,
+                        'created_by' => $actorId,
+                        'updated_by' => $actorId,
+                        'created_at' => $timestamp,
+                        'updated_at' => $timestamp,
+                    ];
+                }
+            }
+
+            foreach (array_chunk($rows, 250) as $chunk) {
+                RosterSchedule::query()->insert($chunk);
+                $generated += count($chunk);
+            }
+        }
+
+        return $generated;
     }
 
     public function updateSchedule(RosterSchedule $schedule, array $data, ?string $actorId = null): RosterSchedule
@@ -325,6 +426,11 @@ class RosterScheduleService
 
     private function cycleDays(): int
     {
-        return $this->workDays() + (max(1, (int) config('roster.off_weeks', 2)) * 7);
+        return $this->workDays() + $this->offDays();
+    }
+
+    private function offDays(): int
+    {
+        return max(1, (int) config('roster.off_weeks', 2)) * 7;
     }
 }

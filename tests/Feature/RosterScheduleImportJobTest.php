@@ -13,6 +13,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Tests\Support\CreatesRosterImportSchema;
 use Tests\TestCase;
 
@@ -121,6 +122,21 @@ class RosterScheduleImportJobTest extends TestCase
         $this->assertSame(2, $job->tries);
         $this->assertSame(900, $job->timeout);
         $this->assertSame(3600, $job->uniqueFor);
+        $this->assertCount(1, $job->middleware());
+        $this->assertInstanceOf(WithoutOverlapping::class, $job->middleware()[0]);
+        $this->assertSame(960, $job->middleware()[0]->expiresAfter);
+
+        $audit = new class extends AuditTrailService {
+            public array $records = [];
+
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                $this->records[] = $data;
+
+                return null;
+            }
+        };
+        $this->app->instance(AuditTrailService::class, $audit);
 
         $history = ImportHistory::query()->create([
             'import_id' => 'failed-job', 'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
@@ -131,6 +147,42 @@ class RosterScheduleImportJobTest extends TestCase
         $this->assertSame(ImportHistory::STATUS_FAILED, $failed->status);
         $this->assertSame('Import roster gagal diproses. Silakan unggah ulang workbook.', $failed->error_message);
         $this->assertStringNotContainsString('7402243101930013', $failed->error_message);
+        $this->assertCount(1, $audit->records);
+        $this->assertSame('roster_schedule_import.failed', $audit->records[0]['event']);
+        $this->assertStringNotContainsString('7402243101930013', json_encode($audit->records[0]));
+        $this->assertStringNotContainsString('C:/private', json_encode($audit->records[0]));
+    }
+
+    public function test_wrong_type_status_expiry_and_missing_source_block_before_writes(): void
+    {
+        $cases = [
+            ['nik' => '016090970', 'ktp' => '7402243101930030', 'change' => ['import_type' => ImportHistory::TYPE_EMPLOYEE]],
+            ['nik' => '016090971', 'ktp' => '7402243101930031', 'change' => ['status' => ImportHistory::STATUS_QUEUED]],
+            ['nik' => '016090972', 'ktp' => '7402243101930032', 'change' => ['expires_at' => now()->subMinute()]],
+        ];
+
+        foreach ($cases as $case) {
+            $history = $this->processingHistory([['nik' => $case['nik'], 'ktp' => $case['ktp']]]);
+            $history->update($case['change']);
+            try {
+                app(RosterScheduleImportCommitService::class)->commit($history->fresh());
+                $this->fail('Precondition import harus menolak type/status/expiry yang tidak valid.');
+            } catch (\RuntimeException $exception) {
+                $this->assertStringNotContainsString($case['ktp'], $exception->getMessage());
+            }
+        }
+
+        $missing = $this->processingHistory([['nik' => '016090973', 'ktp' => '7402243101930033']]);
+        Storage::disk('local')->delete('private/' . $missing->file_path);
+        try {
+            app(RosterScheduleImportCommitService::class)->commit($missing);
+            $this->fail('Source yang hilang harus menghentikan import.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('Sumber import roster tidak tersedia.', $exception->getMessage());
+        }
+
+        $this->assertSame(0, RosterSchedule::query()->count());
+        $this->assertSame(0, RosterScheduleHistory::query()->count());
     }
 
     public function test_retryable_job_failure_returns_processing_claim_to_queued(): void
@@ -163,7 +215,6 @@ class RosterScheduleImportJobTest extends TestCase
             ];
         }
         $history = $this->processingHistory($rows);
-        DB::table('employees')->update(['status_resign' => 'NONAKTIF']);
         $queries = [];
         DB::listen(function ($query) use (&$queries): void {
             if (str_contains($query->sql, 'roster_schedules') || str_contains($query->sql, 'roster_schedule_histories')) {
@@ -173,8 +224,9 @@ class RosterScheduleImportJobTest extends TestCase
 
         app(RosterScheduleImportCommitService::class)->commit($history);
 
-        $this->assertLessThan(20, count($queries));
+        $this->assertLessThan(30, count($queries));
         $this->assertSame(100, RosterSchedule::query()->where('source', RosterSchedule::SOURCE_IMPORT)->count());
+        $this->assertGreaterThan(0, RosterSchedule::query()->where('source', RosterSchedule::SOURCE_GENERATED)->count());
     }
 
     public function test_active_employee_generates_to_second_year_end_while_inactive_stops_at_import(): void
@@ -237,6 +289,32 @@ class RosterScheduleImportJobTest extends TestCase
         $this->assertSame($manualSnapshot, $manual->fresh()->getAttributes());
     }
 
+    public function test_orphan_confirmed_history_is_preserved_and_relinked(): void
+    {
+        $history = $this->processingHistory([[
+            'nik' => '016090968', 'ktp' => '7402243101930028', 'remark' => 'I. INSENTIF',
+        ]]);
+        $review = RosterScheduleHistory::query()->create([
+            'roster_schedule_id' => null, 'employee_nik' => '016090968', 'period_year' => 2026,
+            'period_number' => 1, 'scheduled_off_start' => '2026-09-10', 'scheduled_off_end' => '2026-09-23',
+            'classification' => RosterScheduleHistory::CLASSIFICATION_CUTI,
+            'review_status' => RosterScheduleHistory::REVIEW_CONFIRMED, 'review_note' => 'Tetap cuti',
+            'source_file' => 'source.xlsx', 'imported_at' => now(),
+        ]);
+
+        app(RosterScheduleImportCommitService::class)->commit($history);
+
+        $schedule = RosterSchedule::query()
+            ->where('employee_nik', '016090968')
+            ->where('off_start', '2026-09-10')
+            ->firstOrFail();
+        $this->assertSame(RosterSchedule::REALIZATION_CUTI, $schedule->realization_type);
+        $this->assertSame($schedule->id, $review->fresh()->roster_schedule_id);
+        $this->assertSame(RosterScheduleHistory::CLASSIFICATION_CUTI, $review->fresh()->classification);
+        $this->assertSame(RosterScheduleHistory::REVIEW_CONFIRMED, $review->fresh()->review_status);
+        $this->assertSame('Tetap cuti', $review->fresh()->review_note);
+    }
+
     public function test_second_employee_database_failure_rolls_back_all_import_writes(): void
     {
         $history = $this->processingHistory([
@@ -252,6 +330,25 @@ class RosterScheduleImportJobTest extends TestCase
             $this->fail('Kegagalan employee kedua harus membatalkan seluruh transaksi.');
         } catch (\Throwable $exception) {
             $this->assertStringContainsString('forced roster failure', $exception->getMessage());
+        }
+
+        $this->assertSame(0, RosterSchedule::query()->count());
+        $this->assertSame(0, RosterScheduleHistory::query()->count());
+        $this->assertSame(ImportHistory::STATUS_PROCESSING, $history->fresh()->status);
+    }
+
+    public function test_future_generation_constraint_failure_rolls_back_import_instead_of_being_ignored(): void
+    {
+        $history = $this->processingHistory([['nik' => '016090969', 'ktp' => '7402243101930029']]);
+        DB::unprepared("CREATE TRIGGER fail_generated_roster BEFORE INSERT ON roster_schedules
+            WHEN NEW.source = 'generated'
+            BEGIN SELECT RAISE(ABORT, 'forced future generation failure'); END");
+
+        try {
+            app(RosterScheduleImportCommitService::class)->commit($history);
+            $this->fail('Kegagalan generation harus membatalkan seluruh import.');
+        } catch (\Throwable $exception) {
+            $this->assertStringContainsString('forced future generation failure', $exception->getMessage());
         }
 
         $this->assertSame(0, RosterSchedule::query()->count());
