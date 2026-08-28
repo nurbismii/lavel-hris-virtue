@@ -70,9 +70,11 @@ class SensitiveFileStorageService
             return null;
         }
 
-        $privatePath = storage_path('app/' . self::PRIVATE_ROOT . '/' . $normalizedPath);
+        $diskPath = self::PRIVATE_ROOT . '/' . $normalizedPath;
 
-        return File::isFile($privatePath) ? $privatePath : null;
+        return Storage::disk('local')->exists($diskPath)
+            ? Storage::disk('local')->path($diskPath)
+            : null;
     }
 
     public function delete(string $relativePath, array $allowedPrefixes): void
@@ -101,11 +103,7 @@ class SensitiveFileStorageService
             return;
         }
 
-        $privatePath = storage_path('app/' . self::PRIVATE_ROOT . '/' . $normalizedPath);
-
-        if (File::isFile($privatePath)) {
-            File::delete($privatePath);
-        }
+        Storage::disk('local')->delete(self::PRIVATE_ROOT . '/' . $normalizedPath);
     }
 
     private function normalizePath(string $path): string

@@ -9,6 +9,7 @@ use App\Services\Audit\AuditTrailService;
 use App\Services\Storage\SensitiveFileStorageService;
 use App\Jobs\ProcessRosterScheduleImport;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -165,6 +166,32 @@ class RosterScheduleImportControllerTest extends TestCase
             ->assertOk()->assertSee($nik)->assertSee($ktp)->assertSee('&lt;b&gt;Nama Excel&lt;/b&gt;', false)
             ->assertSee('id="roster-import-confirm-form"', false)
             ->assertSee('Konfirmasi dan Proses');
+    }
+
+    public function test_show_never_reads_public_file_with_matching_private_relative_path(): void
+    {
+        $hr = $this->user('hr-public-collision', 'HR', ['roster_schedule']);
+        $relativePath = 'roster-imports/public-collision/source.xlsx';
+        $publicPath = public_path($relativePath);
+        File::ensureDirectoryExists(dirname($publicPath));
+        File::put($publicPath, 'public-file-must-remain');
+        $history = ImportHistory::create([
+            'import_id' => 'public-collision',
+            'import_type' => ImportHistory::TYPE_ROSTER_SCHEDULE,
+            'status' => ImportHistory::STATUS_AWAITING_CONFIRMATION,
+            'created_by' => $hr->id,
+            'file_path' => $relativePath,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        try {
+            $this->actingAs($hr)
+                ->get(route('roster-schedules.import.show', $history))
+                ->assertNotFound();
+            $this->assertSame('public-file-must-remain', File::get($publicPath));
+        } finally {
+            File::delete($publicPath);
+        }
     }
 
     public function test_invalid_preview_show_renders_blocker_and_failure_download_without_confirmation(): void

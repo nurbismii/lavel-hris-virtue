@@ -16,7 +16,6 @@ use App\Services\Roster\RosterScheduleWorkbookReader;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
@@ -240,12 +239,7 @@ final class RosterScheduleImportController extends Controller
 
     private function deletePrivateFile(SensitiveFileStorageService $storage, string $relativePath): void
     {
-        if (!str_starts_with($relativePath, 'roster-imports/') || str_contains($relativePath, '..')) {
-            return;
-        }
-
-        $storage->delete($relativePath, ['roster-imports/']);
-        Storage::disk('local')->delete('private/' . $relativePath);
+        $storage->deletePrivate($relativePath, ['roster-imports/']);
     }
 
     private function safeSummary(array $summary): array
@@ -280,19 +274,6 @@ final class RosterScheduleImportController extends Controller
 
     private function resolvePrivatePath(SensitiveFileStorageService $storage, string $relativePath): ?string
     {
-        $resolved = $storage->resolvePath($relativePath, ['roster-imports/']);
-        if ($resolved !== null) {
-            return $resolved;
-        }
-
-        if (!str_starts_with($relativePath, 'roster-imports/') || str_contains($relativePath, '..')) {
-            return null;
-        }
-
-        $diskPath = 'private/' . $relativePath;
-
-        return Storage::disk('local')->exists($diskPath)
-            ? Storage::disk('local')->path($diskPath)
-            : null;
+        return $storage->resolvePrivatePath($relativePath, ['roster-imports/']);
     }
 }
