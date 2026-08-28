@@ -92,6 +92,16 @@ class Employee extends Model
         return $this->belongsTo(WorkPattern::class, 'work_pattern_id');
     }
 
+    public function rosterSchedules()
+    {
+        return $this->hasMany(RosterSchedule::class, 'employee_nik', 'nik');
+    }
+
+    public function rosterScheduleHistories()
+    {
+        return $this->hasMany(RosterScheduleHistory::class, 'employee_nik', 'nik');
+    }
+
     public function shiftAssignments()
     {
         return $this->hasMany(EmployeeShiftAssignment::class, 'employee_id', 'nik');

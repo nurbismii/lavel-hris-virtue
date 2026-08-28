@@ -31,6 +31,7 @@ class RosterScheduleImportLifecycleTest extends TestCase
         Schema::dropIfExists('roster_schedules');
         Schema::dropIfExists('cuti_roster');
         Schema::dropIfExists('import_histories');
+        Schema::dropIfExists('roles');
         DB::disconnect('sqlite');
 
         parent::tearDown();
@@ -184,5 +185,27 @@ class RosterScheduleImportLifecycleTest extends TestCase
             $this->assertTrue(Schema::hasTable('roster_schedule_histories'));
             $this->assertSame('pre-existing-history', DB::table('roster_schedule_histories')->value('marker'));
         }
+    }
+
+    public function test_roster_menu_permission_is_available_to_hr_and_migration_updates_existing_role(): void
+    {
+        Schema::create('roles', function (Blueprint $table): void {
+            $table->id();
+            $table->string('permission_role');
+            $table->longText('menu_permissions')->nullable();
+        });
+        $roleId = DB::table('roles')->insertGetId([
+            'permission_role' => 'HR',
+            'menu_permissions' => json_encode(['dashboard_admin']),
+        ]);
+
+        $this->assertContains('roster_schedule', config('access.default_menu_permissions.HR'));
+        $this->runMigration('2026_08_27_000002_append_roster_schedule_menu_to_hr_roles.php', 'up');
+        $menus = json_decode((string) DB::table('roles')->where('id', $roleId)->value('menu_permissions'), true);
+        $this->assertContains('roster_schedule', $menus);
+
+        $this->runMigration('2026_08_27_000002_append_roster_schedule_menu_to_hr_roles.php', 'down');
+        $menus = json_decode((string) DB::table('roles')->where('id', $roleId)->value('menu_permissions'), true);
+        $this->assertNotContains('roster_schedule', $menus);
     }
 }

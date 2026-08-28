@@ -514,7 +514,7 @@ $organizationStructureActive = request()->routeIs('organization-structure.*');
                 </li>
                 @endif
 
-                @if($can('setting_hari_off') || $can('master_tanggal_merah') || $can('jadwal_kerja') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan') || $can('organization_structure') || $can('leave_balance') || $can('attendance_period_lock'))
+                @if($can('setting_hari_off') || $can('master_tanggal_merah') || $can('jadwal_kerja') || $can('roster_schedule') || $can('master_shift') || $can('pengaturan_shift') || ($can('lembur') && $canManageOvertimeOrders) || $can('perusahaan') || $can('organization_structure') || $can('leave_balance') || $can('attendance_period_lock'))
                 <li class="nav-section">
                     <span class="sidebar-mini-icon">
                         <i class="fa fa-ellipsis-h"></i>
@@ -546,6 +546,15 @@ $organizationStructureActive = request()->routeIs('organization-structure.*');
                     <a href="{{ route('work-patterns.index') }}">
                         <i class="fas fa-spinner"></i>
                         <p>{{ __('navigation.work_pattern_master') }}</p>
+                    </a>
+                </li>
+                @endif
+
+                @if($can('roster_schedule'))
+                <li class="nav-item {{ request()->routeIs('roster-schedules.*') ? 'active' : '' }}">
+                    <a href="{{ route('roster-schedules.index') }}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <p>{{ __('navigation.roster_schedule') }}</p>
                     </a>
                 </li>
                 @endif

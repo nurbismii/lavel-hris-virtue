@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Console\Kernel;
 use App\Jobs\ProcessRosterScheduleImport;
 use App\Jobs\SendRosterScheduleReminder;
 use App\Models\ImportHistory;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\Support\CreatesRosterImportSchema;
@@ -137,6 +139,26 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         Queue::assertNotPushed(SendRosterScheduleReminder::class, function (SendRosterScheduleReminder $job) use ($h13): bool {
             return $job->scheduleId === $h13->id;
         });
+    }
+
+    public function test_scheduler_registers_daily_generation_and_h14_reminders_without_overlap(): void
+    {
+        $schedule = new Schedule();
+        $method = new \ReflectionMethod(Kernel::class, 'schedule');
+        $method->setAccessible(true);
+        $method->invoke(app(Kernel::class), $schedule);
+
+        foreach ([
+            'roster:generate-schedules --years-ahead=2 --limit=5000' => '30 0 * * *',
+            'roster:send-schedule-reminders --limit=1000' => '30 7 * * *',
+        ] as $command => $expression) {
+            $events = collect($schedule->events())
+                ->filter(fn ($event): bool => strpos($event->command, $command) !== false)
+                ->values();
+            $this->assertCount(1, $events);
+            $this->assertSame($expression, $events->first()->expression);
+            $this->assertTrue($events->first()->withoutOverlapping);
+        }
     }
 
     public function test_late_dispatch_uses_only_supplied_h13_through_h0_ids_with_stagger(): void

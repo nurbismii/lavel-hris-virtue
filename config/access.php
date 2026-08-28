@@ -129,6 +129,10 @@ $menus = [
         'label' => 'Master Jadwal Kerja',
         'group' => 'Operasional',
     ],
+    'roster_schedule' => [
+        'label' => 'Jadwal Roster',
+        'group' => 'Operasional',
+    ],
     'master_shift' => [
         'label' => 'Master Shift',
         'group' => 'Operasional',
@@ -242,6 +246,7 @@ return [
             'setting_hari_off',
             'master_tanggal_merah',
             'jadwal_kerja',
+            'roster_schedule',
             'master_shift',
             'pengaturan_shift',
             'lembur',
