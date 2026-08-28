@@ -98,7 +98,15 @@ class CleanupExpiredRosterImports extends Command
             return ['cleaned' => false, 'errors' => $errors];
         }
 
-        $history->update($changes);
+        try {
+            $history->update($changes);
+        } catch (\Throwable $exception) {
+            $errors++;
+            $this->logHistoryUpdateFailure($history, $exception);
+
+            return ['cleaned' => false, 'errors' => $errors];
+        }
+
         try {
             $audit->record([
                 'event' => 'roster_schedule_import.cleaned',
@@ -160,6 +168,15 @@ class CleanupExpiredRosterImports extends Command
     {
         Log::warning('Roster import cleanup audit failed.', [
             'code' => 'roster_import_cleanup_audit_failed',
+            'import_id' => (string) $history->import_id,
+            'exception_class' => get_class($exception),
+        ]);
+    }
+
+    private function logHistoryUpdateFailure(ImportHistory $history, \Throwable $exception): void
+    {
+        Log::warning('Roster import cleanup history update failed.', [
+            'code' => 'roster_import_cleanup_history_update_failed',
             'import_id' => (string) $history->import_id,
             'exception_class' => get_class($exception),
         ]);

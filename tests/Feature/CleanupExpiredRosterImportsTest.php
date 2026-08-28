@@ -273,6 +273,31 @@ class CleanupExpiredRosterImportsTest extends TestCase
         });
     }
 
+    public function test_history_update_failure_returns_failure_but_continues_remaining_records(): void
+    {
+        Log::spy();
+        $broken = $this->history('update-failure', ['file_path' => 'roster-imports/update-failure/source.xlsx']);
+        $healthy = $this->history('update-healthy', ['file_path' => 'roster-imports/update-healthy/source.xlsx']);
+        $this->storage->files = [$broken->file_path => true, $healthy->file_path => true];
+        ImportHistory::updating(function (ImportHistory $history): void {
+            if ($history->import_id === 'update-failure') {
+                throw new RuntimeException('Database unavailable for private path update.');
+            }
+        });
+
+        $this->runCleanup()->assertExitCode(1);
+
+        $this->assertSame('roster-imports/update-failure/source.xlsx', $broken->fresh()->file_path);
+        $this->assertNull($healthy->fresh()->file_path);
+        Log::shouldHaveReceived('warning')->once()->withArgs(function (string $message, array $context) use ($broken): bool {
+            return $message === 'Roster import cleanup history update failed.'
+                && ($context['code'] ?? null) === 'roster_import_cleanup_history_update_failed'
+                && ($context['import_id'] ?? null) === $broken->import_id
+                && isset($context['exception_class'])
+                && !isset($context['path']);
+        });
+    }
+
     public function test_audit_metadata_is_aggregate_only_and_excludes_sensitive_values(): void
     {
         $history = $this->history('safe-audit', ['file_path' => 'roster-imports/safe-audit/source.xlsx']);
