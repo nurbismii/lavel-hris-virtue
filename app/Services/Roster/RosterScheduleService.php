@@ -179,19 +179,11 @@ class RosterScheduleService
         foreach ($employees->chunk(250) as $employeeChunk) {
             $employeeChunk->each(fn (Employee $employee) => $this->assertActiveRosterEmployee($employee));
             $niks = $employeeChunk->pluck('nik')->map('strval')->values()->all();
-            $scheduleGroups = RosterSchedule::query()
-                ->whereIn('employee_nik', $niks)
-                ->orderBy('employee_nik')
-                ->orderBy('off_start')
-                ->orderBy('id')
-                ->lockForUpdate()
-                ->get()
-                ->groupBy(fn (RosterSchedule $schedule): string => (string) $schedule->employee_nik);
+            $latestSchedules = $this->latestSchedulesForEmployees($niks);
 
             $rows = [];
             foreach ($employeeChunk as $employee) {
-                $existing = $scheduleGroups->get((string) $employee->nik, collect());
-                $lastExisting = $existing->last();
+                $lastExisting = $latestSchedules->get((string) $employee->nik);
 
                 if ($lastExisting) {
                     $nextWorkStart = $lastExisting->off_end
@@ -213,15 +205,9 @@ class RosterScheduleService
                     $nextWorkStart = $anchor->copy()->addDays($skipCycles * $this->cycleDays());
                 }
 
-                $existingKeys = $existing
-                    ->mapWithKeys(fn (RosterSchedule $schedule): array => [$schedule->off_start->toDateString() => true]);
                 $cycles = $this->previewCyclesUntil($nextWorkStart, $until);
                 foreach ($cycles as $dates) {
                     $offStart = $dates['off_start']->toDateString();
-                    if ($existingKeys->has($offStart)) {
-                        continue;
-                    }
-
                     $rows[] = [
                         'employee_nik' => (string) $employee->nik,
                         'period_year' => (int) $dates['off_start']->year,
@@ -317,8 +303,8 @@ class RosterScheduleService
             return;
         }
 
-        $updates = [];
         foreach (array_chunk($employeeNiks, 250) as $nikChunk) {
+            $updates = [];
             $groups = RosterSchedule::query()
                 ->whereIn('employee_nik', $nikChunk)
                 ->orderBy('employee_nik')
@@ -355,15 +341,38 @@ class RosterScheduleService
                     ];
                 }
             }
+
+            foreach (array_chunk($updates, 250) as $chunk) {
+                RosterSchedule::query()->upsert(
+                    $chunk,
+                    ['employee_nik', 'off_start'],
+                    ['cycle_number', 'period_year', 'period_number', 'updated_at']
+                );
+            }
+        }
+    }
+
+    private function latestSchedulesForEmployees(array $employeeNiks): Collection
+    {
+        if ($employeeNiks === []) {
+            return collect();
         }
 
-        foreach (array_chunk($updates, 250) as $chunk) {
-            RosterSchedule::query()->upsert(
-                $chunk,
-                ['employee_nik', 'off_start'],
-                ['cycle_number', 'period_year', 'period_number', 'updated_at']
-            );
-        }
+        $latestDates = DB::table('roster_schedules')
+            ->select('employee_nik', DB::raw('MAX(off_start) AS max_off_start'))
+            ->whereIn('employee_nik', $employeeNiks)
+            ->groupBy('employee_nik');
+
+        return RosterSchedule::query()
+            ->joinSub($latestDates, 'latest_roster_schedules', function ($join): void {
+                $join
+                    ->on('latest_roster_schedules.employee_nik', '=', 'roster_schedules.employee_nik')
+                    ->on('latest_roster_schedules.max_off_start', '=', 'roster_schedules.off_start');
+            })
+            ->select('roster_schedules.*')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy(fn (RosterSchedule $schedule): string => (string) $schedule->employee_nik);
     }
 
     private function regeneratePendingFollowing(RosterSchedule $schedule, Carbon $originalOffStart, ?string $actorId): void

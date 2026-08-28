@@ -8,6 +8,7 @@ use App\Models\RosterSchedule;
 use App\Models\RosterScheduleHistory;
 use App\Services\Audit\AuditTrailService;
 use App\Services\Roster\RosterScheduleImportCommitService;
+use App\Services\Roster\RosterScheduleService;
 use App\Services\Roster\RosterScheduleWorkbookImportService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -225,8 +226,45 @@ class RosterScheduleImportJobTest extends TestCase
         app(RosterScheduleImportCommitService::class)->commit($history);
 
         $this->assertLessThan(30, count($queries));
+        $this->assertTrue(collect($queries)->contains(
+            fn (string $sql): bool => str_contains(strtolower($sql), 'max(')
+        ));
         $this->assertSame(100, RosterSchedule::query()->where('source', RosterSchedule::SOURCE_IMPORT)->count());
         $this->assertGreaterThan(0, RosterSchedule::query()->where('source', RosterSchedule::SOURCE_GENERATED)->count());
+    }
+
+    public function test_sequence_synchronization_flushes_updates_at_employee_chunk_boundaries(): void
+    {
+        $rows = [];
+        for ($index = 0; $index < 251; $index++) {
+            $nik = 'SYNC' . str_pad((string) $index, 4, '0', STR_PAD_LEFT);
+            $rows[] = [
+                'employee_nik' => $nik, 'period_year' => 2026, 'period_number' => 1,
+                'off_start' => '2026-09-10', 'source' => RosterSchedule::SOURCE_GENERATED,
+            ];
+            $rows[] = [
+                'employee_nik' => $nik, 'period_year' => 2026, 'period_number' => 1,
+                'off_start' => '2026-12-03', 'source' => RosterSchedule::SOURCE_GENERATED,
+            ];
+        }
+        foreach (array_chunk($rows, 250) as $chunk) {
+            DB::table('roster_schedules')->insert($chunk);
+        }
+
+        $queries = [];
+        DB::listen(function ($query) use (&$queries): void {
+            if (str_contains($query->sql, 'roster_schedules')) {
+                $queries[] = ['sql' => $query->sql, 'bindings' => count($query->bindings)];
+            }
+        });
+
+        app(RosterScheduleService::class)->synchronizeSequences(array_values(array_unique(array_column($rows, 'employee_nik'))));
+
+        $selects = collect($queries)->filter(fn (array $query): bool => str_starts_with(strtolower(ltrim($query['sql'])), 'select'));
+        $this->assertCount(2, $selects);
+        $this->assertLessThanOrEqual(250, $selects->max('bindings'));
+        $this->assertSame(1, (int) RosterSchedule::query()->where('employee_nik', 'SYNC0000')->orderBy('off_start')->first()->cycle_number);
+        $this->assertSame(2, (int) RosterSchedule::query()->where('employee_nik', 'SYNC0250')->orderByDesc('off_start')->first()->cycle_number);
     }
 
     public function test_active_employee_generates_to_second_year_end_while_inactive_stops_at_import(): void
