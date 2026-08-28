@@ -5,6 +5,8 @@ namespace App\Services\Roster;
 use App\Jobs\SendRosterScheduleReminder;
 use App\Models\RosterSchedule;
 use Carbon\Carbon;
+use Illuminate\Bus\UniqueLock;
+use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Database\Eloquent\Builder;
 
 class RosterScheduleReminderEligibilityService
@@ -38,6 +40,51 @@ class RosterScheduleReminderEligibilityService
             ->whereKey($schedule->id)
             ->where('off_start', '>=', $today->toDateString())
             ->exists();
+    }
+
+    public function isOverdueEligible(RosterSchedule $schedule, ?Carbon $today = null): bool
+    {
+        $today = ($today ?: Carbon::today())->copy()->startOfDay();
+
+        return $this->overdueEligibleQuery($today)
+            ->whereKey($schedule->id)
+            ->exists();
+    }
+
+    public function dispatchOverdue(RosterSchedule $schedule): bool
+    {
+        $claimedAt = now();
+        $claimed = $this->overdueEligibleQuery(Carbon::today())
+            ->whereKey($schedule->id)
+            ->whereNull('reminder_queued_at')
+            ->update(['reminder_queued_at' => $claimedAt]) === 1;
+
+        if (!$claimed) {
+            return false;
+        }
+
+        $job = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
+
+        try {
+            dispatch($job);
+
+            return true;
+        } catch (\Throwable $exception) {
+            RosterSchedule::query()
+                ->whereKey($schedule->id)
+                ->where('reminder_queued_at', $claimedAt)
+                ->update(['reminder_queued_at' => null]);
+
+            try {
+                (new UniqueLock(app(Cache::class)))->release($job);
+            } catch (\Throwable $releaseException) {
+                report($releaseException);
+            }
+
+            report($exception);
+
+            return false;
+        }
     }
 
     public function dispatchLate(array $scheduleIds, Carbon $from, Carbon $to): int
@@ -96,21 +143,48 @@ class RosterScheduleReminderEligibilityService
     {
         return RosterSchedule::query()
             ->active()
+            ->where('realization_type', RosterSchedule::REALIZATION_PENDING)
             ->whereNull('reminder_sent_at')
             ->whereHas('employee', function (Builder $query): void {
                 $query->where('status_resign', 'AKTIF');
             })
             ->whereDoesntHave('applications', function (Builder $query): void {
-                $query->where(function (Builder $status): void {
-                    $status->where(function (Builder $hod): void {
-                        $hod->whereNull('status_pengajuan')
-                            ->orWhere('status_pengajuan', '!=', 2);
-                    })->where(function (Builder $hrd): void {
-                        $hrd->whereNull('status_pengajuan_hrd')
-                            ->orWhere('status_pengajuan_hrd', '!=', 2);
-                    });
-                });
+                $this->applyActiveApplicationFilter($query);
             });
+    }
+
+    private function overdueEligibleQuery(Carbon $today): Builder
+    {
+        $cooldownHours = max(1, (int) config('roster.overdue_reminder_cooldown_hours', 24));
+        $cooldownEndsBefore = now()->subHours($cooldownHours);
+
+        return RosterSchedule::query()
+            ->active()
+            ->where('realization_type', RosterSchedule::REALIZATION_PENDING)
+            ->whereDate('off_start', '<', $today->toDateString())
+            ->whereHas('employee', function (Builder $query): void {
+                $query->where('status_resign', 'AKTIF');
+            })
+            ->whereDoesntHave('applications', function (Builder $query): void {
+                $this->applyActiveApplicationFilter($query);
+            })
+            ->where(function (Builder $query) use ($cooldownEndsBefore): void {
+                $query->whereNull('reminder_sent_at')
+                    ->orWhere('reminder_sent_at', '<=', $cooldownEndsBefore);
+            });
+    }
+
+    private function applyActiveApplicationFilter(Builder $query): void
+    {
+        $query->where(function (Builder $status): void {
+            $status->where(function (Builder $hod): void {
+                $hod->whereNull('status_pengajuan')
+                    ->orWhere('status_pengajuan', '!=', 2);
+            })->where(function (Builder $hrd): void {
+                $hrd->whereNull('status_pengajuan_hrd')
+                    ->orWhere('status_pengajuan_hrd', '!=', 2);
+            });
+        });
     }
 
     public function claim(int $scheduleId, Carbon $from, Carbon $to): bool

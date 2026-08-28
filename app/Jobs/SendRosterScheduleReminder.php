@@ -20,12 +20,19 @@ class SendRosterScheduleReminder implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public const MODE_SCHEDULED = 'scheduled';
+    public const MODE_OVERDUE = 'overdue';
+
     public int $tries = 3;
     public int $timeout = 120;
     public int $uniqueFor = 3600;
+    public int $scheduleId;
+    public string $mode = self::MODE_SCHEDULED;
 
-    public function __construct(public readonly int $scheduleId)
+    public function __construct(int $scheduleId, string $mode = self::MODE_SCHEDULED)
     {
+        $this->scheduleId = $scheduleId;
+        $this->mode = $mode;
     }
 
     public function uniqueId(): string
@@ -46,7 +53,11 @@ class SendRosterScheduleReminder implements ShouldQueue, ShouldBeUnique
             return;
         }
 
-        if (!$eligibility->isEligible($schedule)) {
+        $isEligible = $this->mode === self::MODE_OVERDUE
+            ? $eligibility->isOverdueEligible($schedule)
+            : $eligibility->isEligible($schedule);
+
+        if (!$isEligible) {
             $this->clearClaim($schedule);
             return;
         }
@@ -65,7 +76,7 @@ class SendRosterScheduleReminder implements ShouldQueue, ShouldBeUnique
         }
 
         $daysBefore = max(0, (int) Carbon::today()->diffInDays($schedule->off_start, false));
-        $user->notify(new RosterScheduleReminderNotification($schedule, $daysBefore));
+        $user->notify(new RosterScheduleReminderNotification($schedule, $daysBefore, $this->mode));
 
         $schedule->forceFill([
             'reminder_sent_at' => now(),
@@ -78,7 +89,7 @@ class SendRosterScheduleReminder implements ShouldQueue, ShouldBeUnique
 
     public function failed(?Throwable $exception): void
     {
-        RosterSchedule::query()->whereKey($this->scheduleId)->whereNull('reminder_sent_at')->update([
+        RosterSchedule::query()->whereKey($this->scheduleId)->update([
             'reminder_failed_at' => now(),
             'reminder_error' => 'Pengiriman reminder roster gagal. Sistem akan mencoba kembali bila memungkinkan.',
             'reminder_queued_at' => null,

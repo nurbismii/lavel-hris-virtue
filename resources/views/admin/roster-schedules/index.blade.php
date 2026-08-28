@@ -103,24 +103,60 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @php($realizationClass = $schedule->realization_type === 'cuti_roster' ? 'success' : ($schedule->realization_type === 'insentif' ? 'info' : 'warning'))
+                                    @php
+                                        $realizationClass = $schedule->realization_type === 'cuti_roster'
+                                            ? 'success'
+                                            : ($schedule->realization_type === 'insentif' ? 'info' : 'warning');
+                                    @endphp
                                     <span class="badge bg-{{ $realizationClass }}">{{ $schedule->realization_label }}</span>
                                     @if(!$schedule->is_active)<span class="badge bg-secondary">Nonaktif</span>@endif
                                 </td>
                                 <td>
-                                    @if($schedule->reminder_sent_at)
+                                    @if($schedule->reminder_queued_at)
+                                    <span class="badge bg-info">Dalam antrean</span>
+                                    @elseif($schedule->reminder_failed_at && (!$schedule->reminder_sent_at || $schedule->reminder_failed_at->gt($schedule->reminder_sent_at)))
+                                    <span class="badge bg-danger" title="{{ $schedule->reminder_error }}">Gagal</span>
+                                    @elseif($schedule->reminder_sent_at)
                                     <span class="badge bg-success">Terkirim</span>
                                     <div><small class="text-muted">{{ $schedule->reminder_sent_at->format('d M Y H:i') }}</small></div>
-                                    @elseif($schedule->reminder_failed_at)
-                                    <span class="badge bg-danger" title="{{ $schedule->reminder_error }}">Gagal</span>
-                                    @elseif($schedule->reminder_queued_at)
-                                    <span class="badge bg-info">Dalam antrean</span>
                                     @else
                                     <span class="badge bg-light text-dark border">Belum jatuh tempo</span>
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    <a href="{{ route('roster-schedules.edit', $schedule) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    <div class="d-inline-flex flex-column flex-sm-row align-items-end gap-1">
+                                        @if($schedule->isOverduePending($today))
+                                            @php
+                                                $cooldownHours = max(1, (int) config('roster.overdue_reminder_cooldown_hours', 24));
+                                                $nextReminderAt = $schedule->reminder_sent_at
+                                                    ? $schedule->reminder_sent_at->copy()->addHours($cooldownHours)
+                                                    : null;
+                                                $isCoolingDown = $nextReminderAt && $nextReminderAt->gt(now());
+                                            @endphp
+                                            <form method="POST"
+                                                  action="{{ route('roster-schedules.reminder.overdue', $schedule) }}"
+                                                  class="js-roster-action-form">
+                                                @csrf
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        @disabled($schedule->reminder_queued_at || $isCoolingDown)>
+                                                    @if($schedule->reminder_queued_at)
+                                                        <i class="fas fa-clock me-1"></i> Dalam antrean
+                                                    @elseif($isCoolingDown)
+                                                        <i class="fas fa-hourglass-half me-1"></i> Dalam cooldown
+                                                    @else
+                                                        <i class="fas fa-paper-plane me-1"></i> Kirim Reminder Lagi
+                                                    @endif
+                                                </button>
+                                                @if($isCoolingDown)
+                                                    <small class="d-block text-muted mt-1">
+                                                        Dapat dikirim lagi {{ $nextReminderAt->format('d M Y H:i') }}
+                                                    </small>
+                                                @endif
+                                            </form>
+                                        @endif
+                                        <a href="{{ route('roster-schedules.edit', $schedule) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                    </div>
                                 </td>
                             </tr>
                             @empty
@@ -137,3 +173,26 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('submit', function (event) {
+    const form = event.target.closest('.js-roster-action-form');
+
+    if (!form) {
+        return;
+    }
+
+    const button = form.querySelector('button[type="submit"]');
+
+    if (!button || button.disabled) {
+        event.preventDefault();
+        return;
+    }
+
+    button.dataset.originalHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Memasukkan ke antrean...';
+});
+</script>
+@endpush

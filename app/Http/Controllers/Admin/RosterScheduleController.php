@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\RosterSchedule;
 use App\Models\RosterScheduleHistory;
 use App\Services\Roster\RosterScheduleHistoryService;
+use App\Services\Roster\RosterScheduleReminderEligibilityService;
 use App\Services\Roster\RosterScheduleService;
 use App\Services\Audit\AuditTrailService;
 use Carbon\Carbon;
@@ -193,6 +194,37 @@ class RosterScheduleController extends Controller
             'schedule' => $rosterSchedule,
             'realizationOptions' => RosterSchedule::realizationOptions(),
         ]);
+    }
+
+    public function sendOverdueReminder(
+        Request $request,
+        RosterSchedule $rosterSchedule,
+        RosterScheduleReminderEligibilityService $service
+    ) {
+        if (!$service->dispatchOverdue($rosterSchedule)) {
+            $cooldownHours = max(1, (int) config('roster.overdue_reminder_cooldown_hours', 24));
+            toast()->warning(
+                'Belum Diproses',
+                'Reminder belum dapat dikirim. Periksa status antrean, realisasi, dan cooldown ' . $cooldownHours . ' jam.'
+            );
+
+            return back();
+        }
+
+        app(AuditTrailService::class)->record([
+            'event' => 'roster_schedule.overdue_reminder_queued',
+            'module' => 'roster_schedule',
+            'auditable_type' => RosterSchedule::class,
+            'auditable_id' => (string) $rosterSchedule->id,
+            'reference_table' => 'roster_schedules',
+            'reference_id' => (string) $rosterSchedule->id,
+            'employee_nik' => $rosterSchedule->employee_nik,
+            'actor' => $request->user(),
+        ]);
+
+        toast()->success('Masuk Antrean', 'Reminder ulang telah masuk antrean pengiriman.');
+
+        return back();
     }
 
     public function update(
