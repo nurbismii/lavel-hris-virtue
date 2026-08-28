@@ -161,6 +161,50 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         }
     }
 
+    public function test_generator_uses_bounded_bulk_batches_and_respects_employee_limit(): void
+    {
+        Schema::create('work_patterns', function (Blueprint $table): void {
+            $table->id();
+            $table->string('work_duration_unit')->nullable();
+            $table->string('off_duration_unit')->nullable();
+            $table->unsignedInteger('work_duration_value')->nullable();
+            $table->unsignedInteger('off_duration_value')->nullable();
+        });
+
+        foreach (range(100, 304) as $number) {
+            $this->schedule((string) $number, 14);
+        }
+        $service = new class extends \App\Services\Roster\RosterScheduleService {
+            public array $generatedBatches = [];
+            public array $synchronizedBatches = [];
+
+            public function generateUntilMany(\Illuminate\Support\Collection $employees, Carbon $until, ?string $actorId = null): int
+            {
+                $this->generatedBatches[] = $employees->pluck('nik')->values()->all();
+
+                return $employees->count();
+            }
+
+            public function synchronizeSequences(array $employeeNiks): void
+            {
+                $this->synchronizedBatches[] = array_values($employeeNiks);
+            }
+        };
+        $this->app->instance(\App\Services\Roster\RosterScheduleService::class, $service);
+
+        $this->artisan('roster:generate-schedules', ['--years-ahead' => 1, '--limit' => 203])
+            ->expectsOutputToContain('203 jadwal diproses untuk 203 karyawan.')
+            ->assertExitCode(0);
+
+        $this->assertSame([200, 3], array_map('count', $service->generatedBatches));
+        $this->assertSame($service->generatedBatches, $service->synchronizedBatches);
+        $processedNiks = array_merge(...$service->generatedBatches);
+        $this->assertSame('NIK100', $processedNiks[0]);
+        $this->assertSame('NIK302', $processedNiks[202]);
+        $this->assertNotContains('NIK303', $processedNiks);
+        $this->assertNotContains('NIK304', $processedNiks);
+    }
+
     public function test_late_dispatch_uses_only_supplied_h13_through_h0_ids_with_stagger(): void
     {
         Queue::fake();

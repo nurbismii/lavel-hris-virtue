@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Services\Roster\RosterScheduleService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class GenerateRosterSchedules extends Command
 {
@@ -34,24 +35,45 @@ class GenerateRosterSchedules extends Command
                                     ->where('off_duration_value', (int) config('roster.off_weeks', 2));
                             });
                     });
-            })
-            ->orderBy('nik')
-            ->limit($limit);
+            });
 
         if ($this->option('dry-run')) {
-            $this->info($query->count() . ' karyawan aktif dapat dibuatkan jadwal hingga ' . $until->toDateString() . '.');
+            $candidateCount = (clone $query)
+                ->orderBy('nik')
+                ->limit($limit)
+                ->pluck('nik')
+                ->count();
+            $this->info($candidateCount . ' karyawan aktif dapat dibuatkan jadwal hingga ' . $until->toDateString() . '.');
             return self::SUCCESS;
         }
 
         $employeeCount = 0;
         $scheduleCount = 0;
+        $remaining = $limit;
+        $lastNik = null;
 
-        $query->chunk(200, function ($employees) use ($service, $until, &$employeeCount, &$scheduleCount) {
-            foreach ($employees as $employee) {
-                $scheduleCount += $service->generateUntil($employee, $until)->count();
-                $employeeCount++;
+        while ($remaining > 0) {
+            $employees = (clone $query)
+                ->when($lastNik !== null, fn ($employeeQuery) => $employeeQuery->where('nik', '>', $lastNik))
+                ->orderBy('nik')
+                ->limit(min(200, $remaining))
+                ->get();
+
+            if ($employees->isEmpty()) {
+                break;
             }
-        });
+
+            $employeeNiks = $employees->pluck('nik')->map('strval')->values()->all();
+            $scheduleCount += DB::transaction(function () use ($service, $employees, $employeeNiks, $until): int {
+                $generated = $service->generateUntilMany($employees, $until);
+                $service->synchronizeSequences($employeeNiks);
+
+                return $generated;
+            });
+            $employeeCount += $employees->count();
+            $remaining -= $employees->count();
+            $lastNik = (string) $employees->last()->nik;
+        }
 
         $this->info($scheduleCount . ' jadwal diproses untuk ' . $employeeCount . ' karyawan.');
 
