@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
@@ -23,6 +24,7 @@ class RosterSchedule extends Model
         'off_start' => 'date',
         'off_end' => 'date',
         'is_active' => 'boolean',
+        'manual_submitted_at' => 'datetime',
         'reminder_queued_at' => 'datetime',
         'reminder_sent_at' => 'datetime',
         'reminder_failed_at' => 'datetime',
@@ -43,9 +45,47 @@ class RosterSchedule extends Model
         return $this->hasMany(Roster::class, 'roster_schedule_id');
     }
 
+    public function manualSubmitter()
+    {
+        return $this->belongsTo(User::class, 'manual_submitted_by', 'id');
+    }
+
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    public function isOverduePending(?Carbon $today = null): bool
+    {
+        $today = ($today ?: Carbon::today())->copy()->startOfDay();
+
+        return $this->is_active
+            && $this->realization_type === self::REALIZATION_PENDING
+            && $this->off_start
+            && $this->off_start->copy()->startOfDay()->lt($today);
+    }
+
+    public function scopePriorityForToday(Builder $query, Carbon $today): Builder
+    {
+        $date = $today->copy()->startOfDay()->toDateString();
+
+        return $query
+            ->orderByRaw(
+                'CASE WHEN off_start < ? AND realization_type = ? THEN 0 '
+                . 'WHEN off_start >= ? THEN 1 ELSE 2 END',
+                [$date, self::REALIZATION_PENDING, $date]
+            )
+            ->orderByRaw(
+                'CASE WHEN off_start < ? AND realization_type = ? THEN off_start END DESC',
+                [$date, self::REALIZATION_PENDING]
+            )
+            ->orderByRaw('CASE WHEN off_start >= ? THEN off_start END ASC', [$date])
+            ->orderByRaw('CASE WHEN off_start < ? AND realization_type <> ? THEN off_start END DESC', [
+                $date,
+                self::REALIZATION_PENDING,
+            ])
+            ->orderBy('employee_nik')
+            ->orderBy('id');
     }
 
     public static function realizationOptions(): array
