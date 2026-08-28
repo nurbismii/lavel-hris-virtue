@@ -331,21 +331,19 @@ class RosterScheduleService
                         $yearCounters[$year] = $periodNumber;
                     }
 
-                    $updates[] = [
-                        'employee_nik' => (string) $schedule->employee_nik,
-                        'off_start' => $schedule->off_start->toDateString(),
-                        'cycle_number' => $index + 1,
-                        'period_year' => $year,
-                        'period_number' => $periodNumber,
-                        'updated_at' => now(),
-                    ];
+                    $attributes = $schedule->getAttributes();
+                    $attributes['cycle_number'] = $index + 1;
+                    $attributes['period_year'] = $year;
+                    $attributes['period_number'] = $periodNumber;
+                    $attributes['updated_at'] = now();
+                    $updates[] = $attributes;
                 }
             }
 
             foreach (array_chunk($updates, 250) as $chunk) {
                 RosterSchedule::query()->upsert(
                     $chunk,
-                    ['employee_nik', 'off_start'],
+                    ['id'],
                     ['cycle_number', 'period_year', 'period_number', 'updated_at']
                 );
             }

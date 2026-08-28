@@ -205,6 +205,61 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         $this->assertNotContains('NIK304', $processedNiks);
     }
 
+    public function test_sequence_sync_supports_strict_production_columns(): void
+    {
+        Schema::drop('roster_schedules');
+        Schema::create('roster_schedules', function (Blueprint $table): void {
+            $table->id();
+            $table->string('employee_nik');
+            $table->unsignedInteger('cycle_number')->nullable();
+            $table->unsignedSmallInteger('period_year');
+            $table->unsignedTinyInteger('period_number');
+            $table->date('work_start');
+            $table->date('work_end');
+            $table->date('off_start');
+            $table->date('off_end');
+            $table->unsignedTinyInteger('earned_off_days')->default(5);
+            $table->string('realization_type')->default(RosterSchedule::REALIZATION_PENDING);
+            $table->string('source')->default(RosterSchedule::SOURCE_GENERATED);
+            $table->text('notes')->nullable();
+            $table->boolean('is_active')->default(true);
+            $table->timestamp('reminder_queued_at')->nullable();
+            $table->timestamp('reminder_sent_at')->nullable();
+            $table->timestamp('reminder_failed_at')->nullable();
+            $table->string('reminder_email')->nullable();
+            $table->string('reminder_error')->nullable();
+            $table->string('created_by')->nullable();
+            $table->string('updated_by')->nullable();
+            $table->timestamps();
+            $table->unique(['employee_nik', 'off_start']);
+        });
+        $this->seedRosterEmployee('NIKSTRICT', '0000000000000999');
+        foreach ([
+            ['off_start' => '2026-04-01', 'period_number' => 8],
+            ['off_start' => '2026-01-01', 'period_number' => 9],
+        ] as $index => $data) {
+            RosterSchedule::create([
+                'employee_nik' => 'NIKSTRICT',
+                'cycle_number' => 99,
+                'period_year' => 2026,
+                'period_number' => $data['period_number'],
+                'work_start' => Carbon::parse($data['off_start'])->subDays(70)->toDateString(),
+                'work_end' => Carbon::parse($data['off_start'])->subDay()->toDateString(),
+                'off_start' => $data['off_start'],
+                'off_end' => Carbon::parse($data['off_start'])->addDays(13)->toDateString(),
+                'source' => RosterSchedule::SOURCE_GENERATED,
+                'realization_type' => RosterSchedule::REALIZATION_PENDING,
+                'is_active' => true,
+            ]);
+        }
+
+        app(\App\Services\Roster\RosterScheduleService::class)->synchronizeSequence('NIKSTRICT');
+
+        $ordered = RosterSchedule::query()->where('employee_nik', 'NIKSTRICT')->orderBy('off_start')->get();
+        $this->assertSame([1, 2], $ordered->pluck('cycle_number')->all());
+        $this->assertSame([1, 2], $ordered->pluck('period_number')->all());
+    }
+
     public function test_late_dispatch_uses_only_supplied_h13_through_h0_ids_with_stagger(): void
     {
         Queue::fake();
