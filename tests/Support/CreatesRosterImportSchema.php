@@ -121,6 +121,7 @@ trait CreatesRosterImportSchema
             $table->string('reviewed_by')->nullable();
             $table->string('review_note')->nullable();
             $table->timestamps();
+            $table->unique(['employee_nik', 'period_year', 'period_number', 'scheduled_off_start', 'source_file']);
         });
         Schema::create('cuti_roster', function (Blueprint $table): void {
             $table->id();

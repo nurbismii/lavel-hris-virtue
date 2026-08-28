@@ -7,12 +7,15 @@ use App\Models\ImportHistory;
 use App\Models\RosterSchedule;
 use App\Models\RosterScheduleHistory;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 final class RosterScheduleImportCommitService
 {
+    private const QUERY_CHUNK_SIZE = 200;
+
     public function __construct(
         private readonly RosterScheduleWorkbookReader $reader,
         private readonly RosterScheduleImportValidationService $validator,
@@ -26,12 +29,16 @@ final class RosterScheduleImportCommitService
         $path = $this->preflightPath($history, [ImportHistory::STATUS_PROCESSING]);
         $data = $this->reader->read($path);
         $validation = $this->validator->validate($data);
-
         if (!$validation['is_valid']) {
             throw new RuntimeException('Workbook roster tidak lagi valid untuk diproses.');
         }
 
-        return DB::transaction(function () use ($history, $path, $data): array {
+        $entries = $this->entries($data);
+        if ($entries === []) {
+            throw new RuntimeException('Workbook roster tidak lagi valid untuk diproses.');
+        }
+
+        return DB::transaction(function () use ($history, $path, $data, $entries): array {
             $lockedHistory = ImportHistory::query()->lockForUpdate()->find($history->id);
             if (!$lockedHistory || $lockedHistory->import_type !== ImportHistory::TYPE_ROSTER_SCHEDULE
                 || $lockedHistory->status !== ImportHistory::STATUS_PROCESSING
@@ -40,124 +47,128 @@ final class RosterScheduleImportCommitService
                 throw new RuntimeException('Import roster tidak valid untuk diproses.');
             }
 
-            $validation = $this->validator->validate($data);
-            if (!$validation['is_valid']) {
-                throw new RuntimeException('Workbook roster tidak lagi valid untuk diproses.');
-            }
-
-            $niks = $data->rows->pluck('nik')->filter()->unique()->values()->all();
+            $niks = array_values(array_unique(array_column($entries, 'nik')));
             $employees = Employee::query()->whereIn('nik', $niks)->lockForUpdate()->get()->keyBy('nik');
             if ($employees->count() !== count($niks)) {
                 throw new RuntimeException('Identitas karyawan berubah sebelum import diproses.');
             }
-
-            $result = $this->emptyResult();
-            $processedNiks = [];
-
-            foreach ($data->rows as $row) {
-                $employee = $employees->get($row['nik']);
-                if (!$employee || !hash_equals((string) $employee->no_ktp, (string) $row['no_ktp'])) {
+            foreach ($entries as $entry) {
+                $employee = $employees->get($entry['nik']);
+                if (!$employee || !hash_equals((string) $employee->no_ktp, $entry['ktp'])) {
                     throw new RuntimeException('Identitas karyawan berubah sebelum import diproses.');
                 }
+            }
 
-                $processedNiks[(string) $employee->nik] = true;
-                foreach ($row['periods'] as $period) {
-                    if (!$period['off_start'] || $period['cell_error']) {
-                        throw new RuntimeException('Workbook roster tidak lagi valid untuk diproses.');
-                    }
+            $existingSchedules = $this->existingSchedules($entries);
+            foreach ($entries as $entry) {
+                $schedule = $existingSchedules->get($entry['pair']);
+                if ($schedule && $schedule->source === RosterSchedule::SOURCE_MANUAL) {
+                    throw new RuntimeException('Jadwal manual tidak dapat ditimpa.');
+                }
+            }
 
-                    $existing = RosterSchedule::query()
-                        ->where('employee_nik', $employee->nik)
-                        ->whereDate('off_start', $period['off_start'])
-                        ->lockForUpdate()
-                        ->first();
-                    if ($existing && $existing->source === RosterSchedule::SOURCE_MANUAL) {
-                        throw new RuntimeException('Jadwal manual tidak dapat ditimpa.');
-                    }
+            $existingHistory = $this->existingHistories($existingSchedules);
+            $scheduleRows = [];
+            foreach ($entries as $entry) {
+                $employee = $employees->get($entry['nik']);
+                $remark = $this->remarkParser->parse($entry['raw_remark'], $entry['period_number']);
+                $historyKey = $this->historyKey($entry);
+                $confirmed = $existingHistory->get($historyKey);
+                $schedule = $existingSchedules->get($entry['pair']);
+                $realization = $confirmed && $confirmed->review_status === RosterScheduleHistory::REVIEW_CONFIRMED && $schedule
+                    ? $schedule->realization_type
+                    : $this->realization($remark['classification']);
+                $scheduleRows[] = [
+                    'employee_nik' => $entry['nik'],
+                    'off_start' => $entry['off_start'],
+                    'period_year' => $entry['year'],
+                    'period_number' => $entry['period_number'],
+                    'work_start' => $entry['off']->copy()->subDays($this->workDays())->toDateString(),
+                    'work_end' => $entry['off']->copy()->subDay()->toDateString(),
+                    'off_end' => $entry['off']->copy()->addDays($this->offDays() - 1)->toDateString(),
+                    'earned_off_days' => max(0, (int) config('roster.earned_off_days', 5)),
+                    'realization_type' => $realization,
+                    'source' => RosterSchedule::SOURCE_IMPORT,
+                    'notes' => $entry['raw_remark'],
+                    'is_active' => $employee->status_resign === 'AKTIF',
+                    'created_by' => $lockedHistory->confirmed_by,
+                    'updated_by' => $lockedHistory->confirmed_by,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
 
-                    $offStart = Carbon::parse($period['off_start'])->startOfDay();
-                    $remark = $this->remarkParser->parse($period['raw_remark'], (int) $period['period_number']);
-                    $scheduleValues = [
-                        'period_year' => (int) $period['year'],
-                        'period_number' => (int) $period['period_number'],
-                        'work_start' => $offStart->copy()->subDays($this->workDays())->toDateString(),
-                        'work_end' => $offStart->copy()->subDay()->toDateString(),
-                        'off_end' => $offStart->copy()->addDays($this->offDays() - 1)->toDateString(),
-                        'earned_off_days' => max(0, (int) config('roster.earned_off_days', 5)),
-                        'realization_type' => $this->realization($remark['classification']),
-                        'source' => RosterSchedule::SOURCE_IMPORT,
-                        'notes' => $period['raw_remark'],
-                        'is_active' => $employee->status_resign === 'AKTIF',
-                        'updated_by' => $lockedHistory->confirmed_by,
-                    ];
+            foreach (array_chunk($scheduleRows, self::QUERY_CHUNK_SIZE) as $chunk) {
+                RosterSchedule::query()->upsert($chunk, ['employee_nik', 'off_start'], [
+                    'period_year', 'period_number', 'work_start', 'work_end', 'off_end', 'earned_off_days',
+                    'realization_type', 'source', 'notes', 'is_active', 'updated_by', 'updated_at',
+                ]);
+            }
+            $schedules = $this->existingSchedules($entries);
 
-                    if ($existing) {
-                        $previousRealization = $existing->realization_type;
-                        $existing->fill($scheduleValues)->save();
-                        $schedule = $existing;
-                        $result['unchanged']++;
-                    } else {
-                        $schedule = RosterSchedule::query()->create(array_merge($scheduleValues, [
-                            'employee_nik' => $employee->nik,
-                            'off_start' => $offStart->toDateString(),
-                            'created_by' => $lockedHistory->confirmed_by,
-                        ]));
-                    }
-
-                    $historyRecord = RosterScheduleHistory::query()->firstOrNew([
-                        'employee_nik' => $employee->nik,
-                        'period_year' => (int) $period['year'],
-                        'period_number' => (int) $period['period_number'],
-                        'scheduled_off_start' => $offStart->toDateString(),
-                        'source_file' => 'source.xlsx',
-                    ]);
-                    $wasHistory = $historyRecord->exists;
-                    $historyValues = [
+            $historyRows = [];
+            $result = $this->emptyResult();
+            foreach ($entries as $entry) {
+                $schedule = $schedules->get($entry['pair']);
+                $historyKey = $this->historyKey($entry);
+                $previous = $existingHistory->get($historyKey);
+                if ($previous && $previous->review_status === RosterScheduleHistory::REVIEW_CONFIRMED) {
+                    $result['history_updated']++;
+                } else {
+                    $remark = $this->remarkParser->parse($entry['raw_remark'], $entry['period_number']);
+                    $historyRows[] = [
                         'roster_schedule_id' => $schedule->id,
-                        'scheduled_off_end' => $offStart->copy()->addDays($this->offDays() - 1)->toDateString(),
+                        'employee_nik' => $entry['nik'],
+                        'period_year' => $entry['year'],
+                        'period_number' => $entry['period_number'],
+                        'scheduled_off_start' => $entry['off_start'],
+                        'scheduled_off_end' => $entry['off']->copy()->addDays($this->offDays() - 1)->toDateString(),
                         'classification' => $remark['classification'],
                         'review_status' => $remark['review_status'],
                         'remark_segment' => $remark['remark_segment'],
-                        'raw_remark' => $period['raw_remark'],
+                        'raw_remark' => $entry['raw_remark'],
+                        'source_file' => 'source.xlsx',
                         'source_sheet' => $data->sheetName,
-                        'source_row' => $row['row_number'],
-                        'source_column' => $period['source_column'],
-                        'source_remark_column' => $period['remark_column'],
+                        'source_row' => $entry['row_number'],
+                        'source_column' => $entry['source_column'],
+                        'source_remark_column' => $entry['remark_column'],
                         'imported_at' => now(),
                         'imported_by' => $lockedHistory->confirmed_by,
+                        'created_at' => now(),
+                        'updated_at' => now(),
                     ];
-                    if ($wasHistory && $historyRecord->review_status === RosterScheduleHistory::REVIEW_CONFIRMED) {
-                        unset($historyValues['classification'], $historyValues['review_status']);
-                        if ($existing) {
-                            $schedule->update(['realization_type' => $previousRealization]);
-                        }
-                    }
-                    $historyRecord->fill($historyValues)->save();
-                    $result[$wasHistory ? 'history_updated' : 'history_created']++;
-                    if ($historyRecord->review_status === RosterScheduleHistory::REVIEW_PENDING) {
+                    $result[$previous ? 'history_updated' : 'history_created']++;
+                    if ($remark['review_status'] === RosterScheduleHistory::REVIEW_PENDING) {
                         $result['need_review']++;
                     }
-                    if ($offStart->betweenIncluded(Carbon::today(), Carbon::today()->addDays(13))) {
-                        $result['late_candidate_schedule_ids'][] = $schedule->id;
-                    }
+                }
+                if ($entry['off']->betweenIncluded(Carbon::today(), Carbon::today()->addDays(13))) {
+                    $result['late_candidate_schedule_ids'][] = $schedule->id;
                 }
             }
+            foreach (array_chunk($historyRows, self::QUERY_CHUNK_SIZE) as $chunk) {
+                RosterScheduleHistory::query()->upsert($chunk, [
+                    'employee_nik', 'period_year', 'period_number', 'scheduled_off_start', 'source_file',
+                ], [
+                    'roster_schedule_id', 'scheduled_off_end', 'classification', 'review_status', 'remark_segment',
+                    'raw_remark', 'source_sheet', 'source_row', 'source_column', 'source_remark_column', 'imported_at',
+                    'imported_by', 'updated_at',
+                ]);
+            }
 
-            foreach (array_keys($processedNiks) as $nik) {
-                $this->rosterService->synchronizeSequence($nik);
-                $employee = $employees->get($nik);
+            foreach ($employees as $employee) {
                 if ($employee->status_resign === 'AKTIF') {
-                    $before = RosterSchedule::query()->where('employee_nik', $nik)->count();
-                    $this->rosterService->generateUntil(
+                    $result['future_generated'] += $this->rosterService->generateUntil(
                         $employee,
                         now()->addYears(max(1, (int) config('roster.generate_years_ahead', 2)))->endOfYear(),
-                        $lockedHistory->confirmed_by
-                    );
-                    $result['future_generated'] += max(0, RosterSchedule::query()->where('employee_nik', $nik)->count() - $before);
+                        $lockedHistory->confirmed_by,
+                        false
+                    )->count();
                 }
             }
-
-            $result['employees'] = count($processedNiks);
+            $this->rosterService->synchronizeSequences($niks);
+            $result['employees'] = count($niks);
+            $result['unchanged'] = max(0, count($entries) - $result['history_created']);
             $lockedHistory->update([
                 'status' => ImportHistory::STATUS_COMPLETED,
                 'summary' => $this->publicSummary($result),
@@ -177,40 +188,86 @@ final class RosterScheduleImportCommitService
         }
     }
 
+    private function entries($data): array
+    {
+        $entries = [];
+        foreach ($data->rows as $row) {
+            foreach ($row['periods'] as $period) {
+                if (!$period['off_start'] || $period['cell_error']) {
+                    continue;
+                }
+                $off = Carbon::parse($period['off_start'])->startOfDay();
+                $pair = (string) $row['nik'] . '|' . $off->toDateString();
+                $entries[$pair] = [
+                    'pair' => $pair, 'nik' => (string) $row['nik'], 'ktp' => (string) $row['no_ktp'],
+                    'year' => (int) $period['year'], 'period_number' => (int) $period['period_number'],
+                    'off_start' => $off->toDateString(), 'off' => $off, 'raw_remark' => $period['raw_remark'],
+                    'row_number' => (int) $row['row_number'], 'source_column' => $period['source_column'],
+                    'remark_column' => $period['remark_column'],
+                ];
+            }
+        }
+        return array_values($entries);
+    }
+
+    private function existingSchedules(array $entries): Collection
+    {
+        $result = collect();
+        foreach (array_chunk($entries, self::QUERY_CHUNK_SIZE) as $chunk) {
+            $result = $result->merge(RosterSchedule::query()->where(function ($query) use ($chunk) {
+                foreach ($chunk as $entry) {
+                    $query->orWhere(function ($pair) use ($entry) {
+                        $pair->where('employee_nik', $entry['nik'])->whereDate('off_start', $entry['off_start']);
+                    });
+                }
+            })->lockForUpdate()->get());
+        }
+        return $result->keyBy(fn (RosterSchedule $schedule) => $schedule->employee_nik . '|' . $schedule->off_start->toDateString());
+    }
+
+    private function existingHistories(Collection $schedules): Collection
+    {
+        $ids = $schedules->pluck('id')->filter()->values()->all();
+        if ($ids === []) {
+            return collect();
+        }
+        $histories = collect();
+        foreach (array_chunk($ids, self::QUERY_CHUNK_SIZE) as $chunk) {
+            $histories = $histories->merge(RosterScheduleHistory::query()->whereIn('roster_schedule_id', $chunk)->lockForUpdate()->get());
+        }
+        return $histories->keyBy(fn (RosterScheduleHistory $history) =>
+            $history->employee_nik . '|' . $history->period_year . '|' . $history->period_number . '|' .
+            $history->scheduled_off_start->toDateString() . '|' . $history->source_file
+        );
+    }
+
+    private function historyKey(array $entry): string
+    {
+        return $entry['nik'] . '|' . $entry['year'] . '|' . $entry['period_number'] . '|' . $entry['off_start'] . '|source.xlsx';
+    }
+
     private function preflightPath(ImportHistory $history, array $statuses): string
     {
-        if ($history->import_type !== ImportHistory::TYPE_ROSTER_SCHEDULE
-            || !in_array($history->status, $statuses, true)
-            || !$history->expires_at?->isFuture()
-            || !str_starts_with((string) $history->file_path, 'roster-imports/')
+        if ($history->import_type !== ImportHistory::TYPE_ROSTER_SCHEDULE || !in_array($history->status, $statuses, true)
+            || !$history->expires_at?->isFuture() || !str_starts_with((string) $history->file_path, 'roster-imports/')
             || str_contains((string) $history->file_path, '..')) {
             throw new RuntimeException('Import roster tidak valid untuk diproses.');
         }
-
         $path = 'private/' . $history->file_path;
         if (!Storage::disk('local')->exists($path)) {
             throw new RuntimeException('Sumber import roster tidak tersedia.');
         }
-
         $absolutePath = Storage::disk('local')->path($path);
         if (!hash_equals((string) $history->file_checksum, hash_file('sha256', $absolutePath))) {
             throw new RuntimeException('Sumber import roster berubah.');
         }
-
         return $absolutePath;
     }
 
     private function emptyResult(): array
     {
-        return [
-            'employees' => 0,
-            'history_created' => 0,
-            'history_updated' => 0,
-            'unchanged' => 0,
-            'future_generated' => 0,
-            'need_review' => 0,
-            'late_candidate_schedule_ids' => [],
-        ];
+        return ['employees' => 0, 'history_created' => 0, 'history_updated' => 0, 'unchanged' => 0,
+            'future_generated' => 0, 'need_review' => 0, 'late_candidate_schedule_ids' => []];
     }
 
     private function publicSummary(array $result): array
@@ -227,13 +284,6 @@ final class RosterScheduleImportCommitService
         };
     }
 
-    private function workDays(): int
-    {
-        return max(1, (int) config('roster.work_weeks', 10)) * 7;
-    }
-
-    private function offDays(): int
-    {
-        return max(1, (int) config('roster.off_weeks', 2)) * 7;
-    }
+    private function workDays(): int { return max(1, (int) config('roster.work_weeks', 10)) * 7; }
+    private function offDays(): int { return max(1, (int) config('roster.off_weeks', 2)) * 7; }
 }

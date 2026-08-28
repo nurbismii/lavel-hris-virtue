@@ -16,53 +16,55 @@ class RosterScheduleService
         Carbon $workStart,
         int $cycles,
         ?string $actorId = null,
-        string $source = RosterSchedule::SOURCE_GENERATED
+        string $source = RosterSchedule::SOURCE_GENERATED,
+        bool $synchronize = true
     ): Collection {
         $this->assertActiveRosterEmployee($employee);
 
         $cycles = max(1, min($cycles, 60));
-        $generated = collect();
         $cycleDates = $this->previewCycles($workStart, $cycles);
 
         return DB::transaction(function () use (
             $employee,
             $actorId,
             $source,
-            $generated,
-            $cycleDates
+            $cycleDates,
+            $synchronize
         ) {
-            foreach ($cycleDates as $dates) {
-                $cycleWorkStart = $dates['work_start'];
-                $workEnd = $dates['work_end'];
-                $offStart = $dates['off_start'];
-                $offEnd = $dates['off_end'];
+            $timestamp = now();
+            $rows = $cycleDates->map(function (array $dates) use ($employee, $actorId, $source, $timestamp): array {
+                return [
+                    'employee_nik' => $employee->nik,
+                    'period_year' => (int) $dates['off_start']->year,
+                    'period_number' => 1,
+                    'work_start' => $dates['work_start']->toDateString(),
+                    'work_end' => $dates['work_end']->toDateString(),
+                    'off_start' => $dates['off_start']->toDateString(),
+                    'off_end' => $dates['off_end']->toDateString(),
+                    'earned_off_days' => max(0, (int) config('roster.earned_off_days', 5)),
+                    'realization_type' => RosterSchedule::REALIZATION_PENDING,
+                    'source' => $source,
+                    'is_active' => true,
+                    'created_by' => $actorId,
+                    'updated_by' => $actorId,
+                    'created_at' => $timestamp,
+                    'updated_at' => $timestamp,
+                ];
+            })->all();
 
-                $schedule = RosterSchedule::query()->firstOrCreate(
-                    [
-                        'employee_nik' => $employee->nik,
-                        'off_start' => $offStart->toDateString(),
-                    ],
-                    [
-                        'period_year' => (int) $offStart->year,
-                        'period_number' => 1,
-                        'work_start' => $cycleWorkStart->toDateString(),
-                        'work_end' => $workEnd->toDateString(),
-                        'off_end' => $offEnd->toDateString(),
-                        'earned_off_days' => max(0, (int) config('roster.earned_off_days', 5)),
-                        'realization_type' => RosterSchedule::REALIZATION_PENDING,
-                        'source' => $source,
-                        'is_active' => true,
-                        'created_by' => $actorId,
-                        'updated_by' => $actorId,
-                    ]
-                );
-
-                $generated->push($schedule);
+            foreach (array_chunk($rows, 250) as $chunk) {
+                RosterSchedule::query()->insertOrIgnore($chunk);
             }
 
-            $this->synchronizeSequence($employee->nik);
+            if ($synchronize) {
+                $this->synchronizeSequence((string) $employee->nik);
+            }
 
-            return $generated->map->fresh();
+            return RosterSchedule::query()
+                ->where('employee_nik', $employee->nik)
+                ->whereIn('off_start', $cycleDates->pluck('off_start')->map->toDateString()->all())
+                ->orderBy('off_start')
+                ->get();
         });
     }
 
@@ -100,7 +102,12 @@ class RosterScheduleService
         return $this->previewCycles($workStart, $cycles);
     }
 
-    public function generateUntil(Employee $employee, Carbon $until, ?string $actorId = null): Collection
+    public function generateUntil(
+        Employee $employee,
+        Carbon $until,
+        ?string $actorId = null,
+        bool $synchronize = true
+    ): Collection
     {
         $cycleDays = $this->cycleDays();
         $lastExisting = RosterSchedule::query()
@@ -133,7 +140,14 @@ class RosterScheduleService
             return collect();
         }
 
-        return $this->generateFromAnchor($employee, $nextWorkStart, $cycles, $actorId);
+        return $this->generateFromAnchor(
+            $employee,
+            $nextWorkStart,
+            $cycles,
+            $actorId,
+            RosterSchedule::SOURCE_GENERATED,
+            $synchronize
+        );
     }
 
     public function updateSchedule(RosterSchedule $schedule, array $data, ?string $actorId = null): RosterSchedule
@@ -192,34 +206,62 @@ class RosterScheduleService
 
     public function synchronizeSequence(string $employeeNik): void
     {
-        $schedules = RosterSchedule::query()
-            ->where('employee_nik', $employeeNik)
-            ->orderBy('off_start')
-            ->orderBy('id')
-            ->lockForUpdate()
-            ->get();
+        $this->synchronizeSequences([$employeeNik]);
+    }
 
-        $yearCounters = [];
+    public function synchronizeSequences(array $employeeNiks): void
+    {
+        $employeeNiks = array_values(array_unique(array_filter(array_map('strval', $employeeNiks))));
+        if ($employeeNiks === []) {
+            return;
+        }
 
-        foreach ($schedules as $index => $schedule) {
-            $year = (int) $schedule->off_start->year;
-            if ($schedule->source === RosterSchedule::SOURCE_MANUAL) {
-                $yearCounters[$year] = max($yearCounters[$year] ?? 0, (int) $schedule->period_number);
-                continue;
+        $updates = [];
+        foreach (array_chunk($employeeNiks, 250) as $nikChunk) {
+            $groups = RosterSchedule::query()
+                ->whereIn('employee_nik', $nikChunk)
+                ->orderBy('employee_nik')
+                ->orderBy('off_start')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->groupBy(fn (RosterSchedule $schedule): string => (string) $schedule->employee_nik);
+
+            foreach ($groups as $schedules) {
+                $yearCounters = [];
+                foreach ($schedules->values() as $index => $schedule) {
+                    $year = (int) $schedule->off_start->year;
+                    if ($schedule->source === RosterSchedule::SOURCE_MANUAL) {
+                        $yearCounters[$year] = max($yearCounters[$year] ?? 0, (int) $schedule->period_number);
+                        continue;
+                    }
+
+                    if ($schedule->source === RosterSchedule::SOURCE_IMPORT && (int) $schedule->period_number > 0) {
+                        $periodNumber = (int) $schedule->period_number;
+                        $yearCounters[$year] = max($yearCounters[$year] ?? 0, $periodNumber);
+                    } else {
+                        $periodNumber = ($yearCounters[$year] ?? 0) + 1;
+                        $yearCounters[$year] = $periodNumber;
+                    }
+
+                    $updates[] = [
+                        'employee_nik' => (string) $schedule->employee_nik,
+                        'off_start' => $schedule->off_start->toDateString(),
+                        'cycle_number' => $index + 1,
+                        'period_year' => $year,
+                        'period_number' => $periodNumber,
+                        'updated_at' => now(),
+                    ];
+                }
             }
-            if ($schedule->source === RosterSchedule::SOURCE_IMPORT && (int) $schedule->period_number > 0) {
-                $periodNumber = (int) $schedule->period_number;
-                $yearCounters[$year] = max($yearCounters[$year] ?? 0, $periodNumber);
-            } else {
-                $periodNumber = ($yearCounters[$year] ?? 0) + 1;
-                $yearCounters[$year] = $periodNumber;
-            }
+        }
 
-            $schedule->forceFill([
-                'cycle_number' => $index + 1,
-                'period_year' => $year,
-                'period_number' => $periodNumber,
-            ])->saveQuietly();
+        foreach (array_chunk($updates, 250) as $chunk) {
+            RosterSchedule::query()->upsert(
+                $chunk,
+                ['employee_nik', 'off_start'],
+                ['cycle_number', 'period_year', 'period_number', 'updated_at']
+            );
         }
     }
 
