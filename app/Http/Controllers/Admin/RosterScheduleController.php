@@ -22,10 +22,10 @@ class RosterScheduleController extends Controller
 {
     public function index(Request $request)
     {
+        $today = Carbon::today();
         $query = RosterSchedule::query()
             ->with(['employee:nik,nama_karyawan,departemen_id,divisi_id,status_resign'])
-            ->orderBy('off_start')
-            ->orderBy('employee_nik');
+            ->priorityForToday($today);
 
         if ($request->filled('year')) {
             $query->where('period_year', (int) $request->input('year'));
@@ -53,6 +53,7 @@ class RosterScheduleController extends Controller
 
         return view('admin.roster-schedules.index', [
             'schedules' => $query->paginate($perPage)->withQueryString(),
+            'today' => $today,
             'realizationOptions' => RosterSchedule::realizationOptions(),
             'filters' => $request->only(['year', 'realization_type', 'active', 'search', 'per_page']),
             'yearOptions' => RosterSchedule::query()

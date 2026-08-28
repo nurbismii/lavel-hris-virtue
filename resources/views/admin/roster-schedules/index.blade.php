@@ -91,7 +91,17 @@
                                     <div><small class="text-muted">Siklus #{{ $schedule->cycle_number ?: '-' }}</small></div>
                                 </td>
                                 <td>{{ $schedule->work_start->format('d M Y') }}<br><small class="text-muted">s.d. {{ $schedule->work_end->format('d M Y') }} · Hak {{ $schedule->earned_off_days }} OFF</small></td>
-                                <td>{{ $schedule->off_start->format('d M Y') }}<br><small class="text-muted">s.d. {{ $schedule->off_end->format('d M Y') }}</small></td>
+                                <td>
+                                    {{ $schedule->off_start->format('d M Y') }}<br><small class="text-muted">s.d. {{ $schedule->off_end->format('d M Y') }}</small>
+                                    @if($schedule->isOverduePending($today))
+                                        <div class="mt-1">
+                                            <span class="badge bg-danger">Terlambat Mengajukan</span>
+                                            <small class="d-block text-danger mt-1">
+                                                Terlambat {{ $schedule->off_start->diffInDays($today) }} hari
+                                            </small>
+                                        </div>
+                                    @endif
+                                </td>
                                 <td>
                                     @php($realizationClass = $schedule->realization_type === 'cuti_roster' ? 'success' : ($schedule->realization_type === 'insentif' ? 'info' : 'warning'))
                                     <span class="badge bg-{{ $realizationClass }}">{{ $schedule->realization_label }}</span>
