@@ -99,21 +99,26 @@ class CleanupExpiredRosterImports extends Command
         }
 
         $history->update($changes);
-        $audit->record([
-            'event' => 'roster_schedule_import.cleaned',
-            'module' => 'roster_schedule_import',
-            'reference_table' => 'import_histories',
-            'reference_id' => (string) $history->id,
-            'actor_id' => 'system',
-            'actor_name' => 'system',
-            'actor_role' => 'system',
-            'metadata' => [
-                'import_id' => $history->import_id,
-                'previous_status' => $previousStatus,
-                'final_status' => $history->fresh()->status,
-                'deleted_file_count' => $deletedFileCount,
-            ],
-        ]);
+        try {
+            $audit->record([
+                'event' => 'roster_schedule_import.cleaned',
+                'module' => 'roster_schedule_import',
+                'reference_table' => 'import_histories',
+                'reference_id' => (string) $history->id,
+                'actor_id' => 'system',
+                'actor_name' => 'system',
+                'actor_role' => 'system',
+                'metadata' => [
+                    'import_id' => $history->import_id,
+                    'previous_status' => $previousStatus,
+                    'final_status' => $history->fresh()->status,
+                    'deleted_file_count' => $deletedFileCount,
+                ],
+            ]);
+        } catch (\Throwable $exception) {
+            $errors++;
+            $this->logAuditFailure($history, $exception);
+        }
 
         return ['cleaned' => true, 'errors' => $errors];
     }
@@ -124,12 +129,12 @@ class CleanupExpiredRosterImports extends Command
             throw new InvalidArgumentException('Invalid roster import cleanup path.');
         }
 
-        $exists = $storage->resolvePath($path, [self::ALLOWED_PREFIX]) !== null;
+        $exists = $storage->resolvePrivatePath($path, [self::ALLOWED_PREFIX]) !== null;
         if ($exists) {
-            $storage->delete($path, [self::ALLOWED_PREFIX]);
+            $storage->deletePrivate($path, [self::ALLOWED_PREFIX]);
         }
 
-        if ($storage->resolvePath($path, [self::ALLOWED_PREFIX]) !== null) {
+        if ($storage->resolvePrivatePath($path, [self::ALLOWED_PREFIX]) !== null) {
             throw new \RuntimeException('Roster import file could not be removed.');
         }
 
@@ -146,6 +151,15 @@ class CleanupExpiredRosterImports extends Command
     {
         Log::warning('Roster import cleanup failed.', [
             'code' => 'roster_import_cleanup_failed',
+            'import_id' => (string) $history->import_id,
+            'exception_class' => get_class($exception),
+        ]);
+    }
+
+    private function logAuditFailure(ImportHistory $history, \Throwable $exception): void
+    {
+        Log::warning('Roster import cleanup audit failed.', [
+            'code' => 'roster_import_cleanup_audit_failed',
             'import_id' => (string) $history->import_id,
             'exception_class' => get_class($exception),
         ]);

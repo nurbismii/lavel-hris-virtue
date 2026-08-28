@@ -9,6 +9,7 @@ use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
@@ -21,6 +22,7 @@ class CleanupExpiredRosterImportsTest extends TestCase
 
     private $storage;
     private $audit;
+    private array $publicFixturePaths = [];
 
     protected function setUp(): void
     {
@@ -46,6 +48,11 @@ class CleanupExpiredRosterImportsTest extends TestCase
                 return array_key_exists($relativePath, $this->files) ? 'memory://' . $relativePath : null;
             }
 
+            public function resolvePrivatePath(string $relativePath, array $allowedPrefixes): ?string
+            {
+                return $this->resolvePath($relativePath, $allowedPrefixes);
+            }
+
             public function delete(string $relativePath, array $allowedPrefixes): void
             {
                 $this->deleted[] = $relativePath;
@@ -56,12 +63,22 @@ class CleanupExpiredRosterImportsTest extends TestCase
 
                 unset($this->files[$relativePath]);
             }
+
+            public function deletePrivate(string $relativePath, array $allowedPrefixes): void
+            {
+                $this->delete($relativePath, $allowedPrefixes);
+            }
         };
         $this->audit = new class extends AuditTrailService {
             public array $records = [];
+            public bool $throwOnRecord = false;
 
             public function record(array $data): ?\App\Models\AuditTrail
             {
+                if ($this->throwOnRecord) {
+                    throw new RuntimeException('Audit database unavailable.');
+                }
+
                 $this->records[] = $data;
 
                 return null;
@@ -73,6 +90,10 @@ class CleanupExpiredRosterImportsTest extends TestCase
 
     protected function tearDown(): void
     {
+        foreach ($this->publicFixturePaths as $path) {
+            File::delete($path);
+        }
+
         $this->cleanRosterImportFixtures();
         Schema::dropAllTables();
         DB::disconnect('sqlite');
@@ -213,6 +234,43 @@ class CleanupExpiredRosterImportsTest extends TestCase
 
         $this->assertSame('roster-imports/broken/source.xlsx', $broken->fresh()->file_path);
         $this->assertNull($healthy->fresh()->file_path);
+    }
+
+    public function test_public_file_with_same_relative_path_is_never_deleted(): void
+    {
+        $relativePath = 'roster-imports/cleanup-public-boundary/source.xlsx';
+        $publicPath = public_path($relativePath);
+        File::ensureDirectoryExists(dirname($publicPath));
+        File::put($publicPath, 'public-file-must-remain');
+        $this->publicFixturePaths[] = $publicPath;
+        $history = $this->history('public-boundary', ['file_path' => $relativePath]);
+        $this->app->instance(SensitiveFileStorageService::class, new SensitiveFileStorageService());
+
+        $this->runCleanup()->assertExitCode(0);
+
+        $this->assertTrue(File::isFile($publicPath));
+        $this->assertSame('public-file-must-remain', File::get($publicPath));
+        $this->assertNull($history->fresh()->file_path);
+    }
+
+    public function test_audit_failure_returns_failure_but_continues_remaining_records(): void
+    {
+        Log::spy();
+        $first = $this->history('audit-failure-1', ['file_path' => 'roster-imports/audit-failure-1/source.xlsx']);
+        $second = $this->history('audit-failure-2', ['file_path' => 'roster-imports/audit-failure-2/source.xlsx']);
+        $this->storage->files = [$first->file_path => true, $second->file_path => true];
+        $this->audit->throwOnRecord = true;
+
+        $this->runCleanup()->assertExitCode(1);
+
+        $this->assertNull($first->fresh()->file_path);
+        $this->assertNull($second->fresh()->file_path);
+        Log::shouldHaveReceived('warning')->twice()->withArgs(function (string $message, array $context): bool {
+            return $message === 'Roster import cleanup audit failed.'
+                && ($context['code'] ?? null) === 'roster_import_cleanup_audit_failed'
+                && isset($context['import_id'], $context['exception_class'])
+                && !isset($context['path']);
+        });
     }
 
     public function test_audit_metadata_is_aggregate_only_and_excludes_sensitive_values(): void

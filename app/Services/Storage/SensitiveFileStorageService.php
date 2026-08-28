@@ -62,6 +62,19 @@ class SensitiveFileStorageService
         return File::isFile($legacyPublicPath) ? $legacyPublicPath : null;
     }
 
+    public function resolvePrivatePath(string $relativePath, array $allowedPrefixes): ?string
+    {
+        $normalizedPath = $this->normalizePath($relativePath);
+
+        if (!$this->isAllowedPath($normalizedPath, $allowedPrefixes)) {
+            return null;
+        }
+
+        $privatePath = storage_path('app/' . self::PRIVATE_ROOT . '/' . $normalizedPath);
+
+        return File::isFile($privatePath) ? $privatePath : null;
+    }
+
     public function delete(string $relativePath, array $allowedPrefixes): void
     {
         $normalizedPath = $this->normalizePath($relativePath);
@@ -77,6 +90,21 @@ class SensitiveFileStorageService
             if (File::isFile($absolutePath)) {
                 File::delete($absolutePath);
             }
+        }
+    }
+
+    public function deletePrivate(string $relativePath, array $allowedPrefixes): void
+    {
+        $normalizedPath = $this->normalizePath($relativePath);
+
+        if (!$this->isAllowedPath($normalizedPath, $allowedPrefixes)) {
+            return;
+        }
+
+        $privatePath = storage_path('app/' . self::PRIVATE_ROOT . '/' . $normalizedPath);
+
+        if (File::isFile($privatePath)) {
+            File::delete($privatePath);
         }
     }
 
