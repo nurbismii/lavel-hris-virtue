@@ -12,6 +12,7 @@ use App\Services\Roster\RosterScheduleService;
 use App\Services\Roster\RosterScheduleWorkbookImportService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
@@ -457,6 +458,42 @@ class RosterScheduleImportJobTest extends TestCase
         $this->assertGreaterThan(0, RosterSchedule::query()->count());
         $this->assertGreaterThan(0, RosterScheduleHistory::query()->count());
         $this->assertStringNotContainsString($ktp, json_encode($result));
+    }
+
+    public function test_cli_command_failure_output_and_log_are_privacy_safe(): void
+    {
+        $ktp = '7402243101930098';
+        $privatePath = 'C:/private/roster-imports/secret/source.xlsx';
+        $this->app->instance(RosterScheduleWorkbookImportService::class, new class($ktp, $privatePath) extends RosterScheduleWorkbookImportService {
+            private string $sensitiveMessage;
+
+            public function __construct(string $ktp, string $privatePath)
+            {
+                $this->sensitiveMessage = $privatePath . ' KTP ' . $ktp;
+            }
+
+            public function import(string $path, bool $dryRun = false, ?string $actorId = null): array
+            {
+                throw new \RuntimeException($this->sensitiveMessage);
+            }
+        });
+        Log::spy();
+
+        $this->artisan('roster:import-schedules', [
+            'file' => 'C:/authorized/roster.xlsx',
+            '--dry-run' => true,
+        ])->expectsOutput('Import gagal diproses. Periksa log aplikasi untuk kode error.')
+            ->assertExitCode(1);
+
+        Log::shouldHaveReceived('warning')->once()->withArgs(function (string $message, array $context) use ($ktp, $privatePath): bool {
+            $encoded = json_encode($context);
+
+            return $message === 'Roster schedule CLI import failed.'
+                && ($context['code'] ?? null) === 'roster_schedule_cli_import_failed'
+                && ($context['exception_class'] ?? null) === \RuntimeException::class
+                && strpos($encoded, $ktp) === false
+                && strpos($encoded, $privatePath) === false;
+        });
     }
 
     private function processingHistory(array $rows): ImportHistory
