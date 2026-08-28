@@ -5,6 +5,8 @@ namespace App\Jobs;
 use App\Models\ImportHistory;
 use App\Services\Audit\AuditTrailService;
 use App\Services\Roster\RosterScheduleImportCommitService;
+use App\Services\Roster\RosterScheduleReminderEligibilityService;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -66,6 +68,11 @@ final class ProcessRosterScheduleImport implements ShouldQueue, ShouldBeUnique
 
             throw $exception;
         }
+        app(RosterScheduleReminderEligibilityService::class)->dispatchLate(
+            $result['late_candidate_schedule_ids'] ?? [],
+            Carbon::today(),
+            Carbon::today()->addDays(13)
+        );
         $audit->record([
             'event' => 'roster_schedule_import.completed',
             'module' => 'roster_schedule_import',
