@@ -26,8 +26,8 @@ class RosterScheduleReminderEligibilityService
         }
 
         return $this->baseEligibleQuery()
-            ->whereDate('off_start', '>=', $start->toDateString())
-            ->whereDate('off_start', '<=', $end->toDateString());
+            ->where('off_start', '>=', $start->toDateString())
+            ->where('off_start', '<', $end->copy()->addDay()->toDateString());
     }
 
     public function isEligible(RosterSchedule $schedule, ?Carbon $today = null): bool
@@ -36,7 +36,7 @@ class RosterScheduleReminderEligibilityService
 
         return $this->baseEligibleQuery()
             ->whereKey($schedule->id)
-            ->whereDate('off_start', '>=', $today->toDateString())
+            ->where('off_start', '>=', $today->toDateString())
             ->exists();
     }
 
@@ -113,7 +113,7 @@ class RosterScheduleReminderEligibilityService
             });
     }
 
-    private function claim(int $scheduleId, Carbon $from, Carbon $to): bool
+    public function claim(int $scheduleId, Carbon $from, Carbon $to): bool
     {
         return $this->eligibleQuery($from, $to)
             ->whereKey($scheduleId)

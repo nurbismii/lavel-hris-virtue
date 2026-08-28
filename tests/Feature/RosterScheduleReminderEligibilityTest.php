@@ -98,19 +98,29 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         $this->assertTrue($service->isEligible($schedule));
     }
 
-    public function test_conditional_claim_prevents_duplicate_late_dispatch(): void
+    public function test_conditional_claim_has_one_winner_and_is_shared_by_late_and_standard_dispatch(): void
     {
         Queue::fake();
         $service = app(RosterScheduleReminderEligibilityService::class);
-        $schedule = $this->schedule('030', 4);
+        $lateSchedule = $this->schedule('030', 4);
+        $standardSchedule = $this->schedule('031', 14);
 
-        $first = $service->dispatchLate([$schedule->id], now(), now()->addDays(13));
-        $second = $service->dispatchLate([$schedule->id], now(), now()->addDays(13));
+        $firstClaim = $service->claim($lateSchedule->id, now(), now()->addDays(13));
+        $secondClaim = (new RosterScheduleReminderEligibilityService())->claim(
+            $lateSchedule->id,
+            now(),
+            now()->addDays(13)
+        );
+        $lateDispatch = $service->dispatchLate([$lateSchedule->id], now(), now()->addDays(13));
 
-        $this->assertSame(1, $first);
-        $this->assertSame(0, $second);
-        Queue::assertPushed(SendRosterScheduleReminder::class, 1);
-        $this->assertNotNull($schedule->fresh()->reminder_queued_at);
+        $this->assertTrue($firstClaim);
+        $this->assertFalse($secondClaim);
+        $this->assertSame(0, $lateDispatch);
+        $this->assertNotNull($lateSchedule->fresh()->reminder_queued_at);
+
+        $this->assertTrue($service->claim($standardSchedule->id, now()->addDays(14), now()->addDays(14)));
+        $this->assertSame(0, $service->dispatchScheduled(now()->addDays(14)));
+        Queue::assertNotPushed(SendRosterScheduleReminder::class);
     }
 
     public function test_scheduled_command_selects_exactly_h14(): void
@@ -144,6 +154,16 @@ class RosterScheduleReminderEligibilityTest extends TestCase
 
         $this->assertSame(2, $count);
         Queue::assertPushed(SendRosterScheduleReminder::class, 2);
+        $delays = [];
+        Queue::assertPushed(SendRosterScheduleReminder::class, function (SendRosterScheduleReminder $job) use (&$delays): bool {
+            $delays[$job->scheduleId] = $job->delay;
+
+            return true;
+        });
+        $this->assertInstanceOf(\DateTimeInterface::class, $delays[$h13->id]);
+        $this->assertInstanceOf(\DateTimeInterface::class, $delays[$h0->id]);
+        $this->assertSame(now()->toDateTimeString(), Carbon::instance($delays[$h13->id])->toDateTimeString());
+        $this->assertSame(now()->addSeconds(3)->toDateTimeString(), Carbon::instance($delays[$h0->id])->toDateTimeString());
         $this->assertNull($notSupplied->fresh()->reminder_queued_at);
         $this->assertNull($past->fresh()->reminder_queued_at);
         $this->assertNull($h14->fresh()->reminder_queued_at);
