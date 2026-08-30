@@ -144,13 +144,31 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         });
         $this->assertNotNull($schedule->fresh()->reminder_queued_at);
         $this->assertInstanceOf(SendRosterScheduleReminder::class, $queuedJob);
+        if (property_exists($queuedJob, 'uniqueLockOwner')) {
+            $this->assertNotSame('', (string) $queuedJob->uniqueLockOwner);
+        }
 
-        $uniqueLock = new UniqueLock(app(CacheRepository::class));
         $competingJob = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
+        $cache = app(CacheRepository::class);
+        $lockKey = $this->uniqueLockKey($competingJob);
+        $competingLock = $cache->lock($lockKey, $competingJob->uniqueFor);
         try {
-            $this->assertFalse($uniqueLock->acquire($competingJob));
+            $this->assertFalse($competingLock->get());
         } finally {
-            $uniqueLock->release($queuedJob);
+            $cache->lock($lockKey)->forceRelease();
+        }
+
+        if (method_exists(UniqueLock::class, 'release')) {
+            $replacementLock = $cache->lock($lockKey, $competingJob->uniqueFor);
+            $this->assertTrue($replacementLock->get());
+
+            try {
+                (new UniqueLock($cache))->release($queuedJob);
+                $probeLock = $cache->lock($lockKey, $competingJob->uniqueFor);
+                $this->assertFalse($probeLock->get());
+            } finally {
+                $replacementLock->release();
+            }
         }
     }
 
@@ -160,15 +178,15 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         $service = app(RosterScheduleReminderEligibilityService::class);
         $schedule = $this->schedule('0281', -1);
         $job = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
-        $uniqueLock = new UniqueLock(app(CacheRepository::class));
-        $this->assertTrue($uniqueLock->acquire($job));
+        $lock = app(CacheRepository::class)->lock($this->uniqueLockKey($job), $job->uniqueFor);
+        $this->assertTrue($lock->get());
 
         try {
             $this->assertFalse($service->dispatchOverdue($schedule));
             Queue::assertNothingPushed();
             $this->assertNull($schedule->fresh()->reminder_queued_at);
         } finally {
-            $uniqueLock->release($job);
+            $lock->release();
         }
     }
 
@@ -193,6 +211,15 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         Queue::assertPushed(SendRosterScheduleReminder::class, 1);
     }
 
+    public function test_overdue_dispatch_does_not_require_unique_lock_release_method(): void
+    {
+        $source = file_get_contents(app_path('Services/Roster/RosterScheduleReminderEligibilityService.php'));
+
+        $this->assertStringNotContainsString('$uniqueLock->release(', $source);
+        $this->assertStringContainsString("method_exists(UniqueLock::class, 'getKey')", $source);
+        $this->assertStringContainsString("'laravel_unique_job:' . get_class(\$job) . \$uniqueId", $source);
+    }
+
     public function test_cache_lock_release_failure_cannot_prevent_database_claim_cleanup(): void
     {
         $service = app(RosterScheduleReminderEligibilityService::class);
@@ -203,16 +230,14 @@ class RosterScheduleReminderEligibilityTest extends TestCase
             ->andThrow(new \RuntimeException('queue unavailable'));
         $this->app->instance(Dispatcher::class, $failingDispatcher);
 
-        $acquireLock = \Mockery::mock(Lock::class);
-        $acquireLock->shouldReceive('get')->once()->andReturnTrue();
-        $releaseLock = \Mockery::mock(Lock::class);
-        $releaseLock->shouldReceive('forceRelease')
+        $attemptLock = \Mockery::mock(Lock::class);
+        $attemptLock->shouldReceive('get')->once()->andReturnTrue();
+        $attemptLock->shouldReceive('release')
             ->once()
             ->andThrow(new \RuntimeException('cache unavailable'));
         $cache = \Mockery::mock(CacheRepository::class);
-        $cache->shouldReceive('lock')->once()->with(\Mockery::type('string'), 3600)->andReturn($acquireLock);
+        $cache->shouldReceive('lock')->once()->with(\Mockery::type('string'), 3600)->andReturn($attemptLock);
         $cache->shouldReceive('getStore')->once()->andReturn(new \stdClass());
-        $cache->shouldReceive('lock')->once()->with(\Mockery::type('string'))->andReturn($releaseLock);
         $this->app->instance(CacheRepository::class, $cache);
 
         $this->assertFalse($service->dispatchOverdue($schedule));
@@ -669,5 +694,18 @@ class RosterScheduleReminderEligibilityTest extends TestCase
             'nik_karyawan' => $schedule->employee_nik,
             'status' => 'aktif',
         ]);
+    }
+
+    private function uniqueLockKey(SendRosterScheduleReminder $job): string
+    {
+        if (method_exists(UniqueLock::class, 'getKey')) {
+            return UniqueLock::getKey($job);
+        }
+
+        $uniqueId = method_exists($job, 'uniqueId')
+            ? $job->uniqueId()
+            : ($job->uniqueId ?? '');
+
+        return 'laravel_unique_job:' . get_class($job) . $uniqueId;
     }
 }

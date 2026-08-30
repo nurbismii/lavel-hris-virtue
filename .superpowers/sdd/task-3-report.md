@@ -170,3 +170,79 @@ Validasi tambahan follow-up:
 ### Independent Re-review
 
 Reviewer independen menemukan satu Important pada iterasi awal: alasan resign/aplikasi tertutup bila row sekaligus cooldown/queued. Regression overlap kemudian ditambahkan dan UI diperbaiki. Re-review final tidak menemukan issue Critical atau Important; catatan Minor tentang dokumentasi dan perlindungan N+1 diselesaikan dengan pembaruan report serta assertion tepat dua query batch.
+
+## Laravel 8 Compatibility Follow-up
+
+### Perbaikan
+
+- Dispatch overdue tidak lagi memanggil `UniqueLock::release()`, karena method tersebut tidak tersedia pada Laravel 8. Service memegang objek lock yang berhasil diakuisisi dan memanggil `$lock->release()` pada objek/owner attempt yang sama bila enqueue gagal.
+- Unique lock key mendukung dua generasi framework: memakai `UniqueLock::getKey()` bila tersedia pada vendor baru, atau formula Laravel 8 yang persis (`laravel_unique_job:` + class job + unique ID) bila method tersebut tidak tersedia.
+- Pada vendor baru yang mendukung owner-aware lock, owner token dipindahkan ke job sebelum diserialisasi. Regression membuktikan worker-style release dengan owner lama tidak menghapus replacement lock milik contender baru.
+- Kegagalan release lock tidak menghalangi cleanup database claim; immediate retry setelah dispatch failure terbukti dapat masuk queue.
+- Directive Blade `@disabled` diganti dengan boolean lokal dan `@if($isReminderDisabled) disabled @endif`, kompatibel dengan Laravel 8. Static guard memastikan directive tidak kembali, sementara HTTP render test memastikan atribut `disabled` nyata tetap dihasilkan.
+
+### RED
+
+Compatibility API/directive guards:
+
+```bash
+php artisan test tests/Feature/RosterScheduleReminderEligibilityTest.php --filter=does_not_require_unique_lock_release_method
+php artisan test tests/Feature/RosterScheduleAdminWorkflowTest.php --filter=index_disables_overdue_reminder_for_resigned_employee_and_active_application
+```
+
+Hasil sebelum fix: masing-masing **1 failed (1 assertion)**. Service masih memuat `$uniqueLock->release(` dan Blade masih memuat `@disabled(`.
+
+Laravel 8 key fallback guard:
+
+```bash
+php artisan test tests/Feature/RosterScheduleReminderEligibilityTest.php --filter=does_not_require_unique_lock_release_method
+```
+
+Hasil sebelum fallback key: **1 failed (2 assertions)** karena service masih mengandalkan `UniqueLock::getKey()` yang juga tidak tersedia pada Laravel 8.
+
+Current-vendor owner regression:
+
+```bash
+php artisan test tests/Feature/RosterScheduleReminderEligibilityTest.php --filter=overdue_dispatch_claims_atomically_and_queues_only_once_per_schedule
+```
+
+Hasil sebelum owner propagation: **1 failed (7 assertions)** karena queued job memiliki `uniqueLockOwner` kosong.
+
+### GREEN
+
+Focused compatibility and workflow suite:
+
+```bash
+php artisan test tests/Feature/RosterScheduleReminderEligibilityTest.php tests/Feature/RosterScheduleAdminWorkflowTest.php
+```
+
+Hasil final: **31 passed (172 assertions)**, exit code 0.
+
+Full focused Task 3 regression:
+
+```bash
+php artisan test tests/Feature/RosterScheduleReminderEligibilityTest.php tests/Feature/RosterScheduleAdminWorkflowTest.php tests/Feature/RosterSchedulePriorityTest.php tests/Feature/RosterScheduleApplicationLinkTest.php tests/Feature/RosterScheduleImportPreviewTest.php tests/Feature/RosterScheduleImportLifecycleTest.php tests/Feature/RosterScheduleImportJobTest.php tests/Feature/RosterScheduleImportControllerTest.php tests/Feature/CleanupExpiredRosterImportsTest.php
+```
+
+Hasil final: **115 passed (698 assertions)**, exit code 0.
+
+Validasi tambahan:
+
+```bash
+php -l app/Services/Roster/RosterScheduleReminderEligibilityService.php
+php -l tests/Feature/RosterScheduleReminderEligibilityTest.php
+php -l tests/Feature/RosterScheduleAdminWorkflowTest.php
+git diff --check
+```
+
+Hasil: seluruh file PHP tidak memiliki syntax error dan diff check tidak menemukan whitespace error.
+
+### Self-review Compatibility
+
+- **Attempt ownership:** dispatch exception hanya memanggil `release()` pada instance lock yang berhasil diakuisisi attempt tersebut; tidak ada `forceRelease()` pada runtime failure path.
+- **Stale contender:** kegagalan acquire tidak pernah melepas lock yang sudah dimiliki pihak lain dan hanya membersihkan claim dengan timestamp attempt ini.
+- **Cross-version key:** Laravel 8 memakai fallback key tanpa separator tambahan; vendor baru memakai helper framework agar perubahan internal key tetap diikuti.
+- **Worker release:** owner token vendor baru dipertahankan; pada Laravel 8 branch ini no-op dan mengikuti perilaku worker Laravel 8.
+- **Blade:** source tidak memuat `@disabled`; button unavailable tetap dirender dengan atribut HTML `disabled` dan duplicate-submit handler tetap bekerja.
+
+Independent re-review final tidak menemukan issue Critical, Important, maupun Minor dan memberi assessment **Ready to merge: Yes**.

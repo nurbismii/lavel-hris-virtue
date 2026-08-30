@@ -123,8 +123,8 @@ class RosterScheduleAdminWorkflowTest extends TestCase
         $schedule = $this->schedule('NIK-OVERDUE-LOCKED', '2026-08-31');
         $audit = $this->fakeAudit();
         $job = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
-        $uniqueLock = new UniqueLock(app(CacheRepository::class));
-        $this->assertTrue($uniqueLock->acquire($job));
+        $lock = app(CacheRepository::class)->lock($this->uniqueLockKey($job), $job->uniqueFor);
+        $this->assertTrue($lock->get());
 
         try {
             $response = $this->actingAs($hr)
@@ -141,7 +141,7 @@ class RosterScheduleAdminWorkflowTest extends TestCase
             $this->assertNull($schedule->fresh()->reminder_queued_at);
             $this->assertCount(0, $audit->records);
         } finally {
-            $uniqueLock->release($job);
+            $lock->release();
         }
     }
 
@@ -206,6 +206,9 @@ class RosterScheduleAdminWorkflowTest extends TestCase
 
     public function test_index_disables_overdue_reminder_for_resigned_employee_and_active_application(): void
     {
+        $viewSource = file_get_contents(resource_path('views/admin/roster-schedules/index.blade.php'));
+        $this->assertStringNotContainsString('@disabled(', $viewSource);
+
         $hr = $this->hrUser();
         $resigned = $this->schedule('NIK-REMINDER-RESIGNED', '2026-08-31');
         DB::table('employees')->where('nik', $resigned->employee_nik)->update(['status_resign' => 'RESIGN']);
@@ -290,6 +293,19 @@ class RosterScheduleAdminWorkflowTest extends TestCase
             'name' => $id,
             'role_id' => $roleId,
         ]);
+    }
+
+    private function uniqueLockKey(SendRosterScheduleReminder $job): string
+    {
+        if (method_exists(UniqueLock::class, 'getKey')) {
+            return UniqueLock::getKey($job);
+        }
+
+        $uniqueId = method_exists($job, 'uniqueId')
+            ? $job->uniqueId()
+            : ($job->uniqueId ?? '');
+
+        return 'laravel_unique_job:' . get_class($job) . $uniqueId;
     }
 
     private function fakeAudit(): AuditTrailService

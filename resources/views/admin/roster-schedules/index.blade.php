@@ -148,6 +148,9 @@
                                                 } elseif ($hasActiveApplication) {
                                                     $reminderUnavailableReason = 'Pengajuan digital aktif';
                                                 }
+                                                $isReminderDisabled = $schedule->reminder_queued_at
+                                                    || $isCoolingDown
+                                                    || !$isReminderEligible;
                                             @endphp
                                             <form method="POST"
                                                   action="{{ route('roster-schedules.reminder.overdue', $schedule) }}"
@@ -155,7 +158,7 @@
                                                 @csrf
                                                 <button type="submit"
                                                         class="btn btn-sm btn-outline-danger"
-                                                        @disabled($schedule->reminder_queued_at || $isCoolingDown || !$isReminderEligible)>
+                                                        @if($isReminderDisabled) disabled @endif>
                                                     @if($reminderUnavailableReason)
                                                         <i class="fas fa-ban me-1"></i> {{ $reminderUnavailableReason }}
                                                     @elseif($schedule->reminder_queued_at)

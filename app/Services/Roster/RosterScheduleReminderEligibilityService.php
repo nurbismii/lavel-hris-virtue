@@ -7,6 +7,7 @@ use App\Models\RosterSchedule;
 use Carbon\Carbon;
 use Illuminate\Bus\UniqueLock;
 use Illuminate\Contracts\Bus\Dispatcher;
+use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -65,10 +66,16 @@ class RosterScheduleReminderEligibilityService
         }
 
         $job = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
-        $uniqueLock = new UniqueLock(app(Cache::class));
+        $cache = method_exists($job, 'uniqueVia')
+            ? ($job->uniqueVia() ?: app(Cache::class))
+            : app(Cache::class);
+        $uniqueFor = method_exists($job, 'uniqueFor')
+            ? (int) $job->uniqueFor()
+            : (int) ($job->uniqueFor ?? 0);
 
         try {
-            $lockAcquired = $uniqueLock->acquire($job);
+            $lock = $cache->lock($this->uniqueLockKey($job), $uniqueFor);
+            $lockAcquired = (bool) $lock->get();
         } catch (\Throwable $exception) {
             $this->clearOverdueClaim($schedule->id, $claimedAt);
             report($exception);
@@ -83,6 +90,7 @@ class RosterScheduleReminderEligibilityService
         }
 
         try {
+            $this->propagateUniqueLockOwner($job, $cache, $lock);
             app(Dispatcher::class)->dispatch($job);
 
             return true;
@@ -90,7 +98,7 @@ class RosterScheduleReminderEligibilityService
             $this->clearOverdueClaim($schedule->id, $claimedAt);
 
             try {
-                $uniqueLock->release($job);
+                $lock->release();
             } catch (\Throwable $releaseException) {
                 report($releaseException);
             }
@@ -98,6 +106,34 @@ class RosterScheduleReminderEligibilityService
             report($exception);
 
             return false;
+        }
+    }
+
+    private function uniqueLockKey(SendRosterScheduleReminder $job): string
+    {
+        if (method_exists(UniqueLock::class, 'getKey')) {
+            return UniqueLock::getKey($job);
+        }
+
+        $uniqueId = method_exists($job, 'uniqueId')
+            ? $job->uniqueId()
+            : ($job->uniqueId ?? '');
+
+        return 'laravel_unique_job:' . get_class($job) . $uniqueId;
+    }
+
+    private function propagateUniqueLockOwner(SendRosterScheduleReminder $job, $cache, $lock): void
+    {
+        if (!property_exists($job, 'uniqueLockOwner')
+            || !method_exists($cache, 'getStore')
+            || !($cache->getStore() instanceof LockProvider)
+            || !method_exists($lock, 'owner')) {
+            return;
+        }
+
+        $owner = $lock->owner();
+        if (is_string($owner) && $owner !== '') {
+            $job->uniqueLockOwner = $owner;
         }
     }
 
