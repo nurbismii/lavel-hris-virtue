@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Jobs\SendRosterScheduleReminder;
+use App\Models\Roster;
 use App\Models\RosterSchedule;
 use App\Models\User;
 use App\Services\Audit\AuditTrailService;
@@ -262,6 +263,234 @@ class RosterScheduleAdminWorkflowTest extends TestCase
             $this->assertStringContainsString($reason, $button[1]);
             $this->assertStringNotContainsString($misleadingState, $button[1]);
         }
+    }
+
+    public function test_hr_can_record_both_manual_submission_types_without_creating_digital_application(): void
+    {
+        $hr = $this->hrUser();
+        $audit = $this->fakeAudit();
+
+        foreach ([
+            RosterSchedule::REALIZATION_CUTI => 'RST/HR/IX/2026',
+            RosterSchedule::REALIZATION_INSENTIF => 'INS/HR/IX/2026',
+        ] as $type => $reference) {
+            $schedule = $this->schedule('NIK-MANUAL-' . strtoupper($type), '2026-09-10');
+
+            $this->actingAs($hr)->post(
+                route('roster-schedules.manual-submission.store', $schedule),
+                [
+                    'realization_type' => $type,
+                    'manual_reference_number' => $reference,
+                    'manual_submission_note' => 'Berkas fisik diterima HR.',
+                    'manual_schedule_id' => (string) $schedule->id,
+                ]
+            )->assertRedirect();
+
+            $fresh = $schedule->fresh();
+            $this->assertSame($type, $fresh->realization_type);
+            $this->assertSame($hr->id, $fresh->manual_submitted_by);
+            $this->assertSame(now()->toDateTimeString(), $fresh->manual_submitted_at->toDateTimeString());
+            $this->assertSame($reference, $fresh->manual_reference_number);
+            $this->assertSame('Berkas fisik diterima HR.', $fresh->manual_submission_note);
+            $this->assertSame($hr->id, $fresh->updated_by);
+            $this->assertNull($fresh->reminder_queued_at);
+            $this->assertSame(0, Roster::where('roster_schedule_id', $schedule->id)->count());
+        }
+
+        $this->assertCount(2, $audit->records);
+        $this->assertSame('roster_schedule.manual_submission_recorded', $audit->records[0]['event']);
+        $this->assertSame('offline', $audit->records[0]['metadata']['submission_channel']);
+        $this->assertSame($hr, $audit->records[0]['actor']);
+        $this->assertStringNotContainsString('Berkas fisik diterima HR.', json_encode($audit->records));
+    }
+
+    public function test_manual_submission_validation_rejects_invalid_types_and_oversized_metadata(): void
+    {
+        $hr = $this->hrUser();
+        $schedule = $this->schedule('NIK-MANUAL-VALIDATION', '2026-09-10');
+
+        foreach ([
+            ['realization_type' => RosterSchedule::REALIZATION_PENDING],
+            ['realization_type' => 'unknown'],
+            [
+                'realization_type' => RosterSchedule::REALIZATION_CUTI,
+                'manual_reference_number' => str_repeat('R', 101),
+            ],
+            [
+                'realization_type' => RosterSchedule::REALIZATION_INSENTIF,
+                'manual_submission_note' => str_repeat('N', 501),
+            ],
+        ] as $payload) {
+            $this->actingAs($hr)
+                ->postJson(route('roster-schedules.manual-submission.store', $schedule), $payload)
+                ->assertStatus(422)
+                ->assertJsonValidationErrors(array_key_exists('manual_reference_number', $payload)
+                    ? 'manual_reference_number'
+                    : (array_key_exists('manual_submission_note', $payload) ? 'manual_submission_note' : 'realization_type'));
+        }
+
+        $this->actingAs($hr)
+            ->from(route('roster-schedules.index'))
+            ->post(route('roster-schedules.manual-submission.store', $schedule), [
+                'realization_type' => RosterSchedule::REALIZATION_PENDING,
+                'manual_schedule_id' => (string) $schedule->id,
+            ])
+            ->assertRedirect(route('roster-schedules.index'))
+            ->assertSessionHasErrors('realization_type')
+            ->assertSessionHasInput('manual_schedule_id', (string) $schedule->id);
+
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $schedule->fresh()->realization_type);
+    }
+
+    public function test_manual_submission_rejects_unauthorized_roles_and_missing_menu_access(): void
+    {
+        $schedule = $this->schedule('NIK-MANUAL-AUTH', '2026-09-10');
+        $employee = $this->userWithRole('employee-manual', 'Employee', ['roster_schedule']);
+        $hrWithoutMenu = $this->userWithRole('hr-no-menu-manual', 'HR', []);
+
+        foreach ([$employee, $hrWithoutMenu] as $actor) {
+            $this->actingAs($actor)->post(
+                route('roster-schedules.manual-submission.store', $schedule),
+                ['realization_type' => RosterSchedule::REALIZATION_CUTI]
+            )->assertForbidden();
+        }
+
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $schedule->fresh()->realization_type);
+    }
+
+    public function test_manual_submission_revalidates_locked_schedule_and_active_digital_applications(): void
+    {
+        $hr = $this->hrUser();
+        $inactive = $this->schedule('NIK-MANUAL-INACTIVE', '2026-09-10', RosterSchedule::REALIZATION_PENDING, false);
+        $realized = $this->schedule('NIK-MANUAL-REALIZED', '2026-09-11', RosterSchedule::REALIZATION_CUTI);
+        $pendingApplication = $this->schedule('NIK-MANUAL-DIGITAL-PENDING', '2026-09-12');
+        $approvedApplication = $this->schedule('NIK-MANUAL-DIGITAL-APPROVED', '2026-09-13');
+        $this->application($pendingApplication, 0, 0);
+        $this->application($approvedApplication, 1, 1);
+
+        foreach ([$inactive, $realized, $pendingApplication, $approvedApplication] as $schedule) {
+            $this->actingAs($hr)
+                ->post(route('roster-schedules.manual-submission.store', $schedule), [
+                    'realization_type' => RosterSchedule::REALIZATION_INSENTIF,
+                ])
+                ->assertRedirect()
+                ->assertSessionHasErrors('realization_type');
+        }
+
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $inactive->fresh()->realization_type);
+        $this->assertSame(RosterSchedule::REALIZATION_CUTI, $realized->fresh()->realization_type);
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $pendingApplication->fresh()->realization_type);
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $approvedApplication->fresh()->realization_type);
+        $this->assertDatabaseCount('cuti_roster', 2);
+    }
+
+    public function test_manual_submission_is_idempotent_and_does_not_overwrite_original_record(): void
+    {
+        $hr = $this->hrUser();
+        $otherHr = $this->userWithRole('other-hr-manual', 'HR', ['roster_schedule']);
+        $schedule = $this->schedule('NIK-MANUAL-IDEMPOTENT', '2026-09-10');
+
+        $this->actingAs($hr)->post(route('roster-schedules.manual-submission.store', $schedule), [
+            'realization_type' => RosterSchedule::REALIZATION_CUTI,
+            'manual_reference_number' => 'FIRST/2026',
+            'manual_submission_note' => 'Catatan pertama.',
+        ])->assertRedirect();
+        $original = $schedule->fresh();
+
+        Carbon::setTestNow(now()->addHour());
+        $this->actingAs($otherHr)->post(route('roster-schedules.manual-submission.store', $schedule), [
+            'realization_type' => RosterSchedule::REALIZATION_INSENTIF,
+            'manual_reference_number' => 'SECOND/2026',
+            'manual_submission_note' => 'Catatan kedua.',
+        ])->assertRedirect()->assertSessionHasErrors('realization_type');
+
+        $fresh = $schedule->fresh();
+        $this->assertSame($original->realization_type, $fresh->realization_type);
+        $this->assertSame($original->manual_submitted_by, $fresh->manual_submitted_by);
+        $this->assertSame($original->manual_submitted_at->toDateTimeString(), $fresh->manual_submitted_at->toDateTimeString());
+        $this->assertSame($original->manual_reference_number, $fresh->manual_reference_number);
+        $this->assertSame($original->manual_submission_note, $fresh->manual_submission_note);
+        $this->assertSame(0, Roster::where('roster_schedule_id', $schedule->id)->count());
+    }
+
+    public function test_manual_submission_rolls_back_and_returns_generic_feedback_on_unexpected_failure(): void
+    {
+        $hr = $this->hrUser();
+        $schedule = $this->schedule('NIK-MANUAL-ROLLBACK', '2026-09-10');
+        $this->app->instance(AuditTrailService::class, new class extends AuditTrailService {
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                throw new \RuntimeException('Private employee data must not reach the browser.');
+            }
+        });
+
+        $response = $this->actingAs($hr)
+            ->from(route('roster-schedules.index'))
+            ->post(route('roster-schedules.manual-submission.store', $schedule), [
+                'realization_type' => RosterSchedule::REALIZATION_CUTI,
+                'manual_reference_number' => 'ROLLBACK/2026',
+                'manual_submission_note' => 'Restore this input.',
+                'manual_schedule_id' => (string) $schedule->id,
+            ]);
+
+        $response->assertRedirect(route('roster-schedules.index'))
+            ->assertSessionHasInput('manual_reference_number', 'ROLLBACK/2026')
+            ->assertSessionHasInput('manual_schedule_id', (string) $schedule->id)
+            ->assertSessionHas('alert.config', function (string $config): bool {
+                $alert = json_decode($config, true);
+
+                return ($alert['icon'] ?? null) === 'error'
+                    && ($alert['title'] ?? null) === 'Gagal'
+                    && strpos($alert['text'] ?? '', 'Private employee data') === false;
+            });
+
+        $fresh = $schedule->fresh();
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $fresh->realization_type);
+        $this->assertNull($fresh->manual_submitted_at);
+        $this->assertNull($fresh->manual_submitted_by);
+        $this->assertNull($fresh->manual_reference_number);
+    }
+
+    public function test_index_renders_manual_action_and_escaped_manual_status_details(): void
+    {
+        $hr = $this->hrUser();
+        $pending = $this->schedule('NIK-MANUAL-UI-PENDING', '2026-09-10');
+        $manual = $this->schedule('NIK-MANUAL-UI-DONE', '2026-09-11', RosterSchedule::REALIZATION_CUTI);
+        $manual->forceFill([
+            'manual_submitted_at' => now(),
+            'manual_submitted_by' => $hr->id,
+            'manual_reference_number' => 'REF/<script>alert(1)</script>',
+            'manual_submission_note' => '<script>private note</script>',
+        ])->save();
+
+        $response = $this->actingAs($hr)->get(route('roster-schedules.index'));
+
+        $response->assertOk();
+        $response->assertSee(route('roster-schedules.manual-submission.store', $pending), false);
+        $response->assertSee('Catat Pengajuan Manual');
+        $response->assertSee('Pengajuan Manual');
+        $response->assertSee('REF/&lt;script&gt;alert(1)&lt;/script&gt;', false);
+        $response->assertDontSee('<script>private note</script>', false);
+        $response->assertSee($hr->name);
+        $response->assertSee('tidak membuat approval digital');
+        $response->assertSee('Menyimpan...');
+
+        preg_match_all('/<tr>.*?<\/tr>/s', $response->getContent(), $rows);
+        $manualRow = collect($rows[0])->first(function (string $row) use ($manual): bool {
+            return strpos($row, $manual->employee_nik) !== false;
+        });
+        $this->assertNotNull($manualRow);
+        $this->assertStringNotContainsString('Catat Pengajuan Manual', $manualRow);
+        $this->assertStringNotContainsString(route('roster-schedules.manual-submission.store', $manual), $manualRow);
+    }
+
+    private function application(RosterSchedule $schedule, int $hod, int $hrd): Roster
+    {
+        return Roster::create([
+            'roster_schedule_id' => $schedule->id,
+            'status_pengajuan' => $hod,
+            'status_pengajuan_hrd' => $hrd,
+        ]);
     }
 
     private function hrUser(): User

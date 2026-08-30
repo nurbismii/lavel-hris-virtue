@@ -110,6 +110,22 @@
                                     @endphp
                                     <span class="badge bg-{{ $realizationClass }}">{{ $schedule->realization_label }}</span>
                                     @if(!$schedule->is_active)<span class="badge bg-secondary">Nonaktif</span>@endif
+                                    @if($schedule->manual_submitted_at)
+                                        <div class="mt-1">
+                                            <span class="badge bg-dark">Pengajuan Manual</span>
+                                            @if($schedule->manual_reference_number)
+                                                <small class="d-block text-muted mt-1">Referensi: {{ $schedule->manual_reference_number }}</small>
+                                            @endif
+                                            <small class="d-block text-muted">
+                                                {{ $schedule->manual_submitted_at->format('d M Y H:i') }} ·
+                                                @if($schedule->manualSubmitter)
+                                                    {{ $schedule->manualSubmitter->name }} ({{ $schedule->manual_submitted_by }})
+                                                @else
+                                                    {{ $schedule->manual_submitted_by ?: 'Akun tidak ditemukan' }}
+                                                @endif
+                                            </small>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>
                                     @if($schedule->reminder_queued_at)
@@ -125,6 +141,15 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="d-inline-flex flex-column flex-sm-row align-items-end gap-1">
+                                        @if($schedule->is_active && $schedule->realization_type === \App\Models\RosterSchedule::REALIZATION_PENDING)
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-success js-manual-submission-button"
+                                                    data-manual-schedule-id="{{ $schedule->id }}"
+                                                    data-manual-employee="{{ optional($schedule->employee)->nama_karyawan ?: 'Karyawan tidak ditemukan' }} · {{ $schedule->employee_nik }}"
+                                                    data-manual-action="{{ route('roster-schedules.manual-submission.store', $schedule) }}">
+                                                <i class="fas fa-file-signature me-1"></i> Catat Pengajuan Manual
+                                            </button>
+                                        @endif
                                         @if($schedule->isOverduePending($today))
                                             @php
                                                 $cooldownHours = max(1, (int) config('roster.overdue_reminder_cooldown_hours', 24));
@@ -195,6 +220,54 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="manualSubmissionModal" tabindex="-1" aria-labelledby="manualSubmissionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="" id="manualSubmissionForm" class="js-manual-submission-form">
+                @csrf
+                <input type="hidden" name="manual_schedule_id" id="manualScheduleId" value="{{ old('manual_schedule_id') }}">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title" id="manualSubmissionModalLabel">Catat Pengajuan Manual</h5>
+                        <small class="text-muted" id="manualSubmissionEmployee"></small>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2">
+                        Form ini mencatat penerimaan pengajuan offline dan tidak membuat approval digital.
+                    </div>
+                    <div class="mb-3">
+                        <label for="manualRealizationType" class="form-label">Realisasi <span class="text-danger">*</span></label>
+                        <select name="realization_type" id="manualRealizationType" class="form-select @error('realization_type') is-invalid @enderror" required>
+                            <option value="">Pilih realisasi</option>
+                            <option value="{{ \App\Models\RosterSchedule::REALIZATION_CUTI }}" @if(old('realization_type') === \App\Models\RosterSchedule::REALIZATION_CUTI) selected @endif>Cuti Roster</option>
+                            <option value="{{ \App\Models\RosterSchedule::REALIZATION_INSENTIF }}" @if(old('realization_type') === \App\Models\RosterSchedule::REALIZATION_INSENTIF) selected @endif>Insentif</option>
+                        </select>
+                        @error('realization_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div class="mb-3">
+                        <label for="manualReferenceNumber" class="form-label">Nomor referensi</label>
+                        <input type="text" name="manual_reference_number" id="manualReferenceNumber" maxlength="100" value="{{ old('manual_reference_number') }}" class="form-control @error('manual_reference_number') is-invalid @enderror">
+                        @error('manual_reference_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label for="manualSubmissionNote" class="form-label">Catatan</label>
+                        <textarea name="manual_submission_note" id="manualSubmissionNote" maxlength="500" class="form-control @error('manual_submission_note') is-invalid @enderror" rows="3">{{ old('manual_submission_note') }}</textarea>
+                        @error('manual_submission_note')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save me-1"></i> Simpan Pengajuan Manual
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -216,6 +289,65 @@ document.addEventListener('submit', function (event) {
     button.dataset.originalHtml = button.innerHTML;
     button.disabled = true;
     button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Memasukkan ke antrean...';
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const modalElement = document.getElementById('manualSubmissionModal');
+    const form = document.getElementById('manualSubmissionForm');
+    const employee = document.getElementById('manualSubmissionEmployee');
+    const scheduleId = document.getElementById('manualScheduleId');
+    const oldScheduleId = @json((string) old('manual_schedule_id', ''));
+
+    if (!modalElement || !form || typeof bootstrap === 'undefined') {
+        return;
+    }
+
+    const modal = new bootstrap.Modal(modalElement);
+    const buttons = Array.from(document.querySelectorAll('.js-manual-submission-button'));
+
+    buttons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            form.action = button.dataset.manualAction;
+            scheduleId.value = button.dataset.manualScheduleId;
+            employee.textContent = button.dataset.manualEmployee;
+
+            if (oldScheduleId === '' || oldScheduleId !== button.dataset.manualScheduleId) {
+                form.querySelector('[name="realization_type"]').value = '';
+                form.querySelector('[name="manual_reference_number"]').value = '';
+                form.querySelector('[name="manual_submission_note"]').value = '';
+            }
+
+            modal.show();
+        });
+    });
+
+    if (oldScheduleId !== '') {
+        const restoreButton = buttons.find(function (button) {
+            return button.dataset.manualScheduleId === oldScheduleId;
+        });
+
+        if (restoreButton) {
+            restoreButton.click();
+        }
+    }
+});
+
+document.addEventListener('submit', function (event) {
+    const form = event.target.closest('.js-manual-submission-form');
+
+    if (!form) {
+        return;
+    }
+
+    const button = form.querySelector('button[type="submit"]');
+
+    if (!button || button.disabled || !form.action) {
+        event.preventDefault();
+        return;
+    }
+
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Menyimpan...';
 });
 </script>
 @endpush

@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roster\StoreRosterScheduleRequest;
+use App\Http\Requests\Roster\StoreManualRosterSubmissionRequest;
 use App\Http\Requests\Roster\ReviewRosterScheduleHistoryRequest;
 use App\Http\Requests\Roster\UpdateRosterScheduleRequest;
 use App\Models\Employee;
 use App\Models\RosterSchedule;
 use App\Models\RosterScheduleHistory;
 use App\Services\Roster\RosterScheduleHistoryService;
+use App\Services\Roster\RosterScheduleManualSubmissionService;
 use App\Services\Roster\RosterScheduleReminderEligibilityService;
 use App\Services\Roster\RosterScheduleService;
 use App\Services\Audit\AuditTrailService;
@@ -25,7 +27,10 @@ class RosterScheduleController extends Controller
     {
         $today = Carbon::today();
         $query = RosterSchedule::query()
-            ->with(['employee:nik,nama_karyawan,departemen_id,divisi_id,status_resign'])
+            ->with([
+                'employee:nik,nama_karyawan,departemen_id,divisi_id,status_resign',
+                'manualSubmitter:id,name',
+            ])
             ->priorityForToday($today);
 
         if ($request->filled('year')) {
@@ -230,6 +235,34 @@ class RosterScheduleController extends Controller
         ]);
 
         toast()->success('Masuk Antrean', 'Reminder ulang telah masuk antrean pengiriman.');
+
+        return back();
+    }
+
+    public function storeManualSubmission(
+        StoreManualRosterSubmissionRequest $request,
+        RosterSchedule $rosterSchedule,
+        RosterScheduleManualSubmissionService $service
+    ) {
+        try {
+            $updated = $service->record(
+                $rosterSchedule,
+                $request->validated(),
+                $request->user()
+            );
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            report($exception);
+            toast()->error('Gagal', 'Pengajuan manual gagal dicatat. Silakan coba lagi.');
+
+            return back()->withInput();
+        }
+
+        toast()->success(
+            'Berhasil',
+            'Pengajuan manual dicatat sebagai ' . $updated->realization_label . '.'
+        );
 
         return back();
     }

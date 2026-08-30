@@ -220,6 +220,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::post('/roster-schedules/{rosterSchedule}/reminder-overdue', [RosterScheduleController::class, 'sendOverdueReminder'])
             ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
             ->name('roster-schedules.reminder.overdue');
+        Route::post('/roster-schedules/{rosterSchedule}/manual-submission', [RosterScheduleController::class, 'storeManualSubmission'])
+            ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
+            ->name('roster-schedules.manual-submission.store');
         Route::resource('/roster-schedules', RosterScheduleController::class)
             ->only(['index', 'create', 'store', 'edit', 'update'])
             ->middleware(['menu:roster_schedule', 'role:Super Admin,HR']);

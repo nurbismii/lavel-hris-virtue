@@ -11,6 +11,7 @@ use App\Models\RosterSchedule;
 use App\Models\User;
 use App\Services\Roster\RosterScheduleReminderEligibilityService;
 use App\Services\Roster\RosterScheduleImportCommitService;
+use App\Services\Roster\RosterScheduleManualSubmissionService;
 use App\Services\Audit\AuditTrailService;
 use Carbon\Carbon;
 use Illuminate\Bus\UniqueLock;
@@ -470,6 +471,43 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         (new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE))->handle($service);
 
         $fresh = $schedule->fresh();
+        $this->assertNull($fresh->reminder_queued_at);
+        $this->assertNull($fresh->reminder_sent_at);
+        Notification::assertNothingSentTo($user);
+    }
+
+    public function test_claimed_overdue_reminder_stops_after_manual_submission_is_recorded(): void
+    {
+        Queue::fake();
+        Notification::fake();
+        $eligibility = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('063', -1);
+        $user = $this->userFor($schedule);
+        $actor = User::create([
+            'id' => 'hr-manual-reminder',
+            'name' => 'HR Manual Reminder',
+        ]);
+        $this->app->instance(AuditTrailService::class, new class extends AuditTrailService {
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                return null;
+            }
+        });
+
+        $this->assertTrue($eligibility->dispatchOverdue($schedule));
+        $this->assertNotNull($schedule->fresh()->reminder_queued_at);
+
+        app(RosterScheduleManualSubmissionService::class)->record($schedule, [
+            'realization_type' => RosterSchedule::REALIZATION_INSENTIF,
+            'manual_reference_number' => 'OFFLINE/063',
+            'manual_submission_note' => null,
+        ], $actor);
+
+        $this->assertNull($schedule->fresh()->reminder_queued_at);
+        (new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE))->handle($eligibility);
+
+        $fresh = $schedule->fresh();
+        $this->assertSame(RosterSchedule::REALIZATION_INSENTIF, $fresh->realization_type);
         $this->assertNull($fresh->reminder_queued_at);
         $this->assertNull($fresh->reminder_sent_at);
         Notification::assertNothingSentTo($user);
