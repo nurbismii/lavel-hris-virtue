@@ -6,6 +6,7 @@ use App\Jobs\SendRosterScheduleReminder;
 use App\Models\RosterSchedule;
 use Carbon\Carbon;
 use Illuminate\Bus\UniqueLock;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -64,19 +65,32 @@ class RosterScheduleReminderEligibilityService
         }
 
         $job = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
+        $uniqueLock = new UniqueLock(app(Cache::class));
 
         try {
-            dispatch($job);
+            $lockAcquired = $uniqueLock->acquire($job);
+        } catch (\Throwable $exception) {
+            $this->clearOverdueClaim($schedule->id, $claimedAt);
+            report($exception);
+
+            return false;
+        }
+
+        if (!$lockAcquired) {
+            $this->clearOverdueClaim($schedule->id, $claimedAt);
+
+            return false;
+        }
+
+        try {
+            app(Dispatcher::class)->dispatch($job);
 
             return true;
         } catch (\Throwable $exception) {
-            RosterSchedule::query()
-                ->whereKey($schedule->id)
-                ->where('reminder_queued_at', $claimedAt)
-                ->update(['reminder_queued_at' => null]);
+            $this->clearOverdueClaim($schedule->id, $claimedAt);
 
             try {
-                (new UniqueLock(app(Cache::class)))->release($job);
+                $uniqueLock->release($job);
             } catch (\Throwable $releaseException) {
                 report($releaseException);
             }
@@ -85,6 +99,46 @@ class RosterScheduleReminderEligibilityService
 
             return false;
         }
+    }
+
+    public function overdueReminderAvailability(array $scheduleIds, ?Carbon $today = null): array
+    {
+        $ids = collect($scheduleIds)
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            return [
+                'eligible_ids' => [],
+                'active_application_ids' => [],
+            ];
+        }
+
+        $today = ($today ?: Carbon::today())->copy()->startOfDay();
+
+        $eligibleIds = $this->overdueEligibleQuery($today)
+            ->whereKey($ids)
+            ->whereNull('reminder_queued_at')
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        $activeApplicationIds = RosterSchedule::query()
+            ->whereKey($ids)
+            ->whereHas('applications', function (Builder $query): void {
+                $this->applyActiveApplicationFilter($query);
+            })
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        return [
+            'eligible_ids' => $eligibleIds,
+            'active_application_ids' => $activeApplicationIds,
+        ];
     }
 
     public function dispatchLate(array $scheduleIds, Carbon $from, Carbon $to): int
@@ -185,6 +239,14 @@ class RosterScheduleReminderEligibilityService
                     ->orWhere('status_pengajuan_hrd', '!=', 2);
             });
         });
+    }
+
+    private function clearOverdueClaim(int $scheduleId, Carbon $claimedAt): void
+    {
+        RosterSchedule::query()
+            ->whereKey($scheduleId)
+            ->where('reminder_queued_at', $claimedAt)
+            ->update(['reminder_queued_at' => null]);
     }
 
     public function claim(int $scheduleId, Carbon $from, Carbon $to): bool

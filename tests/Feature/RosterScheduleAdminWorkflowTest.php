@@ -7,6 +7,8 @@ use App\Models\RosterSchedule;
 use App\Models\User;
 use App\Services\Audit\AuditTrailService;
 use Carbon\Carbon;
+use Illuminate\Bus\UniqueLock;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Queue;
@@ -114,6 +116,35 @@ class RosterScheduleAdminWorkflowTest extends TestCase
         $this->assertSame('roster_schedule.overdue_reminder_queued', $audit->records[0]['event']);
     }
 
+    public function test_stale_unique_lock_does_not_audit_or_show_queued_success(): void
+    {
+        Queue::fake();
+        $hr = $this->hrUser();
+        $schedule = $this->schedule('NIK-OVERDUE-LOCKED', '2026-08-31');
+        $audit = $this->fakeAudit();
+        $job = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
+        $uniqueLock = new UniqueLock(app(CacheRepository::class));
+        $this->assertTrue($uniqueLock->acquire($job));
+
+        try {
+            $response = $this->actingAs($hr)
+                ->post(route('roster-schedules.reminder.overdue', $schedule))
+                ->assertRedirect();
+
+            $response->assertSessionHas('alert.config', function (string $config): bool {
+                $alert = json_decode($config, true);
+
+                return ($alert['icon'] ?? null) === 'warning'
+                    && ($alert['title'] ?? null) === 'Belum Diproses';
+            });
+            Queue::assertNothingPushed();
+            $this->assertNull($schedule->fresh()->reminder_queued_at);
+            $this->assertCount(0, $audit->records);
+        } finally {
+            $uniqueLock->release($job);
+        }
+    }
+
     public function test_overdue_reminder_rejects_employee_and_hr_without_menu_access(): void
     {
         Queue::fake();
@@ -171,6 +202,63 @@ class RosterScheduleAdminWorkflowTest extends TestCase
         $response->assertSee('Dalam antrean');
         $response->assertSee('Dapat dikirim lagi');
         $response->assertSee('Memasukkan ke antrean...');
+    }
+
+    public function test_index_disables_overdue_reminder_for_resigned_employee_and_active_application(): void
+    {
+        $hr = $this->hrUser();
+        $resigned = $this->schedule('NIK-REMINDER-RESIGNED', '2026-08-31');
+        DB::table('employees')->where('nik', $resigned->employee_nik)->update(['status_resign' => 'RESIGN']);
+        $resigned->update(['reminder_sent_at' => now()->subHours(23)]);
+        $applied = $this->schedule('NIK-REMINDER-APPLIED', '2026-08-30');
+        $applied->update(['reminder_queued_at' => now()]);
+        DB::table('cuti_roster')->insert([
+            'roster_schedule_id' => $applied->id,
+            'status_pengajuan' => 0,
+            'status_pengajuan_hrd' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        foreach (range(1, 3) as $index) {
+            $additionalApplied = $this->schedule('NIK-REMINDER-APPLIED-' . $index, '2026-08-2' . $index);
+            DB::table('cuti_roster')->insert([
+                'roster_schedule_id' => $additionalApplied->id,
+                'status_pengajuan' => 0,
+                'status_pengajuan_hrd' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+        $applicationQueries = [];
+        DB::listen(function ($query) use (&$applicationQueries): void {
+            $sql = strtolower($query->sql);
+            if (strpos($sql, 'cuti_roster') !== false && strpos($sql, 'roster_schedule_id') !== false) {
+                $applicationQueries[] = $query->sql;
+            }
+        });
+
+        $response = $this->actingAs($hr)->get(route('roster-schedules.index'));
+
+        $response->assertOk();
+        $this->assertCount(2, $applicationQueries);
+        preg_match_all('/<tr>.*?<\/tr>/s', $response->getContent(), $rows);
+
+        foreach ([
+            [$resigned, 'Karyawan tidak aktif', 'Dalam cooldown'],
+            [$applied, 'Pengajuan digital aktif', 'Dalam antrean'],
+        ] as [$schedule, $reason, $misleadingState]) {
+            $row = collect($rows[0])->first(function (string $row) use ($schedule): bool {
+                return strpos($row, $schedule->employee_nik) !== false;
+            });
+
+            $this->assertNotNull($row);
+            $this->assertStringContainsString('disabled', $row);
+            $this->assertStringContainsString($reason, $row);
+            $this->assertStringNotContainsString('Kirim Reminder Lagi', $row);
+            $this->assertSame(1, preg_match('/<button[^>]*disabled[^>]*>(.*?)<\/button>/s', $row, $button));
+            $this->assertStringContainsString($reason, $button[1]);
+            $this->assertStringNotContainsString($misleadingState, $button[1]);
+        }
     }
 
     private function hrUser(): User

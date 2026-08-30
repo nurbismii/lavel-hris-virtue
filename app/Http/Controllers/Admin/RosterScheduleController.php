@@ -21,7 +21,7 @@ use Throwable;
 
 class RosterScheduleController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, RosterScheduleReminderEligibilityService $reminderEligibility)
     {
         $today = Carbon::today();
         $query = RosterSchedule::query()
@@ -51,10 +51,17 @@ class RosterScheduleController extends Controller
 
         $perPage = (int) $request->input('per_page', 50);
         $perPage = in_array($perPage, [20, 50, 100], true) ? $perPage : 50;
+        $schedules = $query->paginate($perPage)->withQueryString();
+        $reminderAvailability = $reminderEligibility->overdueReminderAvailability(
+            $schedules->pluck('id')->all(),
+            $today
+        );
 
         return view('admin.roster-schedules.index', [
-            'schedules' => $query->paginate($perPage)->withQueryString(),
+            'schedules' => $schedules,
             'today' => $today,
+            'overdueReminderEligibleIds' => $reminderAvailability['eligible_ids'],
+            'overdueReminderActiveApplicationIds' => $reminderAvailability['active_application_ids'],
             'realizationOptions' => RosterSchedule::realizationOptions(),
             'filters' => $request->only(['year', 'realization_type', 'active', 'search', 'per_page']),
             'yearOptions' => RosterSchedule::query()

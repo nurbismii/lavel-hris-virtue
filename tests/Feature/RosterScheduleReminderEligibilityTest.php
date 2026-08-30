@@ -13,6 +13,7 @@ use App\Services\Roster\RosterScheduleReminderEligibilityService;
 use App\Services\Roster\RosterScheduleImportCommitService;
 use App\Services\Audit\AuditTrailService;
 use Carbon\Carbon;
+use Illuminate\Bus\UniqueLock;
 use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Contracts\Cache\Lock;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
@@ -134,11 +135,41 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         $this->assertFalse($service->dispatchOverdue($schedule->fresh()));
 
         Queue::assertPushed(SendRosterScheduleReminder::class, 1);
-        Queue::assertPushed(SendRosterScheduleReminder::class, function (SendRosterScheduleReminder $job) use ($schedule): bool {
+        $queuedJob = null;
+        Queue::assertPushed(SendRosterScheduleReminder::class, function (SendRosterScheduleReminder $job) use ($schedule, &$queuedJob): bool {
+            $queuedJob = $job;
+
             return $job->scheduleId === $schedule->id
                 && $job->mode === SendRosterScheduleReminder::MODE_OVERDUE;
         });
         $this->assertNotNull($schedule->fresh()->reminder_queued_at);
+        $this->assertInstanceOf(SendRosterScheduleReminder::class, $queuedJob);
+
+        $uniqueLock = new UniqueLock(app(CacheRepository::class));
+        $competingJob = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
+        try {
+            $this->assertFalse($uniqueLock->acquire($competingJob));
+        } finally {
+            $uniqueLock->release($queuedJob);
+        }
+    }
+
+    public function test_stale_unique_lock_returns_false_without_queueing_or_leaving_database_claim(): void
+    {
+        Queue::fake();
+        $service = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('0281', -1);
+        $job = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
+        $uniqueLock = new UniqueLock(app(CacheRepository::class));
+        $this->assertTrue($uniqueLock->acquire($job));
+
+        try {
+            $this->assertFalse($service->dispatchOverdue($schedule));
+            Queue::assertNothingPushed();
+            $this->assertNull($schedule->fresh()->reminder_queued_at);
+        } finally {
+            $uniqueLock->release($job);
+        }
     }
 
     public function test_overdue_dispatch_failure_releases_database_claim_and_unique_job_lock(): void

@@ -132,6 +132,22 @@
                                                     ? $schedule->reminder_sent_at->copy()->addHours($cooldownHours)
                                                     : null;
                                                 $isCoolingDown = $nextReminderAt && $nextReminderAt->gt(now());
+                                                $isReminderEligible = in_array(
+                                                    (int) $schedule->id,
+                                                    $overdueReminderEligibleIds,
+                                                    true
+                                                );
+                                                $hasActiveApplication = in_array(
+                                                    (int) $schedule->id,
+                                                    $overdueReminderActiveApplicationIds,
+                                                    true
+                                                );
+                                                $reminderUnavailableReason = null;
+                                                if (optional($schedule->employee)->status_resign !== 'AKTIF') {
+                                                    $reminderUnavailableReason = 'Karyawan tidak aktif';
+                                                } elseif ($hasActiveApplication) {
+                                                    $reminderUnavailableReason = 'Pengajuan digital aktif';
+                                                }
                                             @endphp
                                             <form method="POST"
                                                   action="{{ route('roster-schedules.reminder.overdue', $schedule) }}"
@@ -139,16 +155,20 @@
                                                 @csrf
                                                 <button type="submit"
                                                         class="btn btn-sm btn-outline-danger"
-                                                        @disabled($schedule->reminder_queued_at || $isCoolingDown)>
-                                                    @if($schedule->reminder_queued_at)
+                                                        @disabled($schedule->reminder_queued_at || $isCoolingDown || !$isReminderEligible)>
+                                                    @if($reminderUnavailableReason)
+                                                        <i class="fas fa-ban me-1"></i> {{ $reminderUnavailableReason }}
+                                                    @elseif($schedule->reminder_queued_at)
                                                         <i class="fas fa-clock me-1"></i> Dalam antrean
                                                     @elseif($isCoolingDown)
                                                         <i class="fas fa-hourglass-half me-1"></i> Dalam cooldown
+                                                    @elseif(!$isReminderEligible)
+                                                        <i class="fas fa-ban me-1"></i> Reminder tidak tersedia
                                                     @else
                                                         <i class="fas fa-paper-plane me-1"></i> Kirim Reminder Lagi
                                                     @endif
                                                 </button>
-                                                @if($isCoolingDown)
+                                                @if($isCoolingDown && !$reminderUnavailableReason)
                                                     <small class="d-block text-muted mt-1">
                                                         Dapat dikirim lagi {{ $nextReminderAt->format('d M Y H:i') }}
                                                     </small>
