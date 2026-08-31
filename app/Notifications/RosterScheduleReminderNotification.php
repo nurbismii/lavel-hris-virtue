@@ -43,7 +43,7 @@ class RosterScheduleReminderNotification extends Notification
                 ->line('Periode OFF roster ' . $this->schedule->period_label . ' telah dimulai dan pilihan realisasi masih menunggu tindak lanjut.')
                 ->line('Periode cuti roster: ' . $this->schedule->off_start->format('d M Y') . ' - ' . $this->schedule->off_end->format('d M Y') . '.')
                 ->line('Silakan segera ajukan Cuti Roster jika mengambil cuti roster atau pilih Insentif jika tetap bekerja sesuai permintaan HOD departemen.')
-                ->action('Buka Pengajuan Roster', $this->rosterUrl())
+                // ->action('Buka Pengajuan Roster', $this->rosterUrl())
                 ->line('Abaikan email ini bila pilihan roster Anda sudah diproses oleh HR.')
                 ->salutation('HRIS V-People');
         }
@@ -55,7 +55,7 @@ class RosterScheduleReminderNotification extends Notification
             ->line('Masa kerja: ' . $this->schedule->work_start->format('d M Y') . ' - ' . $this->schedule->work_end->format('d M Y') . '.')
             ->line('Periode cuti roster: ' . $this->schedule->off_start->format('d M Y') . ' - ' . $this->schedule->off_end->format('d M Y') . '.')
             ->line('Silakan ajukan Cuti Roster jika mengambil cuti roster atau pilih Insentif jika tetap bekerja sesuai permintaan HOD departemen.')
-            ->action('Buka Pengajuan Roster', $this->rosterUrl())
+            // ->action('Buka Pengajuan Roster', $this->rosterUrl())
             ->line('Abaikan email ini bila pilihan roster Anda sudah diproses oleh HR.')
             ->salutation('HRIS V-People');
     }
