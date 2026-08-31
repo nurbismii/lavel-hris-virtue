@@ -64,7 +64,7 @@ class RosterScheduleApplicationLinkTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_inactive_or_past_schedule_cannot_be_selected(): void
+    public function test_inactive_schedule_is_rejected_but_active_pending_overdue_schedule_can_be_selected_and_submitted(): void
     {
         $user = $this->rosterUser('unavailable', '000000004');
         $inactive = $this->scheduleFor($user->nik_karyawan, ['is_active' => false]);
@@ -74,7 +74,109 @@ class RosterScheduleApplicationLinkTest extends TestCase
         ]);
 
         $this->actingAs($user)->get(route('roster.create', ['roster_schedule' => $inactive->id]))->assertNotFound();
-        $this->actingAs($user)->get(route('roster.create', ['roster_schedule' => $past->id]))->assertNotFound();
+        $this->actingAs($user)
+            ->get(route('roster.create', ['roster_schedule' => $past->id]))
+            ->assertOk()
+            ->assertSee('name="roster_schedule_id" value="' . $past->id . '"', false);
+
+        $this->submit($user, [
+            'roster_schedule_id' => $past->id,
+            'tipe_rencana' => '2',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('cuti_roster', [
+            'roster_schedule_id' => $past->id,
+            'nik_karyawan' => $user->nik_karyawan,
+        ]);
+        $this->assertSame(RosterSchedule::REALIZATION_INSENTIF, $past->fresh()->realization_type);
+    }
+
+    public function test_pending_schedule_with_manual_metadata_cannot_be_selected_or_submitted(): void
+    {
+        $user = $this->rosterUser('manual-metadata', '000000017');
+        $schedule = $this->scheduleFor($user->nik_karyawan, [
+            'manual_submitted_at' => now()->subMinute(),
+            'manual_submitted_by' => 'legacy-hr',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('roster.create', ['roster_schedule' => $schedule->id]))
+            ->assertNotFound();
+
+        $this->submit($user, ['roster_schedule_id' => $schedule->id])->assertRedirect();
+
+        $this->assertSame(0, Roster::where('roster_schedule_id', $schedule->id)->count());
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $schedule->fresh()->realization_type);
+    }
+
+    public function test_manually_realized_schedule_cannot_be_opened_or_linked_by_digital_submission(): void
+    {
+        $user = $this->rosterUser('manual-realized', '000000013');
+        $manualActor = $this->rosterUser('manual-actor', '000000014');
+        $manualSubmittedAt = now()->subHour()->startOfSecond();
+        $schedule = $this->scheduleFor($user->nik_karyawan, [
+            'realization_type' => RosterSchedule::REALIZATION_CUTI,
+            'manual_submitted_at' => $manualSubmittedAt,
+            'manual_submitted_by' => $manualActor->id,
+            'manual_reference_number' => 'MANUAL/LOCKED/2026',
+            'manual_submission_note' => 'Berkas manual sudah diterima HR.',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('roster.create', ['roster_schedule' => $schedule->id]))
+            ->assertNotFound();
+
+        $response = $this->submit($user, [
+            'roster_schedule_id' => $schedule->id,
+            'tipe_rencana' => '2',
+        ]);
+
+        $response->assertRedirect()
+            ->assertSessionHas('alert.config', function (string $config): bool {
+                $alert = json_decode($config, true);
+
+                return ($alert['icon'] ?? null) === 'error'
+                    && ($alert['title'] ?? null) === 'Error'
+                    && ($alert['text'] ?? null) === 'Pengajuan roster gagal disimpan. Periksa kembali data dan lampiran, lalu coba lagi.'
+                    && strpos($config, 'Berkas manual sudah diterima HR.') === false;
+            });
+
+        $fresh = $schedule->fresh();
+        $this->assertSame(0, Roster::where('roster_schedule_id', $schedule->id)->count());
+        $this->assertSame(RosterSchedule::REALIZATION_CUTI, $fresh->realization_type);
+        $this->assertSame($manualActor->id, $fresh->manual_submitted_by);
+        $this->assertSame($manualSubmittedAt->toDateTimeString(), $fresh->manual_submitted_at->toDateTimeString());
+        $this->assertSame('MANUAL/LOCKED/2026', $fresh->manual_reference_number);
+        $this->assertSame('Berkas manual sudah diterima HR.', $fresh->manual_submission_note);
+    }
+
+    public function test_store_revalidates_current_realization_instead_of_stale_schedule_state(): void
+    {
+        $user = $this->rosterUser('manual-race', '000000015');
+        $manualActor = $this->rosterUser('manual-race-actor', '000000016');
+        $schedule = $this->scheduleFor($user->nik_karyawan);
+        $stalePendingSchedule = RosterSchedule::findOrFail($schedule->id);
+        $manualSubmittedAt = now()->subMinute()->startOfSecond();
+
+        RosterSchedule::whereKey($schedule->id)->update([
+            'realization_type' => RosterSchedule::REALIZATION_INSENTIF,
+            'manual_submitted_at' => $manualSubmittedAt,
+            'manual_submitted_by' => $manualActor->id,
+            'manual_reference_number' => 'MANUAL/RACE/2026',
+            'manual_submission_note' => 'Realisasi berubah setelah model kandidat dibaca.',
+        ]);
+
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $stalePendingSchedule->realization_type);
+
+        $this->submit($user, ['roster_schedule_id' => $schedule->id])->assertRedirect();
+
+        $fresh = $schedule->fresh();
+        $this->assertSame(0, Roster::where('roster_schedule_id', $schedule->id)->count());
+        $this->assertSame(RosterSchedule::REALIZATION_INSENTIF, $fresh->realization_type);
+        $this->assertSame($manualActor->id, $fresh->manual_submitted_by);
+        $this->assertSame($manualSubmittedAt->toDateTimeString(), $fresh->manual_submitted_at->toDateTimeString());
+        $this->assertSame('MANUAL/RACE/2026', $fresh->manual_reference_number);
+        $this->assertSame('Realisasi berubah setelah model kandidat dibaca.', $fresh->manual_submission_note);
     }
 
     public function test_valid_cuti_submission_links_schedule_and_sets_cuti_realization(): void
@@ -152,11 +254,105 @@ class RosterScheduleApplicationLinkTest extends TestCase
         $this->assertSame(RosterSchedule::REALIZATION_PENDING, $schedule->fresh()->realization_type);
     }
 
-    public function test_legacy_submission_without_schedule_id_remains_unlinked(): void
+    public function test_legacy_submission_without_schedule_id_links_the_single_exact_employee_work_period(): void
+    {
+        $user = $this->rosterUser('legacy-exact', '000000018');
+        [$start, $end] = $this->submissionPeriod();
+        $schedule = $this->scheduleFor($user->nik_karyawan, [
+            'work_start' => $start,
+            'work_end' => $end,
+            'off_start' => now()->subDay()->toDateString(),
+            'off_end' => now()->addDays(2)->toDateString(),
+        ]);
+
+        $this->submit($user, [
+            'periode_awal' => $start,
+            'periode_akhir' => $end,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('cuti_roster', [
+            'nik_karyawan' => $user->nik_karyawan,
+            'roster_schedule_id' => $schedule->id,
+        ]);
+        $this->assertSame(RosterSchedule::REALIZATION_CUTI, $schedule->fresh()->realization_type);
+    }
+
+    public function test_legacy_submission_rejects_an_exact_manual_or_completed_schedule_instead_of_bypassing_it(): void
+    {
+        [$start, $end] = $this->submissionPeriod();
+
+        foreach ([
+            [
+                'id' => 'legacy-manual',
+                'nik' => '000000019',
+                'overrides' => [
+                    'realization_type' => RosterSchedule::REALIZATION_CUTI,
+                    'manual_submitted_at' => now()->subHour(),
+                    'manual_submitted_by' => 'hr-existing',
+                ],
+            ],
+            [
+                'id' => 'legacy-completed',
+                'nik' => '000000020',
+                'overrides' => [
+                    'realization_type' => RosterSchedule::REALIZATION_INSENTIF,
+                ],
+            ],
+        ] as $case) {
+            $user = $this->rosterUser($case['id'], $case['nik']);
+            $schedule = $this->scheduleFor($user->nik_karyawan, array_merge($case['overrides'], [
+                'work_start' => $start,
+                'work_end' => $end,
+            ]));
+
+            $this->submit($user, [
+                'periode_awal' => $start,
+                'periode_akhir' => $end,
+            ])->assertRedirect();
+
+            $this->assertSame(0, Roster::where('nik_karyawan', $user->nik_karyawan)->count());
+            $this->assertSame($case['overrides']['realization_type'], $schedule->fresh()->realization_type);
+        }
+    }
+
+    public function test_legacy_submission_rejects_ambiguous_exact_period_matches_instead_of_guessing(): void
+    {
+        $user = $this->rosterUser('legacy-ambiguous', '000000021');
+        [$start, $end] = $this->submissionPeriod();
+        $this->scheduleFor($user->nik_karyawan, [
+            'work_start' => $start,
+            'work_end' => $end,
+            'off_start' => now()->addDays(10)->toDateString(),
+        ]);
+        $this->scheduleFor($user->nik_karyawan, [
+            'work_start' => $start,
+            'work_end' => $end,
+            'off_start' => now()->addDays(20)->toDateString(),
+        ]);
+
+        $this->submit($user, [
+            'periode_awal' => $start,
+            'periode_akhir' => $end,
+        ])->assertRedirect();
+
+        $this->assertSame(0, Roster::where('nik_karyawan', $user->nik_karyawan)->count());
+    }
+
+    public function test_legacy_submission_without_an_exact_period_match_remains_unlinked_without_nearest_date_guessing(): void
     {
         $user = $this->rosterUser('legacy', '000000011');
+        [$start, $end] = $this->submissionPeriod();
+        $this->scheduleFor($user->nik_karyawan, [
+            'work_start' => Carbon::parse($start)->subDay()->toDateString(),
+            'work_end' => $end,
+            'off_start' => Carbon::parse($end)->addDay()->toDateString(),
+            'off_end' => Carbon::parse($end)->addDays(3)->toDateString(),
+        ]);
 
-        $this->submit($user)->assertRedirect();
+        $this->submit($user, [
+            'periode_awal' => $start,
+            'periode_akhir' => $end,
+        ])->assertRedirect();
 
         $this->assertDatabaseHas('cuti_roster', [
             'nik_karyawan' => $user->nik_karyawan,
@@ -271,8 +467,7 @@ class RosterScheduleApplicationLinkTest extends TestCase
 
     private function submit(User $user, array $overrides = [])
     {
-        $start = Carbon::today()->addDays(2)->toDateString();
-        $end = Carbon::today()->addDays(6)->toDateString();
+        [$start, $end] = $this->submissionPeriod();
 
         return $this->actingAs($user)->post(route('roster.store'), array_merge([
             'email' => $user->email,
@@ -293,5 +488,13 @@ class RosterScheduleApplicationLinkTest extends TestCase
             'nik_karyawan' => 'tampered-client-nik',
             'realization_type' => 'tampered-client-realization',
         ], $overrides));
+    }
+
+    private function submissionPeriod(): array
+    {
+        return [
+            Carbon::today()->addDays(2)->toDateString(),
+            Carbon::today()->addDays(6)->toDateString(),
+        ];
     }
 }

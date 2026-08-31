@@ -14,6 +14,7 @@ use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendancePeriodLockService;
 use App\Services\Storage\SensitiveFileStorageService;
+use App\Support\SafeExceptionLogger;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -60,7 +61,8 @@ class RosterController extends Controller
                 ->whereKey($scheduleId)
                 ->where('employee_nik', Auth::user()->nik_karyawan)
                 ->where('is_active', true)
-                ->whereDate('off_start', '>=', Carbon::today()->toDateString())
+                ->where('realization_type', RosterSchedule::REALIZATION_PENDING)
+                ->whereNull('manual_submitted_at')
                 ->first();
             abort_unless($schedule, 404);
             abort_if(
@@ -110,10 +112,37 @@ class RosterController extends Controller
                     ->whereKey($scheduleId)
                     ->where('employee_nik', $nikKaryawan)
                     ->where('is_active', true)
-                    ->whereDate('off_start', '>=', Carbon::today()->toDateString())
+                    ->where('realization_type', RosterSchedule::REALIZATION_PENDING)
+                    ->whereNull('manual_submitted_at')
                     ->lockForUpdate()
                     ->first();
-                if (!$schedule || $this->hasActiveScheduleApplication($schedule->id, true)) {
+                if (!$schedule
+                    || $schedule->realization_type !== RosterSchedule::REALIZATION_PENDING
+                    || $this->hasActiveScheduleApplication($schedule->id, true)) {
+                    throw new \RuntimeException('Jadwal roster tidak tersedia untuk diajukan.');
+                }
+            } else {
+                $matchingSchedules = RosterSchedule::query()
+                    ->where('employee_nik', $nikKaryawan)
+                    ->whereDate('work_start', Carbon::parse($validated['periode_awal'])->toDateString())
+                    ->whereDate('work_end', Carbon::parse($validated['periode_akhir'])->toDateString())
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                if ($matchingSchedules->count() > 1) {
+                    throw new \RuntimeException(
+                        'Periode pengajuan cocok dengan lebih dari satu jadwal roster. Hubungi HR.'
+                    );
+                }
+
+                $schedule = $matchingSchedules->first();
+                if ($schedule && (
+                    !$schedule->is_active
+                    || $schedule->realization_type !== RosterSchedule::REALIZATION_PENDING
+                    || $schedule->manual_submitted_at !== null
+                    || $this->hasActiveScheduleApplication($schedule->id, true)
+                )) {
                     throw new \RuntimeException('Jadwal roster tidak tersedia untuk diajukan.');
                 }
             }
@@ -214,7 +243,7 @@ class RosterController extends Controller
                 app(SensitiveFileStorageService::class)->delete($storedFilePath, ['cuti-roster/']);
             }
 
-            report($e);
+            app(SafeExceptionLogger::class)->warning('roster.digital_submission', $e);
 
             toast()->error('Error', 'Pengajuan roster gagal disimpan. Periksa kembali data dan lampiran, lalu coba lagi.');
             return back()->withInput();

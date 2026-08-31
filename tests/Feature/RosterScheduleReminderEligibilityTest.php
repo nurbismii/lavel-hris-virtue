@@ -11,13 +11,20 @@ use App\Models\RosterSchedule;
 use App\Models\User;
 use App\Services\Roster\RosterScheduleReminderEligibilityService;
 use App\Services\Roster\RosterScheduleImportCommitService;
+use App\Services\Roster\RosterScheduleManualSubmissionService;
+use App\Services\Roster\RosterScheduleActionMutex;
 use App\Services\Audit\AuditTrailService;
 use Carbon\Carbon;
+use Illuminate\Bus\UniqueLock;
+use Illuminate\Contracts\Bus\Dispatcher;
+use Illuminate\Contracts\Cache\Lock;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -92,12 +99,161 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         $this->assertTrue($service->isEligible($rejected));
     }
 
-    public function test_realization_without_application_does_not_suppress_reminder(): void
+    public function test_realization_without_application_suppresses_scheduled_reminder(): void
     {
         $service = app(RosterScheduleReminderEligibilityService::class);
         $schedule = $this->schedule('020', 14, ['realization_type' => RosterSchedule::REALIZATION_CUTI]);
 
-        $this->assertTrue($service->isEligible($schedule));
+        $this->assertFalse($service->isEligible($schedule));
+    }
+
+    public function test_overdue_eligibility_honors_pending_employee_date_and_exact_cooldown_boundaries(): void
+    {
+        config()->set('roster.overdue_reminder_cooldown_hours', 24);
+        $service = app(RosterScheduleReminderEligibilityService::class);
+        $neverSent = $this->schedule('021', -1);
+        $sent25HoursAgo = $this->schedule('022', -2, ['reminder_sent_at' => now()->subHours(25)]);
+        $sentExactly24HoursAgo = $this->schedule('023', -3, ['reminder_sent_at' => now()->subHours(24)]);
+        $sent23HoursAgo = $this->schedule('024', -4, ['reminder_sent_at' => now()->subHours(23)]);
+        $future = $this->schedule('025', 1);
+        $completed = $this->schedule('026', -1, ['realization_type' => RosterSchedule::REALIZATION_CUTI]);
+        $inactiveEmployee = $this->schedule('027', -1, [], 'RESIGN');
+
+        $this->assertTrue($service->isOverdueEligible($neverSent));
+        $this->assertTrue($service->isOverdueEligible($sent25HoursAgo));
+        $this->assertTrue($service->isOverdueEligible($sentExactly24HoursAgo));
+        $this->assertFalse($service->isOverdueEligible($sent23HoursAgo));
+        $this->assertFalse($service->isOverdueEligible($future));
+        $this->assertFalse($service->isOverdueEligible($completed));
+        $this->assertFalse($service->isOverdueEligible($inactiveEmployee));
+    }
+
+    public function test_overdue_dispatch_claims_atomically_and_queues_only_once_per_schedule(): void
+    {
+        Queue::fake();
+        $service = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('028', -1);
+
+        $this->assertTrue($service->dispatchOverdue($schedule));
+        $this->assertFalse($service->dispatchOverdue($schedule->fresh()));
+
+        Queue::assertPushed(SendRosterScheduleReminder::class, 1);
+        $queuedJob = null;
+        Queue::assertPushed(SendRosterScheduleReminder::class, function (SendRosterScheduleReminder $job) use ($schedule, &$queuedJob): bool {
+            $queuedJob = $job;
+
+            return $job->scheduleId === $schedule->id
+                && $job->mode === SendRosterScheduleReminder::MODE_OVERDUE;
+        });
+        $this->assertNotNull($schedule->fresh()->reminder_queued_at);
+        $this->assertInstanceOf(SendRosterScheduleReminder::class, $queuedJob);
+        if (property_exists($queuedJob, 'uniqueLockOwner')) {
+            $this->assertNotSame('', (string) $queuedJob->uniqueLockOwner);
+        }
+
+        $competingJob = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
+        $cache = app(CacheRepository::class);
+        $lockKey = $this->uniqueLockKey($competingJob);
+        $competingLock = $cache->lock($lockKey, $competingJob->uniqueFor);
+        try {
+            $this->assertFalse($competingLock->get());
+        } finally {
+            $cache->lock($lockKey)->forceRelease();
+        }
+
+        if (method_exists(UniqueLock::class, 'release')) {
+            $replacementLock = $cache->lock($lockKey, $competingJob->uniqueFor);
+            $this->assertTrue($replacementLock->get());
+
+            try {
+                (new UniqueLock($cache))->release($queuedJob);
+                $probeLock = $cache->lock($lockKey, $competingJob->uniqueFor);
+                $this->assertFalse($probeLock->get());
+            } finally {
+                $replacementLock->release();
+            }
+        }
+    }
+
+    public function test_stale_unique_lock_returns_false_without_queueing_or_leaving_database_claim(): void
+    {
+        Queue::fake();
+        $service = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('0281', -1);
+        $job = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
+        $lock = app(CacheRepository::class)->lock($this->uniqueLockKey($job), $job->uniqueFor);
+        $this->assertTrue($lock->get());
+
+        try {
+            $this->assertFalse($service->dispatchOverdue($schedule));
+            Queue::assertNothingPushed();
+            $this->assertNull($schedule->fresh()->reminder_queued_at);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    public function test_overdue_dispatch_failure_releases_database_claim_and_unique_job_lock(): void
+    {
+        $service = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('029', -1);
+        $realDispatcher = app(Dispatcher::class);
+        $failingDispatcher = \Mockery::mock(Dispatcher::class);
+        $failingDispatcher->shouldReceive('dispatch')
+            ->once()
+            ->andThrow(new \RuntimeException('alamat/private/7402243101930029'));
+        $this->app->instance(Dispatcher::class, $failingDispatcher);
+
+        $this->assertFalse($service->dispatchOverdue($schedule));
+        $this->assertNull($schedule->fresh()->reminder_queued_at);
+
+        $this->app->instance(Dispatcher::class, $realDispatcher);
+        Queue::fake();
+
+        $this->assertTrue($service->dispatchOverdue($schedule->fresh()));
+        Queue::assertPushed(SendRosterScheduleReminder::class, 1);
+    }
+
+    public function test_overdue_dispatch_does_not_require_unique_lock_release_method(): void
+    {
+        $source = file_get_contents(app_path('Services/Roster/RosterScheduleReminderEligibilityService.php'));
+
+        $this->assertStringNotContainsString('$uniqueLock->release(', $source);
+        $this->assertStringContainsString("method_exists(UniqueLock::class, 'getKey')", $source);
+        $this->assertStringContainsString("'laravel_unique_job:' . get_class(\$job) . \$uniqueId", $source);
+    }
+
+    public function test_cache_lock_release_failure_cannot_prevent_database_claim_cleanup(): void
+    {
+        $service = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('032', -1);
+        $failingDispatcher = \Mockery::mock(Dispatcher::class);
+        $failingDispatcher->shouldReceive('dispatch')
+            ->once()
+            ->andThrow(new \RuntimeException('queue unavailable'));
+        $this->app->instance(Dispatcher::class, $failingDispatcher);
+
+        $attemptLock = \Mockery::mock(Lock::class);
+        $attemptLock->shouldReceive('get')->once()->andReturnTrue();
+        $attemptLock->shouldReceive('release')
+            ->once()
+            ->andThrow(new \RuntimeException('cache unavailable'));
+        $cache = \Mockery::mock(CacheRepository::class);
+        $cache->shouldReceive('lock')->once()->with(\Mockery::type('string'), 3600)->andReturn($attemptLock);
+        $cache->shouldReceive('getStore')->once()->andReturn(new \stdClass());
+        $this->app->instance(CacheRepository::class, $cache);
+
+        $this->assertFalse($service->dispatchOverdue($schedule));
+        $this->assertNull($schedule->fresh()->reminder_queued_at);
+    }
+
+    public function test_legacy_job_payload_without_mode_uses_scheduled_default(): void
+    {
+        $job = (new \ReflectionClass(SendRosterScheduleReminder::class))->newInstanceWithoutConstructor();
+        $job->scheduleId = 123;
+
+        $this->assertSame(SendRosterScheduleReminder::MODE_SCHEDULED, $job->mode);
+        $this->assertSame('roster-schedule-reminder-123', $job->uniqueId());
     }
 
     public function test_conditional_claim_has_one_winner_and_is_shared_by_late_and_standard_dispatch(): void
@@ -306,6 +462,151 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         $this->assertNull($fresh->reminder_failed_at);
     }
 
+    public function test_overdue_job_revalidates_realization_and_clears_stale_claim(): void
+    {
+        Notification::fake();
+        $service = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('061', -1, ['reminder_queued_at' => now()]);
+        $user = $this->userFor($schedule);
+        $schedule->update(['realization_type' => RosterSchedule::REALIZATION_CUTI]);
+
+        (new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE))->handle($service);
+
+        $fresh = $schedule->fresh();
+        $this->assertNull($fresh->reminder_queued_at);
+        $this->assertNull($fresh->reminder_sent_at);
+        Notification::assertNothingSentTo($user);
+    }
+
+    public function test_claimed_overdue_reminder_stops_after_manual_submission_is_recorded(): void
+    {
+        Queue::fake();
+        Notification::fake();
+        $eligibility = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('063', -1);
+        $user = $this->userFor($schedule);
+        $actor = User::create([
+            'id' => 'hr-manual-reminder',
+            'name' => 'HR Manual Reminder',
+        ]);
+        $this->app->instance(AuditTrailService::class, new class extends AuditTrailService {
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                return new \App\Models\AuditTrail();
+            }
+        });
+
+        $this->assertTrue($eligibility->dispatchOverdue($schedule));
+        $this->assertNotNull($schedule->fresh()->reminder_queued_at);
+
+        app(RosterScheduleManualSubmissionService::class)->record($schedule, [
+            'realization_type' => RosterSchedule::REALIZATION_INSENTIF,
+            'manual_reference_number' => 'OFFLINE/063',
+            'manual_submission_note' => null,
+        ], $actor);
+
+        $this->assertNull($schedule->fresh()->reminder_queued_at);
+        (new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE))->handle($eligibility);
+
+        $fresh = $schedule->fresh();
+        $this->assertSame(RosterSchedule::REALIZATION_INSENTIF, $fresh->realization_type);
+        $this->assertNull($fresh->reminder_queued_at);
+        $this->assertNull($fresh->reminder_sent_at);
+        Notification::assertNothingSentTo($user);
+    }
+
+    public function test_manual_submission_fails_closed_while_the_shared_reminder_mutex_is_held(): void
+    {
+        config()->set('roster.action_mutex_wait_milliseconds', 20);
+        config()->set('roster.action_mutex_retry_milliseconds', 5);
+        $schedule = $this->schedule('064', -1);
+        $actor = User::create([
+            'id' => 'hr-shared-mutex',
+            'name' => 'HR Shared Mutex',
+        ]);
+        $this->app->instance(AuditTrailService::class, new class extends AuditTrailService {
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                return new \App\Models\AuditTrail();
+            }
+        });
+        $mutex = app(RosterScheduleActionMutex::class);
+        $heldLock = $mutex->acquire($schedule->id, 0);
+        $this->assertNotNull($heldLock);
+
+        try {
+            app(RosterScheduleManualSubmissionService::class)->record($schedule, [
+                'realization_type' => RosterSchedule::REALIZATION_CUTI,
+                'manual_reference_number' => null,
+                'manual_submission_note' => null,
+            ], $actor);
+            $this->fail('Pengajuan manual harus ditolak sementara ketika job memegang mutex yang sama.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('realization_type', $exception->errors());
+        } finally {
+            $mutex->release($heldLock);
+        }
+
+        $fresh = $schedule->fresh();
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $fresh->realization_type);
+        $this->assertNull($fresh->manual_submitted_at);
+    }
+
+    public function test_overdue_job_releases_for_retry_when_manual_workflow_holds_the_shared_mutex(): void
+    {
+        Notification::fake();
+        config()->set('roster.action_mutex_wait_milliseconds', 20);
+        config()->set('roster.action_mutex_retry_milliseconds', 5);
+        config()->set('roster.action_mutex_job_retry_seconds', 7);
+        $eligibility = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('065', -1, ['reminder_queued_at' => now()]);
+        $user = $this->userFor($schedule);
+        $mutex = app(RosterScheduleActionMutex::class);
+        $heldLock = $mutex->acquire($schedule->id, 0);
+        $this->assertNotNull($heldLock);
+        $job = (new SendRosterScheduleReminder(
+            $schedule->id,
+            SendRosterScheduleReminder::MODE_OVERDUE
+        ))->withFakeQueueInteractions();
+
+        try {
+            $job->handle($eligibility, $mutex);
+        } finally {
+            $mutex->release($heldLock);
+        }
+
+        $job->assertReleased(7);
+        $this->assertNotNull($schedule->fresh()->reminder_queued_at);
+        $this->assertNull($schedule->fresh()->reminder_sent_at);
+        Notification::assertNothingSentTo($user);
+    }
+
+    public function test_overdue_notification_copy_is_explicit_and_never_uses_h_zero(): void
+    {
+        Notification::fake();
+        $service = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('062', -1, ['reminder_queued_at' => now()]);
+        $user = $this->userFor($schedule);
+
+        (new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE))->handle($service);
+
+        Notification::assertSentTo(
+            $user,
+            \App\Notifications\RosterScheduleReminderNotification::class,
+            function ($notification) use ($user): bool {
+                $mail = $notification->toMail($user);
+                $data = $notification->toArray($user);
+
+                $this->assertSame('Tindak Lanjut Jadwal Roster Terlewat', $mail->subject);
+                $this->assertStringContainsString('telah dimulai', implode(' ', $mail->introLines));
+                $this->assertStringNotContainsString('H-0', json_encode($data));
+                $this->assertStringContainsString(':overdue:', $data['key']);
+
+                return true;
+            }
+        );
+    }
+
     public function test_notification_success_marks_sent_and_failure_is_generic_and_retry_safe(): void
     {
         Notification::fake();
@@ -347,6 +648,28 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         $this->assertSame('Pengiriman reminder roster gagal. Sistem akan mencoba kembali bila memungkinkan.', $fresh->reminder_error);
         $this->assertStringNotContainsString('7402243101930072', $fresh->reminder_error);
         $this->assertStringNotContainsString('C:/private', $fresh->reminder_error);
+    }
+
+    public function test_overdue_final_failure_after_previous_send_releases_claim_and_records_safe_status(): void
+    {
+        $sentAt = now()->subHours(25);
+        $schedule = $this->schedule('073', -1, [
+            'reminder_queued_at' => now(),
+            'reminder_sent_at' => $sentAt,
+        ]);
+
+        (new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE))
+            ->failed(new \RuntimeException('KTP 7402243101930073 C:/private/overdue.xlsx'));
+
+        $fresh = $schedule->fresh();
+        $this->assertNull($fresh->reminder_queued_at);
+        $this->assertNotNull($fresh->reminder_failed_at);
+        $this->assertSame($sentAt->toDateTimeString(), $fresh->reminder_sent_at->toDateTimeString());
+        $this->assertSame(
+            'Pengiriman reminder roster gagal. Sistem akan mencoba kembali bila memungkinkan.',
+            $fresh->reminder_error
+        );
+        $this->assertStringNotContainsString('7402243101930073', $fresh->reminder_error);
     }
 
     public function test_successful_import_dispatches_late_candidates_without_persisting_ids(): void
@@ -477,5 +800,18 @@ class RosterScheduleReminderEligibilityTest extends TestCase
             'nik_karyawan' => $schedule->employee_nik,
             'status' => 'aktif',
         ]);
+    }
+
+    private function uniqueLockKey(SendRosterScheduleReminder $job): string
+    {
+        if (method_exists(UniqueLock::class, 'getKey')) {
+            return UniqueLock::getKey($job);
+        }
+
+        $uniqueId = method_exists($job, 'uniqueId')
+            ? $job->uniqueId()
+            : ($job->uniqueId ?? '');
+
+        return 'laravel_unique_job:' . get_class($job) . $uniqueId;
     }
 }

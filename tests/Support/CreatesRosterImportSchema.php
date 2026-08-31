@@ -89,6 +89,10 @@ trait CreatesRosterImportSchema
             $table->date('off_end')->nullable();
             $table->unsignedTinyInteger('earned_off_days')->nullable();
             $table->string('realization_type')->nullable();
+            $table->timestamp('manual_submitted_at')->nullable();
+            $table->string('manual_submitted_by', 36)->nullable();
+            $table->string('manual_reference_number', 100)->nullable();
+            $table->string('manual_submission_note', 500)->nullable();
             $table->string('source')->default('import');
             $table->text('notes')->nullable();
             $table->boolean('is_active')->default(true);

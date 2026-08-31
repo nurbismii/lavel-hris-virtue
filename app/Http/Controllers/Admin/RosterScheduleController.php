@@ -4,28 +4,36 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Roster\StoreRosterScheduleRequest;
+use App\Http\Requests\Roster\StoreManualRosterSubmissionRequest;
 use App\Http\Requests\Roster\ReviewRosterScheduleHistoryRequest;
 use App\Http\Requests\Roster\UpdateRosterScheduleRequest;
 use App\Models\Employee;
 use App\Models\RosterSchedule;
 use App\Models\RosterScheduleHistory;
 use App\Services\Roster\RosterScheduleHistoryService;
+use App\Services\Roster\RosterScheduleManualSubmissionService;
+use App\Services\Roster\RosterScheduleReminderEligibilityService;
 use App\Services\Roster\RosterScheduleService;
 use App\Services\Audit\AuditTrailService;
+use App\Support\SafeExceptionLogger;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class RosterScheduleController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, RosterScheduleReminderEligibilityService $reminderEligibility)
     {
+        $today = Carbon::today();
         $query = RosterSchedule::query()
-            ->with(['employee:nik,nama_karyawan,departemen_id,divisi_id,status_resign'])
-            ->orderBy('off_start')
-            ->orderBy('employee_nik');
+            ->with([
+                'employee:nik,nama_karyawan,departemen_id,divisi_id,status_resign',
+                'manualSubmitter:id,name',
+            ])
+            ->priorityForToday($today);
 
         if ($request->filled('year')) {
             $query->where('period_year', (int) $request->input('year'));
@@ -50,9 +58,17 @@ class RosterScheduleController extends Controller
 
         $perPage = (int) $request->input('per_page', 50);
         $perPage = in_array($perPage, [20, 50, 100], true) ? $perPage : 50;
+        $schedules = $query->paginate($perPage)->withQueryString();
+        $reminderAvailability = $reminderEligibility->overdueReminderAvailability(
+            $schedules->pluck('id')->all(),
+            $today
+        );
 
         return view('admin.roster-schedules.index', [
-            'schedules' => $query->paginate($perPage)->withQueryString(),
+            'schedules' => $schedules,
+            'today' => $today,
+            'overdueReminderEligibleIds' => $reminderAvailability['eligible_ids'],
+            'overdueReminderActiveApplicationIds' => $reminderAvailability['active_application_ids'],
             'realizationOptions' => RosterSchedule::realizationOptions(),
             'filters' => $request->only(['year', 'realization_type', 'active', 'search', 'per_page']),
             'yearOptions' => RosterSchedule::query()
@@ -192,6 +208,82 @@ class RosterScheduleController extends Controller
             'schedule' => $rosterSchedule,
             'realizationOptions' => RosterSchedule::realizationOptions(),
         ]);
+    }
+
+    public function sendOverdueReminder(
+        Request $request,
+        RosterSchedule $rosterSchedule,
+        RosterScheduleReminderEligibilityService $service
+    ) {
+        $contextId = (string) Str::uuid();
+        $audit = app(AuditTrailService::class)->record([
+            'event' => 'roster_schedule.overdue_reminder_requested',
+            'module' => 'roster_schedule',
+            'auditable_type' => RosterSchedule::class,
+            'auditable_id' => (string) $rosterSchedule->id,
+            'reference_table' => 'roster_schedules',
+            'reference_id' => (string) $rosterSchedule->id,
+            'employee_nik' => $rosterSchedule->employee_nik,
+            'actor' => $request->user(),
+            'metadata' => [
+                'status' => 'requested',
+                'context_id' => $contextId,
+            ],
+        ]);
+
+        if ($audit === null) {
+            toast()->error(
+                'Gagal',
+                'Permintaan reminder tidak diproses karena audit trail gagal dicatat.'
+            );
+
+            return back();
+        }
+
+        if (!$service->dispatchOverdue($rosterSchedule)) {
+            $cooldownHours = max(1, (int) config('roster.overdue_reminder_cooldown_hours', 24));
+            toast()->warning(
+                'Belum Diproses',
+                'Reminder belum dapat dikirim. Periksa status antrean, realisasi, dan cooldown ' . $cooldownHours . ' jam.'
+            );
+
+            return back();
+        }
+
+        toast()->success('Masuk Antrean', 'Reminder ulang telah masuk antrean pengiriman.');
+
+        return back();
+    }
+
+    public function storeManualSubmission(
+        StoreManualRosterSubmissionRequest $request,
+        RosterSchedule $rosterSchedule,
+        RosterScheduleManualSubmissionService $service
+    ) {
+        try {
+            $updated = $service->record(
+                $rosterSchedule,
+                $request->validated(),
+                $request->user()
+            );
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            app(SafeExceptionLogger::class)->warning(
+                'roster_schedule.manual_submission',
+                $exception
+            );
+            toast()->error('Gagal', 'Pengajuan manual gagal dicatat. Silakan coba lagi.');
+
+            return back()->withInput();
+        }
+
+        toast()->success(
+            'Berhasil',
+            'Pengajuan manual dicatat sebagai ' . $updated->realization_label . '.'
+        );
+
+        return back();
     }
 
     public function update(

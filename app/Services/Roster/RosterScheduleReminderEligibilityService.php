@@ -4,7 +4,12 @@ namespace App\Services\Roster;
 
 use App\Jobs\SendRosterScheduleReminder;
 use App\Models\RosterSchedule;
+use App\Support\SafeExceptionLogger;
 use Carbon\Carbon;
+use Illuminate\Bus\UniqueLock;
+use Illuminate\Contracts\Bus\Dispatcher;
+use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Contracts\Cache\Repository as Cache;
 use Illuminate\Database\Eloquent\Builder;
 
 class RosterScheduleReminderEligibilityService
@@ -38,6 +43,148 @@ class RosterScheduleReminderEligibilityService
             ->whereKey($schedule->id)
             ->where('off_start', '>=', $today->toDateString())
             ->exists();
+    }
+
+    public function isOverdueEligible(RosterSchedule $schedule, ?Carbon $today = null): bool
+    {
+        $today = ($today ?: Carbon::today())->copy()->startOfDay();
+
+        return $this->overdueEligibleQuery($today)
+            ->whereKey($schedule->id)
+            ->exists();
+    }
+
+    public function dispatchOverdue(RosterSchedule $schedule): bool
+    {
+        $claimedAt = now();
+        $claimed = $this->overdueEligibleQuery(Carbon::today())
+            ->whereKey($schedule->id)
+            ->whereNull('reminder_queued_at')
+            ->update(['reminder_queued_at' => $claimedAt]) === 1;
+
+        if (!$claimed) {
+            return false;
+        }
+
+        $job = new SendRosterScheduleReminder($schedule->id, SendRosterScheduleReminder::MODE_OVERDUE);
+        $cache = method_exists($job, 'uniqueVia')
+            ? ($job->uniqueVia() ?: app(Cache::class))
+            : app(Cache::class);
+        $uniqueFor = method_exists($job, 'uniqueFor')
+            ? (int) $job->uniqueFor()
+            : (int) ($job->uniqueFor ?? 0);
+
+        try {
+            $lock = $cache->lock($this->uniqueLockKey($job), $uniqueFor);
+            $lockAcquired = (bool) $lock->get();
+        } catch (\Throwable $exception) {
+            $this->clearOverdueClaim($schedule->id, $claimedAt);
+            app(SafeExceptionLogger::class)->warning(
+                'roster_schedule.overdue_reminder.unique_lock_acquire',
+                $exception
+            );
+
+            return false;
+        }
+
+        if (!$lockAcquired) {
+            $this->clearOverdueClaim($schedule->id, $claimedAt);
+
+            return false;
+        }
+
+        try {
+            $this->propagateUniqueLockOwner($job, $cache, $lock);
+            app(Dispatcher::class)->dispatch($job);
+
+            return true;
+        } catch (\Throwable $exception) {
+            $this->clearOverdueClaim($schedule->id, $claimedAt);
+
+            try {
+                $lock->release();
+            } catch (\Throwable $releaseException) {
+                app(SafeExceptionLogger::class)->warning(
+                    'roster_schedule.overdue_reminder.unique_lock_release',
+                    $releaseException
+                );
+            }
+
+            app(SafeExceptionLogger::class)->warning(
+                'roster_schedule.overdue_reminder.dispatch',
+                $exception
+            );
+
+            return false;
+        }
+    }
+
+    private function uniqueLockKey(SendRosterScheduleReminder $job): string
+    {
+        if (method_exists(UniqueLock::class, 'getKey')) {
+            return UniqueLock::getKey($job);
+        }
+
+        $uniqueId = method_exists($job, 'uniqueId')
+            ? $job->uniqueId()
+            : ($job->uniqueId ?? '');
+
+        return 'laravel_unique_job:' . get_class($job) . $uniqueId;
+    }
+
+    private function propagateUniqueLockOwner(SendRosterScheduleReminder $job, $cache, $lock): void
+    {
+        if (!property_exists($job, 'uniqueLockOwner')
+            || !method_exists($cache, 'getStore')
+            || !($cache->getStore() instanceof LockProvider)
+            || !method_exists($lock, 'owner')) {
+            return;
+        }
+
+        $owner = $lock->owner();
+        if (is_string($owner) && $owner !== '') {
+            $job->uniqueLockOwner = $owner;
+        }
+    }
+
+    public function overdueReminderAvailability(array $scheduleIds, ?Carbon $today = null): array
+    {
+        $ids = collect($scheduleIds)
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($ids === []) {
+            return [
+                'eligible_ids' => [],
+                'active_application_ids' => [],
+            ];
+        }
+
+        $today = ($today ?: Carbon::today())->copy()->startOfDay();
+
+        $eligibleIds = $this->overdueEligibleQuery($today)
+            ->whereKey($ids)
+            ->whereNull('reminder_queued_at')
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        $activeApplicationIds = RosterSchedule::query()
+            ->whereKey($ids)
+            ->whereHas('applications', function (Builder $query): void {
+                $this->applyActiveApplicationFilter($query);
+            })
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        return [
+            'eligible_ids' => $eligibleIds,
+            'active_application_ids' => $activeApplicationIds,
+        ];
     }
 
     public function dispatchLate(array $scheduleIds, Carbon $from, Carbon $to): int
@@ -96,21 +243,56 @@ class RosterScheduleReminderEligibilityService
     {
         return RosterSchedule::query()
             ->active()
+            ->where('realization_type', RosterSchedule::REALIZATION_PENDING)
             ->whereNull('reminder_sent_at')
             ->whereHas('employee', function (Builder $query): void {
                 $query->where('status_resign', 'AKTIF');
             })
             ->whereDoesntHave('applications', function (Builder $query): void {
-                $query->where(function (Builder $status): void {
-                    $status->where(function (Builder $hod): void {
-                        $hod->whereNull('status_pengajuan')
-                            ->orWhere('status_pengajuan', '!=', 2);
-                    })->where(function (Builder $hrd): void {
-                        $hrd->whereNull('status_pengajuan_hrd')
-                            ->orWhere('status_pengajuan_hrd', '!=', 2);
-                    });
-                });
+                $this->applyActiveApplicationFilter($query);
             });
+    }
+
+    private function overdueEligibleQuery(Carbon $today): Builder
+    {
+        $cooldownHours = max(1, (int) config('roster.overdue_reminder_cooldown_hours', 24));
+        $cooldownEndsBefore = now()->subHours($cooldownHours);
+
+        return RosterSchedule::query()
+            ->active()
+            ->where('realization_type', RosterSchedule::REALIZATION_PENDING)
+            ->whereDate('off_start', '<', $today->toDateString())
+            ->whereHas('employee', function (Builder $query): void {
+                $query->where('status_resign', 'AKTIF');
+            })
+            ->whereDoesntHave('applications', function (Builder $query): void {
+                $this->applyActiveApplicationFilter($query);
+            })
+            ->where(function (Builder $query) use ($cooldownEndsBefore): void {
+                $query->whereNull('reminder_sent_at')
+                    ->orWhere('reminder_sent_at', '<=', $cooldownEndsBefore);
+            });
+    }
+
+    private function applyActiveApplicationFilter(Builder $query): void
+    {
+        $query->where(function (Builder $status): void {
+            $status->where(function (Builder $hod): void {
+                $hod->whereNull('status_pengajuan')
+                    ->orWhere('status_pengajuan', '!=', 2);
+            })->where(function (Builder $hrd): void {
+                $hrd->whereNull('status_pengajuan_hrd')
+                    ->orWhere('status_pengajuan_hrd', '!=', 2);
+            });
+        });
+    }
+
+    private function clearOverdueClaim(int $scheduleId, Carbon $claimedAt): void
+    {
+        RosterSchedule::query()
+            ->whereKey($scheduleId)
+            ->where('reminder_queued_at', $claimedAt)
+            ->update(['reminder_queued_at' => null]);
     }
 
     public function claim(int $scheduleId, Carbon $from, Carbon $to): bool
@@ -133,6 +315,11 @@ class RosterScheduleReminderEligibilityService
                 ->whereKey($scheduleId)
                 ->whereNull('reminder_sent_at')
                 ->update(['reminder_queued_at' => null]);
+
+            app(SafeExceptionLogger::class)->warning(
+                'roster_schedule.scheduled_reminder.dispatch',
+                $exception
+            );
 
             return false;
         }
