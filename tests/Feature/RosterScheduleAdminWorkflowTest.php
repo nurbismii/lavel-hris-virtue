@@ -549,6 +549,11 @@ class RosterScheduleAdminWorkflowTest extends TestCase
         $response->assertSee('aria-controls="manualSubmissionModal"', false);
         $response->assertSee('Catat Pengajuan Manual?');
         $response->assertSee('Form pengajuan manual dibuka. Lengkapi data lalu tekan Simpan.');
+        $response->assertSee('js-manual-submission-submit-button', false);
+        $response->assertSee('Realisasi Wajib Dipilih');
+        $response->assertSee('Pilih Cuti Roster atau Insentif sebelum menyimpan.');
+        $response->assertSee('Simpan Pengajuan Manual?');
+        $response->assertSee('Ya, Simpan');
         $response->assertSee('Pengajuan manual sedang disimpan. Mohon tunggu.');
         $response->assertSee('Pengajuan Manual');
         $response->assertSee('REF/&lt;script&gt;alert(1)&lt;/script&gt;', false);

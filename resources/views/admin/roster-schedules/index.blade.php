@@ -271,7 +271,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-success">
+                    <button type="button" class="btn btn-success js-manual-submission-submit-button">
                         <i class="fas fa-save me-1"></i> Simpan Pengajuan Manual
                     </button>
                 </div>
@@ -330,6 +330,15 @@ function initializeRosterScheduleActions() {
 
         showFeedback(title + ': ' + message, 'info');
         return Promise.resolve(true);
+    };
+
+    const showActionAlert = function (title, message, icon) {
+        if (window.AppDialog && typeof window.AppDialog.alert === 'function') {
+            return window.AppDialog.alert(title, message, icon || 'warning');
+        }
+
+        showFeedback(title + ': ' + message, icon === 'error' ? 'danger' : 'warning');
+        return Promise.resolve();
     };
 
     const openManualModal = function () {
@@ -441,23 +450,67 @@ function initializeRosterScheduleActions() {
         });
     });
 
-    document.addEventListener('submit', function (event) {
-        const manualForm = event.target.closest('.js-manual-submission-form');
+    const manualSubmitButton = form.querySelector('.js-manual-submission-submit-button');
+    const realizationField = form.querySelector('[name="realization_type"]');
 
-        if (!manualForm) {
+    const requestManualSubmission = function () {
+        if (!manualSubmitButton || manualSubmitButton.disabled) {
             return;
         }
 
-        const button = manualForm.querySelector('button[type="submit"]');
-
-        if (!button || button.disabled || !manualForm.action || !scheduleId.value) {
-            event.preventDefault();
+        if (!form.getAttribute('action') || !scheduleId.value) {
+            showActionAlert(
+                'Form Belum Siap',
+                'Data jadwal belum terbaca. Tutup form, pilih Catat Pengajuan Manual lagi, lalu coba simpan.',
+                'error'
+            );
             return;
         }
 
-        button.disabled = true;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Menyimpan...';
-        showFeedback('Pengajuan manual sedang disimpan. Mohon tunggu.', 'info');
+        if (!realizationField || !realizationField.value) {
+            showActionAlert('Realisasi Wajib Dipilih', 'Pilih Cuti Roster atau Insentif sebelum menyimpan.', 'warning')
+                .then(function () {
+                    if (realizationField) {
+                        realizationField.focus();
+                    }
+                });
+            return;
+        }
+
+        const realizationLabel = realizationField.options[realizationField.selectedIndex].text;
+        const employeeName = employee.textContent || 'karyawan ini';
+        const submitForm = function () {
+            manualSubmitButton.disabled = true;
+            manualSubmitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Menyimpan...';
+            showFeedback('Pengajuan manual sedang disimpan. Mohon tunggu.', 'info');
+            HTMLFormElement.prototype.submit.call(form);
+        };
+
+        if (window.AppDialog && typeof window.AppDialog.confirm === 'function') {
+            window.AppDialog.confirm({
+                title: 'Simpan Pengajuan Manual?',
+                text: realizationLabel + ' akan dicatat sebagai pengajuan offline untuk ' + employeeName + '.',
+                icon: 'warning',
+                confirmButtonText: 'Ya, Simpan',
+                cancelButtonText: 'Batal'
+            }).then(function (confirmed) {
+                if (confirmed) {
+                    submitForm();
+                }
+            });
+            return;
+        }
+
+        submitForm();
+    };
+
+    if (manualSubmitButton) {
+        manualSubmitButton.addEventListener('click', requestManualSubmission);
+    }
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        requestManualSubmission();
     });
 }
 
