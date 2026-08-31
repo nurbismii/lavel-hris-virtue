@@ -62,7 +62,7 @@ class RosterScheduleManualSubmissionService
 
             $updated = $locked->fresh(['manualSubmitter']);
 
-            $this->auditTrail->record([
+            $audit = $this->auditTrail->record([
                 'event' => 'roster_schedule.manual_submission_recorded',
                 'module' => 'roster_schedule',
                 'auditable_type' => RosterSchedule::class,
@@ -78,6 +78,10 @@ class RosterScheduleManualSubmissionService
                     'manual_note_present' => !empty($data['manual_submission_note']),
                 ],
             ]);
+
+            if ($audit === null) {
+                throw new \RuntimeException('Audit pengajuan manual gagal dicatat.');
+            }
 
             return $updated;
         });

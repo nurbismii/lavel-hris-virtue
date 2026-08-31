@@ -490,7 +490,7 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         $this->app->instance(AuditTrailService::class, new class extends AuditTrailService {
             public function record(array $data): ?\App\Models\AuditTrail
             {
-                return null;
+                return new \App\Models\AuditTrail();
             }
         });
 

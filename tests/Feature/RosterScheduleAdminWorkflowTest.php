@@ -387,6 +387,7 @@ class RosterScheduleAdminWorkflowTest extends TestCase
     public function test_manual_submission_is_idempotent_and_does_not_overwrite_original_record(): void
     {
         $hr = $this->hrUser();
+        $this->fakeAudit();
         $otherHr = $this->userWithRole('other-hr-manual', 'HR', ['roster_schedule']);
         $schedule = $this->schedule('NIK-MANUAL-IDEMPOTENT', '2026-09-10');
 
@@ -417,10 +418,15 @@ class RosterScheduleAdminWorkflowTest extends TestCase
     {
         $hr = $this->hrUser();
         $schedule = $this->schedule('NIK-MANUAL-ROLLBACK', '2026-09-10');
+        $originalReminderQueuedAt = now()->subMinute()->startOfSecond();
+        $schedule->forceFill([
+            'reminder_queued_at' => $originalReminderQueuedAt,
+            'updated_by' => 'original-actor',
+        ])->save();
         $this->app->instance(AuditTrailService::class, new class extends AuditTrailService {
             public function record(array $data): ?\App\Models\AuditTrail
             {
-                throw new \RuntimeException('Private employee data must not reach the browser.');
+                return null;
             }
         });
 
@@ -441,7 +447,7 @@ class RosterScheduleAdminWorkflowTest extends TestCase
 
                 return ($alert['icon'] ?? null) === 'error'
                     && ($alert['title'] ?? null) === 'Gagal'
-                    && strpos($alert['text'] ?? '', 'Private employee data') === false;
+                    && ($alert['text'] ?? null) === 'Pengajuan manual gagal dicatat. Silakan coba lagi.';
             });
 
         $fresh = $schedule->fresh();
@@ -449,6 +455,9 @@ class RosterScheduleAdminWorkflowTest extends TestCase
         $this->assertNull($fresh->manual_submitted_at);
         $this->assertNull($fresh->manual_submitted_by);
         $this->assertNull($fresh->manual_reference_number);
+        $this->assertNull($fresh->manual_submission_note);
+        $this->assertSame($originalReminderQueuedAt->toDateTimeString(), $fresh->reminder_queued_at->toDateTimeString());
+        $this->assertSame('original-actor', $fresh->updated_by);
     }
 
     public function test_index_renders_manual_action_and_escaped_manual_status_details(): void
@@ -546,7 +555,7 @@ class RosterScheduleAdminWorkflowTest extends TestCase
             {
                 $this->records[] = $data;
 
-                return null;
+                return new \App\Models\AuditTrail();
             }
         };
         $this->app->instance(AuditTrailService::class, $audit);
