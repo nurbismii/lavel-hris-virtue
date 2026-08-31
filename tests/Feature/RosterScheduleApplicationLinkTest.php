@@ -77,6 +77,76 @@ class RosterScheduleApplicationLinkTest extends TestCase
         $this->actingAs($user)->get(route('roster.create', ['roster_schedule' => $past->id]))->assertNotFound();
     }
 
+    public function test_manually_realized_schedule_cannot_be_opened_or_linked_by_digital_submission(): void
+    {
+        $user = $this->rosterUser('manual-realized', '000000013');
+        $manualActor = $this->rosterUser('manual-actor', '000000014');
+        $manualSubmittedAt = now()->subHour()->startOfSecond();
+        $schedule = $this->scheduleFor($user->nik_karyawan, [
+            'realization_type' => RosterSchedule::REALIZATION_CUTI,
+            'manual_submitted_at' => $manualSubmittedAt,
+            'manual_submitted_by' => $manualActor->id,
+            'manual_reference_number' => 'MANUAL/LOCKED/2026',
+            'manual_submission_note' => 'Berkas manual sudah diterima HR.',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('roster.create', ['roster_schedule' => $schedule->id]))
+            ->assertNotFound();
+
+        $response = $this->submit($user, [
+            'roster_schedule_id' => $schedule->id,
+            'tipe_rencana' => '2',
+        ]);
+
+        $response->assertRedirect()
+            ->assertSessionHas('alert.config', function (string $config): bool {
+                $alert = json_decode($config, true);
+
+                return ($alert['icon'] ?? null) === 'error'
+                    && ($alert['title'] ?? null) === 'Error'
+                    && ($alert['text'] ?? null) === 'Pengajuan roster gagal disimpan. Periksa kembali data dan lampiran, lalu coba lagi.'
+                    && strpos($config, 'Berkas manual sudah diterima HR.') === false;
+            });
+
+        $fresh = $schedule->fresh();
+        $this->assertSame(0, Roster::where('roster_schedule_id', $schedule->id)->count());
+        $this->assertSame(RosterSchedule::REALIZATION_CUTI, $fresh->realization_type);
+        $this->assertSame($manualActor->id, $fresh->manual_submitted_by);
+        $this->assertSame($manualSubmittedAt->toDateTimeString(), $fresh->manual_submitted_at->toDateTimeString());
+        $this->assertSame('MANUAL/LOCKED/2026', $fresh->manual_reference_number);
+        $this->assertSame('Berkas manual sudah diterima HR.', $fresh->manual_submission_note);
+    }
+
+    public function test_store_revalidates_current_realization_instead_of_stale_schedule_state(): void
+    {
+        $user = $this->rosterUser('manual-race', '000000015');
+        $manualActor = $this->rosterUser('manual-race-actor', '000000016');
+        $schedule = $this->scheduleFor($user->nik_karyawan);
+        $stalePendingSchedule = RosterSchedule::findOrFail($schedule->id);
+        $manualSubmittedAt = now()->subMinute()->startOfSecond();
+
+        RosterSchedule::whereKey($schedule->id)->update([
+            'realization_type' => RosterSchedule::REALIZATION_INSENTIF,
+            'manual_submitted_at' => $manualSubmittedAt,
+            'manual_submitted_by' => $manualActor->id,
+            'manual_reference_number' => 'MANUAL/RACE/2026',
+            'manual_submission_note' => 'Realisasi berubah setelah model kandidat dibaca.',
+        ]);
+
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $stalePendingSchedule->realization_type);
+
+        $this->submit($user, ['roster_schedule_id' => $schedule->id])->assertRedirect();
+
+        $fresh = $schedule->fresh();
+        $this->assertSame(0, Roster::where('roster_schedule_id', $schedule->id)->count());
+        $this->assertSame(RosterSchedule::REALIZATION_INSENTIF, $fresh->realization_type);
+        $this->assertSame($manualActor->id, $fresh->manual_submitted_by);
+        $this->assertSame($manualSubmittedAt->toDateTimeString(), $fresh->manual_submitted_at->toDateTimeString());
+        $this->assertSame('MANUAL/RACE/2026', $fresh->manual_reference_number);
+        $this->assertSame('Realisasi berubah setelah model kandidat dibaca.', $fresh->manual_submission_note);
+    }
+
     public function test_valid_cuti_submission_links_schedule_and_sets_cuti_realization(): void
     {
         $user = $this->rosterUser('cuti', '000000005');

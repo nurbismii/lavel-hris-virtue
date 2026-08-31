@@ -60,6 +60,7 @@ class RosterController extends Controller
                 ->whereKey($scheduleId)
                 ->where('employee_nik', Auth::user()->nik_karyawan)
                 ->where('is_active', true)
+                ->where('realization_type', RosterSchedule::REALIZATION_PENDING)
                 ->whereDate('off_start', '>=', Carbon::today()->toDateString())
                 ->first();
             abort_unless($schedule, 404);
@@ -110,10 +111,13 @@ class RosterController extends Controller
                     ->whereKey($scheduleId)
                     ->where('employee_nik', $nikKaryawan)
                     ->where('is_active', true)
+                    ->where('realization_type', RosterSchedule::REALIZATION_PENDING)
                     ->whereDate('off_start', '>=', Carbon::today()->toDateString())
                     ->lockForUpdate()
                     ->first();
-                if (!$schedule || $this->hasActiveScheduleApplication($schedule->id, true)) {
+                if (!$schedule
+                    || $schedule->realization_type !== RosterSchedule::REALIZATION_PENDING
+                    || $this->hasActiveScheduleApplication($schedule->id, true)) {
                     throw new \RuntimeException('Jadwal roster tidak tersedia untuk diajukan.');
                 }
             }
