@@ -15,9 +15,11 @@ use App\Services\Roster\RosterScheduleManualSubmissionService;
 use App\Services\Roster\RosterScheduleReminderEligibilityService;
 use App\Services\Roster\RosterScheduleService;
 use App\Services\Audit\AuditTrailService;
+use App\Support\SafeExceptionLogger;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
@@ -213,6 +215,31 @@ class RosterScheduleController extends Controller
         RosterSchedule $rosterSchedule,
         RosterScheduleReminderEligibilityService $service
     ) {
+        $contextId = (string) Str::uuid();
+        $audit = app(AuditTrailService::class)->record([
+            'event' => 'roster_schedule.overdue_reminder_requested',
+            'module' => 'roster_schedule',
+            'auditable_type' => RosterSchedule::class,
+            'auditable_id' => (string) $rosterSchedule->id,
+            'reference_table' => 'roster_schedules',
+            'reference_id' => (string) $rosterSchedule->id,
+            'employee_nik' => $rosterSchedule->employee_nik,
+            'actor' => $request->user(),
+            'metadata' => [
+                'status' => 'requested',
+                'context_id' => $contextId,
+            ],
+        ]);
+
+        if ($audit === null) {
+            toast()->error(
+                'Gagal',
+                'Permintaan reminder tidak diproses karena audit trail gagal dicatat.'
+            );
+
+            return back();
+        }
+
         if (!$service->dispatchOverdue($rosterSchedule)) {
             $cooldownHours = max(1, (int) config('roster.overdue_reminder_cooldown_hours', 24));
             toast()->warning(
@@ -222,17 +249,6 @@ class RosterScheduleController extends Controller
 
             return back();
         }
-
-        app(AuditTrailService::class)->record([
-            'event' => 'roster_schedule.overdue_reminder_queued',
-            'module' => 'roster_schedule',
-            'auditable_type' => RosterSchedule::class,
-            'auditable_id' => (string) $rosterSchedule->id,
-            'reference_table' => 'roster_schedules',
-            'reference_id' => (string) $rosterSchedule->id,
-            'employee_nik' => $rosterSchedule->employee_nik,
-            'actor' => $request->user(),
-        ]);
 
         toast()->success('Masuk Antrean', 'Reminder ulang telah masuk antrean pengiriman.');
 
@@ -253,7 +269,10 @@ class RosterScheduleController extends Controller
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
-            report($exception);
+            app(SafeExceptionLogger::class)->warning(
+                'roster_schedule.manual_submission',
+                $exception
+            );
             toast()->error('Gagal', 'Pengajuan manual gagal dicatat. Silakan coba lagi.');
 
             return back()->withInput();

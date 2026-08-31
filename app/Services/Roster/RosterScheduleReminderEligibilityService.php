@@ -4,6 +4,7 @@ namespace App\Services\Roster;
 
 use App\Jobs\SendRosterScheduleReminder;
 use App\Models\RosterSchedule;
+use App\Support\SafeExceptionLogger;
 use Carbon\Carbon;
 use Illuminate\Bus\UniqueLock;
 use Illuminate\Contracts\Bus\Dispatcher;
@@ -78,7 +79,10 @@ class RosterScheduleReminderEligibilityService
             $lockAcquired = (bool) $lock->get();
         } catch (\Throwable $exception) {
             $this->clearOverdueClaim($schedule->id, $claimedAt);
-            report($exception);
+            app(SafeExceptionLogger::class)->warning(
+                'roster_schedule.overdue_reminder.unique_lock_acquire',
+                $exception
+            );
 
             return false;
         }
@@ -100,10 +104,16 @@ class RosterScheduleReminderEligibilityService
             try {
                 $lock->release();
             } catch (\Throwable $releaseException) {
-                report($releaseException);
+                app(SafeExceptionLogger::class)->warning(
+                    'roster_schedule.overdue_reminder.unique_lock_release',
+                    $releaseException
+                );
             }
 
-            report($exception);
+            app(SafeExceptionLogger::class)->warning(
+                'roster_schedule.overdue_reminder.dispatch',
+                $exception
+            );
 
             return false;
         }
@@ -305,6 +315,11 @@ class RosterScheduleReminderEligibilityService
                 ->whereKey($scheduleId)
                 ->whereNull('reminder_sent_at')
                 ->update(['reminder_queued_at' => null]);
+
+            app(SafeExceptionLogger::class)->warning(
+                'roster_schedule.scheduled_reminder.dispatch',
+                $exception
+            );
 
             return false;
         }

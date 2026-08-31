@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\Audit\AuditTrailService;
 use Carbon\Carbon;
 use Illuminate\Bus\UniqueLock;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Schema\Blueprint;
@@ -113,8 +114,69 @@ class RosterScheduleAdminWorkflowTest extends TestCase
                 && $job->mode === SendRosterScheduleReminder::MODE_OVERDUE;
         });
         $this->assertNotNull($schedule->fresh()->reminder_queued_at);
+        $this->assertCount(2, $audit->records);
+        foreach ($audit->records as $record) {
+            $this->assertSame('roster_schedule.overdue_reminder_requested', $record['event']);
+            $this->assertSame('requested', $record['metadata']['status']);
+            $this->assertMatchesRegularExpression(
+                '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
+                $record['metadata']['context_id']
+            );
+        }
+    }
+
+    public function test_overdue_reminder_audit_failure_prevents_dispatch_and_queued_success_feedback(): void
+    {
+        Queue::fake();
+        $hr = $this->hrUser();
+        $schedule = $this->schedule('NIK-OVERDUE-AUDIT-FAIL', '2026-08-31');
+        $this->app->instance(AuditTrailService::class, new class extends AuditTrailService {
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                return null;
+            }
+        });
+
+        $response = $this->actingAs($hr)
+            ->post(route('roster-schedules.reminder.overdue', $schedule))
+            ->assertRedirect();
+
+        $response->assertSessionHas('alert.config', function (string $config): bool {
+            $alert = json_decode($config, true);
+
+            return ($alert['icon'] ?? null) === 'error'
+                && ($alert['title'] ?? null) === 'Gagal';
+        });
+        Queue::assertNothingPushed();
+        $this->assertNull($schedule->fresh()->reminder_queued_at);
+    }
+
+    public function test_overdue_dispatch_failure_keeps_a_truthful_durable_request_audit(): void
+    {
+        $hr = $this->hrUser();
+        $schedule = $this->schedule('NIK-OVERDUE-DISPATCH-FAIL', '2026-08-31');
+        $audit = $this->fakeAudit();
+        $dispatcher = \Mockery::mock(Dispatcher::class);
+        $dispatcher->shouldReceive('dispatch')
+            ->once()
+            ->andThrow(new \RuntimeException('private/NIK-OVERDUE-DISPATCH-FAIL.xlsx'));
+        $this->app->instance(Dispatcher::class, $dispatcher);
+
+        $response = $this->actingAs($hr)
+            ->post(route('roster-schedules.reminder.overdue', $schedule))
+            ->assertRedirect();
+
+        $response->assertSessionHas('alert.config', function (string $config): bool {
+            $alert = json_decode($config, true);
+
+            return ($alert['icon'] ?? null) === 'warning'
+                && ($alert['title'] ?? null) === 'Belum Diproses'
+                && strpos($config, 'NIK-OVERDUE-DISPATCH-FAIL') === false;
+        });
+        $this->assertNull($schedule->fresh()->reminder_queued_at);
         $this->assertCount(1, $audit->records);
-        $this->assertSame('roster_schedule.overdue_reminder_queued', $audit->records[0]['event']);
+        $this->assertSame('roster_schedule.overdue_reminder_requested', $audit->records[0]['event']);
+        $this->assertSame('requested', $audit->records[0]['metadata']['status']);
     }
 
     public function test_stale_unique_lock_does_not_audit_or_show_queued_success(): void
@@ -140,7 +202,8 @@ class RosterScheduleAdminWorkflowTest extends TestCase
             });
             Queue::assertNothingPushed();
             $this->assertNull($schedule->fresh()->reminder_queued_at);
-            $this->assertCount(0, $audit->records);
+            $this->assertCount(1, $audit->records);
+            $this->assertSame('roster_schedule.overdue_reminder_requested', $audit->records[0]['event']);
         } finally {
             $lock->release();
         }

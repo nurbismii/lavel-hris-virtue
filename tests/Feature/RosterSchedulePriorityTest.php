@@ -49,6 +49,12 @@ class RosterSchedulePriorityTest extends TestCase
         $overdueNearB = $this->schedule('006', '2026-08-31');
         $futureNear = $this->schedule('007', '2026-09-02');
         $overdueNearA = $this->schedule('005', '2026-08-31');
+        $inactivePastPending = $this->schedule(
+            '008',
+            '2026-08-30',
+            RosterSchedule::REALIZATION_PENDING,
+            false
+        );
 
         $ordered = RosterSchedule::query()
             ->priorityForToday(Carbon::today())
@@ -62,6 +68,7 @@ class RosterSchedulePriorityTest extends TestCase
             $today->employee_nik,
             $futureNear->employee_nik,
             $futureFar->employee_nik,
+            $inactivePastPending->employee_nik,
             $completedPast->employee_nik,
         ], $ordered);
     }
@@ -100,6 +107,7 @@ class RosterSchedulePriorityTest extends TestCase
             return $index->name;
         }, DB::select("PRAGMA index_list('roster_schedules')"));
         $this->assertContains('roster_schedules_priority_index', $indexes);
+        $this->assertContains('roster_schedules_manual_submitter_index', $indexes);
 
         $migration->down();
 
@@ -116,6 +124,11 @@ class RosterSchedulePriorityTest extends TestCase
             'manual_reference_number',
             'manual_submission_note',
         ]));
+        $indexesAfterRollback = array_map(function ($index) {
+            return $index->name;
+        }, DB::select("PRAGMA index_list('roster_schedules')"));
+        $this->assertNotContains('roster_schedules_priority_index', $indexesAfterRollback);
+        $this->assertNotContains('roster_schedules_manual_submitter_index', $indexesAfterRollback);
     }
 
     private function schedule(

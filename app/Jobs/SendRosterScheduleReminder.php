@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\RosterSchedule;
 use App\Models\User;
 use App\Notifications\RosterScheduleReminderNotification;
+use App\Services\Roster\RosterScheduleActionMutex;
 use App\Services\Roster\RosterScheduleReminderEligibilityService;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -45,7 +46,28 @@ class SendRosterScheduleReminder implements ShouldQueue, ShouldBeUnique
         return [(new WithoutOverlapping($this->uniqueId()))->expireAfter(180)];
     }
 
-    public function handle(RosterScheduleReminderEligibilityService $eligibility): void
+    public function handle(
+        RosterScheduleReminderEligibilityService $eligibility,
+        ?RosterScheduleActionMutex $actionMutex = null
+    ): void
+    {
+        $actionMutex = $actionMutex ?: app(RosterScheduleActionMutex::class);
+        $actionLock = $actionMutex->acquire($this->scheduleId);
+
+        if ($actionLock === null) {
+            $this->release(max(1, (int) config('roster.action_mutex_job_retry_seconds', 5)));
+
+            return;
+        }
+
+        try {
+            $this->sendIfEligible($eligibility);
+        } finally {
+            $actionMutex->release($actionLock);
+        }
+    }
+
+    private function sendIfEligible(RosterScheduleReminderEligibilityService $eligibility): void
     {
         $schedule = RosterSchedule::query()->with('employee')->find($this->scheduleId);
 

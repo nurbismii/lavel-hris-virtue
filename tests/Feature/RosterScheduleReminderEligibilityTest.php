@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\Roster\RosterScheduleReminderEligibilityService;
 use App\Services\Roster\RosterScheduleImportCommitService;
 use App\Services\Roster\RosterScheduleManualSubmissionService;
+use App\Services\Roster\RosterScheduleActionMutex;
 use App\Services\Audit\AuditTrailService;
 use Carbon\Carbon;
 use Illuminate\Bus\UniqueLock;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -510,6 +512,72 @@ class RosterScheduleReminderEligibilityTest extends TestCase
         $this->assertSame(RosterSchedule::REALIZATION_INSENTIF, $fresh->realization_type);
         $this->assertNull($fresh->reminder_queued_at);
         $this->assertNull($fresh->reminder_sent_at);
+        Notification::assertNothingSentTo($user);
+    }
+
+    public function test_manual_submission_fails_closed_while_the_shared_reminder_mutex_is_held(): void
+    {
+        config()->set('roster.action_mutex_wait_milliseconds', 20);
+        config()->set('roster.action_mutex_retry_milliseconds', 5);
+        $schedule = $this->schedule('064', -1);
+        $actor = User::create([
+            'id' => 'hr-shared-mutex',
+            'name' => 'HR Shared Mutex',
+        ]);
+        $this->app->instance(AuditTrailService::class, new class extends AuditTrailService {
+            public function record(array $data): ?\App\Models\AuditTrail
+            {
+                return new \App\Models\AuditTrail();
+            }
+        });
+        $mutex = app(RosterScheduleActionMutex::class);
+        $heldLock = $mutex->acquire($schedule->id, 0);
+        $this->assertNotNull($heldLock);
+
+        try {
+            app(RosterScheduleManualSubmissionService::class)->record($schedule, [
+                'realization_type' => RosterSchedule::REALIZATION_CUTI,
+                'manual_reference_number' => null,
+                'manual_submission_note' => null,
+            ], $actor);
+            $this->fail('Pengajuan manual harus ditolak sementara ketika job memegang mutex yang sama.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('realization_type', $exception->errors());
+        } finally {
+            $mutex->release($heldLock);
+        }
+
+        $fresh = $schedule->fresh();
+        $this->assertSame(RosterSchedule::REALIZATION_PENDING, $fresh->realization_type);
+        $this->assertNull($fresh->manual_submitted_at);
+    }
+
+    public function test_overdue_job_releases_for_retry_when_manual_workflow_holds_the_shared_mutex(): void
+    {
+        Notification::fake();
+        config()->set('roster.action_mutex_wait_milliseconds', 20);
+        config()->set('roster.action_mutex_retry_milliseconds', 5);
+        config()->set('roster.action_mutex_job_retry_seconds', 7);
+        $eligibility = app(RosterScheduleReminderEligibilityService::class);
+        $schedule = $this->schedule('065', -1, ['reminder_queued_at' => now()]);
+        $user = $this->userFor($schedule);
+        $mutex = app(RosterScheduleActionMutex::class);
+        $heldLock = $mutex->acquire($schedule->id, 0);
+        $this->assertNotNull($heldLock);
+        $job = (new SendRosterScheduleReminder(
+            $schedule->id,
+            SendRosterScheduleReminder::MODE_OVERDUE
+        ))->withFakeQueueInteractions();
+
+        try {
+            $job->handle($eligibility, $mutex);
+        } finally {
+            $mutex->release($heldLock);
+        }
+
+        $job->assertReleased(7);
+        $this->assertNotNull($schedule->fresh()->reminder_queued_at);
+        $this->assertNull($schedule->fresh()->reminder_sent_at);
         Notification::assertNothingSentTo($user);
     }
 

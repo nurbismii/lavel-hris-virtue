@@ -71,19 +71,16 @@ class RosterSchedule extends Model
 
         return $query
             ->orderByRaw(
-                'CASE WHEN off_start < ? AND realization_type = ? THEN 0 '
+                'CASE WHEN is_active = ? AND off_start < ? AND realization_type = ? THEN 0 '
                 . 'WHEN off_start >= ? THEN 1 ELSE 2 END',
-                [$date, self::REALIZATION_PENDING, $date]
+                [true, $date, self::REALIZATION_PENDING, $date]
             )
             ->orderByRaw(
-                'CASE WHEN off_start < ? AND realization_type = ? THEN off_start END DESC',
-                [$date, self::REALIZATION_PENDING]
+                'CASE WHEN is_active = ? AND off_start < ? AND realization_type = ? THEN off_start END DESC',
+                [true, $date, self::REALIZATION_PENDING]
             )
             ->orderByRaw('CASE WHEN off_start >= ? THEN off_start END ASC', [$date])
-            ->orderByRaw('CASE WHEN off_start < ? AND realization_type <> ? THEN off_start END DESC', [
-                $date,
-                self::REALIZATION_PENDING,
-            ])
+            ->orderByRaw('CASE WHEN off_start < ? THEN off_start END DESC', [$date])
             ->orderBy('employee_nik')
             ->orderBy('id');
     }

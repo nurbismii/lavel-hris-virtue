@@ -4,8 +4,8 @@ namespace App\Services\Audit;
 
 use App\Models\AuditTrail;
 use App\Models\User;
+use App\Support\SafeExceptionLogger;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -56,13 +56,7 @@ class AuditTrailService
 
             return AuditTrail::create($data);
         } catch (Throwable $exception) {
-            Log::warning('Audit trail gagal dicatat.', [
-                'event' => $data['event'] ?? null,
-                'module' => $data['module'] ?? null,
-                'reference_table' => $data['reference_table'] ?? null,
-                'reference_id' => $data['reference_id'] ?? null,
-                'error' => $exception->getMessage(),
-            ]);
+            app(SafeExceptionLogger::class)->warning('audit_trail.record', $exception);
 
             return null;
         }
