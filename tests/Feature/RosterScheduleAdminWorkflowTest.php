@@ -263,12 +263,17 @@ class RosterScheduleAdminWorkflowTest extends TestCase
         $response->assertOk();
         $response->assertSee(route('roster-schedules.reminder.overdue', $eligible));
         $response->assertSee('Kirim Reminder Lagi');
+        $response->assertSee('Belum dikirim');
+        $response->assertSee('Reminder perlu diproses');
         $response->assertSee('Dalam antrean');
         $response->assertSee('Dapat dikirim lagi');
         $response->assertSee('Memasukkan ke antrean...');
+        $response->assertSee('Kirim Reminder Lagi?');
+        $response->assertSee('Permintaan reminder diterima dan sedang dimasukkan ke antrean.');
+        $response->assertSee('result.value === true', false);
     }
 
-    public function test_index_disables_overdue_reminder_for_resigned_employee_and_active_application(): void
+    public function test_index_explains_unavailable_overdue_reminder_for_resigned_employee_and_active_application(): void
     {
         $viewSource = file_get_contents(resource_path('views/admin/roster-schedules/index.blade.php'));
         $this->assertStringNotContainsString('@disabled(', $viewSource);
@@ -319,11 +324,12 @@ class RosterScheduleAdminWorkflowTest extends TestCase
             });
 
             $this->assertNotNull($row);
-            $this->assertStringContainsString('disabled', $row);
+            $this->assertStringContainsString('js-reminder-unavailable-button', $row);
+            $this->assertStringContainsString('Lihat Status Reminder', $row);
+            $this->assertStringNotContainsString('<button type="submit"', $row);
             $this->assertStringContainsString($reason, $row);
             $this->assertStringNotContainsString('Kirim Reminder Lagi', $row);
-            $this->assertSame(1, preg_match('/<button[^>]*disabled[^>]*>(.*?)<\/button>/s', $row, $button));
-            $this->assertStringContainsString($reason, $button[1]);
+            $this->assertSame(1, preg_match('/<button[^>]*js-reminder-unavailable-button[^>]*>(.*?)<\/button>/s', $row, $button));
             $this->assertStringNotContainsString($misleadingState, $button[1]);
         }
     }
@@ -540,6 +546,10 @@ class RosterScheduleAdminWorkflowTest extends TestCase
         $response->assertOk();
         $response->assertSee(route('roster-schedules.manual-submission.store', $pending), false);
         $response->assertSee('Catat Pengajuan Manual');
+        $response->assertSee('aria-controls="manualSubmissionModal"', false);
+        $response->assertSee('Catat Pengajuan Manual?');
+        $response->assertSee('Form pengajuan manual dibuka. Lengkapi data lalu tekan Simpan.');
+        $response->assertSee('Pengajuan manual sedang disimpan. Mohon tunggu.');
         $response->assertSee('Pengajuan Manual');
         $response->assertSee('REF/&lt;script&gt;alert(1)&lt;/script&gt;', false);
         $response->assertDontSee('<script>private note</script>', false);

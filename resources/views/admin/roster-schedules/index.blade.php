@@ -3,6 +3,11 @@
 @section('title', 'Jadwal Roster')
 
 @section('content')
+<div id="rosterActionFeedback"
+     class="alert d-none position-fixed top-0 end-0 m-3 shadow"
+     role="alert"
+     aria-live="assertive"
+     style="z-index: 2000; max-width: 420px;"></div>
 <div class="container-fluid">
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
@@ -127,7 +132,7 @@
                                         </div>
                                     @endif
                                 </td>
-                                <td>
+                                <td id="roster-reminder-status-{{ $schedule->id }}">
                                     @if($schedule->reminder_queued_at)
                                     <span class="badge bg-info">Dalam antrean</span>
                                     @elseif($schedule->reminder_failed_at && (!$schedule->reminder_sent_at || $schedule->reminder_failed_at->gt($schedule->reminder_sent_at)))
@@ -135,6 +140,9 @@
                                     @elseif($schedule->reminder_sent_at)
                                     <span class="badge bg-success">Terkirim</span>
                                     <div><small class="text-muted">{{ $schedule->reminder_sent_at->format('d M Y H:i') }}</small></div>
+                                    @elseif($schedule->isOverduePending($today))
+                                    <span class="badge bg-warning text-dark">Belum dikirim</span>
+                                    <div><small class="text-muted">Reminder perlu diproses</small></div>
                                     @else
                                     <span class="badge bg-light text-dark border">Belum jatuh tempo</span>
                                     @endif
@@ -146,7 +154,9 @@
                                                     class="btn btn-sm btn-outline-success js-manual-submission-button"
                                                     data-manual-schedule-id="{{ $schedule->id }}"
                                                     data-manual-employee="{{ optional($schedule->employee)->nama_karyawan ?: 'Karyawan tidak ditemukan' }} · {{ $schedule->employee_nik }}"
-                                                    data-manual-action="{{ route('roster-schedules.manual-submission.store', $schedule) }}">
+                                                    data-manual-action="{{ route('roster-schedules.manual-submission.store', $schedule) }}"
+                                                    aria-haspopup="dialog"
+                                                    aria-controls="manualSubmissionModal">
                                                 <i class="fas fa-file-signature me-1"></i> Catat Pengajuan Manual
                                             </button>
                                         @endif
@@ -176,32 +186,33 @@
                                                 $isReminderDisabled = $schedule->reminder_queued_at
                                                     || $isCoolingDown
                                                     || !$isReminderEligible;
+                                                if (!$reminderUnavailableReason && $schedule->reminder_queued_at) {
+                                                    $reminderUnavailableReason = 'Reminder sudah berada dalam antrean pengiriman.';
+                                                } elseif (!$reminderUnavailableReason && $isCoolingDown) {
+                                                    $reminderUnavailableReason = 'Reminder masih dalam cooldown. Dapat dikirim lagi pada ' . $nextReminderAt->format('d M Y H:i') . '.';
+                                                } elseif (!$reminderUnavailableReason && !$isReminderEligible) {
+                                                    $reminderUnavailableReason = 'Reminder tidak tersedia karena jadwal tidak lagi memenuhi syarat pengiriman.';
+                                                }
                                             @endphp
+                                            @if($isReminderDisabled)
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary js-reminder-unavailable-button"
+                                                    data-reminder-unavailable-reason="{{ $reminderUnavailableReason }}">
+                                                <i class="fas fa-info-circle me-1"></i> Lihat Status Reminder
+                                            </button>
+                                            @else
                                             <form method="POST"
                                                   action="{{ route('roster-schedules.reminder.overdue', $schedule) }}"
                                                   class="js-roster-action-form">
                                                 @csrf
-                                                <button type="submit"
-                                                        class="btn btn-sm btn-outline-danger"
-                                                        @if($isReminderDisabled) disabled @endif>
-                                                    @if($reminderUnavailableReason)
-                                                        <i class="fas fa-ban me-1"></i> {{ $reminderUnavailableReason }}
-                                                    @elseif($schedule->reminder_queued_at)
-                                                        <i class="fas fa-clock me-1"></i> Dalam antrean
-                                                    @elseif($isCoolingDown)
-                                                        <i class="fas fa-hourglass-half me-1"></i> Dalam cooldown
-                                                    @elseif(!$isReminderEligible)
-                                                        <i class="fas fa-ban me-1"></i> Reminder tidak tersedia
-                                                    @else
-                                                        <i class="fas fa-paper-plane me-1"></i> Kirim Reminder Lagi
-                                                    @endif
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger js-roster-reminder-button"
+                                                        data-reminder-employee="{{ optional($schedule->employee)->nama_karyawan ?: 'Karyawan tidak ditemukan' }} ({{ $schedule->employee_nik }})"
+                                                        data-reminder-period="{{ optional($schedule->off_start)->format('d M Y') ?: '-' }} s.d. {{ optional($schedule->off_end)->format('d M Y') ?: '-' }}">
+                                                    <i class="fas fa-paper-plane me-1"></i> Kirim Reminder Lagi
                                                 </button>
-                                                @if($isCoolingDown && !$reminderUnavailableReason)
-                                                    <small class="d-block text-muted mt-1">
-                                                        Dapat dikirim lagi {{ $nextReminderAt->format('d M Y H:i') }}
-                                                    </small>
-                                                @endif
                                             </form>
+                                            @endif
                                         @endif
                                         <a href="{{ route('roster-schedules.edit', $schedule) }}" class="btn btn-sm btn-outline-primary">Edit</a>
                                     </div>
@@ -272,52 +283,99 @@
 
 @push('scripts')
 <script>
-document.addEventListener('submit', function (event) {
-    const form = event.target.closest('.js-roster-action-form');
-
-    if (!form) {
-        return;
-    }
-
-    const button = form.querySelector('button[type="submit"]');
-
-    if (!button || button.disabled) {
-        event.preventDefault();
-        return;
-    }
-
-    button.dataset.originalHtml = button.innerHTML;
-    button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Memasukkan ke antrean...';
-});
-
-document.addEventListener('DOMContentLoaded', function () {
+function initializeRosterScheduleActions() {
     const modalElement = document.getElementById('manualSubmissionModal');
     const form = document.getElementById('manualSubmissionForm');
     const employee = document.getElementById('manualSubmissionEmployee');
     const scheduleId = document.getElementById('manualScheduleId');
+    const feedback = document.getElementById('rosterActionFeedback');
     const oldScheduleId = @json((string) old('manual_schedule_id', ''));
 
-    if (!modalElement || !form || typeof bootstrap === 'undefined') {
+    if (!modalElement || !form || modalElement.dataset.rosterInitialized === '1') {
         return;
     }
 
-    const modal = new bootstrap.Modal(modalElement);
+    modalElement.dataset.rosterInitialized = '1';
     const buttons = Array.from(document.querySelectorAll('.js-manual-submission-button'));
+    let feedbackTimer = null;
+
+    const showFeedback = function (message, type) {
+        if (!feedback) {
+            return;
+        }
+
+        const alertType = ['success', 'danger', 'warning', 'info'].includes(type) ? type : 'info';
+        feedback.className = 'alert alert-' + alertType + ' position-fixed top-0 end-0 m-3 shadow';
+        feedback.textContent = message;
+        feedback.classList.remove('d-none');
+
+        if (feedbackTimer) {
+            window.clearTimeout(feedbackTimer);
+        }
+
+        feedbackTimer = window.setTimeout(function () {
+            feedback.classList.add('d-none');
+        }, 5000);
+    };
+
+    const showInformationAlert = function (title, message) {
+        if (typeof window.swal === 'function') {
+            return window.swal({
+                title: title,
+                text: message,
+                icon: 'info',
+                button: 'OK'
+            });
+        }
+
+        showFeedback(title + ': ' + message, 'info');
+        return Promise.resolve(true);
+    };
+
+    const openManualModal = function () {
+        if (!window.bootstrap || !bootstrap.Modal) {
+            showFeedback('Form gagal dibuka karena komponen modal belum siap. Muat ulang halaman lalu coba lagi.', 'danger');
+            return;
+        }
+
+        bootstrap.Modal.getOrCreateInstance(modalElement).show();
+    };
+
+    const prepareManualForm = function (button) {
+        form.action = button.dataset.manualAction || '';
+        scheduleId.value = button.dataset.manualScheduleId || '';
+        employee.textContent = button.dataset.manualEmployee || '';
+
+        if (oldScheduleId === '' || oldScheduleId !== button.dataset.manualScheduleId) {
+            form.querySelector('[name="realization_type"]').value = '';
+            form.querySelector('[name="manual_reference_number"]').value = '';
+            form.querySelector('[name="manual_submission_note"]').value = '';
+        }
+    };
 
     buttons.forEach(function (button) {
-        button.addEventListener('click', function () {
-            form.action = button.dataset.manualAction;
-            scheduleId.value = button.dataset.manualScheduleId;
-            employee.textContent = button.dataset.manualEmployee;
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            prepareManualForm(button);
 
-            if (oldScheduleId === '' || oldScheduleId !== button.dataset.manualScheduleId) {
-                form.querySelector('[name="realization_type"]').value = '';
-                form.querySelector('[name="manual_reference_number"]').value = '';
-                form.querySelector('[name="manual_submission_note"]').value = '';
+            if (window.AppDialog && typeof window.AppDialog.confirm === 'function') {
+                window.AppDialog.confirm({
+                    title: 'Catat Pengajuan Manual?',
+                    text: 'Form pencatatan pengajuan offline akan dibuka untuk ' + (button.dataset.manualEmployee || 'karyawan ini') + '.',
+                    icon: 'info',
+                    confirmButtonText: 'Buka Form',
+                    cancelButtonText: 'Batal'
+                }).then(function (confirmed) {
+                    if (confirmed) {
+                        showFeedback('Form pengajuan manual dibuka. Lengkapi data lalu tekan Simpan.', 'info');
+                        openManualModal();
+                    }
+                });
+                return;
             }
 
-            modal.show();
+            showFeedback('Form pengajuan manual dibuka. Lengkapi data lalu tekan Simpan.', 'info');
+            openManualModal();
         });
     });
 
@@ -327,27 +385,86 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         if (restoreButton) {
-            restoreButton.click();
+            prepareManualForm(restoreButton);
+
+            showFeedback('Validasi belum berhasil. Periksa kembali data pengajuan manual.', 'warning');
+            openManualModal();
         }
     }
-});
 
-document.addEventListener('submit', function (event) {
-    const form = event.target.closest('.js-manual-submission-form');
+    document.querySelectorAll('.js-reminder-unavailable-button').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const message = button.dataset.reminderUnavailableReason || 'Reminder belum dapat diproses.';
 
-    if (!form) {
-        return;
-    }
+            showInformationAlert('Status Reminder', message);
+        });
+    });
 
-    const button = form.querySelector('button[type="submit"]');
+    document.querySelectorAll('.js-roster-reminder-button').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
 
-    if (!button || button.disabled || !form.action) {
-        event.preventDefault();
-        return;
-    }
+            const submittedForm = button.closest('.js-roster-action-form');
 
-    button.disabled = true;
-    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Menyimpan...';
-});
+            if (!submittedForm || button.disabled) {
+                showFeedback('Reminder tidak dapat diproses. Muat ulang halaman lalu coba lagi.', 'danger');
+                return;
+            }
+
+            const submitReminder = function () {
+                button.dataset.originalHtml = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Memasukkan ke antrean...';
+                showFeedback('Permintaan reminder diterima dan sedang dimasukkan ke antrean.', 'info');
+                HTMLFormElement.prototype.submit.call(submittedForm);
+            };
+
+            const employeeName = button.dataset.reminderEmployee || 'karyawan ini';
+            const period = button.dataset.reminderPeriod || 'jadwal roster terkait';
+
+            if (window.AppDialog && typeof window.AppDialog.confirm === 'function') {
+                window.AppDialog.confirm({
+                    title: 'Kirim Reminder Lagi?',
+                    text: 'Reminder periode ' + period + ' akan dikirim ke email ' + employeeName + '.',
+                    icon: 'warning',
+                    confirmButtonText: 'Ya, Kirim',
+                    cancelButtonText: 'Batal'
+                }).then(function (confirmed) {
+                    if (confirmed) {
+                        submitReminder();
+                    }
+                });
+                return;
+            }
+
+            submitReminder();
+        });
+    });
+
+    document.addEventListener('submit', function (event) {
+        const manualForm = event.target.closest('.js-manual-submission-form');
+
+        if (!manualForm) {
+            return;
+        }
+
+        const button = manualForm.querySelector('button[type="submit"]');
+
+        if (!button || button.disabled || !manualForm.action || !scheduleId.value) {
+            event.preventDefault();
+            return;
+        }
+
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Menyimpan...';
+        showFeedback('Pengajuan manual sedang disimpan. Mohon tunggu.', 'info');
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeRosterScheduleActions, { once: true });
+} else {
+    initializeRosterScheduleActions();
+}
 </script>
 @endpush

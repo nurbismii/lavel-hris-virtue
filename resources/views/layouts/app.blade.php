@@ -243,7 +243,9 @@
                         cancelButtonText: config.cancelButtonText,
                         reverseButtons: true
                     }).then(function(result) {
-                        return !!result.isConfirmed;
+                        // SweetAlert2 lama mengembalikan `value`, sedangkan versi baru
+                        // memakai `isConfirmed`. Dukung keduanya agar callback form tetap jalan.
+                        return !!(result && (result.isConfirmed === true || result.value === true));
                     });
                 }
 
