@@ -179,7 +179,7 @@ class RosterScheduleAdminWorkflowTest extends TestCase
         $this->assertSame('requested', $audit->records[0]['metadata']['status']);
     }
 
-    public function test_stale_unique_lock_does_not_audit_or_show_queued_success(): void
+    public function test_stale_unique_lock_audits_the_request_but_does_not_show_queued_success(): void
     {
         Queue::fake();
         $hr = $this->hrUser();
