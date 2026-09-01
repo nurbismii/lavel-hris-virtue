@@ -144,6 +144,9 @@ Route::middleware(['android.redirect'])->group(function () {
             ->middleware('menu:izin')
             ->name('izin.proof');
         Route::resource('/izin', 'App\Http\Controllers\User\IzinController')->middleware('menu:izin');
+        Route::get('/roster/history', [App\Http\Controllers\User\RosterController::class, 'history'])
+            ->middleware(['menu:roster', 'role:Staff Roster,Super Admin'])
+            ->name('roster.history');
         Route::get('/roster/{roster}/attachment', [App\Http\Controllers\User\RosterController::class, 'attachment'])
             ->middleware(['menu:roster', 'role:Staff Roster,Super Admin'])
             ->name('roster.attachment');

@@ -10,6 +10,7 @@ use App\Models\PeriodeKerjaRoster;
 use App\Models\Roster;
 use App\Models\RosterOffRequest;
 use App\Models\RosterSchedule;
+use App\Models\RosterScheduleHistory;
 use App\Services\Approvals\ApprovalDelegationService;
 use App\Services\Notifications\ApprovalNotificationService;
 use App\Services\Presensi\AttendancePeriodLockService;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 
 class RosterController extends Controller
 {
@@ -33,6 +35,89 @@ class RosterController extends Controller
         $cutis = Roster::with('employee', 'periodeKerjaRoster')->where('nik_karyawan', Auth::user()->nik_karyawan)->get();
 
         return view('user.roster.index', compact('cutis'));
+    }
+
+    public function history(Request $request)
+    {
+        $nikKaryawan = (string) $request->user()->nik_karyawan;
+        abort_if($nikKaryawan === '', 403, 'Akun belum terhubung dengan data karyawan.');
+
+        $requestedClassification = $request->input('classification', '');
+        $classification = is_string($requestedClassification) ? $requestedClassification : '';
+        if (!array_key_exists($classification, RosterScheduleHistory::classificationOptions())) {
+            $classification = '';
+        }
+
+        $requestedYear = $request->input('year');
+        $year = is_scalar($requestedYear) ? filter_var($requestedYear, FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 2000, 'max_range' => 2100],
+        ]) : false;
+        $year = $year === false ? null : $year;
+
+        $query = RosterScheduleHistory::query()
+            ->where('employee_nik', $nikKaryawan)
+            ->select([
+                'id',
+                'employee_nik',
+                'period_year',
+                'period_number',
+                'scheduled_off_start',
+                'scheduled_off_end',
+                'classification',
+                'review_status',
+                'remark_segment',
+            ])
+            ->orderByDesc('scheduled_off_start')
+            ->orderByDesc('id');
+
+        if ($year !== null) {
+            $query->where('period_year', $year);
+        }
+
+        if ($classification !== '') {
+            $query->where('classification', $classification);
+        }
+
+        $upcomingSchedules = RosterSchedule::query()
+            ->select([
+                'id',
+                'employee_nik',
+                'period_year',
+                'period_number',
+                'work_start',
+                'work_end',
+                'off_start',
+                'off_end',
+                'realization_type',
+                'manual_submitted_at',
+            ])
+            ->where('employee_nik', $nikKaryawan)
+            ->active()
+            ->where('off_start', '>=', Carbon::today()->toDateString())
+            ->withExists([
+                'applications as has_active_application' => fn ($applicationQuery) => $applicationQuery
+                    ->activeApplication(),
+            ])
+            ->orderBy('off_start')
+            ->orderBy('id')
+            ->limit(5)
+            ->get();
+
+        return view('user.roster.history', [
+            'upcomingSchedules' => $upcomingSchedules,
+            'histories' => $query->paginate(20)->withQueryString(),
+            'classificationOptions' => RosterScheduleHistory::classificationOptions(),
+            'filters' => [
+                'year' => $year,
+                'classification' => $classification,
+            ],
+            'yearOptions' => RosterScheduleHistory::query()
+                ->where('employee_nik', $nikKaryawan)
+                ->select('period_year')
+                ->distinct()
+                ->orderByDesc('period_year')
+                ->pluck('period_year'),
+        ]);
     }
 
     public function show($id)
@@ -458,15 +543,7 @@ class RosterController extends Controller
     {
         $query = Roster::query()
             ->where('roster_schedule_id', $scheduleId)
-            ->where(function ($query) {
-                $query->where(function ($statusQuery) {
-                    $statusQuery->whereNull('status_pengajuan')
-                        ->orWhere('status_pengajuan', '!=', 2);
-                })->where(function ($statusQuery) {
-                    $statusQuery->whereNull('status_pengajuan_hrd')
-                        ->orWhere('status_pengajuan_hrd', '!=', 2);
-                });
-            });
+            ->activeApplication();
 
         if ($lock) {
             $query->lockForUpdate();

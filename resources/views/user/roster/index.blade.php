@@ -15,9 +15,14 @@
                 </small>
             </div>
 
-            <a href="{{ route('roster.create') }}" class="btn btn-sm btn-primary">
-                <i class="fas fa-plus me-1"></i> {{ __('self_service.actions.apply_roster') }}
-            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ route('roster.history') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-history me-1"></i> {{ __('self_service.roster.schedule_history_action') }}
+                </a>
+                <a href="{{ route('roster.create') }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus me-1"></i> {{ __('self_service.actions.apply_roster') }}
+                </a>
+            </div>
         </div>
 
         <div class="card">

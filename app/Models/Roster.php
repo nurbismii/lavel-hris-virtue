@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class Roster extends Model
@@ -39,6 +40,19 @@ class Roster extends Model
     public function schedule()
     {
         return $this->belongsTo(RosterSchedule::class, 'roster_schedule_id');
+    }
+
+    public function scopeActiveApplication(Builder $query): Builder
+    {
+        return $query
+            ->where(function (Builder $statusQuery) {
+                $statusQuery->whereNull('status_pengajuan')
+                    ->orWhere('status_pengajuan', '!=', 2);
+            })
+            ->where(function (Builder $statusQuery) {
+                $statusQuery->whereNull('status_pengajuan_hrd')
+                    ->orWhere('status_pengajuan_hrd', '!=', 2);
+            });
     }
 
     public function getStatusRencanaLabelAttribute()

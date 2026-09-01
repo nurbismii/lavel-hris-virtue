@@ -19,6 +19,8 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasFactory, Notifiable;
 
+    private ?bool $roleUserTableAvailable = null;
+
     protected $table = 'users';
     protected $primaryKey = 'id';
     public $incrementing = false;
@@ -130,7 +132,7 @@ class User extends Authenticatable implements MustVerifyEmail
         $this->loadMissing('role');
         $additionalRoles = collect();
 
-        if (Schema::hasTable('role_user')) {
+        if ($this->hasRoleUserTable()) {
             $this->loadMissing('additionalRoles');
             $additionalRoles = $this->additionalRoles;
         }
@@ -140,6 +142,15 @@ class User extends Authenticatable implements MustVerifyEmail
             ->merge($additionalRoles)
             ->unique('id')
             ->values();
+    }
+
+    private function hasRoleUserTable(): bool
+    {
+        if ($this->roleUserTableAvailable === null) {
+            $this->roleUserTableAvailable = Schema::hasTable('role_user');
+        }
+
+        return $this->roleUserTableAvailable;
     }
 
     public function hasAnyRole(): bool
