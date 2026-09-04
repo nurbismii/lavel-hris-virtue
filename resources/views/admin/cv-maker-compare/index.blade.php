@@ -110,6 +110,34 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cvJobTitleFilterDropdown">Jabatan</label>
+                            <div class="company-filter">
+                                <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="cvJobTitleFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="cvFilterJobTitleLabel">Semua jabatan</span>
+                                </button>
+                                <div class="dropdown-menu company-filter__menu" aria-labelledby="cvJobTitleFilterDropdown">
+                                    <div class="company-filter__menu-header">
+                                        <span>Pilih jabatan</span>
+                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvJobTitleFilter">Kosongkan</button>
+                                    </div>
+                                    @forelse ($jobTitles as $jobTitle)
+                                    <label class="company-filter__option">
+                                        <input type="checkbox" class="form-check-input cv-filter-job-title-check" value="{{ $jobTitle }}">
+                                        <span>{{ $jobTitle }}</span>
+                                    </label>
+                                    @empty
+                                    <div class="company-filter__empty">Tidak ada jabatan tersedia.</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                            <select id="cv_filter_jabatan" class="d-none" multiple aria-hidden="true">
+                                @foreach ($jobTitles as $jobTitle)
+                                <option value="{{ $jobTitle }}">{{ $jobTitle }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
                             <label class="form-label" for="cv_filter_resign">Status</label>
                             <select id="cv_filter_resign" class="form-select">
                                 <option value="">Semua Status</option>
@@ -265,6 +293,23 @@
         }).get();
     }
 
+    function selectedCvJobTitles() {
+        return $('.cv-filter-job-title-check:checked').map(function() {
+            return this.value;
+        }).get();
+    }
+
+    function syncCvJobTitleFilter() {
+        const jobTitles = selectedCvJobTitles();
+        const label = jobTitles.length
+            ? (jobTitles.length === 1 ? jobTitles[0] : `${jobTitles.length} jabatan dipilih`)
+            : 'Semua jabatan';
+
+        $('#cv_filter_jabatan').val(jobTitles);
+        $('#cvFilterJobTitleLabel').text(label);
+        $('#cvJobTitleFilterDropdown').toggleClass('is-active', jobTitles.length > 0);
+    }
+
     function syncCvProgressStepFilter() {
         const checkedSteps = $('.cv-progress-step-check:checked');
         const values = checkedSteps.map(function() {
@@ -372,6 +417,7 @@
                     data.area = selectedCvAreaCodes();
                     data.departemen = $('#cv_filter_departemen').val();
                     data.divisi = $('#cv_filter_divisi').val();
+                    data.jabatan = selectedCvJobTitles();
                     data.status_resign = $('#cv_filter_resign').val();
                     data.cv_reminder = $('#cv_filter_reminder').val();
                     data.cv_progress_status = $('#cv_filter_progress_status').val();
@@ -426,6 +472,7 @@
             area: selectedCvAreaCodes(),
             departemen: $('#cv_filter_departemen').val(),
             divisi: $('#cv_filter_divisi').val(),
+            jabatan: selectedCvJobTitles(),
             status_resign: $('#cv_filter_resign').val(),
             cv_reminder: 'needs_reminder',
             cv_progress_status: $('#cv_filter_progress_status').val(),
@@ -518,6 +565,7 @@
     $('#btnCvReminderFiltered').on('click', function() { queueCvReminder('filtered'); });
 
     syncCvAreaFilter();
+    syncCvJobTitleFilter();
     syncCvProgressStepFilter();
     resetCvDepartmentAndDivision(true);
 
@@ -547,6 +595,21 @@
         $('.cv-filter-area-check').prop('checked', false);
         syncCvAreaFilter();
         $('#cv_filter_area').trigger('change');
+    });
+
+    $('.cv-filter-job-title-check').on('change', function() {
+        syncCvJobTitleFilter();
+        $('#cv_filter_jabatan').trigger('change');
+    });
+
+    $('#btnClearCvJobTitleFilter').on('click', function() {
+        $('.cv-filter-job-title-check').prop('checked', false);
+        syncCvJobTitleFilter();
+        $('#cv_filter_jabatan').trigger('change');
+    });
+
+    $('#cv_filter_jabatan').on('change', function() {
+        cvCompareTable.draw();
     });
 
     $('#cv_filter_area').on('change', function() {
@@ -609,6 +672,8 @@
         $('.cv-filter-area-check').prop('checked', false);
         syncCvAreaFilter();
         resetCvDepartmentAndDivision(true);
+        $('.cv-filter-job-title-check').prop('checked', false);
+        syncCvJobTitleFilter();
         $('#cv_filter_resign').val('AKTIF');
         $('#cv_filter_reminder').val('');
         $('#cv_filter_progress_status').val('');

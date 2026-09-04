@@ -39,11 +39,23 @@ class CvMakerCompareController extends Controller
         $departemenIds = (clone $scopeQuery)->select('departemen_id')->distinct()->pluck('departemen_id')->filter();
         $divisiIds = (clone $scopeQuery)->select('divisi_id')->distinct()->pluck('divisi_id')->filter();
         $areaCodes = (clone $scopeQuery)->select('area_kerja')->distinct()->pluck('area_kerja')->filter();
+        $jobTitles = (clone $scopeQuery)
+            ->whereNotNull('jabatan')
+            ->where('jabatan', '<>', '')
+            ->select('jabatan')
+            ->distinct()
+            ->orderBy('jabatan')
+            ->pluck('jabatan')
+            ->map(fn($jobTitle) => trim((string) $jobTitle))
+            ->filter()
+            ->unique()
+            ->values();
 
         return view('admin.cv-maker-compare.index', [
             'departemens' => Departemen::with('perusahaan')->whereIn('id', $departemenIds)->orderBy('departemen')->get(),
             'divisis' => Divisi::whereIn('id', $divisiIds)->orderBy('nama_divisi')->get(),
             'areas' => Perusahaan::whereIn('kode_perusahaan', $areaCodes)->get(),
+            'jobTitles' => $jobTitles,
             'integrationAvailable' => $service->isConfigured(),
         ]);
     }

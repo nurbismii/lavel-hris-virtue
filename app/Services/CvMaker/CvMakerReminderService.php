@@ -246,6 +246,7 @@ class CvMakerReminderService
             'area' => array_values((array) $request->input('area', [])),
             'departemen' => $request->input('departemen'),
             'divisi' => $request->input('divisi'),
+            'jabatan' => array_values((array) $request->input('jabatan', [])),
             'status_resign' => $request->input('status_resign', 'AKTIF'),
             'cv_reminder' => 'needs_reminder',
             'cv_progress_status' => $request->input('cv_progress_status'),

@@ -25,6 +25,8 @@ class StoreReminderBatchRequest extends FormRequest
             'area.*' => ['string', 'max:50', 'distinct'],
             'departemen' => ['nullable', 'integer'],
             'divisi' => ['nullable', 'integer'],
+            'jabatan' => ['nullable', 'array', 'max:100'],
+            'jabatan.*' => ['string', 'max:255', 'distinct'],
             'status_resign' => ['nullable', 'string', 'max:80'],
             'cv_reminder' => ['nullable', Rule::in(['needs_reminder', 'not_needed'])],
             'cv_progress_status' => ['nullable', Rule::in(['not_synced', 'no_account', 'no_profile', 'in_progress', 'complete'])],

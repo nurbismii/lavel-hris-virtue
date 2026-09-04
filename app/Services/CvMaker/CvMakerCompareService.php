@@ -994,6 +994,19 @@ class CvMakerCompareService
             $query->where('employees.divisi_id', $request->input('divisi'));
         }
 
+        $jobTitles = collect((array) $request->input('jabatan'))
+            ->filter(fn($value) => is_scalar($value) && filled($value))
+            ->map(fn($value) => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->take(100)
+            ->values()
+            ->all();
+
+        if ($jobTitles) {
+            $query->whereIn('employees.jabatan', $jobTitles);
+        }
+
         if ($request->filled('status_resign')) {
             $query->where('employees.status_resign', $request->input('status_resign'));
         }
