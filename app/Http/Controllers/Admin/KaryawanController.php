@@ -56,7 +56,11 @@ class KaryawanController extends Controller
         return view('admin.karyawan.index', [
             'departemens' => Departemen::with('perusahaan')->whereIn('id', $departemenIds)->orderBy('departemen')->get(),
             'divisis' => Divisi::whereIn('id', $divisiIds)->orderBy('nama_divisi')->get(),
-            'areas' => Perusahaan::whereIn('kode_perusahaan', $areaCodes)->get(),
+            'areas' => Perusahaan::query()
+                ->organizationCompanies()
+                ->whereIn('kode_perusahaan', $areaCodes)
+                ->orderBy('kode_perusahaan')
+                ->get(),
             'canManageMasterData' => $request->user()->canAccessAllEmployees(),
         ]);
     }
@@ -455,12 +459,18 @@ class KaryawanController extends Controller
 
     public function departemenByArea(Request $request)
     {
-        $areaCodes = collect((array) $request->input('area'))
+        $requestedAreaCodes = collect((array) $request->input('area'))
             ->filter(fn($value) => filled($value))
             ->map(fn($value) => trim((string) $value))
             ->unique()
-            ->values()
+            ->values();
+        $areaCodes = $requestedAreaCodes
+            ->filter(fn($value) => in_array($value, Perusahaan::ORGANIZATION_COMPANY_CODES, true))
             ->all();
+
+        if ($requestedAreaCodes->isNotEmpty() && empty($areaCodes)) {
+            return response()->json([]);
+        }
 
         $query = Departemen::whereHas('employee', function ($q) use ($request, $areaCodes) {
             if ($areaCodes) {

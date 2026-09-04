@@ -8,6 +8,7 @@ use App\Http\Requests\Presensi\SaveAttendanceLocationRequest;
 use App\Models\Divisi;
 use App\Models\EmployeeAttendanceLocationAssignment;
 use App\Models\LokasiAbsen;
+use App\Models\Perusahaan;
 use App\Models\User;
 use App\Services\Presensi\AttendanceLocationBulkAssignmentService;
 use Carbon\Carbon;
@@ -282,6 +283,9 @@ class SettingLokasiPresensiController extends Controller
         $user = $request->user();
         $query = Divisi::query()
             ->with('departemen.perusahaan')
+            ->whereHas('departemen.perusahaan', function (Builder $companyQuery) {
+                $companyQuery->whereIn('kode_perusahaan', Perusahaan::ORGANIZATION_COMPANY_CODES);
+            })
             ->withCount(['karyawan as active_employee_count'])
             ->orderBy('nama_divisi');
 

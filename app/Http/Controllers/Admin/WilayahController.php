@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Kabupaten;
 use App\Models\Kecamatan;
 use App\Models\Kelurahan;
+use App\Models\Perusahaan;
 use App\Models\Provinsi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,8 +15,6 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class WilayahController extends Controller
 {
-    private const DEFAULT_AREA_KERJA = ['VDNI', 'VDNIP'];
-    private const AREA_KERJA_OPTIONS = ['VDNI', 'VDNIP', 'OSS', 'PMS-VDNI', 'PMS-OSS'];
     private const SULAWESI_PROVINCE_IDS = ['71', '72', '73', '75', '76'];
     private const SULAWESI_TENGGARA_ID = '74';
     private const FOCUS_KECAMATANS = ['Bondoala', 'Morosi', 'Kapoiala'];
@@ -67,7 +66,7 @@ class WilayahController extends Controller
 
         return view('admin.wilayah.index', [
             'filters' => $filters,
-            'areaKerjaOptions' => self::AREA_KERJA_OPTIONS,
+            'areaKerjaOptions' => Perusahaan::ORGANIZATION_COMPANY_CODES,
             'provinsiOptions' => $provinsiOptions,
             'kabupatenOptions' => $kabupatenOptions,
             'kecamatanOptions' => $kecamatanOptions,
@@ -180,20 +179,16 @@ class WilayahController extends Controller
 
     private function resolveFilters(Request $request): array
     {
-        $areaKerja = $request->input('area_kerja', self::DEFAULT_AREA_KERJA);
+        $areaKerja = $request->input('area_kerja', Perusahaan::ORGANIZATION_COMPANY_CODES);
 
         if (!is_array($areaKerja)) {
             $areaKerja = [$areaKerja];
         }
 
         $areaKerja = collect($areaKerja)
-            ->filter(fn($value) => in_array($value, self::AREA_KERJA_OPTIONS, true))
+            ->filter(fn($value) => in_array($value, Perusahaan::ORGANIZATION_COMPANY_CODES, true))
             ->values()
             ->all();
-
-        if (empty($areaKerja)) {
-            $areaKerja = self::DEFAULT_AREA_KERJA;
-        }
 
         return [
             'area_kerja' => $areaKerja,

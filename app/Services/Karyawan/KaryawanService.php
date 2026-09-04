@@ -3,6 +3,7 @@
 namespace App\Services\Karyawan;
 
 use App\Models\Employee;
+use App\Models\Perusahaan;
 use Yajra\DataTables\Facades\DataTables;
 
 class KaryawanService
@@ -41,10 +42,15 @@ class KaryawanService
 
         $user->applyEmployeeScope($query);
 
-        $areaCodes = $this->selectedAreaCodes($request->input('area'));
+        $requestedAreas = collect((array) $request->input('area'))
+            ->filter(fn($value) => filled($value));
+        $areaCodes = $this->selectedAreaCodes($requestedAreas->all());
 
         if ($areaCodes) {
             $query->whereIn('area_kerja', $areaCodes);
+        } elseif ($requestedAreas->isNotEmpty()) {
+            // Jangan biarkan filter perusahaan yang tidak didukung melebar menjadi semua data.
+            $query->whereRaw('1 = 0');
         }
 
         if ($request->departemen) {
@@ -97,6 +103,7 @@ class KaryawanService
         return collect((array) $area)
             ->filter(fn($value) => filled($value))
             ->map(fn($value) => trim((string) $value))
+            ->filter(fn($value) => in_array($value, Perusahaan::ORGANIZATION_COMPANY_CODES, true))
             ->unique()
             ->values()
             ->all();

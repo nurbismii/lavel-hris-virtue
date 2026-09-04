@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Divisi;
 use App\Models\Employee;
+use App\Models\Perusahaan;
 use App\Models\WorkPattern;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -251,6 +252,9 @@ class WorkPatternController extends Controller
         $user = $request->user();
         $query = Divisi::query()
             ->with('departemen.perusahaan')
+            ->whereHas('departemen.perusahaan', function ($companyQuery) {
+                $companyQuery->whereIn('kode_perusahaan', Perusahaan::ORGANIZATION_COMPANY_CODES);
+            })
             ->withCount(['karyawan as active_employee_count'])
             ->orderBy('nama_divisi');
 
