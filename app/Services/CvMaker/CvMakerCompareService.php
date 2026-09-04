@@ -1004,7 +1004,9 @@ class CvMakerCompareService
             ->all();
 
         if ($jobTitles) {
-            $query->whereIn('employees.jabatan', $jobTitles);
+            $query->whereIn('employees.nik', CvMakerProgressStatus::query()
+                ->select('employee_nik')
+                ->whereIn('cv_job_title', $jobTitles));
         }
 
         if ($request->filled('status_resign')) {

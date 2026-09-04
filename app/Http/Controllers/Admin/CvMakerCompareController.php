@@ -8,6 +8,7 @@ use App\Http\Requests\CvMaker\StoreReminderBatchRequest;
 use App\Http\Requests\CvMaker\UpdateReviewStatusRequest;
 use App\Http\Requests\CvMaker\CorrectHrisFieldRequest;
 use App\Models\CvMakerReminderBatch;
+use App\Models\CvMakerProgressStatus;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
@@ -39,13 +40,15 @@ class CvMakerCompareController extends Controller
         $departemenIds = (clone $scopeQuery)->select('departemen_id')->distinct()->pluck('departemen_id')->filter();
         $divisiIds = (clone $scopeQuery)->select('divisi_id')->distinct()->pluck('divisi_id')->filter();
         $areaCodes = (clone $scopeQuery)->select('area_kerja')->distinct()->pluck('area_kerja')->filter();
-        $jobTitles = (clone $scopeQuery)
-            ->whereNotNull('jabatan')
-            ->where('jabatan', '<>', '')
-            ->select('jabatan')
+        $scopedEmployeeNiks = (clone $scopeQuery)->select('employees.nik');
+        $jobTitles = CvMakerProgressStatus::query()
+            ->whereIn('employee_nik', $scopedEmployeeNiks)
+            ->whereNotNull('cv_job_title')
+            ->where('cv_job_title', '<>', '')
+            ->select('cv_job_title')
             ->distinct()
-            ->orderBy('jabatan')
-            ->pluck('jabatan')
+            ->orderBy('cv_job_title')
+            ->pluck('cv_job_title')
             ->map(fn($jobTitle) => trim((string) $jobTitle))
             ->filter()
             ->unique()

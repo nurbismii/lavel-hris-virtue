@@ -62,6 +62,7 @@ class CvMakerProgressSyncCommandTest extends TestCase
         $status = CvMakerProgressStatus::query()->where('employee_nik', 'EMP001')->first();
 
         $this->assertNotNull($status);
+        $this->assertSame('Supervisor Produksi', $status->cv_job_title);
         $this->assertSame(8, (int) $status->current_step);
         $this->assertSame('documents', $status->current_step_key);
         $this->assertTrue((bool) $status->needs_reminder);
@@ -138,6 +139,7 @@ class CvMakerProgressSyncCommandTest extends TestCase
             'id' => 200,
             'user_id' => 100,
             'status' => 'draft',
+            'job_title' => 'Supervisor Produksi',
             'full_name' => 'Employee Test',
             'birth_date' => '1992-05-15',
             'birth_place' => 'Kendari',
@@ -197,6 +199,7 @@ class CvMakerProgressSyncCommandTest extends TestCase
             $table->unsignedBigInteger('cv_user_id')->nullable();
             $table->unsignedBigInteger('cv_profile_id')->nullable();
             $table->string('cv_status', 40)->nullable();
+            $table->string('cv_job_title')->nullable();
             $table->unsignedTinyInteger('current_step')->default(1);
             $table->string('current_step_key', 40)->nullable();
             $table->string('current_step_label', 80)->nullable();
@@ -246,6 +249,7 @@ class CvMakerProgressSyncCommandTest extends TestCase
             $table->unsignedBigInteger('id')->primary();
             $table->unsignedBigInteger('user_id');
             $table->string('status')->nullable();
+            $table->string('job_title')->nullable();
             $table->string('full_name')->nullable();
             $table->date('birth_date')->nullable();
             $table->string('birth_place')->nullable();

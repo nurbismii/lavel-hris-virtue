@@ -47,6 +47,7 @@ class CvMakerProgressSnapshotStorageTest extends TestCase
         $status = CvMakerProgressStatus::query()->where('employee_nik', 'EMP001')->first();
 
         $this->assertNotNull($status);
+        $this->assertSame('Supervisor Produksi', $status->cv_job_title);
         $this->assertSame(8, (int) $status->current_step);
         $this->assertSame('documents', $status->current_step_key);
         $this->assertTrue((bool) $status->needs_reminder);
@@ -183,6 +184,7 @@ class CvMakerProgressSnapshotStorageTest extends TestCase
             'user_id' => 7,
             'profile_id' => 20,
             'status' => 'draft',
+            'job_title' => 'Supervisor Produksi',
             'full_name' => 'Siti Aminah',
             'birth_date' => '1992-05-15',
             'birth_place' => 'Kendari',
@@ -247,6 +249,7 @@ class CvMakerProgressSnapshotStorageTest extends TestCase
             $table->unsignedBigInteger('cv_user_id')->nullable();
             $table->unsignedBigInteger('cv_profile_id')->nullable();
             $table->string('cv_status', 40)->nullable();
+            $table->string('cv_job_title')->nullable();
             $table->unsignedTinyInteger('current_step')->default(1);
             $table->string('current_step_key', 40)->nullable();
             $table->string('current_step_label', 80)->nullable();

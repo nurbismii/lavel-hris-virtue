@@ -110,14 +110,14 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cvJobTitleFilterDropdown">Jabatan</label>
+                            <label class="form-label" for="cvJobTitleFilterDropdown">Jabatan CV Maker</label>
                             <div class="company-filter">
                                 <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="cvJobTitleFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
                                     <span id="cvFilterJobTitleLabel">Semua jabatan</span>
                                 </button>
                                 <div class="dropdown-menu company-filter__menu" aria-labelledby="cvJobTitleFilterDropdown">
                                     <div class="company-filter__menu-header">
-                                        <span>Pilih jabatan</span>
+                                        <span>Pilih jabatan dari CV Maker</span>
                                         <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvJobTitleFilter">Kosongkan</button>
                                     </div>
                                     @forelse ($jobTitles as $jobTitle)

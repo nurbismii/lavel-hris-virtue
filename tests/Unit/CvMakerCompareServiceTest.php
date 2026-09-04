@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 class CvMakerCompareServiceTest extends TestCase
 {
-    public function test_multiple_job_titles_are_applied_as_an_exact_server_side_filter(): void
+    public function test_multiple_cv_job_titles_are_applied_as_an_exact_server_side_filter(): void
     {
         $service = new CvMakerCompareService();
         $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
@@ -26,7 +26,7 @@ class CvMakerCompareServiceTest extends TestCase
 
         $query = $method->invoke($service, Employee::query(), $request);
 
-        $this->assertStringContainsString('`employees`.`jabatan` in (?, ?)', $query->toSql());
+        $this->assertStringContainsString('from `cv_maker_progress_statuses` where `cv_job_title` in (?, ?)', $query->toSql());
         $this->assertSame(['Operator Produksi', 'Foreman'], $query->getBindings());
     }
 
