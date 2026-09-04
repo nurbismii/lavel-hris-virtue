@@ -3,6 +3,7 @@
 namespace App\Http\Requests\CvMaker;
 
 use App\Models\CvMakerPositionSkillCategory;
+use App\Services\CvMaker\CvMakerCompareService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -28,6 +29,8 @@ class StoreReminderBatchRequest extends FormRequest
             'divisi' => ['nullable', 'integer'],
             'posisi' => ['nullable', 'array', 'max:100'],
             'posisi.*' => ['string', 'max:255', 'distinct'],
+            'jabatan_hris' => ['nullable', 'array', 'max:14'],
+            'jabatan_hris.*' => ['string', Rule::in(array_keys(CvMakerCompareService::hrisJobTitlePrefixes())), 'distinct'],
             'jabatan' => ['nullable', 'array', 'max:100'],
             'jabatan.*' => ['string', 'max:255', 'distinct'],
             'cv_skill_category' => ['nullable', Rule::in(array_keys(CvMakerPositionSkillCategory::labels()))],

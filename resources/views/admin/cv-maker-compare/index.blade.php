@@ -50,6 +50,10 @@
             <div class="ui-panel__body">
                 <div class="cv-compare-filter-panel">
                     <div class="row g-3 align-items-end">
+                        <div class="col-12">
+                            <div class="small fw-semibold text-uppercase text-muted">Filter HRIS</div>
+                        </div>
+
                         <div class="col-xl-3 col-md-6 ui-field">
                             <label class="form-label" for="cvCompanyFilterDropdown">Perusahaan</label>
                             <div class="company-filter">
@@ -110,6 +114,63 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cv_filter_posisi">Posisi HRIS</label>
+                            <select id="cv_filter_posisi" class="form-select cv-position-filter" multiple data-placeholder="Cari dan pilih posisi HRIS"></select>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cvHrisJobTitleFilterDropdown">Jabatan HRIS</label>
+                            <div class="company-filter">
+                                <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="cvHrisJobTitleFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                    <span id="cvFilterHrisJobTitleLabel">Semua jabatan HRIS</span>
+                                </button>
+                                <div class="dropdown-menu company-filter__menu" aria-labelledby="cvHrisJobTitleFilterDropdown">
+                                    <div class="company-filter__menu-header">
+                                        <span>Pilih awalan posisi HRIS</span>
+                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvHrisJobTitleFilter">Kosongkan</button>
+                                    </div>
+                                    @forelse ($hrisJobTitles as $value => $label)
+                                    <label class="company-filter__option">
+                                        <input type="checkbox" class="form-check-input cv-filter-hris-job-title-check" value="{{ $value }}">
+                                        <span>{{ $label }}</span>
+                                    </label>
+                                    @empty
+                                    <div class="company-filter__empty">Tidak ada jabatan HRIS tersedia.</div>
+                                    @endforelse
+                                </div>
+                            </div>
+                            <select id="cv_filter_jabatan_hris" class="d-none" multiple aria-hidden="true">
+                                @foreach ($hrisJobTitles as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cv_filter_resign">Status</label>
+                            <select id="cv_filter_resign" class="form-select">
+                                <option value="">Semua Status</option>
+                                <option value="AKTIF" selected>Aktif</option>
+                                <option value="RESIGN SESUAI PROSEDUR">Resign Sesuai Prosedur</option>
+                                <option value="RESIGN TIDAK SESUAI PROSEDUR">Resign Tidak Sesuai Prosedur</option>
+                                <option value="RESIGN TIDAK SESUAI PROSEDUR-PENGAJUAN">Resign Tidak Sesuai Prosedur-Pengajuan</option>
+                                <option value="RESIGN TIDAK SESUAI PROSEDUR-KABUR">Resign Tidak Sesuai Prosedur-Kabur</option>
+                                <option value="RESIGN TIDAK SESUAI PROSEDUR-PAYROLL">Resign Tidak Sesuai Prosedur-Payroll</option>
+                                <option value="PB RESIGN">PB Resign</option>
+                                <option value="PUTUS KONTRAK">Putus Kontrak</option>
+                                <option value="PHK">PHK</option>
+                                <option value="PHK PENSIUN">PHK Pensiun</option>
+                                <option value="PHK PENSIUN DINI">PHK Pensiun Dini</option>
+                                <option value="PHK PIDANA">PHK Pidana</option>
+                                <option value="PHK MENINGGAL DUNIA">PHK Meninggal Dunia</option>
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="small fw-semibold text-uppercase text-muted border-top pt-3">Filter CV Maker</div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
                             <label class="form-label" for="cvJobTitleFilterDropdown">Jabatan CV Maker</label>
                             <div class="company-filter">
                                 <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="cvJobTitleFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
@@ -138,37 +199,12 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_posisi">Posisi HRIS</label>
-                            <select id="cv_filter_posisi" class="form-select cv-position-filter" multiple data-placeholder="Cari dan pilih posisi HRIS"></select>
-                        </div>
-
-                        <div class="col-xl-3 col-md-6 ui-field">
                             <label class="form-label" for="cv_filter_skill_category">Kategori Posisi CV Maker</label>
                             <select id="cv_filter_skill_category" class="form-select">
                                 <option value="">Semua Kategori</option>
                                 @foreach ($skillCategories as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
-                            </select>
-                        </div>
-
-                        <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_resign">Status</label>
-                            <select id="cv_filter_resign" class="form-select">
-                                <option value="">Semua Status</option>
-                                <option value="AKTIF" selected>Aktif</option>
-                                <option value="RESIGN SESUAI PROSEDUR">Resign Sesuai Prosedur</option>
-                                <option value="RESIGN TIDAK SESUAI PROSEDUR">Resign Tidak Sesuai Prosedur</option>
-                                <option value="RESIGN TIDAK SESUAI PROSEDUR-PENGAJUAN">Resign Tidak Sesuai Prosedur-Pengajuan</option>
-                                <option value="RESIGN TIDAK SESUAI PROSEDUR-KABUR">Resign Tidak Sesuai Prosedur-Kabur</option>
-                                <option value="RESIGN TIDAK SESUAI PROSEDUR-PAYROLL">Resign Tidak Sesuai Prosedur-Payroll</option>
-                                <option value="PB RESIGN">PB Resign</option>
-                                <option value="PUTUS KONTRAK">Putus Kontrak</option>
-                                <option value="PHK">PHK</option>
-                                <option value="PHK PENSIUN">PHK Pensiun</option>
-                                <option value="PHK PENSIUN DINI">PHK Pensiun Dini</option>
-                                <option value="PHK PIDANA">PHK Pidana</option>
-                                <option value="PHK MENINGGAL DUNIA">PHK Meninggal Dunia</option>
                             </select>
                         </div>
 
@@ -315,6 +351,12 @@
         }).get();
     }
 
+    function selectedCvHrisJobTitles() {
+        return $('.cv-filter-hris-job-title-check:checked').map(function() {
+            return this.value;
+        }).get();
+    }
+
     function syncCvJobTitleFilter() {
         const jobTitles = selectedCvJobTitles();
         const label = jobTitles.length
@@ -324,6 +366,17 @@
         $('#cv_filter_jabatan').val(jobTitles);
         $('#cvFilterJobTitleLabel').text(label);
         $('#cvJobTitleFilterDropdown').toggleClass('is-active', jobTitles.length > 0);
+    }
+
+    function syncCvHrisJobTitleFilter() {
+        const jobTitles = selectedCvHrisJobTitles();
+        const label = jobTitles.length
+            ? (jobTitles.length === 1 ? jobTitles[0] : `${jobTitles.length} jabatan dipilih`)
+            : 'Semua jabatan HRIS';
+
+        $('#cv_filter_jabatan_hris').val(jobTitles);
+        $('#cvFilterHrisJobTitleLabel').text(label);
+        $('#cvHrisJobTitleFilterDropdown').toggleClass('is-active', jobTitles.length > 0);
     }
 
     function syncCvProgressStepFilter() {
@@ -470,6 +523,7 @@
                     data.departemen = $('#cv_filter_departemen').val();
                     data.divisi = $('#cv_filter_divisi').val();
                     data.posisi = $('#cv_filter_posisi').val() || [];
+                    data.jabatan_hris = selectedCvHrisJobTitles();
                     data.jabatan = selectedCvJobTitles();
                     data.cv_skill_category = $('#cv_filter_skill_category').val();
                     data.status_resign = $('#cv_filter_resign').val();
@@ -527,6 +581,7 @@
             departemen: $('#cv_filter_departemen').val(),
             divisi: $('#cv_filter_divisi').val(),
             posisi: $('#cv_filter_posisi').val() || [],
+            jabatan_hris: selectedCvHrisJobTitles(),
             jabatan: selectedCvJobTitles(),
             cv_skill_category: $('#cv_filter_skill_category').val(),
             status_resign: $('#cv_filter_resign').val(),
@@ -622,6 +677,7 @@
 
     syncCvAreaFilter();
     syncCvJobTitleFilter();
+    syncCvHrisJobTitleFilter();
     syncCvProgressStepFilter();
     resetCvDepartmentAndDivision(true);
 
@@ -665,6 +721,21 @@
     });
 
     $('#cv_filter_jabatan').on('change', function() {
+        cvCompareTable.draw();
+    });
+
+    $('.cv-filter-hris-job-title-check').on('change', function() {
+        syncCvHrisJobTitleFilter();
+        $('#cv_filter_jabatan_hris').trigger('change');
+    });
+
+    $('#btnClearCvHrisJobTitleFilter').on('click', function() {
+        $('.cv-filter-hris-job-title-check').prop('checked', false);
+        syncCvHrisJobTitleFilter();
+        $('#cv_filter_jabatan_hris').trigger('change');
+    });
+
+    $('#cv_filter_jabatan_hris').on('change', function() {
         cvCompareTable.draw();
     });
 
@@ -729,6 +800,8 @@
         syncCvAreaFilter();
         resetCvDepartmentAndDivision(true);
         $('#cv_filter_posisi').val(null).trigger('change.select2');
+        $('.cv-filter-hris-job-title-check').prop('checked', false);
+        syncCvHrisJobTitleFilter();
         $('.cv-filter-job-title-check').prop('checked', false);
         syncCvJobTitleFilter();
         $('#cv_filter_skill_category').val('');

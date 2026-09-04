@@ -65,6 +65,7 @@ class CvMakerCompareController extends Controller
                 ->orderBy('kode_perusahaan')
                 ->get(),
             'jobTitles' => $jobTitles,
+            'hrisJobTitles' => CvMakerCompareService::hrisJobTitlePrefixes(),
             'skillCategories' => CvMakerPositionSkillCategory::labels(),
             'integrationAvailable' => $service->isConfigured(),
         ]);

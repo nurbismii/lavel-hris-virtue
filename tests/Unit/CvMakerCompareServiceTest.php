@@ -15,6 +15,26 @@ use Tests\TestCase;
 
 class CvMakerCompareServiceTest extends TestCase
 {
+    public function test_hris_job_title_filter_exposes_the_configured_categories(): void
+    {
+        $this->assertSame([
+            'PENGAWAS',
+            'KOORDINATOR',
+            'SUPERVISOR',
+            'WAKIL SUPERVISOR',
+            'WAKIL KOORDINATOR',
+            'WAKIL KEPALA TUNGKU',
+            'KEPALA PRODUKSI',
+            'WAKIL PENGAWAS',
+            'KEPALA KOORDINATOR',
+            'KEPALA KILEN',
+            'WAKIL KEPALA PRODUKSI',
+            'WAKIL KEPALA DEPARTEMEN',
+            'WAKIL KEPALA KOORDINATOR',
+            'KEPALA TEKNIK TAMBANG',
+        ], array_keys(CvMakerCompareService::hrisJobTitlePrefixes()));
+    }
+
     public function test_company_filter_only_accepts_vdni_and_vdnip(): void
     {
         $service = new CvMakerCompareService();
@@ -59,6 +79,37 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertStringContainsString('`employees`.`area_kerja` in (?, ?)', $query->toSql());
         $this->assertStringContainsString('`employees`.`posisi` in (?, ?)', $query->toSql());
         $this->assertSame(['VDNI', 'VDNIP', 'Driver Dump Truck', 'Operator Loader'], $query->getBindings());
+    }
+
+    public function test_multiple_hris_job_titles_are_applied_as_position_prefix_filters(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'jabatan_hris' => ['pengawas', ' WAKIL   PENGAWAS ', 'invalid', ['invalid']],
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+        $sql = $query->toSql();
+
+        $this->assertStringContainsString('`employees`.`area_kerja` in (?, ?)', $sql);
+        $this->assertStringContainsString('(`employees`.`posisi` like ? or `employees`.`posisi` like ?)', $sql);
+        $this->assertSame(['VDNI', 'VDNIP', 'PENGAWAS%', 'WAKIL PENGAWAS%'], $query->getBindings());
+    }
+
+    public function test_invalid_hris_job_title_prefix_is_ignored(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'jabatan_hris' => ['QA_100%'],
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+
+        $this->assertSame([], $query->getBindings());
     }
 
     public function test_multiple_cv_job_titles_are_applied_as_an_exact_server_side_filter(): void

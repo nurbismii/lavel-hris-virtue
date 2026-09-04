@@ -20,6 +20,23 @@ use Throwable;
 
 class CvMakerCompareService
 {
+    private const HRIS_JOB_TITLE_PREFIXES = [
+        'PENGAWAS' => 'PENGAWAS',
+        'KOORDINATOR' => 'KOORDINATOR',
+        'SUPERVISOR' => 'SUPERVISOR',
+        'WAKIL SUPERVISOR' => 'WAKIL SUPERVISOR',
+        'WAKIL KOORDINATOR' => 'WAKIL KOORDINATOR',
+        'WAKIL KEPALA TUNGKU' => 'WAKIL KEPALA TUNGKU',
+        'KEPALA PRODUKSI' => 'KEPALA PRODUKSI',
+        'WAKIL PENGAWAS' => 'WAKIL PENGAWAS',
+        'KEPALA KOORDINATOR' => 'KEPALA KOORDINATOR',
+        'KEPALA KILEN' => 'KEPALA KILEN',
+        'WAKIL KEPALA PRODUKSI' => 'WAKIL KEPALA PRODUKSI',
+        'WAKIL KEPALA DEPARTEMEN' => 'WAKIL KEPALA DEPARTEMEN',
+        'WAKIL KEPALA KOORDINATOR' => 'WAKIL KEPALA KOORDINATOR',
+        'KEPALA TEKNIK TAMBANG' => 'KEPALA TEKNIK TAMBANG',
+    ];
+
     private const DOCUMENT_LABELS = [
         'ktp' => 'KTP', 'family_card' => 'Kartu Keluarga', 'diploma' => 'Ijazah',
         'certificate' => 'Sertifikat / Pelatihan', 'work_experience' => 'Pengalaman Kerja / Paklaring',
@@ -234,6 +251,11 @@ class CvMakerCompareService
         return $transport === 'auto'
             ? ($apiConfigured || $databaseConfigured)
             : $databaseConfigured;
+    }
+
+    public static function hrisJobTitlePrefixes(): array
+    {
+        return self::HRIS_JOB_TITLE_PREFIXES;
     }
 
     public function datatable(Request $request, User $user): array
@@ -1013,6 +1035,26 @@ class CvMakerCompareService
             $query
                 ->whereIn('employees.area_kerja', Perusahaan::ORGANIZATION_COMPANY_CODES)
                 ->whereIn('employees.posisi', $positions);
+        }
+
+        $hrisJobTitlePrefixes = collect((array) $request->input('jabatan_hris'))
+            ->filter(fn($value) => is_scalar($value) && filled($value))
+            ->map(fn($value) => strtoupper(trim((string) preg_replace('/\s+/', ' ', (string) $value))))
+            ->filter(fn($value) => array_key_exists($value, self::HRIS_JOB_TITLE_PREFIXES))
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($hrisJobTitlePrefixes) {
+            $query
+                ->whereIn('employees.area_kerja', Perusahaan::ORGANIZATION_COMPANY_CODES)
+                ->where(function (Builder $prefixQuery) use ($hrisJobTitlePrefixes) {
+                    foreach ($hrisJobTitlePrefixes as $index => $prefix) {
+                        $method = $index === 0 ? 'where' : 'orWhere';
+                        $escapedPrefix = addcslashes($prefix, '\\%_');
+                        $prefixQuery->{$method}('employees.posisi', 'like', $escapedPrefix . '%');
+                    }
+                });
         }
 
         $jobTitles = collect((array) $request->input('jabatan'))
