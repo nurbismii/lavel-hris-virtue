@@ -15,6 +15,52 @@ use Tests\TestCase;
 
 class CvMakerCompareServiceTest extends TestCase
 {
+    public function test_company_filter_only_accepts_vdni_and_vdnip(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'area' => ['VDNI', 'OSS', 'VDNIP'],
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+
+        $this->assertStringContainsString('`employees`.`area_kerja` in (?, ?)', $query->toSql());
+        $this->assertSame(['VDNI', 'VDNIP'], $query->getBindings());
+    }
+
+    public function test_company_filter_rejects_request_with_only_unsupported_companies(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'area' => ['OSS'],
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+
+        $this->assertStringContainsString('1 = 0', $query->toSql());
+        $this->assertSame([], $query->getBindings());
+    }
+
+    public function test_multiple_hris_positions_are_applied_as_an_exact_server_side_filter(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'posisi' => ['Driver Dump Truck', ' Operator Loader ', '', ['invalid']],
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+
+        $this->assertStringContainsString('`employees`.`area_kerja` in (?, ?)', $query->toSql());
+        $this->assertStringContainsString('`employees`.`posisi` in (?, ?)', $query->toSql());
+        $this->assertSame(['VDNI', 'VDNIP', 'Driver Dump Truck', 'Operator Loader'], $query->getBindings());
+    }
+
     public function test_multiple_cv_job_titles_are_applied_as_an_exact_server_side_filter(): void
     {
         $service = new CvMakerCompareService();

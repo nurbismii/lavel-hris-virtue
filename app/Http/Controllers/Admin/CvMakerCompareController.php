@@ -21,6 +21,7 @@ use App\Services\CvMaker\CvMakerReminderService;
 use App\Services\CvMaker\CvMakerReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class CvMakerCompareController extends Controller
 {
@@ -58,7 +59,11 @@ class CvMakerCompareController extends Controller
         return view('admin.cv-maker-compare.index', [
             'departemens' => Departemen::with('perusahaan')->whereIn('id', $departemenIds)->orderBy('departemen')->get(),
             'divisis' => Divisi::whereIn('id', $divisiIds)->orderBy('nama_divisi')->get(),
-            'areas' => Perusahaan::whereIn('kode_perusahaan', $areaCodes)->get(),
+            'areas' => Perusahaan::query()
+                ->whereIn('kode_perusahaan', $areaCodes)
+                ->whereIn('kode_perusahaan', Perusahaan::ORGANIZATION_COMPANY_CODES)
+                ->orderBy('kode_perusahaan')
+                ->get(),
             'jobTitles' => $jobTitles,
             'skillCategories' => CvMakerPositionSkillCategory::labels(),
             'integrationAvailable' => $service->isConfigured(),
@@ -70,6 +75,46 @@ class CvMakerCompareController extends Controller
         $this->authorizeAccess($request->user());
 
         return response()->json($service->datatable($request, $request->user()));
+    }
+
+    public function positions(Request $request): JsonResponse
+    {
+        $this->authorizeAccess($request->user());
+
+        $keyword = trim(Str::substr((string) $request->query('q', ''), 0, 100));
+        $page = max(1, min((int) $request->query('page', 1), 100));
+        $perPage = 30;
+        $query = $request->user()
+            ->applyEmployeeScope(Employee::query(), 'employees')
+            ->whereIn('employees.area_kerja', Perusahaan::ORGANIZATION_COMPANY_CODES)
+            ->where('employees.status_resign', 'AKTIF')
+            ->whereNotNull('employees.posisi')
+            ->where('employees.posisi', '<>', '');
+
+        if ($keyword !== '') {
+            $like = '%' . str_replace(['%', '_'], ['\%', '\_'], $keyword) . '%';
+            $query->where('employees.posisi', 'like', $like);
+        }
+
+        $positions = $query
+            ->select('employees.posisi')
+            ->distinct()
+            ->orderBy('employees.posisi')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage + 1)
+            ->pluck('employees.posisi')
+            ->map(fn($position) => trim((string) $position))
+            ->filter()
+            ->unique()
+            ->values();
+        $hasMore = $positions->count() > $perPage;
+
+        return response()->json([
+            'results' => $positions->take($perPage)
+                ->map(fn($position) => ['id' => $position, 'text' => $position])
+                ->values(),
+            'pagination' => ['more' => $hasMore],
+        ]);
     }
 
     public function storeReminderBatch(StoreReminderBatchRequest $request, CvMakerReminderService $service): JsonResponse

@@ -138,6 +138,11 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cv_filter_posisi">Posisi HRIS</label>
+                            <select id="cv_filter_posisi" class="form-select cv-position-filter" multiple data-placeholder="Cari dan pilih posisi HRIS"></select>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
                             <label class="form-label" for="cv_filter_skill_category">Kategori Posisi CV Maker</label>
                             <select id="cv_filter_skill_category" class="form-select">
                                 <option value="">Semua Kategori</option>
@@ -280,6 +285,7 @@
 
 @push('scripts')
 @include('admin.cv-maker-compare.partials.dialog-scripts')
+<script src="{{ versioned_asset('assets/js/plugin/select2/select2.full.min.js') }}"></script>
 <script>
     const selectedCvReminderNiks = new Set();
 
@@ -391,6 +397,42 @@
 
     $.fn.dataTable.ext.errMode = 'none';
 
+    $('#cv_filter_posisi').select2({
+        width: '100%',
+        placeholder: $('#cv_filter_posisi').data('placeholder'),
+        minimumInputLength: 0,
+        closeOnSelect: false,
+        ajax: {
+            url: "{{ route('cv-maker-compare.positions') }}",
+            dataType: 'json',
+            delay: 300,
+            data: function(params) {
+                return {
+                    q: params.term || '',
+                    page: params.page || 1
+                };
+            },
+            processResults: function(response) {
+                return response;
+            },
+            error: function(xhr) {
+                if (xhr.statusText === 'abort') return;
+                showCvCompareAjaxError(xhr, 'Daftar posisi HRIS gagal dimuat.');
+            }
+        },
+        language: {
+            searching: function() {
+                return 'Mencari posisi...';
+            },
+            loadingMore: function() {
+                return 'Memuat posisi berikutnya...';
+            },
+            noResults: function() {
+                return 'Posisi tidak ditemukan';
+            }
+        }
+    });
+
     const cvCompareTable = $('#cvMakerCompareTable')
         .on('error.dt', function(event, settings, techNote, message) {
             showCvCompareAjaxError({}, message || 'Data compare gagal dimuat.');
@@ -427,6 +469,7 @@
                     data.area = selectedCvAreaCodes();
                     data.departemen = $('#cv_filter_departemen').val();
                     data.divisi = $('#cv_filter_divisi').val();
+                    data.posisi = $('#cv_filter_posisi').val() || [];
                     data.jabatan = selectedCvJobTitles();
                     data.cv_skill_category = $('#cv_filter_skill_category').val();
                     data.status_resign = $('#cv_filter_resign').val();
@@ -483,6 +526,7 @@
             area: selectedCvAreaCodes(),
             departemen: $('#cv_filter_departemen').val(),
             divisi: $('#cv_filter_divisi').val(),
+            posisi: $('#cv_filter_posisi').val() || [],
             jabatan: selectedCvJobTitles(),
             cv_skill_category: $('#cv_filter_skill_category').val(),
             status_resign: $('#cv_filter_resign').val(),
@@ -676,7 +720,7 @@
         });
     });
 
-    $('#cv_filter_divisi, #cv_filter_skill_category, #cv_filter_resign, #cv_filter_reminder, #cv_filter_progress_status, #cv_filter_progress_step, #cv_filter_review_status').on('change', function() {
+    $('#cv_filter_divisi, #cv_filter_posisi, #cv_filter_skill_category, #cv_filter_resign, #cv_filter_reminder, #cv_filter_progress_status, #cv_filter_progress_step, #cv_filter_review_status').on('change', function() {
         cvCompareTable.draw();
     });
 
@@ -684,6 +728,7 @@
         $('.cv-filter-area-check').prop('checked', false);
         syncCvAreaFilter();
         resetCvDepartmentAndDivision(true);
+        $('#cv_filter_posisi').val(null).trigger('change.select2');
         $('.cv-filter-job-title-check').prop('checked', false);
         syncCvJobTitleFilter();
         $('#cv_filter_skill_category').val('');

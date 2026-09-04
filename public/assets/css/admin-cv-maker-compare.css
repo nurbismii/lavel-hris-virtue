@@ -154,6 +154,17 @@
     font-size: 0.82rem;
 }
 
+.cv-position-filter + .select2-container .select2-selection--multiple {
+    min-height: 40px;
+    border-color: var(--ui-border);
+    border-radius: 7px;
+}
+
+.cv-position-filter + .select2-container .select2-search--inline .select2-search__field {
+    min-height: 28px;
+    margin-top: 5px;
+}
+
 .cv-employee-cell {
     min-width: 230px;
 }

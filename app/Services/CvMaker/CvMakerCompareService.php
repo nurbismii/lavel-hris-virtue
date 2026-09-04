@@ -6,6 +6,7 @@ use App\Models\CvMakerProgressStatus;
 use App\Models\CvMakerPositionSkillCategory;
 use App\Models\Employee;
 use App\Models\JobTitle;
+use App\Models\Perusahaan;
 use App\Models\User;
 use App\Services\Audit\AuditTrailService;
 use Carbon\Carbon;
@@ -976,15 +977,19 @@ class CvMakerCompareService
 
     private function applyFilters(Builder $query, Request $request): Builder
     {
-        $areaCodes = collect((array) $request->input('area'))
+        $requestedAreaCodes = collect((array) $request->input('area'))
             ->filter(fn($value) => filled($value))
             ->map(fn($value) => trim((string) $value))
             ->unique()
-            ->values()
+            ->values();
+        $areaCodes = $requestedAreaCodes
+            ->filter(fn($value) => in_array($value, Perusahaan::ORGANIZATION_COMPANY_CODES, true))
             ->all();
 
         if ($areaCodes) {
             $query->whereIn('employees.area_kerja', $areaCodes);
+        } elseif ($requestedAreaCodes->isNotEmpty()) {
+            $query->whereRaw('1 = 0');
         }
 
         if ($request->filled('departemen')) {
@@ -993,6 +998,21 @@ class CvMakerCompareService
 
         if ($request->filled('divisi')) {
             $query->where('employees.divisi_id', $request->input('divisi'));
+        }
+
+        $positions = collect((array) $request->input('posisi'))
+            ->filter(fn($value) => is_scalar($value) && filled($value))
+            ->map(fn($value) => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->take(100)
+            ->values()
+            ->all();
+
+        if ($positions) {
+            $query
+                ->whereIn('employees.area_kerja', Perusahaan::ORGANIZATION_COMPANY_CODES)
+                ->whereIn('employees.posisi', $positions);
         }
 
         $jobTitles = collect((array) $request->input('jabatan'))

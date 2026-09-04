@@ -259,6 +259,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/cv-maker-compare/data', [CvMakerCompareController::class, 'data'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
             ->name('cv-maker-compare.data');
+        Route::get('/cv-maker-compare/positions', [CvMakerCompareController::class, 'positions'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-compare.positions');
         Route::post('/cv-maker-compare/reminders', [CvMakerCompareController::class, 'storeReminderBatch'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
             ->name('cv-maker-compare.reminders.store');

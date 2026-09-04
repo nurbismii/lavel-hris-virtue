@@ -26,6 +26,8 @@ class StoreReminderBatchRequest extends FormRequest
             'area.*' => ['string', 'max:50', 'distinct'],
             'departemen' => ['nullable', 'integer'],
             'divisi' => ['nullable', 'integer'],
+            'posisi' => ['nullable', 'array', 'max:100'],
+            'posisi.*' => ['string', 'max:255', 'distinct'],
             'jabatan' => ['nullable', 'array', 'max:100'],
             'jabatan.*' => ['string', 'max:255', 'distinct'],
             'cv_skill_category' => ['nullable', Rule::in(array_keys(CvMakerPositionSkillCategory::labels()))],
