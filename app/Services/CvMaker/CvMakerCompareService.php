@@ -3,6 +3,7 @@
 namespace App\Services\CvMaker;
 
 use App\Models\CvMakerProgressStatus;
+use App\Models\CvMakerPositionSkillCategory;
 use App\Models\Employee;
 use App\Models\JobTitle;
 use App\Models\User;
@@ -1007,6 +1008,20 @@ class CvMakerCompareService
             $query->whereIn('employees.nik', CvMakerProgressStatus::query()
                 ->select('employee_nik')
                 ->whereIn('cv_job_title', $jobTitles));
+        }
+
+        $skillCategory = trim((string) $request->input('cv_skill_category', ''));
+
+        if (array_key_exists($skillCategory, CvMakerPositionSkillCategory::labels())) {
+            $query->whereIn('employees.nik', CvMakerProgressStatus::query()
+                ->select('cv_maker_progress_statuses.employee_nik')
+                ->join(
+                    'cv_maker_position_skill_categories as position_skills',
+                    'position_skills.normalized_position',
+                    '=',
+                    'cv_maker_progress_statuses.cv_position_normalized'
+                )
+                ->where('position_skills.skill_category', $skillCategory));
         }
 
         if ($request->filled('status_resign')) {

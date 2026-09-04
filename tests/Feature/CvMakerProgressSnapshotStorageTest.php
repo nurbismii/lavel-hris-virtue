@@ -48,6 +48,8 @@ class CvMakerProgressSnapshotStorageTest extends TestCase
 
         $this->assertNotNull($status);
         $this->assertSame('Supervisor Produksi', $status->cv_job_title);
+        $this->assertSame('Crew Semen  水泥仓泵操作工', $status->cv_position);
+        $this->assertSame('CREW SEMEN 水泥仓泵操作工', $status->cv_position_normalized);
         $this->assertSame(8, (int) $status->current_step);
         $this->assertSame('documents', $status->current_step_key);
         $this->assertTrue((bool) $status->needs_reminder);
@@ -185,6 +187,7 @@ class CvMakerProgressSnapshotStorageTest extends TestCase
             'profile_id' => 20,
             'status' => 'draft',
             'job_title' => 'Supervisor Produksi',
+            'position' => 'Crew Semen  水泥仓泵操作工',
             'full_name' => 'Siti Aminah',
             'birth_date' => '1992-05-15',
             'birth_place' => 'Kendari',
@@ -250,6 +253,8 @@ class CvMakerProgressSnapshotStorageTest extends TestCase
             $table->unsignedBigInteger('cv_profile_id')->nullable();
             $table->string('cv_status', 40)->nullable();
             $table->string('cv_job_title')->nullable();
+            $table->string('cv_position')->nullable();
+            $table->string('cv_position_normalized')->nullable();
             $table->unsignedTinyInteger('current_step')->default(1);
             $table->string('current_step_key', 40)->nullable();
             $table->string('current_step_label', 80)->nullable();

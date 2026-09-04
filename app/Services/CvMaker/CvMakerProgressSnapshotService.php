@@ -4,6 +4,7 @@ namespace App\Services\CvMaker;
 
 use App\Models\CvMakerProgressHistory;
 use App\Models\CvMakerProgressStatus;
+use App\Models\CvMakerPositionSkillCategory;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -292,6 +293,8 @@ class CvMakerProgressSnapshotService
             'cv_profile_id' => $this->nullableInteger($profile['profile_id'] ?? null),
             'cv_status' => $this->nullableString($profile['status'] ?? null),
             'cv_job_title' => $this->nullableString($profile['job_title'] ?? null),
+            'cv_position' => $this->nullableString($profile['position'] ?? null),
+            'cv_position_normalized' => CvMakerPositionSkillCategory::normalizePosition($profile['position'] ?? null),
             'current_step' => $progress['current_step'],
             'current_step_key' => $progress['current_step_key'],
             'current_step_label' => $progress['current_step_label'],
@@ -386,6 +389,7 @@ class CvMakerProgressSnapshotService
                     'cv_profiles.id as profile_id',
                     'cv_profiles.status',
                     'cv_profiles.job_title',
+                    'cv_profiles.position',
                     'cv_profiles.full_name',
                     'cv_profiles.birth_date',
                     'cv_profiles.birth_place',

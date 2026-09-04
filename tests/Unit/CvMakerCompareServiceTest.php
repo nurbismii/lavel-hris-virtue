@@ -51,6 +51,37 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertNotContains(99, $bindings);
     }
 
+    public function test_skill_category_is_applied_from_normalized_cv_maker_position(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'cv_skill_category' => 'non_skilled',
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+
+        $this->assertStringContainsString('cv_maker_position_skill_categories', $query->toSql());
+        $this->assertStringContainsString('cv_position_normalized', $query->toSql());
+        $this->assertSame(['non_skilled'], $query->getBindings());
+    }
+
+    public function test_invalid_skill_category_is_ignored(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'cv_skill_category' => 'unexpected',
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+
+        $this->assertStringNotContainsString('cv_maker_position_skill_categories', $query->toSql());
+        $this->assertSame([], $query->getBindings());
+    }
+
     public function test_update_selection_keeps_only_explicit_fields_and_sections(): void
     {
         $service = new CvMakerCompareService();

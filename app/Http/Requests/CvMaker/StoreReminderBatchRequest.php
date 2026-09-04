@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\CvMaker;
 
+use App\Models\CvMakerPositionSkillCategory;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,6 +28,7 @@ class StoreReminderBatchRequest extends FormRequest
             'divisi' => ['nullable', 'integer'],
             'jabatan' => ['nullable', 'array', 'max:100'],
             'jabatan.*' => ['string', 'max:255', 'distinct'],
+            'cv_skill_category' => ['nullable', Rule::in(array_keys(CvMakerPositionSkillCategory::labels()))],
             'status_resign' => ['nullable', 'string', 'max:80'],
             'cv_reminder' => ['nullable', Rule::in(['needs_reminder', 'not_needed'])],
             'cv_progress_status' => ['nullable', Rule::in(['not_synced', 'no_account', 'no_profile', 'in_progress', 'complete'])],

@@ -9,6 +9,7 @@ use App\Http\Requests\CvMaker\UpdateReviewStatusRequest;
 use App\Http\Requests\CvMaker\CorrectHrisFieldRequest;
 use App\Models\CvMakerReminderBatch;
 use App\Models\CvMakerProgressStatus;
+use App\Models\CvMakerPositionSkillCategory;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
@@ -59,6 +60,7 @@ class CvMakerCompareController extends Controller
             'divisis' => Divisi::whereIn('id', $divisiIds)->orderBy('nama_divisi')->get(),
             'areas' => Perusahaan::whereIn('kode_perusahaan', $areaCodes)->get(),
             'jobTitles' => $jobTitles,
+            'skillCategories' => CvMakerPositionSkillCategory::labels(),
             'integrationAvailable' => $service->isConfigured(),
         ]);
     }

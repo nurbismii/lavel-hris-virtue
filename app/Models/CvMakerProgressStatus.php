@@ -17,6 +17,8 @@ class CvMakerProgressStatus extends Model
         'cv_profile_id',
         'cv_status',
         'cv_job_title',
+        'cv_position',
+        'cv_position_normalized',
         'current_step',
         'current_step_key',
         'current_step_label',
