@@ -5,6 +5,7 @@ namespace App\Services\CvMaker;
 use App\Models\CvMakerProgressHistory;
 use App\Models\CvMakerProgressStatus;
 use App\Models\CvMakerPositionSkillCategory;
+use App\Models\Perusahaan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -133,6 +134,11 @@ class CvMakerProgressSnapshotService
                 ->first();
 
             if ($existing) {
+                // A missing profile is not evidence that previously saved CV data was cleared.
+                if (empty($payload['cv_profile_id'])) {
+                    $existing->forceFill(['last_synced_at' => $payload['last_synced_at']])->save();
+                    return;
+                }
                 $historyEvents = $this->historyEventsForChange($existing, $payload, $progress);
                 $previousActivity = $existing->last_activity_at;
                 $newActivity = $payload['last_activity_at'];
@@ -206,6 +212,7 @@ class CvMakerProgressSnapshotService
             'checked' => 0,
             'synced' => 0,
             'skipped_no_profile' => 0,
+            'failed_lookup' => 0,
             'history_created' => 0,
             'dry_run' => $dryRun,
         ];
@@ -217,6 +224,7 @@ class CvMakerProgressSnapshotService
         $niks = DB::table('employees')
             ->leftJoin('cv_maker_progress_statuses', 'cv_maker_progress_statuses.employee_nik', '=', 'employees.nik')
             ->where('employees.status_resign', 'AKTIF')
+            ->whereIn('employees.area_kerja', Perusahaan::ORGANIZATION_COMPANY_CODES)
             ->orderBy('cv_maker_progress_statuses.last_synced_at')
             ->orderBy('employees.nik')
             ->limit($limit)
@@ -230,7 +238,12 @@ class CvMakerProgressSnapshotService
         $summary['checked'] = count($niks);
 
         foreach (array_chunk($niks, $chunk) as $nikChunk) {
-            $payloads = $this->fetchCvMakerPayloadsForNiks($nikChunk);
+            try {
+                $payloads = $this->fetchCvMakerPayloadsForNiks($nikChunk);
+            } catch (Throwable $exception) {
+                $summary['failed_lookup'] += count($nikChunk);
+                continue;
+            }
 
             foreach ($nikChunk as $nik) {
                 if (!isset($payloads[$nik])) {
@@ -408,7 +421,7 @@ class CvMakerProgressSnapshotService
                 'message' => $exception->getMessage(),
             ]);
 
-            return [];
+            throw $exception;
         }
 
         $profileIds = $profiles
@@ -440,7 +453,7 @@ class CvMakerProgressSnapshotService
 
     private function fetchCvMakerPayloadsFromApi(array $hashToNik): array
     {
-        $profiles = $this->apiClient()->profiles(array_keys($hashToNik));
+        $profiles = $this->apiClient()->profiles(array_keys($hashToNik), true);
         $payloads = [];
 
         foreach ($profiles as $hash => $profile) {
@@ -538,7 +551,7 @@ class CvMakerProgressSnapshotService
                 'message' => $exception->getMessage(),
             ]);
 
-            return [];
+            throw $exception;
         }
     }
 

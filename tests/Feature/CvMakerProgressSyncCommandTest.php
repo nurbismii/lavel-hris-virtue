@@ -7,6 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class CvMakerProgressSyncCommandTest extends TestCase
@@ -123,6 +124,63 @@ class CvMakerProgressSyncCommandTest extends TestCase
         $this->assertSame(0, DB::table('cv_maker_progress_histories')->count());
     }
 
+    public function test_failed_and_missing_lookups_preserve_existing_progress(): void
+    {
+        DB::table('employees')->insert(['nik' => 'EMP001', 'nama_karyawan' => 'Test', 'status_resign' => 'AKTIF']);
+        $this->seedCvMakerDraft('EMP001');
+        Artisan::call('cv-maker:sync-progress');
+        $before = CvMakerProgressStatus::first()->getAttributes();
+        $historyCount = DB::table('cv_maker_progress_histories')->count();
+
+        config()->set('services.cv_maker.transport', 'api');
+        config()->set('services.cv_maker.api_base_url', 'https://vitae.test');
+        config()->set('services.cv_maker.api_token', 'test-token');
+        Http::fake(function () {
+            throw new \Illuminate\Http\Client\ConnectionException('Connection timed out');
+        });
+
+        $this->assertSame(1, Artisan::call('cv-maker:sync-progress'));
+        $this->assertStringContainsString('skipped_no_profile=0, failed_lookup=1', Artisan::output());
+        $this->assertSame($before, CvMakerProgressStatus::first()->getAttributes());
+        $this->assertSame($historyCount, DB::table('cv_maker_progress_histories')->count());
+
+        Http::swap(new \Illuminate\Http\Client\Factory());
+        Http::fake(['*' => Http::response(['success' => true, 'data' => ['profiles' => []]])]);
+        $this->assertSame(0, Artisan::call('cv-maker:sync-progress'));
+        $this->assertStringContainsString('skipped_no_profile=1, failed_lookup=0', Artisan::output());
+        $this->assertSame(8, (int) CvMakerProgressStatus::first()->current_step);
+        $this->assertSame(200, (int) CvMakerProgressStatus::first()->cv_profile_id);
+        $this->assertSame($historyCount, DB::table('cv_maker_progress_histories')->count());
+    }
+
+    public function test_related_database_failure_does_not_overwrite_snapshot(): void
+    {
+        DB::table('employees')->insert(['nik' => 'EMP001', 'nama_karyawan' => 'Test', 'status_resign' => 'AKTIF']);
+        $this->seedCvMakerDraft('EMP001');
+        Artisan::call('cv-maker:sync-progress');
+        $before = CvMakerProgressStatus::first()->getAttributes();
+        Schema::connection('cv_maker')->drop('cv_educations');
+        $this->assertSame(1, Artisan::call('cv-maker:sync-progress'));
+        $this->assertSame($before, CvMakerProgressStatus::first()->getAttributes());
+        $this->assertStringContainsString('failed_lookup=1', Artisan::output());
+    }
+
+    public function test_sync_only_checks_active_vdni_and_vdnip_employees(): void
+    {
+        DB::table('employees')->insert([
+            ['nik' => 'A', 'nama_karyawan' => 'Test A', 'area_kerja' => 'VDNI', 'status_resign' => 'AKTIF'],
+            ['nik' => 'B', 'nama_karyawan' => 'Test B', 'area_kerja' => 'VDNIP', 'status_resign' => 'AKTIF'],
+            ['nik' => 'C', 'nama_karyawan' => 'Test C', 'area_kerja' => 'OTHER', 'status_resign' => 'AKTIF'],
+            ['nik' => 'D', 'nama_karyawan' => 'Test D', 'area_kerja' => 'VDNI', 'status_resign' => 'RESIGN'],
+            ['nik' => 'E', 'nama_karyawan' => 'Test E', 'area_kerja' => 'VDNIP', 'status_resign' => 'RESIGN'],
+            ['nik' => 'F', 'nama_karyawan' => 'Test F', 'area_kerja' => null, 'status_resign' => 'AKTIF'],
+        ]);
+
+        $this->assertSame(0, Artisan::call('cv-maker:sync-progress'));
+        $this->assertStringContainsString('checked=2, synced=0, skipped_no_profile=2', Artisan::output());
+        $this->assertSame(['A', 'B'], CvMakerProgressStatus::orderBy('employee_nik')->pluck('employee_nik')->all());
+    }
+
     private function seedCvMakerDraft(string $nik): void
     {
         $connection = DB::connection('cv_maker');
@@ -192,6 +250,7 @@ class CvMakerProgressSyncCommandTest extends TestCase
         Schema::create('employees', function (Blueprint $table) {
             $table->string('nik')->primary();
             $table->string('nama_karyawan');
+            $table->string('area_kerja')->nullable()->default('VDNI');
             $table->string('status_resign')->nullable();
             $table->timestamps();
         });
@@ -299,6 +358,8 @@ class CvMakerProgressSyncCommandTest extends TestCase
                 $table->unsignedBigInteger('cv_profile_id');
                 $table->string('name')->nullable();
                 $table->string('issuer')->nullable();
+                $table->integer('valid_until_year')->nullable();
+                $table->boolean('is_lifetime')->default(false);
                 $table->integer('year')->nullable();
                 $table->string('language')->nullable();
                 $table->string('level')->nullable();

@@ -15,12 +15,23 @@ class CvMakerApiClient
             && filled(config('services.cv_maker.api_token'));
     }
 
-    public function profiles(array $hashes): array
+    public function profiles(array $hashes, bool $throwOnFailure = false): array
     {
         $hashes = array_values(array_unique(array_filter($hashes)));
 
         if (!$this->isConfigured() || empty($hashes)) {
+            if ($throwOnFailure && !$this->isConfigured()) {
+                throw new RuntimeException('Integrasi CV Maker belum dikonfigurasi.');
+            }
             return [];
+        }
+
+        if (count($hashes) > 100) {
+            $profiles = [];
+            foreach (array_chunk($hashes, 100) as $batch) {
+                $profiles = array_merge($profiles, $this->profiles($batch, $throwOnFailure));
+            }
+            return $profiles;
         }
 
         try {
@@ -42,7 +53,7 @@ class CvMakerApiClient
 
             $profiles = $response->json('data.profiles');
 
-            if (!is_array($profiles)) {
+            if (!is_array($profiles) || $response->json('success') === false) {
                 throw new RuntimeException('Format respons CV Maker API tidak valid.');
             }
 
@@ -59,6 +70,9 @@ class CvMakerApiClient
                 'hash_count' => count($hashes),
             ]);
 
+            if ($throwOnFailure) {
+                throw new RuntimeException('Data CV Maker gagal diambil.', 0, $exception);
+            }
             return [];
         }
     }

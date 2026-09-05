@@ -14,7 +14,7 @@ class SyncCvMakerProgressSnapshots extends Command
         {--now= : Waktu referensi untuk testing, format Y-m-d H:i:s}
         {--dry-run : Hitung progress tanpa menulis snapshot dan histori}';
 
-    protected $description = 'Sinkronisasi snapshot progress CV Maker ke HRIS untuk badge reminder.';
+    protected $description = 'Sinkronisasi snapshot progress CV Maker karyawan aktif VDNI/VDNIP ke HRIS untuk badge reminder.';
 
     public function handle(CvMakerProgressSnapshotService $service): int
     {
@@ -36,13 +36,19 @@ class SyncCvMakerProgressSnapshots extends Command
         }
 
         $this->info(sprintf(
-            'CV Maker progress sync: checked=%d, synced=%d, skipped_no_profile=%d, histories=%d%s',
+            'CV Maker progress sync: checked=%d, synced=%d, skipped_no_profile=%d, failed_lookup=%d, histories=%d%s',
             $summary['checked'],
             $summary['synced'],
             $summary['skipped_no_profile'],
+            $summary['failed_lookup'],
             $summary['history_created'],
             $dryRun ? ' (dry-run)' : ''
         ));
+
+        if ($summary['failed_lookup'] > 0) {
+            $this->error('Sebagian data CV Maker gagal diambil. Snapshot terkait dipertahankan. Periksa koneksi dan log sebelum mencoba kembali.');
+            return self::FAILURE;
+        }
 
         return self::SUCCESS;
     }
