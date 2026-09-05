@@ -1072,6 +1072,44 @@ class CvMakerCompareService
                 ->whereIn('cv_job_title', $jobTitles));
         }
 
+        $hrisSkillCategory = trim((string) $request->input('hris_skill_category', ''));
+        $hrisManagerialCategory = trim((string) $request->input('hris_managerial_category', ''));
+        $hasHrisSkillCategory = array_key_exists($hrisSkillCategory, CvMakerPositionSkillCategory::labels());
+        $hasHrisManagerialCategory = array_key_exists(
+            $hrisManagerialCategory,
+            CvMakerPositionSkillCategory::managerialLabels()
+        );
+
+        if ($hasHrisSkillCategory || $hasHrisManagerialCategory) {
+            $query->whereExists(function ($positionCategoryQuery) use (
+                $hasHrisSkillCategory,
+                $hrisSkillCategory,
+                $hasHrisManagerialCategory,
+                $hrisManagerialCategory
+            ) {
+                $positionCategoryQuery
+                    ->select(DB::raw(1))
+                    ->from('cv_maker_position_skill_categories as hris_position_categories')
+                    ->whereRaw(
+                        'hris_position_categories.normalized_position = UPPER(TRIM(employees.posisi))'
+                    );
+
+                if ($hasHrisSkillCategory) {
+                    $positionCategoryQuery->where(
+                        'hris_position_categories.skill_category',
+                        $hrisSkillCategory
+                    );
+                }
+
+                if ($hasHrisManagerialCategory) {
+                    $positionCategoryQuery->where(
+                        'hris_position_categories.managerial_category',
+                        $hrisManagerialCategory
+                    );
+                }
+            });
+        }
+
         $skillCategory = trim((string) $request->input('cv_skill_category', ''));
         $managerialCategory = trim((string) $request->input('cv_managerial_category', ''));
         $hasSkillCategory = array_key_exists($skillCategory, CvMakerPositionSkillCategory::labels());

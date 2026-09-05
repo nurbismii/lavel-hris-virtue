@@ -166,6 +166,26 @@
                             </select>
                         </div>
 
+                        <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cv_filter_hris_skill_category">Kategori Skill HRIS</label>
+                            <select id="cv_filter_hris_skill_category" class="form-select">
+                                <option value="">Semua Kategori</option>
+                                @foreach ($skillCategories as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cv_filter_hris_managerial_category">Kategori Manajerial HRIS</label>
+                            <select id="cv_filter_hris_managerial_category" class="form-select">
+                                <option value="">Semua Kategori</option>
+                                @foreach ($managerialCategories as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
                         <div class="col-12">
                             <div class="small fw-semibold text-uppercase text-muted border-top pt-3">Filter CV Maker</div>
                         </div>
@@ -199,7 +219,7 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_skill_category">Kategori Posisi CV Maker</label>
+                            <label class="form-label" for="cv_filter_skill_category">Kategori Skill CV Maker</label>
                             <select id="cv_filter_skill_category" class="form-select">
                                 <option value="">Semua Kategori</option>
                                 @foreach ($skillCategories as $value => $label)
@@ -535,6 +555,8 @@
                     data.posisi = $('#cv_filter_posisi').val() || [];
                     data.jabatan_hris = selectedCvHrisJobTitles();
                     data.jabatan = selectedCvJobTitles();
+                    data.hris_skill_category = $('#cv_filter_hris_skill_category').val();
+                    data.hris_managerial_category = $('#cv_filter_hris_managerial_category').val();
                     data.cv_skill_category = $('#cv_filter_skill_category').val();
                     data.cv_managerial_category = $('#cv_filter_managerial_category').val();
                     data.status_resign = $('#cv_filter_resign').val();
@@ -594,6 +616,8 @@
             posisi: $('#cv_filter_posisi').val() || [],
             jabatan_hris: selectedCvHrisJobTitles(),
             jabatan: selectedCvJobTitles(),
+            hris_skill_category: $('#cv_filter_hris_skill_category').val(),
+            hris_managerial_category: $('#cv_filter_hris_managerial_category').val(),
             cv_skill_category: $('#cv_filter_skill_category').val(),
             cv_managerial_category: $('#cv_filter_managerial_category').val(),
             status_resign: $('#cv_filter_resign').val(),
@@ -803,7 +827,7 @@
         });
     });
 
-    $('#cv_filter_divisi, #cv_filter_posisi, #cv_filter_skill_category, #cv_filter_managerial_category, #cv_filter_resign, #cv_filter_reminder, #cv_filter_progress_status, #cv_filter_progress_step, #cv_filter_review_status').on('change', function() {
+    $('#cv_filter_divisi, #cv_filter_posisi, #cv_filter_hris_skill_category, #cv_filter_hris_managerial_category, #cv_filter_skill_category, #cv_filter_managerial_category, #cv_filter_resign, #cv_filter_reminder, #cv_filter_progress_status, #cv_filter_progress_step, #cv_filter_review_status').on('change', function() {
         cvCompareTable.draw();
     });
 
@@ -816,6 +840,8 @@
         syncCvHrisJobTitleFilter();
         $('.cv-filter-job-title-check').prop('checked', false);
         syncCvJobTitleFilter();
+        $('#cv_filter_hris_skill_category').val('');
+        $('#cv_filter_hris_managerial_category').val('');
         $('#cv_filter_skill_category').val('');
         $('#cv_filter_managerial_category').val('');
         $('#cv_filter_resign').val('AKTIF');

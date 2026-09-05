@@ -33,6 +33,8 @@ class StoreReminderBatchRequest extends FormRequest
             'jabatan_hris.*' => ['string', Rule::in(array_keys(CvMakerCompareService::hrisJobTitlePrefixes())), 'distinct'],
             'jabatan' => ['nullable', 'array', 'max:100'],
             'jabatan.*' => ['string', 'max:255', 'distinct'],
+            'hris_skill_category' => ['nullable', Rule::in(array_keys(CvMakerPositionSkillCategory::labels()))],
+            'hris_managerial_category' => ['nullable', Rule::in(array_keys(CvMakerPositionSkillCategory::managerialLabels()))],
             'cv_skill_category' => ['nullable', Rule::in(array_keys(CvMakerPositionSkillCategory::labels()))],
             'cv_managerial_category' => ['nullable', Rule::in(array_keys(CvMakerPositionSkillCategory::managerialLabels()))],
             'status_resign' => ['nullable', 'string', 'max:80'],

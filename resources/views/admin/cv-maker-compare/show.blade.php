@@ -566,6 +566,7 @@ $completeProfileGroups = [
                 </div>
                 @endif
 
+                @if($canViewDocuments ?? false)
                 <div class="cv-detail-group mt-3">
                     <div class="cv-detail-group__header"><h6>File yang Diunggah</h6><span class="badge bg-light text-dark border">{{ count($vitae['documents'] ?? []) }} file</span></div>
                     @if(!empty($vitae['documents']))
@@ -584,6 +585,7 @@ $completeProfileGroups = [
                     <div class="text-muted p-3">Belum ada file yang diunggah di Vitae.</div>
                     @endif
                 </div>
+                @endif
             </div>
         </section>
         @endif

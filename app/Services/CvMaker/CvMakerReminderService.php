@@ -249,6 +249,8 @@ class CvMakerReminderService
             'posisi' => array_values((array) $request->input('posisi', [])),
             'jabatan_hris' => array_values((array) $request->input('jabatan_hris', [])),
             'jabatan' => array_values((array) $request->input('jabatan', [])),
+            'hris_skill_category' => $request->input('hris_skill_category'),
+            'hris_managerial_category' => $request->input('hris_managerial_category'),
             'cv_skill_category' => $request->input('cv_skill_category'),
             'cv_managerial_category' => $request->input('cv_managerial_category'),
             'status_resign' => $request->input('status_resign', 'AKTIF'),

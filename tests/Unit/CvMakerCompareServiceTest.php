@@ -197,6 +197,41 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertSame(['skilled', 'managerial'], $query->getBindings());
     }
 
+    public function test_hris_skill_and_managerial_categories_use_employee_position(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'hris_skill_category' => 'non_skilled',
+            'hris_managerial_category' => 'non_managerial',
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+        $sql = $query->toSql();
+
+        $this->assertStringContainsString('UPPER(TRIM(employees.posisi))', $sql);
+        $this->assertStringContainsString('hris_position_categories`.`skill_category`', $sql);
+        $this->assertStringContainsString('hris_position_categories`.`managerial_category`', $sql);
+        $this->assertSame(['non_skilled', 'non_managerial'], $query->getBindings());
+    }
+
+    public function test_invalid_hris_position_categories_are_ignored(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'hris_skill_category' => 'invalid',
+            'hris_managerial_category' => 'invalid',
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+
+        $this->assertStringNotContainsString('hris_position_categories', $query->toSql());
+        $this->assertSame([], $query->getBindings());
+    }
+
     public function test_update_selection_keeps_only_explicit_fields_and_sections(): void
     {
         $service = new CvMakerCompareService();
