@@ -40,7 +40,7 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
         $this->importHistoryId = $importHistoryId;
     }
 
-    public function collection(Collection $rows)
+    public function collection(Collection $rows): void
     {
         $this->initMapping();
 
