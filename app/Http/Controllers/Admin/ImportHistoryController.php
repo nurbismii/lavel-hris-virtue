@@ -92,7 +92,7 @@ class ImportHistoryController extends Controller
                 })
                 ->latest('created_at')
                 ->latest('id')
-                ->paginate(50)
+                ->paginate(10)
                 ->withQueryString();
         }
 

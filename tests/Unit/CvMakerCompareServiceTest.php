@@ -179,6 +179,24 @@ class CvMakerCompareServiceTest extends TestCase
         $this->assertSame([], $query->getBindings());
     }
 
+    public function test_managerial_and_skill_categories_use_the_same_normalized_cv_position_mapping(): void
+    {
+        $service = new CvMakerCompareService();
+        $method = new \ReflectionMethod(CvMakerCompareService::class, 'applyFilters');
+        $method->setAccessible(true);
+        $request = Request::create('/cv-maker-compare/data', 'GET', [
+            'cv_skill_category' => 'skilled',
+            'cv_managerial_category' => 'managerial',
+        ]);
+
+        $query = $method->invoke($service, Employee::query(), $request);
+        $sql = $query->toSql();
+
+        $this->assertStringContainsString('position_skills`.`skill_category`', $sql);
+        $this->assertStringContainsString('position_skills`.`managerial_category`', $sql);
+        $this->assertSame(['skilled', 'managerial'], $query->getBindings());
+    }
+
     public function test_update_selection_keeps_only_explicit_fields_and_sections(): void
     {
         $service = new CvMakerCompareService();

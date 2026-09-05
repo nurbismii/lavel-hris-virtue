@@ -209,6 +209,16 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cv_filter_managerial_category">Kategori Manajerial CV Maker</label>
+                            <select id="cv_filter_managerial_category" class="form-select">
+                                <option value="">Semua Kategori</option>
+                                @foreach ($managerialCategories as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 ui-field">
                             <label class="form-label" for="cv_filter_reminder">Reminder CV</label>
                             <select id="cv_filter_reminder" class="form-select">
                                 <option value="">Semua Reminder</option>
@@ -526,6 +536,7 @@
                     data.jabatan_hris = selectedCvHrisJobTitles();
                     data.jabatan = selectedCvJobTitles();
                     data.cv_skill_category = $('#cv_filter_skill_category').val();
+                    data.cv_managerial_category = $('#cv_filter_managerial_category').val();
                     data.status_resign = $('#cv_filter_resign').val();
                     data.cv_reminder = $('#cv_filter_reminder').val();
                     data.cv_progress_status = $('#cv_filter_progress_status').val();
@@ -584,6 +595,7 @@
             jabatan_hris: selectedCvHrisJobTitles(),
             jabatan: selectedCvJobTitles(),
             cv_skill_category: $('#cv_filter_skill_category').val(),
+            cv_managerial_category: $('#cv_filter_managerial_category').val(),
             status_resign: $('#cv_filter_resign').val(),
             cv_reminder: 'needs_reminder',
             cv_progress_status: $('#cv_filter_progress_status').val(),
@@ -791,7 +803,7 @@
         });
     });
 
-    $('#cv_filter_divisi, #cv_filter_posisi, #cv_filter_skill_category, #cv_filter_resign, #cv_filter_reminder, #cv_filter_progress_status, #cv_filter_progress_step, #cv_filter_review_status').on('change', function() {
+    $('#cv_filter_divisi, #cv_filter_posisi, #cv_filter_skill_category, #cv_filter_managerial_category, #cv_filter_resign, #cv_filter_reminder, #cv_filter_progress_status, #cv_filter_progress_step, #cv_filter_review_status').on('change', function() {
         cvCompareTable.draw();
     });
 
@@ -805,6 +817,7 @@
         $('.cv-filter-job-title-check').prop('checked', false);
         syncCvJobTitleFilter();
         $('#cv_filter_skill_category').val('');
+        $('#cv_filter_managerial_category').val('');
         $('#cv_filter_resign').val('AKTIF');
         $('#cv_filter_reminder').val('');
         $('#cv_filter_progress_status').val('');

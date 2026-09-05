@@ -8,11 +8,14 @@ class CvMakerPositionSkillCategory extends Model
 {
     public const SKILLED = 'skilled';
     public const NON_SKILLED = 'non_skilled';
+    public const MANAGERIAL = 'managerial';
+    public const NON_MANAGERIAL = 'non_managerial';
 
     protected $fillable = [
         'position_name',
         'normalized_position',
         'skill_category',
+        'managerial_category',
     ];
 
     public static function labels(): array
@@ -20,6 +23,14 @@ class CvMakerPositionSkillCategory extends Model
         return [
             self::SKILLED => 'Skill',
             self::NON_SKILLED => 'Non Skill',
+        ];
+    }
+
+    public static function managerialLabels(): array
+    {
+        return [
+            self::MANAGERIAL => 'Managerial',
+            self::NON_MANAGERIAL => 'Non Managerial',
         ];
     }
 

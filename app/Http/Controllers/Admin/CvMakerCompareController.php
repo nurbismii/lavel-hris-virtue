@@ -67,6 +67,7 @@ class CvMakerCompareController extends Controller
             'jobTitles' => $jobTitles,
             'hrisJobTitles' => CvMakerCompareService::hrisJobTitlePrefixes(),
             'skillCategories' => CvMakerPositionSkillCategory::labels(),
+            'managerialCategories' => CvMakerPositionSkillCategory::managerialLabels(),
             'integrationAvailable' => $service->isConfigured(),
         ]);
     }

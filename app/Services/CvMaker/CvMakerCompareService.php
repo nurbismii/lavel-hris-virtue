@@ -1073,17 +1073,29 @@ class CvMakerCompareService
         }
 
         $skillCategory = trim((string) $request->input('cv_skill_category', ''));
+        $managerialCategory = trim((string) $request->input('cv_managerial_category', ''));
+        $hasSkillCategory = array_key_exists($skillCategory, CvMakerPositionSkillCategory::labels());
+        $hasManagerialCategory = array_key_exists($managerialCategory, CvMakerPositionSkillCategory::managerialLabels());
 
-        if (array_key_exists($skillCategory, CvMakerPositionSkillCategory::labels())) {
-            $query->whereIn('employees.nik', CvMakerProgressStatus::query()
+        if ($hasSkillCategory || $hasManagerialCategory) {
+            $positionCategoryQuery = CvMakerProgressStatus::query()
                 ->select('cv_maker_progress_statuses.employee_nik')
                 ->join(
                     'cv_maker_position_skill_categories as position_skills',
                     'position_skills.normalized_position',
                     '=',
                     'cv_maker_progress_statuses.cv_position_normalized'
-                )
-                ->where('position_skills.skill_category', $skillCategory));
+                );
+
+            if ($hasSkillCategory) {
+                $positionCategoryQuery->where('position_skills.skill_category', $skillCategory);
+            }
+
+            if ($hasManagerialCategory) {
+                $positionCategoryQuery->where('position_skills.managerial_category', $managerialCategory);
+            }
+
+            $query->whereIn('employees.nik', $positionCategoryQuery);
         }
 
         if ($request->filled('status_resign')) {
