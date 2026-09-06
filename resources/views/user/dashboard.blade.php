@@ -103,6 +103,13 @@ $menuCatalog = [
 'description' => 'Bandingkan data profil CV Maker dengan master karyawan HRIS.',
 'roles' => ['Super Admin', 'HR', 'HOD', 'Manager', 'Supervisor', 'Admin Divisi'],
 ],
+'cv_maker_dashboard' => [
+'route_name' => 'cv-maker-dashboard.index',
+'icon' => 'fas fa-chart-pie',
+'tone' => 'emerald',
+'description' => 'Pantau kelengkapan CV karyawan VDNI dan VDNIP.',
+'roles' => ['Super Admin', 'HR', 'HOD', 'Manager', 'Supervisor', 'Admin Divisi'],
+],
 'data_user' => [
 'route_name' => 'user.index',
 'icon' => 'fas fa-user-friends',

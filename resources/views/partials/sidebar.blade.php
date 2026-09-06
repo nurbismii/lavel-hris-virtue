@@ -66,6 +66,15 @@ $organizationStructureActive = request()->routeIs('organization-structure.*');
                 </li>
                 @endif
 
+                @if($can('cv_maker_dashboard'))
+                <li class="nav-item {{ request()->routeIs('cv-maker-dashboard.*') ? 'active' : '' }}">
+                    <a href="{{ route('cv-maker-dashboard.index') }}">
+                        <i class="fas fa-chart-pie"></i>
+                        <p>{{ __('navigation.cv_maker_dashboard') }}</p>
+                    </a>
+                </li>
+                @endif
+
                 @if($can('central_monitor'))
                 <li class="nav-item {{ $centralMonitorActive ? 'active' : '' }}">
                     <a href="{{ route('central-monitor.index') }}">

@@ -16,6 +16,7 @@ return [
         'central_monitor' => ['label' => 'Monitor Terpusat'],
         'dashboard_karyawan' => ['label' => 'Dashboard Karyawan'],
         'data_karyawan' => ['label' => 'Data Karyawan'],
+        'cv_maker_dashboard' => ['label' => 'Dashboard CV Maker'],
         'cv_maker_compare' => ['label' => 'Compare CV Maker'],
         'employee_movement' => ['label' => 'Perubahan posisi'],
         'data_user' => ['label' => 'Data User'],

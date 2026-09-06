@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AuditTrailController;
 use App\Http\Controllers\Admin\CentralMonitorController;
 use App\Http\Controllers\Admin\ContractRenewalController;
 use App\Http\Controllers\Admin\CvMakerCompareController;
+use App\Http\Controllers\Admin\CvMakerDashboardController;
 use App\Http\Controllers\Admin\AttendancePeriodLockController;
 use App\Http\Controllers\Admin\ElectronicContractAssetController;
 use App\Http\Controllers\Admin\ElectronicContractClauseController;
@@ -252,6 +253,13 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController')
             ->only(['index', 'store', 'edit', 'update', 'destroy'])
             ->middleware('menu:data_karyawan');
+
+        Route::get('/cv-maker-dashboard', [CvMakerDashboardController::class, 'index'])
+            ->middleware(['menu:cv_maker_dashboard', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-dashboard.index');
+        Route::get('/cv-maker-dashboard/data', [CvMakerDashboardController::class, 'data'])
+            ->middleware(['menu:cv_maker_dashboard', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->name('cv-maker-dashboard.data');
 
         Route::get('/cv-maker-compare', [CvMakerCompareController::class, 'index'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])

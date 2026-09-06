@@ -16,6 +16,7 @@ return [
         'central_monitor' => ['label' => 'Central Monitor'],
         'dashboard_karyawan' => ['label' => '员工仪表板'],
         'data_karyawan' => ['label' => '员工数据'],
+        'cv_maker_dashboard' => ['label' => 'Dashboard CV Maker'],
         'cv_maker_compare' => ['label' => 'CV Maker Compare'],
         'employee_movement' => ['label' => '员工调动'],
         'data_user' => ['label' => '用户数据'],
