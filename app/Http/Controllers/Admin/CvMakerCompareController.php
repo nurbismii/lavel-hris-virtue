@@ -25,6 +25,16 @@ use Illuminate\Support\Str;
 
 class CvMakerCompareController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            abort_if($request->user() && $request->user()->hasRole('Audit CV'), 403,
+                'Audit CV hanya dapat mengubah status pemeriksaan.');
+
+            return $next($request);
+        })->only(['previewUpdate', 'updateHris', 'correctField', 'storeReminderBatch']);
+    }
+
     private const ALLOWED_ROLES = [
         'Super Admin',
         'HR',
@@ -39,7 +49,7 @@ class CvMakerCompareController extends Controller
     {
         $this->authorizeAccess($request->user());
 
-        $scopeQuery = $request->user()->applyEmployeeScope(Employee::query());
+        $scopeQuery = $request->user()->applyCvMakerEmployeeScope(Employee::query());
         $departemenIds = (clone $scopeQuery)->select('departemen_id')->distinct()->pluck('departemen_id')->filter();
         $divisiIds = (clone $scopeQuery)->select('divisi_id')->distinct()->pluck('divisi_id')->filter();
         $areaCodes = (clone $scopeQuery)->select('area_kerja')->distinct()->pluck('area_kerja')->filter();
@@ -115,7 +125,7 @@ class CvMakerCompareController extends Controller
         $page = max(1, min((int) $request->query('page', 1), 100));
         $perPage = 30;
         $query = $request->user()
-            ->applyEmployeeScope(Employee::query(), 'employees')
+            ->applyCvMakerEmployeeScope(Employee::query(), 'employees')
             ->whereIn('employees.area_kerja', Perusahaan::ORGANIZATION_COMPANY_CODES)
             ->where('employees.status_resign', 'AKTIF')
             ->whereNotNull('employees.posisi')
@@ -291,7 +301,7 @@ class CvMakerCompareController extends Controller
     private function scopedEmployee(Request $request, string $nik): Employee
     {
         return $request->user()
-            ->applyEmployeeScope(Employee::query(), 'employees')
+            ->applyCvMakerEmployeeScope(Employee::query(), 'employees')
             ->where('employees.nik', $nik)
             ->with([
                 'departemen',

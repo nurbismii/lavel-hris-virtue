@@ -18,7 +18,7 @@
                 <div id="cvDashboardDepartments"></div>
             </article>
             <article class="cv-dashboard-panel">
-                <h6>Status pemeriksaan HR</h6>
+                <h6>Status pemeriksaan</h6>
                 <p>CV lengkap dan selesai diperiksa merupakan dua indikator terpisah.</p>
                 <div id="cvDashboardReviews"></div>
             </article>

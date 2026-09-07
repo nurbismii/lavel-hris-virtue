@@ -23,7 +23,8 @@ $progressHistories = $detail['progress_histories'] ?? collect();
 $vitae = $detail['vitae'] ?? [];
 $comparison = $detail['comparison'] ?? ['groups' => [], 'mismatch_count' => 0, 'compared_count' => 0];
 $relatedComparison = $detail['related_comparison'] ?? [];
-$canUpdateFromCv = (bool) ($detail['can_update'] ?? false);
+$canEditCvData = !auth()->user()->hasRole('Audit CV');
+$canUpdateFromCv = $canEditCvData && (bool) ($detail['can_update'] ?? false);
 $mismatchKeys = collect($comparison['groups'] ?? [])
     ->flatMap(fn($items) => $items)
     ->filter(fn($item) => !empty($item['mismatch']))
@@ -196,6 +197,7 @@ $completeProfileGroups = [
                             <div class="cv-detail-summary__value">{!! $detail['summary'] !!}</div>
                         </div>
                     </div>
+                    @if($canEditCvData)
                     <div class="col-xl-3 col-md-6">
                         <div class="cv-detail-actions">
                             <a href="{{ route('karyawan.edit', $employee->nik) }}" class="btn btn-outline-primary ui-btn-icon">
@@ -217,6 +219,7 @@ $completeProfileGroups = [
                             @endif
                         </div>
                     </div>
+                    @endif
                 </div>
             </div>
         </section>
@@ -243,7 +246,7 @@ $completeProfileGroups = [
                         @if($progressStatus)
                         <form id="cvReviewStatusForm" action="{{ route('cv-maker-compare.review-status.update', $employee->nik) }}" method="POST" class="mt-3">
                             @csrf
-                            <label class="form-label fw-semibold" for="cvReviewStatus">Status pemeriksaan HR</label>
+                            <label class="form-label fw-semibold" for="cvReviewStatus">Status pemeriksaan</label>
                             <select class="form-select form-select-sm" id="cvReviewStatus" name="review_status">
                                 @foreach(\App\Models\CvMakerProgressStatus::reviewLabels() as $value => $label)
                                 <option value="{{ $value }}" {{ ($progressStatus->review_status ?: 'unreviewed') === $value ? 'selected' : '' }}>{{ $label }}</option>
@@ -623,7 +626,7 @@ $completeProfileGroups = [
                                 <div class="cv-compare-field__values">
                                     <div class="cv-compare-field__source cv-compare-field__source--hris">
                                         <div class="cv-compare-field__source-label">HRIS</div>
-                                        @if(!empty($item['editable']))
+                                        @if($canEditCvData && !empty($item['editable']))
                                         <form class="js-cv-inline-correction" action="{{ route('cv-maker-compare.correct-field', $employee->nik) }}" method="POST" data-label="{{ $item['label'] }}" data-sensitive="{{ !empty($item['sensitive']) ? '1' : '0' }}">
                                             @csrf
                                             <input type="hidden" name="field_key" value="{{ $item['key'] }}">
@@ -718,7 +721,9 @@ $completeProfileGroups = [
     </div>
 </div>
 
+@if($canEditCvData)
 @include('admin.cv-maker-compare.partials.update-modal')
+@endif
 @endsection
 
 @push('scripts')

@@ -95,7 +95,7 @@ class CvMakerDashboardServiceTest extends TestCase
             'area_kerja' => 'OTHER', 'status_resign' => 'AKTIF']);
 
         $user = \Mockery::mock(\App\Models\User::class)->makePartial();
-        $user->shouldReceive('applyEmployeeScope')->andReturnUsing(function ($query) { return $query; });
+        $user->shouldReceive('applyCvMakerEmployeeScope')->andReturnUsing(function ($query) { return $query; });
         $user->shouldReceive('hasMenuAccess')->with('cv_maker_compare')->andReturn(false);
         $controller = app(\App\Http\Controllers\Admin\CvMakerDashboardController::class);
         foreach (['default' => 1, 'active' => 1, 'inactive' => 2, 'all' => 3] as $status => $expected) {

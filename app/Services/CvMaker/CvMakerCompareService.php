@@ -994,7 +994,7 @@ class CvMakerCompareService
                 'kelurahan:id,kelurahan',
             ]);
 
-        return $user->applyEmployeeScope($query, 'employees');
+        return $user->applyCvMakerEmployeeScope($query, 'employees');
     }
 
     private function applyFilters(Builder $query, Request $request): Builder

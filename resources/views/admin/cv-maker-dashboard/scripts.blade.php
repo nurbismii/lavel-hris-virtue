@@ -24,7 +24,7 @@
             ['Belum membuat profil', summary.no_profile, 'Akun tersedia, profil belum ada', 'progress_status', 'no_profile']
         ];
         const completedReview = payload.reviews.find(row => row.key === 'completed');
-        cards.push(['Selesai diperiksa', completedReview ? completedReview.total : 0, 'Status pemeriksaan HR', 'review_status', 'completed']);
+        cards.push(['Selesai diperiksa', completedReview ? completedReview.total : 0, 'Status pemeriksaan', 'review_status', 'completed']);
         const cardContainer = $('#cvDashboardCards').empty();
         cards.forEach((card, index) => {
             const element = $(card[3] ? '<button type="button">' : '<div>')

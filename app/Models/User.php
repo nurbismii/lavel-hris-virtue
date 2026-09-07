@@ -372,6 +372,15 @@ class User extends Authenticatable implements MustVerifyEmail
             ->all();
     }
 
+    public function applyCvMakerEmployeeScope(Builder $query, ?string $table = null): Builder
+    {
+        if ($this->hasRole('Audit CV') && $this->hasMenuAccess('cv_maker_compare')) {
+            return $query;
+        }
+
+        return $this->applyEmployeeScope($query, $table);
+    }
+
     public function applyEmployeeScope(Builder $query, ?string $table = null): Builder
     {
         if ($this->canAccessAllEmployees()) {

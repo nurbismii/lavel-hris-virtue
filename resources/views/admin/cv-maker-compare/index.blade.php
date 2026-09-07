@@ -325,6 +325,7 @@
                     </button>
                 </div>
 
+                @if(!auth()->user()->hasRole('Audit CV'))
                 <div class="d-flex flex-wrap gap-2 align-items-center mt-3 mb-2">
                     <button type="button" class="btn btn-sm btn-primary ui-btn-icon" id="btnCvReminderSelected" disabled>
                         <i class="fas fa-envelope"></i>
@@ -338,6 +339,7 @@
                 </div>
 
                 <div class="alert ui-alert d-none mb-3" id="cvReminderBatchStatus" role="status" aria-live="polite"></div>
+                @endif
 
                 <div class="cv-compare-table-section ui-table-wrap">
                     <table id="cvMakerCompareTable" class="table table-bordered table-striped table-sm small text-sm nowrap align-middle ui-table">
@@ -580,7 +582,7 @@
                 }
             },
             columns: [
-                { data: 'select', orderable: false, searchable: false, width: '42px', className: 'text-center' },
+                { data: 'select', visible: @json(!auth()->user()->hasRole('Audit CV')), orderable: false, searchable: false, width: '42px', className: 'text-center' },
                 { data: 'nik', width: '90px' },
                 { data: 'employee', orderable: true },
                 { data: 'cv_status', orderable: false, searchable: false, width: '120px' },

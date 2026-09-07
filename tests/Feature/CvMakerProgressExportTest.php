@@ -60,7 +60,7 @@ class CvMakerProgressExportTest extends TestCase
                 'is_complete' => $id === 5]);
         }
         $user = \Mockery::mock(User::class)->makePartial();
-        $user->shouldReceive('applyEmployeeScope')->andReturnUsing(function ($query) {
+        $user->shouldReceive('applyCvMakerEmployeeScope')->andReturnUsing(function ($query) {
             return $query->where('employees.nik', '<>', '0006');
         });
         $query = app(CvMakerCompareService::class)->filteredEmployeeQuery(new Request([

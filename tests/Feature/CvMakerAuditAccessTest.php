@@ -13,6 +13,64 @@ use Tests\TestCase;
 
 class CvMakerAuditAccessTest extends TestCase
 {
+    public function test_audit_mutations_are_denied_before_controller_execution(): void
+    {
+        foreach (['preview-update', 'update-hris', 'correct-field', 'reminders.store'] as $suffix) {
+            $route = app('router')->getRoutes()->getByName('cv-maker-compare.' . $suffix);
+            $guards = array_filter($route->gatherMiddleware(), function ($middleware) {
+                return $middleware instanceof \Closure;
+            });
+            $this->assertNotEmpty($guards);
+            foreach ([['Audit CV'], ['Audit CV', 'HR']] as $roles) {
+                foreach ($guards as $guard) {
+                    try {
+                        $guard($this->auditRequest($roles), function () {
+                            $this->fail('Audit mutation must not reach the controller.');
+                        });
+                        $this->fail('Expected forbidden response.');
+                    } catch (HttpException $exception) {
+                        $this->assertSame(403, $exception->getStatusCode());
+                    }
+                }
+            }
+            foreach ($guards as $guard) {
+                $this->assertSame('allowed', $guard($this->auditRequest(['HR']), function () {
+                    return 'allowed';
+                }));
+            }
+        }
+
+        $reviewRoute = app('router')->getRoutes()->getByName('cv-maker-compare.review-status.update');
+        $this->assertEmpty(array_filter($reviewRoute->gatherMiddleware(), function ($middleware) {
+            return $middleware instanceof \Closure;
+        }));
+        $this->assertContains('role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV', $reviewRoute->gatherMiddleware());
+    }
+
+    public function test_audit_scope_includes_other_employees_only_in_cv_maker(): void
+    {
+        config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:']);
+        \Illuminate\Support\Facades\DB::purge('sqlite');
+        \Illuminate\Support\Facades\Schema::create('employees', function ($table) {
+            $table->string('nik')->primary();
+        });
+        \Illuminate\Support\Facades\DB::table('employees')->insert([
+            ['nik' => '0001'], ['nik' => '0002'],
+        ]);
+
+        $user = $this->auditRequest()->user();
+        $user->nik_karyawan = '0001';
+        $this->assertSame(['0001', '0002'], $user->applyCvMakerEmployeeScope(\App\Models\Employee::query())
+            ->orderBy('nik')->pluck('nik')->all());
+        $this->assertSame(['0001'], $user->applyEmployeeScope(\App\Models\Employee::query())
+            ->pluck('nik')->all());
+
+        $staff = $this->auditRequest(['Staff'])->user();
+        $staff->nik_karyawan = '0001';
+        $this->assertSame(['0001'], $staff->applyCvMakerEmployeeScope(\App\Models\Employee::query())
+            ->pluck('nik')->all());
+    }
+
     private function auditRequest(array $roles = ['Audit CV']): Request
     {
         $user = \Mockery::mock(User::class)->makePartial();
