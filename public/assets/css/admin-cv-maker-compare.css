@@ -885,3 +885,18 @@
         min-width: 560px;
     }
 }
+.cv-compare-export-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #f4f8f6;
+    border: 1px solid #dce9e1;
+}
+.cv-compare-export-toolbar p { flex-basis: 100%; }
+.cv-compare-export-toolbar .btn { min-height: 42px; }
+@media (max-width: 575.98px) {
+    .cv-compare-export-toolbar .btn { width: 100%; white-space: normal; }
+}

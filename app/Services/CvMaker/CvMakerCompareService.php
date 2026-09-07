@@ -1142,7 +1142,13 @@ class CvMakerCompareService
 
         $progressStatus = trim((string) $request->input('cv_progress_status', ''));
 
-        if ($progressStatus === 'not_synced') {
+        if ($progressStatus === 'not_complete') {
+            // Includes missing snapshots, but never labels them as confirmed non-input.
+            $query->whereNotIn('employees.nik', CvMakerProgressStatus::query()
+                ->select('employee_nik')
+                ->whereNotNull('cv_profile_id')
+                ->where('is_complete', true));
+        } elseif ($progressStatus === 'not_synced') {
             $query->whereNotIn('employees.nik', CvMakerProgressStatus::query()->select('employee_nik'));
         } elseif ($progressStatus !== '') {
             $progressQuery = CvMakerProgressStatus::query()->select('employee_nik');

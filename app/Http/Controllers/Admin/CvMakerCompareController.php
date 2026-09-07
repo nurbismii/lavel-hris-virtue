@@ -79,6 +79,33 @@ class CvMakerCompareController extends Controller
         return response()->json($service->datatable($request, $request->user()));
     }
 
+    public function export(\App\Http\Requests\CvMaker\ExportCvMakerProgressRequest $request, CvMakerCompareService $service)
+    {
+        $this->authorizeAccess($request->user());
+        $filters = $request->validated();
+        $filters['search'] = ['value' => $filters['search'] ?? ''];
+        $query = $service->filteredEmployeeQuery(new Request($filters), $request->user());
+        $count = (clone $query)->count();
+        if ($count === 0 || $count > 5000) {
+            return response()->json(['success' => false, 'message' => $count === 0
+                ? 'Tidak ada data sesuai filter untuk diexport.'
+                : 'Export maksimal 5.000 karyawan. Persempit filter perusahaan, departemen, atau divisi.'], 422);
+        }
+
+        try {
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\CvMakerProgressExport($query),
+                'progress-cv-maker-' . now()->format('Ymd-His') . '.xlsx',
+                \Maatwebsite\Excel\Excel::XLSX,
+                ['Cache-Control' => 'private, no-store']
+            );
+        } catch (\Throwable $exception) {
+            report($exception);
+            return response()->json(['success' => false,
+                'message' => 'Export gagal dibuat. Silakan coba lagi atau persempit filter.'], 500);
+        }
+    }
+
     public function positions(Request $request): JsonResponse
     {
         $this->authorizeAccess($request->user());

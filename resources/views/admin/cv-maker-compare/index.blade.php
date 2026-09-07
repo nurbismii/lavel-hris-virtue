@@ -251,6 +251,7 @@
                             <label class="form-label" for="cv_filter_progress_status">Status Progress</label>
                             <select id="cv_filter_progress_status" class="form-select">
                                 <option value="">Semua Progress</option>
+                                <option value="not_complete">Belum Input / Belum Lengkap (termasuk belum diketahui)</option>
                                 <option value="not_synced">Snapshot Belum Tersedia</option>
                                 <option value="no_account">Belum Memiliki Akun CV</option>
                                 <option value="no_profile">Profil CV Belum Dibuat</option>
@@ -313,6 +314,16 @@
                             </select>
                         </div>
                     </div>
+                </div>
+
+                <div class="cv-compare-export-toolbar mt-3 mb-3">
+                    <button type="button" class="btn btn-outline-primary ui-btn-icon" id="btnCvIncompleteSupervisors">
+                        <i class="fas fa-filter"></i> Pengawas ke Atas — Belum Lengkap
+                    </button>
+                    <button type="button" class="btn btn-success ui-btn-icon" id="btnCvExport">
+                        <i class="fas fa-file-excel"></i> Export Excel Hasil Filter
+                    </button>
+                    <p class="small text-muted mb-0">Maksimal 5.000 baris per unduhan. Status berdasarkan snapshot terakhir; snapshot belum tersedia berarti status belum diketahui. Preset mengecualikan Wakil Pengawas; periksa pilihan Jabatan HRIS sebelum export.</p>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 align-items-center mt-3 mb-2">
@@ -628,6 +639,53 @@
             search: cvCompareTable.search()
         };
     }
+
+    $('#btnCvIncompleteSupervisors').on('click', function() {
+        $('#btnResetCvCompareFilter').trigger('click');
+        $('.cv-filter-hris-job-title-check').each(function() {
+            $(this).prop('checked', $(this).val() !== 'WAKIL PENGAWAS');
+        });
+        syncCvHrisJobTitleFilter();
+        $('#cv_filter_progress_status').val('not_complete');
+        cvCompareTable.search('').draw();
+    });
+
+    $('#btnCvExport').on('click', async function() {
+        const button = $(this);
+        if (button.prop('disabled')) return;
+        const original = button.html();
+        const filters = cvReminderFilterPayload();
+        filters.cv_reminder = $('#cv_filter_reminder').val();
+        button.prop('disabled', true).text('Membuat Excel...');
+        try {
+            const response = await fetch("{{ route('cv-maker-compare.export') }}?" + $.param(filters), {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                showCvCompareAjaxError({ status: response.status, responseJSON: body }, 'Export gagal. Silakan coba lagi.');
+                return;
+            }
+            if (!(response.headers.get('Content-Type') || '').includes('spreadsheetml')) {
+                showCvCompareAjaxError({ status: 419 }, 'Sesi berakhir.');
+                return;
+            }
+            const url = URL.createObjectURL(await response.blob());
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'progress-cv-maker-' + new Date().toISOString().slice(0, 10) + '.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            window.CvMakerDialog.fire({ icon: 'success', title: 'File siap', text: 'File Excel berhasil dibuat dan unduhan dimulai.' });
+        } catch (error) {
+            showCvCompareAjaxError({ status: 0 }, 'Export gagal diunduh.');
+        } finally {
+            button.prop('disabled', false).html(original);
+        }
+    });
 
     function renderCvReminderBatchStatus(data) {
         const terminal = ['completed', 'partial_failed', 'failed'].includes(data.status);

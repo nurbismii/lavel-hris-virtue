@@ -277,6 +277,9 @@ Route::middleware(['android.redirect'])->group(function () {
             ->whereNumber('batch')
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
             ->name('cv-maker-compare.reminders.status');
+        Route::get('/cv-maker-compare/export', [CvMakerCompareController::class, 'export'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi', 'throttle:6,1'])
+            ->name('cv-maker-compare.export');
         Route::get('/cv-maker-compare/{nik}', [CvMakerCompareController::class, 'show'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
             ->name('cv-maker-compare.show');

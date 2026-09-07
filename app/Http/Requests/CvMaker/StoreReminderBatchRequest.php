@@ -39,7 +39,7 @@ class StoreReminderBatchRequest extends FormRequest
             'cv_managerial_category' => ['nullable', Rule::in(array_keys(CvMakerPositionSkillCategory::managerialLabels()))],
             'status_resign' => ['nullable', 'string', 'max:80'],
             'cv_reminder' => ['nullable', Rule::in(['needs_reminder', 'not_needed'])],
-            'cv_progress_status' => ['nullable', Rule::in(['not_synced', 'no_account', 'no_profile', 'in_progress', 'complete'])],
+            'cv_progress_status' => ['nullable', Rule::in(['not_complete', 'not_synced', 'no_account', 'no_profile', 'in_progress', 'complete'])],
             'cv_progress_step' => ['nullable', 'array', 'max:8'],
             'cv_progress_step.*' => ['integer', 'between:1,8', 'distinct'],
             'cv_review_status' => ['nullable', Rule::in(['unreviewed', 'in_review', 'needs_employee_confirmation', 'completed'])],
