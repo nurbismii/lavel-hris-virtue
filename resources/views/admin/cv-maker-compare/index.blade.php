@@ -323,7 +323,7 @@
                     <button type="button" class="btn btn-success ui-btn-icon" id="btnCvExport">
                         <i class="fas fa-file-excel"></i> Export Excel Hasil Filter
                     </button>
-                    <p class="small text-muted mb-0">Maksimal 5.000 baris per unduhan. Status berdasarkan snapshot terakhir; snapshot belum tersedia berarti status belum diketahui. Preset mengecualikan Wakil Pengawas; periksa pilihan Jabatan HRIS sebelum export.</p>
+                    <p class="small text-muted mb-0">Maksimal 5.000 baris per unduhan. Status berdasarkan snapshot terakhir; snapshot belum tersedia berarti status belum diketahui. Preset termasuk Wakil Pengawas; periksa pilihan Jabatan HRIS sebelum export.</p>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 align-items-center mt-3 mb-2">
@@ -642,9 +642,7 @@
 
     $('#btnCvIncompleteSupervisors').on('click', function() {
         $('#btnResetCvCompareFilter').trigger('click');
-        $('.cv-filter-hris-job-title-check').each(function() {
-            $(this).prop('checked', $(this).val() !== 'WAKIL PENGAWAS');
-        });
+        $('.cv-filter-hris-job-title-check').prop('checked', true);
         syncCvHrisJobTitleFilter();
         $('#cv_filter_progress_status').val('not_complete');
         cvCompareTable.search('').draw();
