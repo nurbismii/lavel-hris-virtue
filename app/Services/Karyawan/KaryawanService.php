@@ -8,6 +8,28 @@ use Yajra\DataTables\Facades\DataTables;
 
 class KaryawanService
 {
+    public const FILTER_LABELS = [
+        'jabatan' => 'Jabatan',
+        'posisi' => 'Posisi',
+        'status_karyawan' => 'Status karyawan',
+        'pendidikan_terakhir' => 'Pendidikan terakhir',
+    ];
+
+    public function filterOptions($user): array
+    {
+        $query = $user->applyEmployeeScope(Employee::query())->whereNotNull('status_resign');
+        $options = [];
+        foreach (self::FILTER_LABELS as $column => $label) {
+            $options[$column] = [
+                'label' => $label,
+                'values' => (clone $query)->whereNotNull($column)->where($column, '<>', '')
+                    ->select($column)->distinct()->orderBy($column)->pluck($column),
+            ];
+        }
+
+        return $options;
+    }
+
     private const DOCUMENT_FIELDS = [
         'photo' => ['column' => 'photo_path', 'label' => 'Foto'],
         'ktp' => ['column' => 'ktp_path', 'label' => 'KTP'],
@@ -63,6 +85,18 @@ class KaryawanService
 
         if ($request->status_resign) {
             $query->where('status_resign', $request->status_resign);
+        }
+
+        foreach (array_merge(array_keys(self::FILTER_LABELS), ['jenis_kelamin']) as $column) {
+            if ($request->filled($column)) {
+                $query->where($column, $request->input($column));
+            }
+        }
+        if ($request->filled('entry_date_from')) {
+            $query->where('entry_date', '>=', $request->input('entry_date_from'));
+        }
+        if ($request->filled('entry_date_to')) {
+            $query->where('entry_date', '<', \Carbon\Carbon::parse($request->input('entry_date_to'))->addDay()->toDateString());
         }
 
         return DataTables::of($query)

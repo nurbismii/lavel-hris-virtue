@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Concerns\ValidatesZipUploads;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\KaryawanRequest\UpdateKaryawanRequest;
+use App\Http\Requests\KaryawanRequest\FilterKaryawanRequest;
 use App\Imports\ImportEmployee;
 use App\Jobs\ProcessEmployeeMediaZipUpload;
 use App\Jobs\DeleteImportedFile;
@@ -39,7 +40,7 @@ class KaryawanController extends Controller
         'face_reference' => ['column' => 'face_reference_path', 'label' => 'FACE REF', 'directory' => 'face-reference/%s/'],
     ];
 
-    public function index(Request $request)
+    public function index(FilterKaryawanRequest $request)
     {
         if ($request->ajax()) {
 
@@ -62,6 +63,7 @@ class KaryawanController extends Controller
                 ->orderBy('kode_perusahaan')
                 ->get(),
             'canManageMasterData' => $request->user()->canAccessAllEmployees(),
+            'employeeFilterOptions' => app(\App\Services\Karyawan\KaryawanService::class)->filterOptions($request->user()),
         ]);
     }
 

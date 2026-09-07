@@ -47,7 +47,7 @@
             <div class="ui-panel__header">
                 <div>
                     <h5 class="ui-panel__title" id="employeeDataTableTitle">Daftar Karyawan</h5>
-                    <p class="ui-panel__meta">Tabel memakai server-side processing agar tetap ringan untuk data karyawan besar.</p>
+                    <p class="ui-panel__meta">Gabungkan filter organisasi dan data kepegawaian untuk mempersempit hasil pencarian.</p>
                 </div>
                 <button type="button" class="btn btn-sm btn-light border ui-btn-icon" id="btnResetFilter">
                     <i class="fas fa-undo"></i>
@@ -119,7 +119,7 @@
                             <div class="col-xl-3 col-md-6 ui-field">
                                 <label class="form-label" for="filter_resign">Status</label>
                                 <select id="filter_resign" class="form-select">
-                                    <option value="">Semua Kategori Resign</option>
+                                    <option value="">Semua status</option>
                                     <option value="AKTIF" selected>Aktif</option>
                                     <option value="RESIGN SESUAI PROSEDUR">Resign Sesuai Prosedur</option>
                                     <option value="RESIGN TIDAK SESUAI PROSEDUR">Resign Tidak Sesuai Prosedur</option>
@@ -135,7 +135,35 @@
                                     <option value="PHK MENINGGAL DUNIA">PHK Meninggal Dunia</option>
                                 </select>
                             </div>
+                            @foreach ($employeeFilterOptions as $field => $filter)
+                            <div class="col-xl-3 col-md-6 ui-field">
+                                <label class="form-label" for="filter_{{ $field }}">{{ $filter['label'] }}</label>
+                                <select id="filter_{{ $field }}" class="form-select employee-extra-filter" data-field="{{ $field }}">
+                                    <option value="">Semua {{ strtolower($filter['label']) }}</option>
+                                    @foreach ($filter['values'] as $value)
+                                    <option value="{{ $value }}">{{ $value }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            @endforeach
+                            <div class="col-xl-3 col-md-6 ui-field">
+                                <label class="form-label" for="filter_jenis_kelamin">Jenis kelamin</label>
+                                <select id="filter_jenis_kelamin" class="form-select employee-extra-filter" data-field="jenis_kelamin">
+                                    <option value="">Semua jenis kelamin</option>
+                                    <option value="L">Laki-laki</option>
+                                    <option value="P">Perempuan</option>
+                                </select>
+                            </div>
+                            <div class="col-xl-3 col-md-6 ui-field">
+                                <label class="form-label" for="filter_entry_date_from">Tanggal masuk dari</label>
+                                <input type="date" id="filter_entry_date_from" class="form-control employee-extra-filter" data-field="entry_date_from">
+                            </div>
+                            <div class="col-xl-3 col-md-6 ui-field">
+                                <label class="form-label" for="filter_entry_date_to">Tanggal masuk sampai</label>
+                                <input type="date" id="filter_entry_date_to" class="form-control employee-extra-filter" data-field="entry_date_to">
+                            </div>
                         </div>
+                        <div id="employee-filter-feedback" class="small text-muted mt-3" role="status" aria-live="polite"></div>
                     </div>
 
                     <div class="karyawan-table-section ui-table-wrap">
@@ -578,6 +606,10 @@
         serverSide: true,
         responsive: true,
         autoWidth: false,
+        searchDelay: 400,
+        drawCallback: function () {
+            $('#employee-filter-feedback').text(this.api().page.info().recordsDisplay + ' karyawan ditemukan.');
+        },
         language: {
             processing: 'Memuat data karyawan...',
             search: 'Cari:',
@@ -606,6 +638,33 @@
                 d.departemen = $('#filter_departemen').val();
                 d.divisi = $('#filter_divisi').val();
                 d.status_resign = $('#filter_resign').val();
+                $('.employee-extra-filter').each(function () {
+                    d[$(this).data('field')] = $(this).val();
+                });
+            },
+            beforeSend: function () {
+                $('.employee-extra-filter, #btnResetFilter').prop('disabled', true);
+                $('#employee-filter-feedback').text('Memuat data karyawan...');
+            },
+            complete: function () {
+                $('.employee-extra-filter, #btnResetFilter').prop('disabled', false);
+            },
+            error: function (xhr) {
+                let message = 'Data karyawan gagal dimuat. Silakan coba lagi.';
+                if (xhr.status === 422) {
+                    const errors = (xhr.responseJSON || {}).errors || {};
+                    const first = Object.keys(errors)[0];
+                    message = first ? errors[first][0] : 'Filter tidak valid. Periksa pilihan Anda.';
+                } else if (xhr.status === 401 || xhr.status === 419) {
+                    message = 'Sesi login berakhir. Silakan login ulang.';
+                } else if (xhr.status === 403) {
+                    message = 'Anda tidak memiliki akses ke data karyawan.';
+                } else if (xhr.status === 0) {
+                    message = 'Koneksi bermasalah. Silakan cek jaringan Anda.';
+                }
+                $('#multi-filter-select_processing').hide();
+                $('#employee-filter-feedback').text(message);
+                Swal.fire({ icon: 'error', title: 'Gagal', text: message });
             }
         },
 
@@ -623,10 +682,12 @@
                 data: 'area_kerja'
             },
             {
-                data: 'departemen'
+                data: 'departemen',
+                name: 'departemen.departemen'
             },
             {
-                data: 'divisi'
+                data: 'divisi',
+                name: 'divisi.nama_divisi'
             },
             {
                 data: 'posisi'
@@ -696,7 +757,7 @@
         });
     });
 
-    $('#filter_divisi, #filter_resign').on('change', function() {
+    $('#filter_divisi, #filter_resign, .employee-extra-filter').on('change', function() {
         table.draw();
     });
 
@@ -705,7 +766,8 @@
         syncAreaFilter();
         resetDepartmentAndDivision(true);
         $('#filter_resign').val('AKTIF');
-        table.draw();
+        $('.employee-extra-filter').val('');
+        table.search('').columns().search('').draw();
     });
 
     const documentPreviewModalEl = document.getElementById('modalDocumentPreview');
