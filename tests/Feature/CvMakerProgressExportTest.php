@@ -112,6 +112,6 @@ class CvMakerProgressExportTest extends TestCase
         $route = app('router')->getRoutes()->getByName('cv-maker-compare.export');
         $this->assertContains('auth', $route->gatherMiddleware());
         $this->assertContains('menu:cv_maker_compare', $route->gatherMiddleware());
-        $this->assertContains('role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi', $route->gatherMiddleware());
+        $this->assertContains('role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV', $route->gatherMiddleware());
     }
 }

@@ -226,6 +226,7 @@ return [
     ],
     'menus' => $menus,
     'default_menu_permissions' => [
+        'Audit CV' => ['dashboard_karyawan', 'cv_maker_compare'],
         'Super Admin' => array_keys($menus),
         'HR' => [
             'dashboard_admin',

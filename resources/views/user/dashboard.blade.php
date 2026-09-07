@@ -101,7 +101,7 @@ $menuCatalog = [
 'icon' => 'fas fa-not-equal',
 'tone' => 'rose',
 'description' => 'Bandingkan data profil CV Maker dengan master karyawan HRIS.',
-'roles' => ['Super Admin', 'HR', 'HOD', 'Manager', 'Supervisor', 'Admin Divisi'],
+'roles' => ['Super Admin', 'HR', 'HOD', 'Manager', 'Supervisor', 'Admin Divisi', 'Audit CV'],
 ],
 'cv_maker_dashboard' => [
 'route_name' => 'cv-maker-dashboard.index',

@@ -41,7 +41,7 @@ $cvInitials = collect(explode(' ', trim((string) $cvName)))
     ->map(fn($part) => mb_substr($part, 0, 1))
     ->implode('');
 $profile = $vitae['profile'] ?? [];
-$employeePhotoUrl = $employee->document_photo_url;
+$employeePhotoUrl = ($canViewPhotos ?? false) ? $employee->document_photo_url : null;
 $hasCvValue = function ($value): bool {
     return filled($value) && trim((string) $value) !== '-';
 };
@@ -520,7 +520,7 @@ $completeProfileGroups = [
                     <h5 class="ui-panel__title">Seluruh Data Vitae</h5>
                     <p class="ui-panel__meta">Field tanpa pasangan kolom di V-People tetap ditampilkan sebagai referensi HR.</p>
                 </div>
-                @if(!empty($profile['photo_available']))
+                @if(($canViewPhotos ?? false) && !empty($profile['photo_available']))
                 <a href="{{ route('cv-maker-compare.profiles.photo', ['nik' => $employee->nik, 'profile' => $cvProfile['profile_id']]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary ui-btn-icon">
                     <i class="fas fa-image"></i> Foto Vitae
                 </a>

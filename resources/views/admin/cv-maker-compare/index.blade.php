@@ -323,7 +323,6 @@
                     <button type="button" class="btn btn-success ui-btn-icon" id="btnCvExport">
                         <i class="fas fa-file-excel"></i> Export Excel Hasil Filter
                     </button>
-                    <p class="small text-muted mb-0">Maksimal 5.000 baris per unduhan. Status berdasarkan snapshot terakhir; snapshot belum tersedia berarti status belum diketahui. Preset termasuk Wakil Pengawas; periksa pilihan Jabatan HRIS sebelum export.</p>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 align-items-center mt-3 mb-2">

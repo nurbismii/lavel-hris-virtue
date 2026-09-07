@@ -16,8 +16,7 @@ class RegisterRequest extends FormRequest
                 'string',
                 'max:50',
                 Rule::exists('employees', 'nik')->where(function (Builder $query) {
-                    $query->where('status_resign', 'AKTIF')
-                        ->whereNull('tgl_resign');
+                    $query->where('status_resign', 'AKTIF');
                 }),
                 Rule::unique('users', 'nik_karyawan'),
             ],

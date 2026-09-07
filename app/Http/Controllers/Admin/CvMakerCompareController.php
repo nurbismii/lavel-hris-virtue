@@ -32,6 +32,7 @@ class CvMakerCompareController extends Controller
         'Manager',
         'Supervisor',
         'Admin Divisi',
+        'Audit CV',
     ];
 
     public function index(Request $request, CvMakerCompareService $service)
@@ -178,7 +179,8 @@ class CvMakerCompareController extends Controller
         return view('admin.cv-maker-compare.show', [
             'employee' => $employee,
             'detail' => $service->detailForEmployee($employee),
-            'canViewDocuments' => $request->user()->hasRole(['HR', 'Super Admin']),
+            'canViewDocuments' => !$request->user()->hasRole('Audit CV') && $request->user()->hasRole(['HR', 'Super Admin']),
+            'canViewPhotos' => !$request->user()->hasRole('Audit CV'),
             'integrationAvailable' => $service->isConfigured(),
         ]);
     }
@@ -247,7 +249,7 @@ class CvMakerCompareController extends Controller
     public function document(Request $request, string $nik, int $document, CvMakerCompareService $service, CvMakerApiClient $client)
     {
         $this->authorizeAccess($request->user());
-        abort_unless($request->user()->hasRole(['HR', 'Super Admin']), 403);
+        abort_unless(!$request->user()->hasRole('Audit CV') && $request->user()->hasRole(['HR', 'Super Admin']), 403);
         $employee = $this->scopedEmployee($request, $nik);
         $detail = $service->detailForEmployee($employee);
         $allowed = collect(data_get($detail, 'vitae.documents', []))->contains(fn($item) => (int) ($item['id'] ?? 0) === $document);
@@ -262,6 +264,7 @@ class CvMakerCompareController extends Controller
     public function photo(Request $request, string $nik, int $profile, CvMakerCompareService $service, CvMakerApiClient $client)
     {
         $this->authorizeAccess($request->user());
+        abort_if($request->user()->hasRole('Audit CV'), 403);
         $employee = $this->scopedEmployee($request, $nik);
         $detail = $service->detailForEmployee($employee);
         abort_unless(

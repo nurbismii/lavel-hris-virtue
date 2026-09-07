@@ -61,7 +61,6 @@ class RegisterController extends Controller
         $employee = Employee::query()
             ->where('nik', $request->nik_karyawan)
             ->where('status_resign', 'AKTIF')
-            ->whereNull('tgl_resign')
             ->firstOrFail();
 
         $user = User::create([

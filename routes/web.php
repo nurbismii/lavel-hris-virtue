@@ -262,38 +262,38 @@ Route::middleware(['android.redirect'])->group(function () {
             ->name('cv-maker-dashboard.data');
 
         Route::get('/cv-maker-compare', [CvMakerCompareController::class, 'index'])
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.index');
         Route::get('/cv-maker-compare/data', [CvMakerCompareController::class, 'data'])
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.data');
         Route::get('/cv-maker-compare/positions', [CvMakerCompareController::class, 'positions'])
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.positions');
         Route::post('/cv-maker-compare/reminders', [CvMakerCompareController::class, 'storeReminderBatch'])
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.reminders.store');
         Route::get('/cv-maker-compare/reminders/{batch}', [CvMakerCompareController::class, 'reminderBatchStatus'])
             ->whereNumber('batch')
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.reminders.status');
         Route::get('/cv-maker-compare/export', [CvMakerCompareController::class, 'export'])
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi', 'throttle:6,1'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV', 'throttle:6,1'])
             ->name('cv-maker-compare.export');
         Route::get('/cv-maker-compare/{nik}', [CvMakerCompareController::class, 'show'])
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.show');
         Route::post('/cv-maker-compare/{nik}/preview-update', [CvMakerCompareController::class, 'previewUpdate'])
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.preview-update');
         Route::post('/cv-maker-compare/{nik}/update-hris', [CvMakerCompareController::class, 'updateHris'])
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.update-hris');
         Route::post('/cv-maker-compare/{nik}/review-status', [CvMakerCompareController::class, 'updateReviewStatus'])
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.review-status.update');
         Route::post('/cv-maker-compare/{nik}/correct-field', [CvMakerCompareController::class, 'correctField'])
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.correct-field');
         Route::get('/cv-maker-compare/{nik}/documents/{document}', [CvMakerCompareController::class, 'document'])
             ->whereNumber('document')
