@@ -20,9 +20,17 @@ class KaryawanService
         $query = $user->applyEmployeeScope(Employee::query())->whereNotNull('status_resign');
         $options = [];
         foreach (self::FILTER_LABELS as $column => $label) {
+            if ($column === 'pendidikan_terakhir') {
+                $options[$column] = ['label' => $label, 'values' => collect(array_keys(config('employee_filters.education_levels', [])))];
+                continue;
+            }
+            $optionQuery = clone $query;
+            if (in_array($column, ['jabatan', 'posisi'], true)) {
+                $optionQuery->whereIn('area_kerja', config('employee_filters.job_option_companies', []));
+            }
             $options[$column] = [
                 'label' => $label,
-                'values' => (clone $query)->whereNotNull($column)->where($column, '<>', '')
+                'values' => $optionQuery->whereNotNull($column)->where($column, '<>', '')
                     ->select($column)->distinct()->orderBy($column)->pluck($column),
             ];
         }
@@ -87,10 +95,28 @@ class KaryawanService
             $query->where('status_resign', $request->status_resign);
         }
 
-        foreach (array_merge(array_keys(self::FILTER_LABELS), ['jenis_kelamin']) as $column) {
+        foreach (['jabatan', 'posisi'] as $column) {
+            if ($request->filled($column)) {
+                $query->whereIn($column, (array) $request->input($column));
+            }
+        }
+        foreach (['status_karyawan', 'jenis_kelamin'] as $column) {
             if ($request->filled($column)) {
                 $query->where($column, $request->input($column));
             }
+        }
+        if ($request->filled('pendidikan_terakhir')) {
+            $aliases = config('employee_filters.education_levels.' . $request->input('pendidikan_terakhir'), []);
+            $query->where(function ($education) use ($aliases) {
+                if (!$aliases) {
+                    $education->whereRaw('1 = 0');
+                }
+                foreach ($aliases as $alias) {
+                    // Match the level token, including bilingual labels and a following major.
+                    $education->orWhereRaw('UPPER(TRIM(pendidikan_terakhir)) = ?', [$alias])
+                        ->orWhereRaw('UPPER(TRIM(pendidikan_terakhir)) LIKE ?', [$alias . ' %']);
+                }
+            });
         }
         if ($request->filled('entry_date_from')) {
             $query->where('entry_date', '>=', $request->input('entry_date_from'));

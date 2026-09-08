@@ -138,8 +138,10 @@
                             @foreach ($employeeFilterOptions as $field => $filter)
                             <div class="col-xl-3 col-md-6 ui-field">
                                 <label class="form-label" for="filter_{{ $field }}">{{ $filter['label'] }}</label>
-                                <select id="filter_{{ $field }}" class="form-select employee-extra-filter" data-field="{{ $field }}">
+                                <select id="filter_{{ $field }}" class="form-select employee-extra-filter" data-field="{{ $field }}" @if(in_array($field, ['jabatan', 'posisi'], true)) multiple data-placeholder="Cari dan pilih {{ strtolower($filter['label']) }}" @endif>
+                                    @if(!in_array($field, ['jabatan', 'posisi'], true))
                                     <option value="">Semua {{ strtolower($filter['label']) }}</option>
+                                    @endif
                                     @foreach ($filter['values'] as $value)
                                     <option value="{{ $value }}">{{ $value }}</option>
                                     @endforeach
@@ -375,6 +377,7 @@
 @endif
 
 @push('scripts')
+<script src="{{ versioned_asset('assets/js/plugin/select2/select2.full.min.js') }}"></script>
 <!-- Datatables -->
 <script>
     (function() {
@@ -601,6 +604,13 @@
         });
     }
 
+    $('#filter_jabatan, #filter_posisi').select2({
+        width: '100%',
+        placeholder: function () { return $(this).data('placeholder'); },
+        closeOnSelect: false,
+        language: { noResults: function () { return 'Tidak ada pilihan yang cocok'; } }
+    });
+
     let table = $('#multi-filter-select').DataTable({
         processing: true,
         serverSide: true,
@@ -643,11 +653,11 @@
                 });
             },
             beforeSend: function () {
-                $('.employee-extra-filter, #btnResetFilter').prop('disabled', true);
+                $('.employee-extra-filter, #btnResetFilter').not('[multiple]').prop('disabled', true);
                 $('#employee-filter-feedback').text('Memuat data karyawan...');
             },
             complete: function () {
-                $('.employee-extra-filter, #btnResetFilter').prop('disabled', false);
+                $('.employee-extra-filter, #btnResetFilter').not('[multiple]').prop('disabled', false);
             },
             error: function (xhr) {
                 let message = 'Data karyawan gagal dimuat. Silakan coba lagi.';
@@ -767,6 +777,7 @@
         resetDepartmentAndDivision(true);
         $('#filter_resign').val('AKTIF');
         $('.employee-extra-filter').val('');
+        $('#filter_jabatan, #filter_posisi').val(null).trigger('change.select2');
         table.search('').columns().search('').draw();
     });
 

@@ -14,11 +14,13 @@ class FilterKaryawanRequest extends FormRequest
     public function rules()
     {
         return [
-            'jabatan' => 'nullable|string|max:123',
-            'posisi' => 'nullable|string|max:128',
+            'jabatan' => 'nullable|array|max:100',
+            'jabatan.*' => 'required|string|max:123|distinct',
+            'posisi' => 'nullable|array|max:100',
+            'posisi.*' => 'required|string|max:128|distinct',
             'status_karyawan' => 'nullable|string|max:255',
             'jenis_kelamin' => 'nullable|in:L,P',
-            'pendidikan_terakhir' => 'nullable|string|max:225',
+            'pendidikan_terakhir' => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(config('employee_filters.education_levels', [])))],
             'entry_date_from' => 'nullable|date_format:Y-m-d',
             'entry_date_to' => 'nullable|date_format:Y-m-d' . ($this->filled('entry_date_from') ? '|after_or_equal:entry_date_from' : ''),
         ];
