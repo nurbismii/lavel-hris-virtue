@@ -82,10 +82,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
             <div>
                 <h3 class="fw-bold mb-1">
                     <i class="fas fa-map-pin text-primary me-2"></i>
-                    Presensi
+                    {{ __('Presensi') }}
                 </h3>
                 <small class="text-muted">
-                    Silakan presensi untuk mencatat kehadiranmu
+                    {{ __('Silakan presensi untuk mencatat kehadiranmu') }}
                 </small>
             </div>
         </div>
@@ -97,13 +97,13 @@ $locationIssueMessage = $locationIssueMessage ?? (
         @else
         @if (!$faceReferencePath)
         <div class="alert alert-warning">
-            Foto referensi wajah belum didaftarkan oleh admin. Presensi dikunci sampai foto referensi tersedia.
+            {{ __('Foto referensi wajah belum didaftarkan oleh admin. Presensi dikunci sampai foto referensi tersedia.') }}
         </div>
         @endif
 
         @if ($errors->any())
         <div class="alert alert-danger">
-            <strong>Presensi belum berhasil dikirim.</strong>
+            <strong>{{ __('Presensi belum berhasil dikirim.') }}</strong>
             <ul class="mb-0 ps-3">
                 @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>
@@ -122,13 +122,13 @@ $locationIssueMessage = $locationIssueMessage ?? (
         <div class="alert alert-info d-flex flex-column gap-1">
             <strong>Perintah lembur aktif tanggal presensi: {{ $activeOvertimeOrder->type_label }}</strong>
             <span>Jadwal: {{ $activeOvertimeOrder->overtime_date->translatedFormat('d M Y') }} | {{ $activeOvertimeOrder->time_range_text }}</span>
-            <span>Karena Anda sudah menyetujui perintah lembur ini, kehadiran pada tanggal tersebut wajib dicatat melalui presensi.</span>
+            <span>{{ __('Karena Anda sudah menyetujui perintah lembur ini, kehadiran pada tanggal tersebut wajib dicatat melalui presensi.') }}</span>
         </div>
         @endif
 
         @if($isCrossDayAttendance)
         <div class="alert alert-warning d-flex flex-column gap-1">
-            <strong>Mode presensi lintas hari aktif</strong>
+            <strong>{{ __('Mode presensi lintas hari aktif') }}</strong>
         </div>
         @endif
 
@@ -182,18 +182,18 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     <div>
                         <span class="attendance-kicker">
                             <i class="fas fa-shield-alt"></i>
-                            Presensi Aman
+                            {{ __('Presensi Aman') }}
                         </span>
                     </div>
 
                     <div class="attendance-steps">
                         <div class="attendance-step">
-                            <span class="attendance-step__label">Langkah 1</span>
-                            <span class="attendance-step__value">Lokasi & Wajah</span>
+                            <span class="attendance-step__label">{{ __('Langkah 1') }}</span>
+                            <span class="attendance-step__value">{{ __('Lokasi & Wajah') }}</span>
                         </div>
                         <div class="attendance-step">
-                            <span class="attendance-step__label">Langkah 2</span>
-                            <span class="attendance-step__value">Simpan Presensi</span>
+                            <span class="attendance-step__label">{{ __('Langkah 2') }}</span>
+                            <span class="attendance-step__value">{{ __('Simpan Presensi') }}</span>
                         </div>
                     </div>
                 </div>
@@ -208,11 +208,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
                         <div class="attendance-stage__main">
                             <div class="face-section__header">
                                 <div>
-                                    <span class="section-caption">Verifikasi Wajah</span>
+                                    <span class="section-caption">{{ __('Verifikasi Wajah') }}</span>
                                 </div>
 
                                 <div id="faceStatusBadge" class="face-status-chip bg-light text-muted">
-                                    Menyiapkan model verifikasi...
+                                    {{ __('Menyiapkan model verifikasi...') }}
                                 </div>
                             </div>
 
@@ -232,16 +232,16 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                         <div>
                                             <span class="camera-stage__eyebrow">
                                                 <i class="fas fa-camera"></i>
-                                                Kamera Presensi
+                                                {{ __('Kamera Presensi') }}
                                             </span>
                                         </div>
                                     </div>
 
                                     <div class="camera-stage__media">
                                         <div class="camera-stage__media-topbar" aria-hidden="true">
-                                            <span id="cameraFrameBadge" class="camera-frame-chip is-neutral">Siaga</span>
+                                            <span id="cameraFrameBadge" class="camera-frame-chip is-neutral">{{ __('Siaga') }}</span>
                                             <span id="cameraProgressText" class="camera-stage__pill camera-stage__pill--secondary">
-                                                Menunggu pembacaan wajah
+                                                {{ __('Menunggu pembacaan wajah') }}
                                             </span>
                                         </div>
 
@@ -250,13 +250,13 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                             <div class="camera-live-location-panel__content">
                                                 <span class="camera-live-location-panel__eyebrow">
                                                     <i class="fas fa-location-arrow"></i>
-                                                    Lokasi Live
+                                                    {{ __('Lokasi Live') }}
                                                 </span>
                                                 <strong id="faceLiveLocationStatus" class="camera-live-location-panel__status">
-                                                    Menunggu GPS...
+                                                    {{ __('Menunggu GPS...') }}
                                                 </strong>
                                                 <span id="faceLiveLocationMeta" class="camera-live-location-panel__meta">
-                                                    Izinkan lokasi agar titik live muncul.
+                                                    {{ __('Izinkan lokasi agar titik live muncul.') }}
                                                 </span>
                                             </div>
                                         </div>
@@ -276,7 +276,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                         <div class="camera-guide">
                                             <div id="cameraGuideShape" class="camera-guide__shape"></div>
                                             <div id="cameraGuideLabel" class="camera-guide__label">
-                                                Posisikan wajah di dalam frame
+                                                {{ __('Posisikan wajah di dalam frame') }}
                                             </div>
                                         </div>
 
@@ -286,9 +286,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                             <div class="selfie-placeholder__icon">
                                                 <i class="fas fa-camera-retro"></i>
                                             </div>
-                                            <p class="selfie-placeholder__title">Kamera depan akan aktif otomatis</p>
+                                            <p class="selfie-placeholder__title">{{ __('Kamera depan akan aktif otomatis') }}</p>
                                             <p class="selfie-placeholder__text">
-                                                Izinkan akses kamera, arahkan wajah ke tengah frame, lalu tunggu sebentar sampai indikator hijau muncul.
+                                                {{ __('Izinkan akses kamera, arahkan wajah ke tengah frame, lalu tunggu sebentar sampai indikator hijau muncul.') }}
                                             </p>
                                         </div>
 
@@ -304,7 +304,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                         <div class="camera-action-group">
                                             <button type="button" id="retryCameraButton" class="btn btn-outline-primary btn-sm">
                                                 <i class="fas fa-redo-alt me-2"></i>
-                                                Aktifkan Ulang Kamera
+                                                {{ __('Aktifkan Ulang Kamera') }}
                                             </button>
                                         </div>
                                     </div>
@@ -334,7 +334,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                             @if ($requiresFaceStep)
                             <div id="attendanceStepHint" class="attendance-stage__hint">
                                 <i class="fas fa-sync-alt"></i>
-                                GPS live dan liveness wajah diproses bersamaan. Tombol presensi aktif saat keduanya valid.
+                                {{ __('GPS live dan liveness wajah diproses bersamaan. Tombol presensi aktif saat keduanya valid.') }}
                             </div>
                             @endif
 
@@ -345,7 +345,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
                                 @if ($statusPresensiHariIni)
                                 <div class="alert alert-info mb-2 mt-4">
-                                    <strong>Status hari ini:</strong> {{ $statusPresensiHariIni }}
+                                    <strong>{{ __('Status hari ini:') }}</strong> {{ $statusPresensiHariIni }}
                                 </div>
                                 @endif
 
@@ -353,7 +353,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
                                             @php($masukVerification = $attendanceVerificationStatus($absensiHariIni ?? null, 'masuk', filled($absensiHariIni->jam_masuk ?? null)))
-                                            <span class="attendance-metric__label">Masuk</span>
+                                            <span class="attendance-metric__label">{{ __('Masuk') }}</span>
                                             <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_masuk ?? null, optional($absensiHariIni)->tanggal) }}</div>
                                             <span class="attendance-metric__status badge {{ \App\Models\Presensi::statusAbsenBadgeClass($masukVerification) }}">
                                                 {{ $masukVerification ? \App\Models\Presensi::statusAbsenLabel($masukVerification) : 'Belum' }}
@@ -363,7 +363,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
                                             @php($istirahatVerification = $attendanceVerificationStatus($absensiHariIni ?? null, 'istirahat', filled($absensiHariIni->jam_istirahat ?? null)))
-                                            <span class="attendance-metric__label">Istirahat</span>
+                                            <span class="attendance-metric__label">{{ __('Istirahat') }}</span>
                                             <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_istirahat ?? null, optional($absensiHariIni)->tanggal) }}</div>
                                             <span class="attendance-metric__status badge {{ \App\Models\Presensi::statusAbsenBadgeClass($istirahatVerification) }}">
                                                 {{ $istirahatVerification ? \App\Models\Presensi::statusAbsenLabel($istirahatVerification) : 'Belum' }}
@@ -373,7 +373,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
                                             @php($kembaliVerification = $attendanceVerificationStatus($absensiHariIni ?? null, 'kembali', filled($absensiHariIni->jam_kembali_istirahat ?? null)))
-                                            <span class="attendance-metric__label">Kembali</span>
+                                            <span class="attendance-metric__label">{{ __('Kembali') }}</span>
                                             <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_kembali_istirahat ?? null, optional($absensiHariIni)->tanggal) }}</div>
                                             <span class="attendance-metric__status badge {{ \App\Models\Presensi::statusAbsenBadgeClass($kembaliVerification) }}">
                                                 {{ $kembaliVerification ? \App\Models\Presensi::statusAbsenLabel($kembaliVerification) : 'Belum' }}
@@ -383,7 +383,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                     <div class="col-6 col-lg-3">
                                         <div class="attendance-metric">
                                             @php($pulangVerification = $attendanceVerificationStatus($absensiHariIni ?? null, 'pulang', filled($absensiHariIni->jam_pulang ?? null)))
-                                            <span class="attendance-metric__label">Pulang</span>
+                                            <span class="attendance-metric__label">{{ __('Pulang') }}</span>
                                             <div class="attendance-metric__time">{{ $formatPresensiClock($absensiHariIni->jam_pulang ?? null, optional($absensiHariIni)->tanggal) }}</div>
                                             <span class="attendance-metric__status badge {{ \App\Models\Presensi::statusAbsenBadgeClass($pulangVerification) }}">
                                                 {{ $pulangVerification ? \App\Models\Presensi::statusAbsenLabel($pulangVerification) : 'Belum' }}
@@ -394,7 +394,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
                                 <div id="attendanceActionPanel" class="attendance-action-card">
                                     <div>
-                                        <span class="attendance-action-card__caption">Langkah Berikutnya</span>
+                                        <span class="attendance-action-card__caption">{{ __('Langkah Berikutnya') }}</span>
                                         <h6 class="attendance-action-card__title">{{ $actionTitle }}</h6>
                                         <p class="attendance-action-card__text">{{ $actionText }}</p>
                                     </div>
@@ -414,7 +414,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                     </div>
 
                                     <div id="distanceInfo" class="small text-muted mt-2">
-                                        Menunggu validasi lokasi...
+                                        {{ __('Menunggu validasi lokasi...') }}
                                     </div>
                                 </div>
                             </div>
@@ -455,14 +455,14 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         <div class="history-header">
             <div>
-                <h5 class="history-header__title">Riwayat Presensi</h5>
+                <h5 class="history-header__title">{{ __('Riwayat Presensi') }}</h5>
                 <p class="history-header__text">
                     Periode {{ formatDateIndonesia($cutoffStart) }} - {{ formatDateIndonesia($cutoffEnd) }}
                 </p>
             </div>
             <div class="history-chip">
                 <i class="fas fa-history"></i>
-                Data presensi periode aktif
+                {{ __('Data presensi periode aktif') }}
             </div>
         </div>
 
@@ -542,7 +542,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                         @empty
                         <tr>
                             <td colspan="8" class="text-muted">
-                                Tidak ada data pada periode ini
+                                {{ __('Tidak ada data pada periode ini') }}
                             </td>
                         </tr>
                         @endforelse
@@ -859,7 +859,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 markerUser.setLatLng(userPosition);
             } else {
                 markerUser = L.marker(userPosition, {
-                    title: 'Posisi kamu',
+                    title: @json(__('Posisi kamu')),
                     icon: createMapPinIcon('blue')
                 }).addTo(map);
             }
@@ -870,7 +870,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 faceMarkerUser.setLatLng(userPosition);
             } else {
                 faceMarkerUser = L.marker(userPosition, {
-                    title: 'Posisi kamu',
+                    title: @json(__('Posisi kamu')),
                     icon: createMapPinIcon('blue')
                 }).addTo(faceMap);
             }
@@ -2412,7 +2412,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                             );
                             updateGpsReadyInfo(currentDistance);
                         } else {
-                            let message = 'Bukti GPS live belum tersimpan';
+                            let message = @json(__('Bukti GPS live belum tersimpan'));
 
                             try {
                                 const payload = await response.json();
@@ -2421,7 +2421,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                     message = payload.message;
                                 }
                             } catch (error) {
-                                message = 'Bukti GPS live gagal tersimpan';
+                                message = @json(__('Bukti GPS live gagal tersimpan'));
                             }
 
                             updateDistanceInfo('text-danger', currentDistance, message);
@@ -2463,8 +2463,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 if (!gpsReady) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'GPS belum tervalidasi',
-                        text: 'Pastikan lokasi stabil sebelum absen.'
+                        title: @json(__('GPS belum tervalidasi')),
+                        text: @json(__('Pastikan lokasi stabil sebelum absen.'))
                     });
                     return;
                 }
@@ -2472,8 +2472,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 if (!gpsEvidenceReady) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Bukti GPS belum tersimpan',
-                        text: 'Tunggu beberapa detik sampai validasi GPS live selesai.'
+                        title: @json(__('Bukti GPS belum tersimpan')),
+                        text: @json(__('Tunggu beberapa detik sampai validasi GPS live selesai.'))
                     });
                     return;
                 }
@@ -2481,8 +2481,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 if (!faceReferencePath) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Foto referensi belum tersedia',
-                        text: 'Minta admin mengunggah foto referensi wajah terlebih dahulu.'
+                        title: @json(__('Foto referensi belum tersedia')),
+                        text: @json(__('Minta admin mengunggah foto referensi wajah terlebih dahulu.'))
                     });
                     return;
                 }
@@ -2492,7 +2492,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 if (blockReason) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Presensi belum siap',
+                        title: @json(__('Presensi belum siap')),
                         text: blockReason
                     });
                     return;
@@ -2501,8 +2501,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 if (!isAttendanceChallengeReady()) {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Sesi presensi kedaluwarsa',
-                        text: 'Muat ulang halaman untuk mengambil sesi keamanan baru sebelum presensi.'
+                        title: @json(__('Sesi presensi kedaluwarsa')),
+                        text: @json(__('Muat ulang halaman untuk mengambil sesi keamanan baru sebelum presensi.'))
                     });
                     return;
                 }
@@ -2520,8 +2520,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 });
 
                 Swal.fire({
-                    title: 'Menyimpan presensi...',
-                    text: 'Mohon tunggu, data presensi sedang dicatat.',
+                    title: @json(__('Menyimpan presensi...')),
+                    text: @js(__('Mohon tunggu, data presensi sedang dicatat.')),
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     didOpen: () => Swal.showLoading()

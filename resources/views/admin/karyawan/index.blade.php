@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Data Karyawan')
+@section('title', __('Data Karyawan'))
 
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('assets/css/admin-karyawan-index.css') }}">
@@ -15,9 +15,9 @@
                     <i class="fas fa-users"></i>
                 </div>
                 <div>
-                    <h4 class="ui-page-title">Data Karyawan</h4>
+                    <h4 class="ui-page-title">{{ __('Data Karyawan') }}</h4>
                     <p class="ui-page-subtitle">
-                        Kelola data master karyawan, dokumen sensitif, dan status kerja dengan filter organisasi.
+                        {{ __('Kelola data master karyawan, dokumen sensitif, dan status kerja dengan filter organisasi.') }}
                     </p>
                 </div>
             </div>
@@ -26,11 +26,11 @@
             <div class="ui-page-actions karyawan-actions">
                 <button type="button" class="btn btn-sm btn-outline-primary ui-btn-icon" data-bs-toggle="modal" data-bs-target="#modalBulkDocuments">
                     <i class="fas fa-folder-open"></i>
-                    Bulk Dokumen
+                    {{ __('Bulk Dokumen') }}
                 </button>
                 <button type="button" class="btn btn-sm btn-primary ui-btn-icon" data-bs-toggle="modal" data-bs-target="#modalImportEmployee">
                     <i class="fas fa-file-import"></i>
-                    Bulk Karyawan
+                    {{ __('Bulk Karyawan') }}
                 </button>
             </div>
             @endif
@@ -46,27 +46,27 @@
         <section class="ui-panel karyawan-panel" aria-labelledby="employeeDataTableTitle">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title" id="employeeDataTableTitle">Daftar Karyawan</h5>
-                    <p class="ui-panel__meta">Gabungkan filter organisasi dan data kepegawaian untuk mempersempit hasil pencarian.</p>
+                    <h5 class="ui-panel__title" id="employeeDataTableTitle">{{ __('Daftar Karyawan') }}</h5>
+                    <p class="ui-panel__meta">{{ __('Gabungkan filter organisasi dan data kepegawaian untuk mempersempit hasil pencarian.') }}</p>
                 </div>
                 <button type="button" class="btn btn-sm btn-light border ui-btn-icon" id="btnResetFilter">
                     <i class="fas fa-undo"></i>
-                    Reset Filter
+                    {{ __('Reset Filter') }}
                 </button>
             </div>
             <div class="ui-panel__body">
                 <div class="karyawan-filter-panel">
                     <div class="row g-3 align-items-end">
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="companyFilterDropdown">Perusahaan</label>
+                            <label class="form-label" for="companyFilterDropdown">{{ __('Perusahaan') }}</label>
                             <div class="company-filter">
                                 <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="companyFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                    <span id="filterAreaLabel">Semua perusahaan</span>
+                                    <span id="filterAreaLabel">{{ __('Semua perusahaan') }}</span>
                                 </button>
                                 <div class="dropdown-menu company-filter__menu" aria-labelledby="companyFilterDropdown">
                                     <div class="company-filter__menu-header">
-                                        <span>Pilih perusahaan</span>
-                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearAreaFilter">Kosongkan</button>
+                                        <span>{{ __('Pilih perusahaan') }}</span>
+                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearAreaFilter">{{ __('Kosongkan') }}</button>
                                     </div>
                                     @forelse ($areas as $area)
                                     <label class="company-filter__option">
@@ -74,7 +74,7 @@
                                         <span>{{ $area->kode_perusahaan }}</span>
                                     </label>
                                     @empty
-                                    <div class="company-filter__empty">Tidak ada perusahaan tersedia.</div>
+                                    <div class="company-filter__empty">{{ __('Tidak ada perusahaan tersedia.') }}</div>
                                     @endforelse
                                 </div>
                             </div>
@@ -86,9 +86,9 @@
                         </div>
 
                             <div class="col-xl-3 col-md-6 ui-field">
-                                <label class="form-label" for="filter_departemen">Departemen</label>
+                                <label class="form-label" for="filter_departemen">{{ __('Departemen') }}</label>
                                 <select id="filter_departemen" class="form-select">
-                                    <option value="">Semua Departemen</option>
+                                    <option value="">{{ __('Semua Departemen') }}</option>
                                     @php
                                     $groupedDepts = [];
                                     foreach ($departemens as $d) {
@@ -107,9 +107,9 @@
                             </div>
 
                             <div class="col-xl-3 col-md-6 ui-field">
-                                <label class="form-label" for="filter_divisi">Divisi</label>
+                                <label class="form-label" for="filter_divisi">{{ __('Divisi') }}</label>
                                 <select id="filter_divisi" class="form-select">
-                                    <option value="">Semua Divisi</option>
+                                    <option value="">{{ __('Semua Divisi') }}</option>
                                     @foreach ($divisis as $v)
                                     <option value="{{ $v->id }}">{{ $v->nama_divisi }}</option>
                                     @endforeach
@@ -117,22 +117,22 @@
                             </div>
 
                             <div class="col-xl-3 col-md-6 ui-field">
-                                <label class="form-label" for="filter_resign">Status</label>
+                                <label class="form-label" for="filter_resign">{{ __('Status') }}</label>
                                 <select id="filter_resign" class="form-select">
-                                    <option value="">Semua status</option>
-                                    <option value="AKTIF" selected>Aktif</option>
-                                    <option value="RESIGN SESUAI PROSEDUR">Resign Sesuai Prosedur</option>
-                                    <option value="RESIGN TIDAK SESUAI PROSEDUR">Resign Tidak Sesuai Prosedur</option>
-                                    <option value="RESIGN TIDAK SESUAI PROSEDUR-PENGAJUAN">Resign Tidak Sesuai Prosedur-Pengajuan</option>
-                                    <option value="RESIGN TIDAK SESUAI PROSEDUR-KABUR">Resign Tidak Sesuai Prosedur-Kabur</option>
-                                    <option value="RESIGN TIDAK SESUAI PROSEDUR-PAYROLL">Resign Tidak Sesuai Prosedur-Payroll</option>
-                                    <option value="PB RESIGN">PB Resign</option>
-                                    <option value="PUTUS KONTRAK">Putus Kontrak</option>
-                                    <option value="PHK">PHK</option>
-                                    <option value="PHK PENSIUN">PHK Pensiun</option>
-                                    <option value="PHK PENSIUN DINI">PHK Pensiun Dini</option>
-                                    <option value="PHK PIDANA">PHK Pidana</option>
-                                    <option value="PHK MENINGGAL DUNIA">PHK Meninggal Dunia</option>
+                                    <option value="">{{ __('Semua status') }}</option>
+                                    <option value="AKTIF" selected>{{ __('Aktif') }}</option>
+                                    <option value="RESIGN SESUAI PROSEDUR">{{ __('Resign Sesuai Prosedur') }}</option>
+                                    <option value="RESIGN TIDAK SESUAI PROSEDUR">{{ __('Resign Tidak Sesuai Prosedur') }}</option>
+                                    <option value="RESIGN TIDAK SESUAI PROSEDUR-PENGAJUAN">{{ __('Resign Tidak Sesuai Prosedur-Pengajuan') }}</option>
+                                    <option value="RESIGN TIDAK SESUAI PROSEDUR-KABUR">{{ __('Resign Tidak Sesuai Prosedur-Kabur') }}</option>
+                                    <option value="RESIGN TIDAK SESUAI PROSEDUR-PAYROLL">{{ __('Resign Tidak Sesuai Prosedur-Payroll') }}</option>
+                                    <option value="PB RESIGN">{{ __('PB Resign') }}</option>
+                                    <option value="PUTUS KONTRAK">{{ __('Putus Kontrak') }}</option>
+                                    <option value="PHK">{{ __('PHK') }}</option>
+                                    <option value="PHK PENSIUN">{{ __('PHK Pensiun') }}</option>
+                                    <option value="PHK PENSIUN DINI">{{ __('PHK Pensiun Dini') }}</option>
+                                    <option value="PHK PIDANA">{{ __('PHK Pidana') }}</option>
+                                    <option value="PHK MENINGGAL DUNIA">{{ __('PHK Meninggal Dunia') }}</option>
                                 </select>
                             </div>
                             @foreach ($employeeFilterOptions as $field => $filter)
@@ -149,19 +149,19 @@
                             </div>
                             @endforeach
                             <div class="col-xl-3 col-md-6 ui-field">
-                                <label class="form-label" for="filter_jenis_kelamin">Jenis kelamin</label>
+                                <label class="form-label" for="filter_jenis_kelamin">{{ __('Jenis kelamin') }}</label>
                                 <select id="filter_jenis_kelamin" class="form-select employee-extra-filter" data-field="jenis_kelamin">
-                                    <option value="">Semua jenis kelamin</option>
-                                    <option value="L">Laki-laki</option>
-                                    <option value="P">Perempuan</option>
+                                    <option value="">{{ __('Semua jenis kelamin') }}</option>
+                                    <option value="L">{{ __('Laki-laki') }}</option>
+                                    <option value="P">{{ __('Perempuan') }}</option>
                                 </select>
                             </div>
                             <div class="col-xl-3 col-md-6 ui-field">
-                                <label class="form-label" for="filter_entry_date_from">Tanggal masuk dari</label>
+                                <label class="form-label" for="filter_entry_date_from">{{ __('Tanggal masuk dari') }}</label>
                                 <input type="date" id="filter_entry_date_from" class="form-control employee-extra-filter" data-field="entry_date_from">
                             </div>
                             <div class="col-xl-3 col-md-6 ui-field">
-                                <label class="form-label" for="filter_entry_date_to">Tanggal masuk sampai</label>
+                                <label class="form-label" for="filter_entry_date_to">{{ __('Tanggal masuk sampai') }}</label>
                                 <input type="date" id="filter_entry_date_to" class="form-control employee-extra-filter" data-field="entry_date_to">
                             </div>
                         </div>
@@ -194,24 +194,24 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content recruitment-documents-modal">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="modalRecruitmentDocumentsLabel">Dokumen Recruitment</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h1 class="modal-title fs-5" id="modalRecruitmentDocumentsLabel">{{ __('Dokumen Recruitment') }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
             </div>
             <div class="modal-body">
                 <div id="recruitmentDocumentsLoading" class="recruitment-documents-state">
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                    Mengambil dokumen dari recruitment...
+                    {{ __('Mengambil dokumen dari recruitment...') }}
                 </div>
                 <div id="recruitmentDocumentsError" class="alert ui-alert ui-alert--warning d-none mb-0"></div>
                 <div id="recruitmentDocumentsEmpty" class="alert ui-alert d-none mb-0">
-                    Dokumen recruitment tidak ditemukan untuk No KTP karyawan ini.
+                    {{ __('Dokumen recruitment tidak ditemukan untuk No KTP karyawan ini.') }}
                 </div>
                 <div id="recruitmentDocumentsList" class="recruitment-documents-list d-none"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary ui-btn-icon" data-bs-dismiss="modal">
                     <i class="fas fa-times"></i>
-                    Tutup
+                    {{ __('Tutup') }}
                 </button>
             </div>
         </div>
@@ -222,26 +222,26 @@
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content document-preview-modal">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="modalDocumentPreviewLabel">Preview Dokumen</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h1 class="modal-title fs-5" id="modalDocumentPreviewLabel">{{ __('Preview Dokumen') }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
             </div>
             <div class="modal-body">
                 <div class="document-preview-frame-wrap">
-                    <iframe id="documentPreviewFrame" class="document-preview-frame" title="Preview dokumen karyawan"></iframe>
+                    <iframe id="documentPreviewFrame" class="document-preview-frame" title="{{ __('Preview dokumen karyawan') }}"></iframe>
                     <img id="documentPreviewImage" class="document-preview-image d-none" alt="Preview dokumen karyawan">
                 </div>
                 <div class="document-preview-help">
-                    Jika preview tidak tampil, gunakan tombol download untuk membuka file langsung.
+                    {{ __('Jika preview tidak tampil, gunakan tombol download untuk membuka file langsung.') }}
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary ui-btn-icon" data-bs-dismiss="modal">
                     <i class="fas fa-times"></i>
-                    Tutup
+                    {{ __('Tutup') }}
                 </button>
                 <a href="#" id="documentPreviewDownload" class="btn btn-primary ui-btn-icon">
                     <i class="fas fa-download"></i>
-                    Download
+                    {{ __('Download') }}
                 </a>
             </div>
         </div>
@@ -253,58 +253,56 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="modalBulkDocumentsLabel">Bulk Upload Dokumen Karyawan</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h1 class="modal-title fs-5" id="modalBulkDocumentsLabel">{{ __('Bulk Upload Dokumen Karyawan') }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
             </div>
             <form action="{{ route('karyawan.bulk-upload-documents') }}" method="POST" enctype="multipart/form-data" class="js-bulk-upload-form" data-redirect-url="{{ route('karyawan.index') }}">
                 @csrf
                 <div class="modal-body">
                     <div class="ui-help-panel">
-                        Upload satu file ZIP per jenis dokumen.
-                        Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya <code>2200112233.jpg</code>, <code>2200112233.jpeg</code>, atau <code>2200112233.pdf</code>.
-                        ZIP akan diproses di background dan hasil akhirnya dikirim ke notifikasi.
+                        {{ __('Upload satu file ZIP per jenis dokumen. Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya') }} <code>2200112233.jpg</code>, <code>2200112233.jpeg</code>{{ __(', atau') }} <code>2200112233.pdf</code>{{ __('. ZIP akan diproses di background dan hasil akhirnya dikirim ke notifikasi.') }}
                     </div>
 
                     <div class="alert ui-alert ui-alert--warning small mt-3">
-                        <div class="fw-semibold mb-1">Panduan cepat</div>
-                        Batas upload ZIP dari aplikasi ini disiapkan sampai sekitar <code>500MB</code> per file ZIP. Pastikan worker queue aktif agar proses berjalan di background.
+                        <div class="fw-semibold mb-1">{{ __('Panduan cepat') }}</div>
+                        {{ __('Batas upload ZIP dari aplikasi ini disiapkan sampai sekitar') }} <code>500MB</code> {{ __('per file ZIP. Pastikan worker queue aktif agar proses berjalan di background.') }}
                         <div class="mt-2">
                             <a href="{{ asset('upload-templates/contoh-zip-dokumen-karyawan.txt') }}" target="_blank" class="btn btn-sm btn-outline-primary ui-btn-icon">
                                 <i class="fas fa-download"></i>
-                                Download Template ZIP
+                                {{ __('Download Template ZIP') }}
                             </a>
                         </div>
                     </div>
 
                     <div class="row g-3">
                         <div class="col-md-6 ui-field">
-                            <label class="form-label" for="bulk_photo_zip">ZIP Foto Karyawan</label>
+                            <label class="form-label" for="bulk_photo_zip">{{ __('ZIP Foto Karyawan') }}</label>
                             <input type="file" name="bulk_photo_zip" id="bulk_photo_zip" class="form-control" accept=".zip,application/zip">
-                            <small class="text-muted">Satu ZIP khusus isi foto karyawan. Maksimal sekitar 500MB per ZIP.</small>
+                            <small class="text-muted">{{ __('Satu ZIP khusus isi foto karyawan. Maksimal sekitar 500MB per ZIP.') }}</small>
                         </div>
 
                         <div class="col-md-6 ui-field">
-                            <label class="form-label" for="bulk_ktp_zip">ZIP KTP</label>
+                            <label class="form-label" for="bulk_ktp_zip">{{ __('ZIP KTP') }}</label>
                             <input type="file" name="bulk_ktp_zip" id="bulk_ktp_zip" class="form-control" accept=".zip,application/zip">
-                            <small class="text-muted">Satu ZIP khusus isi file KTP. Maksimal sekitar 500MB per ZIP.</small>
+                            <small class="text-muted">{{ __('Satu ZIP khusus isi file KTP. Maksimal sekitar 500MB per ZIP.') }}</small>
                         </div>
 
                         <div class="col-md-6 ui-field">
-                            <label class="form-label" for="bulk_kk_zip">ZIP KK</label>
+                            <label class="form-label" for="bulk_kk_zip">{{ __('ZIP KK') }}</label>
                             <input type="file" name="bulk_kk_zip" id="bulk_kk_zip" class="form-control" accept=".zip,application/zip">
-                            <small class="text-muted">Satu ZIP khusus isi file KK. Maksimal sekitar 500MB per ZIP.</small>
+                            <small class="text-muted">{{ __('Satu ZIP khusus isi file KK. Maksimal sekitar 500MB per ZIP.') }}</small>
                         </div>
 
                         <div class="col-md-6 ui-field">
-                            <label class="form-label" for="bulk_sim_zip">ZIP SIM</label>
+                            <label class="form-label" for="bulk_sim_zip">{{ __('ZIP SIM') }}</label>
                             <input type="file" name="bulk_sim_zip" id="bulk_sim_zip" class="form-control" accept=".zip,application/zip">
-                            <small class="text-muted">Satu ZIP khusus isi file SIM. Maksimal sekitar 500MB per ZIP.</small>
+                            <small class="text-muted">{{ __('Satu ZIP khusus isi file SIM. Maksimal sekitar 500MB per ZIP.') }}</small>
                         </div>
 
                         <div class="col-md-6 ui-field">
-                            <label class="form-label" for="bulk_sio_zip">ZIP SIO</label>
+                            <label class="form-label" for="bulk_sio_zip">{{ __('ZIP SIO') }}</label>
                             <input type="file" name="bulk_sio_zip" id="bulk_sio_zip" class="form-control" accept=".zip,application/zip">
-                            <small class="text-muted">Satu ZIP khusus isi file SIO. Maksimal sekitar 500MB per ZIP.</small>
+                            <small class="text-muted">{{ __('Satu ZIP khusus isi file SIO. Maksimal sekitar 500MB per ZIP.') }}</small>
                         </div>
                     </div>
 
@@ -316,24 +314,24 @@
 
                     <div class="bulk-upload-feedback mt-3 d-none" data-upload-feedback>
                         <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
-                            <div class="bulk-upload-feedback__title">Upload sedang berjalan</div>
+                            <div class="bulk-upload-feedback__title">{{ __('Upload sedang berjalan') }}</div>
                             <div class="bulk-upload-feedback__text" data-upload-percent>0%</div>
                         </div>
                         <div class="progress bulk-upload-feedback__progress">
                             <div class="progress-bar progress-bar-striped progress-bar-animated bulk-upload-feedback__bar" role="progressbar" data-upload-progress-bar></div>
                         </div>
-                        <div class="bulk-upload-feedback__text mt-2 mb-0" data-upload-status>Menyiapkan upload ZIP ke server...</div>
+                        <div class="bulk-upload-feedback__text mt-2 mb-0" data-upload-status>{{ __('Menyiapkan upload ZIP ke server...') }}</div>
                         <div class="bulk-upload-feedback__error mt-2 d-none" data-upload-error></div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary ui-btn-icon" data-bs-dismiss="modal">
                         <i class="fas fa-times"></i>
-                        Tutup
+                        {{ __('Tutup') }}
                     </button>
                     <button type="submit" class="btn btn-primary ui-btn-icon" data-submit-label="Upload ZIP">
                         <i class="fas fa-upload"></i>
-                        Upload ZIP
+                        {{ __('Upload ZIP') }}
                     </button>
                 </div>
             </form>
@@ -345,29 +343,29 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="modalImportEmployeeLabel">Import Karyawan</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h1 class="modal-title fs-5" id="modalImportEmployeeLabel">{{ __('Import Karyawan') }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
             </div>
             <form action="{{ route('karyawan.store') }}" method="POST" enctype="multipart/form-data" data-loading-text="Memasukkan ke antrean...">
                 @csrf
                 <div class="modal-body">
                     <div class="ui-help-panel mb-3">
-                        Upload file Excel karyawan format <code>.xlsx</code>. Setelah diterima, file akan diproses lewat queue/background dan statusnya bisa dicek pada History Import.
+                        {{ __('Upload file Excel karyawan format') }} <code>.xlsx</code>{{ __('. Setelah diterima, file akan diproses lewat queue/background dan statusnya bisa dicek pada History Import.') }}
                     </div>
                     <div class="ui-field">
-                        <label class="form-label" for="employee_import_file">File Excel Karyawan</label>
+                        <label class="form-label" for="employee_import_file">{{ __('File Excel Karyawan') }}</label>
                         <input type="file" name="file" class="form-control" id="employee_import_file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required>
-                        <small class="text-muted">Gunakan template yang sesuai struktur import karyawan yang sedang dipakai sistem.</small>
+                        <small class="text-muted">{{ __('Gunakan template yang sesuai struktur import karyawan yang sedang dipakai sistem.') }}</small>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary ui-btn-icon" data-bs-dismiss="modal">
                         <i class="fas fa-times"></i>
-                        Tutup
+                        {{ __('Tutup') }}
                     </button>
                     <button type="submit" class="btn btn-primary ui-btn-icon" data-loading-text="Memasukkan ke antrean...">
                         <i class="fas fa-file-import"></i>
-                        Import
+                        {{ __('Import') }}
                     </button>
                 </div>
             </form>
@@ -597,9 +595,9 @@
             resetDepartmentAndDivision(true);
             Swal.fire({
                 icon: 'error',
-                title: 'Gagal',
-                text: 'Departemen gagal dimuat. Silakan coba lagi.',
-                confirmButtonText: 'OK'
+                title: @json(__('Gagal')),
+                text: @json(__('Departemen gagal dimuat. Silakan coba lagi.')),
+                confirmButtonText: @json(__('OK'))
             });
         });
     }
@@ -621,14 +619,14 @@
             $('#employee-filter-feedback').text(this.api().page.info().recordsDisplay + ' karyawan ditemukan.');
         },
         language: {
-            processing: 'Memuat data karyawan...',
-            search: 'Cari:',
+            processing: @json(__('Memuat data karyawan...')),
+            search: @json(__('Cari:')),
             lengthMenu: 'Tampilkan _MENU_ data',
-            info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
-            infoEmpty: 'Tidak ada data karyawan',
-            infoFiltered: '(difilter dari _MAX_ total data)',
-            zeroRecords: 'Data karyawan tidak ditemukan',
-            emptyTable: 'Belum ada data karyawan',
+            info: @json(__('Menampilkan _START_ sampai _END_ dari _TOTAL_ data')),
+            infoEmpty: @json(__('Tidak ada data karyawan')),
+            infoFiltered: @json(__('(difilter dari _MAX_ total data)')),
+            zeroRecords: @json(__('Data karyawan tidak ditemukan')),
+            emptyTable: @json(__('Belum ada data karyawan')),
             paginate: {
                 first: 'Pertama',
                 last: 'Terakhir',
@@ -654,27 +652,27 @@
             },
             beforeSend: function () {
                 $('.employee-extra-filter, #btnResetFilter').not('[multiple]').prop('disabled', true);
-                $('#employee-filter-feedback').text('Memuat data karyawan...');
+                $('#employee-filter-feedback').text(@json(__('Memuat data karyawan...')));
             },
             complete: function () {
                 $('.employee-extra-filter, #btnResetFilter').not('[multiple]').prop('disabled', false);
             },
             error: function (xhr) {
-                let message = 'Data karyawan gagal dimuat. Silakan coba lagi.';
+                let message = @json(__('Data karyawan gagal dimuat. Silakan coba lagi.'));
                 if (xhr.status === 422) {
                     const errors = (xhr.responseJSON || {}).errors || {};
                     const first = Object.keys(errors)[0];
                     message = first ? errors[first][0] : 'Filter tidak valid. Periksa pilihan Anda.';
                 } else if (xhr.status === 401 || xhr.status === 419) {
-                    message = 'Sesi login berakhir. Silakan login ulang.';
+                    message = @json(__('Sesi login berakhir. Silakan login ulang.'));
                 } else if (xhr.status === 403) {
-                    message = 'Anda tidak memiliki akses ke data karyawan.';
+                    message = @json(__('Anda tidak memiliki akses ke data karyawan.'));
                 } else if (xhr.status === 0) {
-                    message = 'Koneksi bermasalah. Silakan cek jaringan Anda.';
+                    message = @json(__('Koneksi bermasalah. Silakan cek jaringan Anda.'));
                 }
                 $('#multi-filter-select_processing').hide();
                 $('#employee-filter-feedback').text(message);
-                Swal.fire({ icon: 'error', title: 'Gagal', text: message });
+                Swal.fire({ icon: 'error', title: @json(__('Gagal')), text: message });
             }
         },
 
@@ -760,9 +758,9 @@
             $('#filter_divisi').html('<option value="">Divisi gagal dimuat</option>').prop('disabled', true);
             Swal.fire({
                 icon: 'error',
-                title: 'Gagal',
-                text: 'Divisi gagal dimuat. Silakan coba lagi.',
-                confirmButtonText: 'OK'
+                title: @json(__('Gagal')),
+                text: @json(__('Divisi gagal dimuat. Silakan coba lagi.')),
+                confirmButtonText: @json(__('OK'))
             });
         });
     });
@@ -977,26 +975,26 @@
         }
 
         if (xhr.status === 401 || xhr.status === 419) {
-            message = 'Sesi login berakhir. Silakan login ulang.';
+            message = @json(__('Sesi login berakhir. Silakan login ulang.'));
         }
 
         if (xhr.status === 403) {
-            message = 'Anda tidak memiliki akses untuk melakukan tindakan ini.';
+            message = @json(__('Anda tidak memiliki akses untuk melakukan tindakan ini.'));
         }
 
         if (xhr.status === 404) {
-            message = 'Data karyawan tidak ditemukan atau URL hapus tidak valid.';
+            message = @json(__('Data karyawan tidak ditemukan atau URL hapus tidak valid.'));
         }
 
         if (xhr.status === 0) {
-            message = 'Koneksi bermasalah atau request diblokir. Silakan cek jaringan Anda.';
+            message = @json(__('Koneksi bermasalah atau request diblokir. Silakan cek jaringan Anda.'));
         }
 
         Swal.fire({
             icon: 'error',
-            title: 'Gagal',
+            title: @json(__('Gagal')),
             text: message,
-            confirmButtonText: 'OK'
+            confirmButtonText: @json(__('OK'))
         });
     }
 
@@ -1012,12 +1010,12 @@
         }
 
         Swal.fire({
-            title: 'Yakin?',
+            title: @json(__('Yakin?')),
             text: `Hapus data karyawan ${nama}?`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Ya, hapus',
-            cancelButtonText: 'Batal'
+            confirmButtonText: @js(__('Ya, hapus')),
+            cancelButtonText: @json(__('Batal'))
         }).then((result) => {
             if (result.isConfirmed) {
                 button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
@@ -1040,9 +1038,9 @@
 
                         Swal.fire({
                             icon: 'success',
-                            title: 'Berhasil',
+                            title: @json(__('Berhasil')),
                             text: response.message || 'Data karyawan berhasil dihapus.',
-                            confirmButtonText: 'OK'
+                            confirmButtonText: @json(__('OK'))
                         }).then(function() {
                             table.ajax.reload(null, false);
                         });

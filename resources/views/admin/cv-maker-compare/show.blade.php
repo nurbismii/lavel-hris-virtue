@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Compare CV Maker')
+@section('title', __('Detail Compare CV Maker'))
 
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('assets/css/admin-cv-maker-compare.css') }}">
@@ -142,20 +142,20 @@ $completeProfileGroups = [
                     <i class="fas fa-eye"></i>
                 </div>
                 <div>
-                    <h4 class="ui-page-title">Detail Compare CV Maker</h4>
+                    <h4 class="ui-page-title">{{ __('Detail Compare CV Maker') }}</h4>
                     <p class="ui-page-subtitle">{{ $employee->nik }} - {{ $employee->nama_karyawan ?: '-' }}</p>
                 </div>
             </div>
             <a href="{{ route('cv-maker-compare.index') }}" class="btn btn-light border ui-btn-icon">
                 <i class="fas fa-arrow-left"></i>
-                Kembali
+                {{ __('Kembali') }}
             </a>
         </div>
 
         @if(!$integrationAvailable)
         <div class="alert ui-alert ui-alert--warning cv-compare-alert mb-3">
             <i class="fas fa-exclamation-triangle me-2"></i>
-            Koneksi CV Maker belum dikonfigurasi. Set env <code>CV_MAKER_DB_*</code> dan <code>CV_MAKER_NIK_HASH_KEY</code>.
+            {{ __('Koneksi CV Maker belum dikonfigurasi. Set env') }} <code>CV_MAKER_DB_*</code> {{ __('dan') }} <code>CV_MAKER_NIK_HASH_KEY</code>.
         </div>
         @endif
 
@@ -166,7 +166,7 @@ $completeProfileGroups = [
                 <div class="row g-3 align-items-start">
                     <div class="col-xl-4 col-md-6">
                         <div class="cv-detail-summary">
-                            <div class="cv-detail-summary__label">Karyawan HRIS</div>
+                            <div class="cv-detail-summary__label">{{ __('Karyawan HRIS') }}</div>
                             <div class="cv-detail-summary__value">{{ $employee->nama_karyawan ?: '-' }}</div>
                             <div class="cv-detail-summary__meta">NIK {{ $employee->nik }}</div>
                             <div class="cv-detail-summary__meta">
@@ -189,13 +189,13 @@ $completeProfileGroups = [
                             </div>
                             @endif
                             @else
-                            <div class="cv-detail-summary__meta">Profil CV Maker belum tersedia untuk karyawan ini.</div>
+                            <div class="cv-detail-summary__meta">{{ __('Profil CV Maker belum tersedia untuk karyawan ini.') }}</div>
                             @endif
                         </div>
                     </div>
                     <div class="col-xl-2 col-md-6">
                         <div class="cv-detail-summary">
-                            <div class="cv-detail-summary__label">Hasil</div>
+                            <div class="cv-detail-summary__label">{{ __('Hasil') }}</div>
                             <div class="cv-detail-summary__value">{!! $detail['summary'] !!}</div>
                         </div>
                     </div>
@@ -204,7 +204,7 @@ $completeProfileGroups = [
                         <div class="cv-detail-actions">
                             <a href="{{ route('karyawan.edit', $employee->nik) }}" class="btn btn-outline-primary ui-btn-icon">
                                 <i class="fas fa-edit"></i>
-                                Edit HRIS
+                                {{ __('Edit HRIS') }}
                             </a>
                             <button
                                 type="button"
@@ -214,10 +214,10 @@ $completeProfileGroups = [
                                 data-employee-name="{{ $employee->nama_karyawan ?: $employee->nik }}"
                                 {{ $canUpdateFromCv ? '' : 'disabled' }}>
                                 <i class="fas fa-sync-alt"></i>
-                                Update dari CV Maker
+                                {{ __('Update dari CV Maker') }}
                             </button>
                             @if(!$canUpdateFromCv)
-                            <small class="text-muted d-block">Update tersedia jika koneksi CV Maker aktif dan profil karyawan ditemukan.</small>
+                            <small class="text-muted d-block">{{ __('Update tersedia jika koneksi CV Maker aktif dan profil karyawan ditemukan.') }}</small>
                             @endif
                         </div>
                     </div>
@@ -231,8 +231,8 @@ $completeProfileGroups = [
         <section id="cv-workspace-review" data-cv-pane="review" aria-labelledby="cv-tab-review" class="ui-panel cv-progress-detail-panel mb-3">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title">Progress Pengisian CV</h5>
-                    <p class="ui-panel__meta">Snapshot HRIS dari pengisian CV Maker. Riwayat mulai tercatat sejak fitur ini aktif.</p>
+                    <h5 class="ui-panel__title">{{ __('Progress Pengisian CV') }}</h5>
+                    <p class="ui-panel__meta">{{ __('Snapshot HRIS dari pengisian CV Maker. Riwayat mulai tercatat sejak fitur ini aktif.') }}</p>
                 </div>
             </div>
             <div class="ui-panel__body">
@@ -245,19 +245,19 @@ $completeProfileGroups = [
                             {{ $progressStatus->last_synced_at ? $progressStatus->last_synced_at->format('d/m/Y H:i') : '-' }}
                         </div>
                         @else
-                        <div class="cv-progress-detail-summary__meta">Jalankan scheduler sync untuk membuat snapshot awal.</div>
+                        <div class="cv-progress-detail-summary__meta">{{ __('Jalankan scheduler sync untuk membuat snapshot awal.') }}</div>
                         @endif
                         @if($progressStatus)
                         <form id="cvReviewStatusForm" action="{{ route('cv-maker-compare.review-status.update', $employee->nik) }}" method="POST" class="mt-3">
                             @csrf
-                            <label class="form-label fw-semibold" for="cvReviewStatus">Status pemeriksaan</label>
+                            <label class="form-label fw-semibold" for="cvReviewStatus">{{ __('Status pemeriksaan') }}</label>
                             <select class="form-select form-select-sm" id="cvReviewStatus" name="review_status">
                                 @foreach(\App\Models\CvMakerProgressStatus::reviewLabels() as $value => $label)
                                 <option value="{{ $value }}" {{ ($progressStatus->review_status ?: 'unreviewed') === $value ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
-                            <label class="form-label fw-semibold mt-2" for="cvReviewNote">Catatan</label>
-                            <textarea class="form-control form-control-sm" id="cvReviewNote" name="review_note" rows="3" maxlength="500" placeholder="Wajib jika perlu konfirmasi karyawan">{{ $progressStatus->review_note }}</textarea>
+                            <label class="form-label fw-semibold mt-2" for="cvReviewNote">{{ __('Catatan') }}</label>
+                            <textarea class="form-control form-control-sm" id="cvReviewNote" name="review_note" rows="3" maxlength="500" placeholder="{{ __('Wajib jika perlu konfirmasi karyawan') }}">{{ $progressStatus->review_note }}</textarea>
                             @if($progressStatus->reviewer)
                             <div class="small text-muted mt-1">
                                 Terakhir oleh {{ $progressStatus->reviewer->name }}
@@ -265,16 +265,16 @@ $completeProfileGroups = [
                             </div>
                             @endif
                             <button type="submit" class="btn btn-sm btn-primary ui-btn-icon mt-2">
-                                <i class="fas fa-save"></i> Simpan Status Pemeriksaan
+                                <i class="fas fa-save"></i> {{ __('Simpan Status Pemeriksaan') }}
                             </button>
                         </form>
                         @endif
                     </div>
                     <div class="cv-progress-history">
-                        <div class="cv-progress-history__title">Riwayat Terbaru</div>
+                        <div class="cv-progress-history__title">{{ __('Riwayat Terbaru') }}</div>
                         @if($progressHistories->isEmpty())
                         <div class="cv-progress-history__empty">
-                            Belum ada riwayat progress.
+                            {{ __('Belum ada riwayat progress.') }}
                         </div>
                         @else
                         <div class="cv-progress-history__list">
@@ -303,8 +303,8 @@ $completeProfileGroups = [
         <section id="cv-workspace-preview" data-cv-pane="preview" aria-labelledby="cv-tab-preview" class="ui-panel cv-vitae-panel mb-3">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title">Tampilan CV</h5>
-                    <p class="ui-panel__meta">Preview data CV Maker dalam format vitae untuk validasi input anggota.</p>
+                    <h5 class="ui-panel__title">{{ __('Tampilan CV') }}</h5>
+                    <p class="ui-panel__meta">{{ __('Preview data CV Maker dalam format vitae untuk validasi input anggota.') }}</p>
                 </div>
                 @if(!empty($vitae['profile']['last_generated_at']))
                 <span class="badge bg-light text-dark border">Generated {{ $vitae['profile']['last_generated_at'] }}</span>
@@ -314,7 +314,7 @@ $completeProfileGroups = [
                 @if(empty($vitae['has_content']))
                 <div class="alert ui-alert mb-0">
                     <i class="fas fa-info-circle me-2"></i>
-                    Data CV Maker belum cukup untuk ditampilkan sebagai CV.
+                    {{ __('Data CV Maker belum cukup untuk ditampilkan sebagai CV.') }}
                 </div>
                 @else
                 <article class="cv-vitae-sheet">
@@ -323,7 +323,7 @@ $completeProfileGroups = [
                             <h1 class="{{ $isMismatch(['name']) ? 'cv-vitae-field--mismatch' : '' }}">
                                 {{ $cvText($profile['name'] ?? null) }}
                                 @if($isMismatch(['name']))
-                                <span class="cv-vitae-mismatch-badge">Tidak sesuai HRIS</span>
+                                <span class="cv-vitae-mismatch-badge">{{ __('Tidak sesuai HRIS') }}</span>
                                 @endif
                             </h1>
 
@@ -367,7 +367,7 @@ $completeProfileGroups = [
                             @endif
                         </div>
 
-                        <div class="cv-vitae-photo" aria-label="Foto karyawan">
+                        <div class="cv-vitae-photo" aria-label="{{ __('Foto karyawan') }}">
                             @if($employeePhotoUrl)
                             <img src="{{ $employeePhotoUrl }}" alt="Foto {{ $cvText($profile['name'] ?? $employee->nama_karyawan) }}">
                             @else
@@ -378,7 +378,7 @@ $completeProfileGroups = [
 
                     @if($hasCvValue($profile['summary'] ?? null))
                     <section class="cv-vitae-section">
-                        <h3>Ringkasan Profil</h3>
+                        <h3>{{ __('Ringkasan Profil') }}</h3>
                         @php
                         $summaryBullets = $cvMultilineBullets($profile['summary'] ?? null);
                         @endphp
@@ -397,9 +397,9 @@ $completeProfileGroups = [
                     @if(!empty($vitae['educations']))
                     <section class="cv-vitae-section{{ $isMismatch(['education_level', 'education_institution', 'education_major', 'graduation_year']) ? ' cv-vitae-section--mismatch' : '' }}">
                         <h3>
-                            <span>Pendidikan</span>
+                            <span>{{ __('Pendidikan') }}</span>
                             @if($isMismatch(['education_level', 'education_institution', 'education_major', 'graduation_year']))
-                            <span class="cv-vitae-mismatch-badge">Tidak sesuai HRIS</span>
+                            <span class="cv-vitae-mismatch-badge">{{ __('Tidak sesuai HRIS') }}</span>
                             @endif
                         </h3>
                         @foreach($vitae['educations'] as $education)
@@ -417,7 +417,7 @@ $completeProfileGroups = [
 
                     @if(!empty($vitae['experiences']))
                     <section class="cv-vitae-section">
-                        <h3>Pengalaman Kerja</h3>
+                        <h3>{{ __('Pengalaman Kerja') }}</h3>
                         @foreach($vitae['experiences'] as $experience)
                         <div class="cv-vitae-item">
                             <h4>{{ $cvText($experience['title'] ?? null) }}</h4>
@@ -440,16 +440,16 @@ $completeProfileGroups = [
 
                     @if($hasSkills)
                     <section class="cv-vitae-section">
-                        <h3>Keahlian</h3>
+                        <h3>{{ __('Keahlian') }}</h3>
                         @if(!empty($profile['technical_skills']))
                         <p class="cv-vitae-skill-line">
-                            <strong>Teknis:</strong>
+                            <strong>{{ __('Teknis:') }}</strong>
                             {{ implode(', ', $profile['technical_skills']) }}
                         </p>
                         @endif
                         @if(!empty($profile['non_technical_skills']))
                         <p class="cv-vitae-skill-line">
-                            <strong>Non-teknis:</strong>
+                            <strong>{{ __('Non-teknis:') }}</strong>
                             {{ implode(', ', $profile['non_technical_skills']) }}
                         </p>
                         @endif
@@ -458,16 +458,16 @@ $completeProfileGroups = [
 
                     @if(!empty($vitae['certifications']))
                     <section class="cv-vitae-section">
-                        <h3>Sertifikasi & Pelatihan</h3>
+                        <h3>{{ __('Sertifikasi & Pelatihan') }}</h3>
                         <div class="cv-vitae-table-wrap">
                             <table class="cv-vitae-table">
                                 <thead>
                                     <tr>
-                                        <th>Nama</th>
-                                        <th>Penerbit/Penyelenggara</th>
-                                        <th>Tahun</th>
-                                        <th>Berlaku s/d</th>
-                                        <th>Jenis</th>
+                                        <th>{{ __('Nama') }}</th>
+                                        <th>{{ __('Penerbit/Penyelenggara') }}</th>
+                                        <th>{{ __('Tahun') }}</th>
+                                        <th>{{ __('Berlaku s/d') }}</th>
+                                        <th>{{ __('Jenis') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -488,10 +488,10 @@ $completeProfileGroups = [
 
                     @if($hasAdditional)
                     <section class="cv-vitae-section">
-                        <h3>Tambahan</h3>
+                        <h3>{{ __('Tambahan') }}</h3>
                         @if(!empty($vitae['projects']))
                         <p class="cv-vitae-additional-line">
-                            <strong>Proyek:</strong>
+                            <strong>{{ __('Proyek:') }}</strong>
                             @foreach($vitae['projects'] as $project)
                             {{ $cvText($project['name'] ?? null) }}@if($hasCvValue($project['year'] ?? null)) ({{ $project['year'] }})@endif{{ !$loop->last ? ', ' : '' }}
                             @endforeach
@@ -499,7 +499,7 @@ $completeProfileGroups = [
                         @endif
                         @if(!empty($vitae['organizations']))
                         <p class="cv-vitae-additional-line">
-                            <strong>Organisasi:</strong>
+                            <strong>{{ __('Organisasi:') }}</strong>
                             @foreach($vitae['organizations'] as $organization)
                             {{ $cvText($organization['title'] ?? null) }}@if($hasCvValue($organization['role'] ?? null)) - {{ $organization['role'] }}@endif @if($hasCvValue($organization['period'] ?? null))({{ $organization['period'] }})@endif{{ !$loop->last ? ', ' : '' }}
                             @endforeach
@@ -507,7 +507,7 @@ $completeProfileGroups = [
                         @endif
                         @if(!empty($vitae['languages']))
                         <p class="cv-vitae-additional-line">
-                            <strong>Bahasa:</strong>
+                            <strong>{{ __('Bahasa:') }}</strong>
                             @foreach($vitae['languages'] as $language)
                             {{ $cvText($language['language'] ?? null) }}@if($hasCvValue($language['level'] ?? null)) - {{ $language['level'] }}@endif{{ !$loop->last ? ', ' : '' }}
                             @endforeach
@@ -524,12 +524,12 @@ $completeProfileGroups = [
         <section id="cv-workspace-profile" data-cv-pane="profile" aria-labelledby="cv-tab-profile" class="ui-panel mb-3">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title">Seluruh Data Vitae</h5>
-                    <p class="ui-panel__meta">Field tanpa pasangan kolom di V-People tetap ditampilkan sebagai referensi HR.</p>
+                    <h5 class="ui-panel__title">{{ __('Seluruh Data Vitae') }}</h5>
+                    <p class="ui-panel__meta">{{ __('Field tanpa pasangan kolom di V-People tetap ditampilkan sebagai referensi HR.') }}</p>
                 </div>
                 @if(($canViewPhotos ?? false) && !empty($profile['photo_available']))
                 <a href="{{ route('cv-maker-compare.profiles.photo', ['nik' => $employee->nik, 'profile' => $cvProfile['profile_id']]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary ui-btn-icon">
-                    <i class="fas fa-image"></i> Foto Vitae
+                    <i class="fas fa-image"></i> {{ __('Foto Vitae') }}
                 </a>
                 @endif
             </div>
@@ -555,9 +555,9 @@ $completeProfileGroups = [
 
                 @if(!empty($vitae['achievements']))
                 <div class="cv-detail-group mt-3">
-                    <div class="cv-detail-group__header"><h6>Prestasi</h6></div>
+                    <div class="cv-detail-group__header"><h6>{{ __('Prestasi') }}</h6></div>
                     <div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">
-                        <thead><tr><th>Bidang</th><th>Prestasi</th><th>Peringkat</th><th>Tingkat</th><th>Periode</th></tr></thead>
+                        <thead><tr><th>{{ __('Bidang') }}</th><th>{{ __('Prestasi') }}</th><th>{{ __('Peringkat') }}</th><th>{{ __('Tingkat') }}</th><th>{{ __('Periode') }}</th></tr></thead>
                         <tbody>@foreach($vitae['achievements'] as $item)<tr><td>{{ $item['field'] ?: '-' }}</td><td>{{ $item['type'] ?: '-' }}</td><td>{{ $item['rank'] ?: '-' }}</td><td>{{ $item['level'] ?: '-' }}</td><td>{{ $item['period'] ?: '-' }}</td></tr>@endforeach</tbody>
                     </table></div>
                 </div>
@@ -565,9 +565,9 @@ $completeProfileGroups = [
 
                 @if(!empty($vitae['emergency_contacts']))
                 <div class="cv-detail-group mt-3">
-                    <div class="cv-detail-group__header"><h6>Kontak Darurat</h6></div>
+                    <div class="cv-detail-group__header"><h6>{{ __('Kontak Darurat') }}</h6></div>
                     <div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">
-                        <thead><tr><th>Nama</th><th>Hubungan</th><th>Nomor telepon</th></tr></thead>
+                        <thead><tr><th>{{ __('Nama') }}</th><th>{{ __('Hubungan') }}</th><th>{{ __('Nomor telepon') }}</th></tr></thead>
                         <tbody>@foreach($vitae['emergency_contacts'] as $item)<tr><td>{{ $item['name'] ?: '-' }}</td><td>{{ $item['relationship'] ?: '-' }}</td><td>{{ $item['phone'] ?: '-' }}</td></tr>@endforeach</tbody>
                     </table></div>
                 </div>
@@ -575,21 +575,21 @@ $completeProfileGroups = [
 
                 @if($canViewDocuments ?? false)
                 <div class="cv-detail-group mt-3">
-                    <div class="cv-detail-group__header"><h6>File yang Diunggah</h6><span class="badge bg-light text-dark border">{{ count($vitae['documents'] ?? []) }} file</span></div>
+                    <div class="cv-detail-group__header"><h6>{{ __('File yang Diunggah') }}</h6><span class="badge bg-light text-dark border">{{ count($vitae['documents'] ?? []) }} file</span></div>
                     @if(!empty($vitae['documents']))
                     <div class="table-responsive"><table class="table table-sm table-bordered align-middle mb-0">
-                        <thead><tr><th>Jenis</th><th>Nama file</th><th>Format</th><th>Ukuran</th><th>Upload</th><th></th></tr></thead>
+                        <thead><tr><th>{{ __('Jenis') }}</th><th>{{ __('Nama file') }}</th><th>{{ __('Format') }}</th><th>{{ __('Ukuran') }}</th><th>{{ __('Upload') }}</th><th></th></tr></thead>
                         <tbody>
                             @foreach($vitae['documents'] as $document)
                             <tr>
                                 <td>{{ $document['label'] }}</td><td>{{ $document['original_name'] ?: '-' }}</td><td>{{ $document['mime_type'] ?: '-' }}</td><td>{{ $document['file_size'] }}</td><td>{{ $document['uploaded_at'] ?: '-' }}</td>
-                                <td><a href="{{ route('cv-maker-compare.documents.show', ['nik' => $employee->nik, 'document' => $document['id']]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i> Lihat</a></td>
+                                <td><a href="{{ route('cv-maker-compare.documents.show', ['nik' => $employee->nik, 'document' => $document['id']]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i> {{ __('Lihat') }}</a></td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table></div>
                     @else
-                    <div class="text-muted p-3">Belum ada file yang diunggah di Vitae.</div>
+                    <div class="text-muted p-3">{{ __('Belum ada file yang diunggah di Vitae.') }}</div>
                     @endif
                 </div>
                 @endif
@@ -600,8 +600,8 @@ $completeProfileGroups = [
         <section id="cv-workspace-compare" data-cv-pane="compare" aria-labelledby="cv-tab-compare" class="ui-panel cv-detail-compare-panel">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title">Perbandingan Field</h5>
-                    <p class="ui-panel__meta">Field HRIS yang memiliki mapping aman dapat dikoreksi langsung. Nilai merah berarti data HRIS dan CV Maker berbeda.</p>
+                    <h5 class="ui-panel__title">{{ __('Perbandingan Field') }}</h5>
+                    <p class="ui-panel__meta">{{ __('Field HRIS yang memiliki mapping aman dapat dikoreksi langsung. Nilai merah berarti data HRIS dan CV Maker berbeda.') }}</p>
                 </div>
             </div>
             <div class="ui-panel__body">
@@ -616,11 +616,11 @@ $completeProfileGroups = [
                             $groupMismatchCount = collect($groupItems)->where('mismatch', true)->count();
                             @endphp
                             @if($groupComparedCount < 1)
-                            <span class="badge bg-secondary">Diabaikan</span>
+                            <span class="badge bg-secondary">{{ __('Diabaikan') }}</span>
                             @elseif($groupMismatchCount > 0)
                             <span class="badge bg-danger">{{ $groupMismatchCount }} mismatch</span>
                             @else
-                            <span class="badge bg-success">Sesuai</span>
+                            <span class="badge bg-success">{{ __('Sesuai') }}</span>
                             @endif
                         </div>
                         <div class="cv-compare-fields cv-compare-fields--detail">
@@ -638,8 +638,8 @@ $completeProfileGroups = [
                                             <div class="input-group input-group-sm">
                                                 @if($item['key'] === 'gender')
                                                 <select name="value" class="form-select js-cv-correction-value" aria-label="Koreksi {{ $item['label'] }}">
-                                                    <option value="L" {{ ($item['edit_value'] ?? '') === 'L' ? 'selected' : '' }}>Laki-laki</option>
-                                                    <option value="P" {{ ($item['edit_value'] ?? '') === 'P' ? 'selected' : '' }}>Perempuan</option>
+                                                    <option value="L" {{ ($item['edit_value'] ?? '') === 'L' ? 'selected' : '' }}>{{ __('Laki-laki') }}</option>
+                                                    <option value="P" {{ ($item['edit_value'] ?? '') === 'P' ? 'selected' : '' }}>{{ __('Perempuan') }}</option>
                                                 </select>
                                                 @elseif($item['key'] === 'marital_status')
                                                 <select name="value" class="form-select js-cv-correction-value" aria-label="Koreksi {{ $item['label'] }}">
@@ -664,12 +664,12 @@ $completeProfileGroups = [
                                                 </button>
                                             </div>
                                             @if(!empty($item['sensitive']))
-                                            <small class="cv-inline-correction__hint">Nilai asli tetap disamarkan. Isi hanya jika memang akan diganti.</small>
+                                            <small class="cv-inline-correction__hint">{{ __('Nilai asli tetap disamarkan. Isi hanya jika memang akan diganti.') }}</small>
                                             @endif
                                         </form>
                                         @else
                                         <span>{!! $item['hris'] !!}</span>
-                                        <small class="cv-inline-correction__hint">Gunakan menu Edit HRIS untuk field relasi/organisasi.</small>
+                                        <small class="cv-inline-correction__hint">{{ __('Gunakan menu Edit HRIS untuk field relasi/organisasi.') }}</small>
                                         @endif
                                     </div>
                                     <div class="cv-compare-field__source cv-compare-field__source--cv">
@@ -685,7 +685,7 @@ $completeProfileGroups = [
                                             data-new-value="{{ strip_tags($item['cv']) }}"
                                             data-high-risk="{{ !empty($item['update_from_cv_high_risk']) ? '1' : '0' }}">
                                             <i class="fas fa-arrow-left"></i>
-                                            Gunakan nilai ini
+                                            {{ __('Gunakan nilai ini') }}
                                         </button>
                                         @endif
                                     </div>
@@ -700,11 +700,11 @@ $completeProfileGroups = [
                 @if(!empty($relatedComparison))
                 <div class="cv-detail-group mt-3">
                     <div class="cv-detail-group__header">
-                        <h6>Riwayat & Kompetensi</h6>
+                        <h6>{{ __('Riwayat & Kompetensi') }}</h6>
                         @if(collect($relatedComparison)->where('mismatch', true)->count() > 0)
                         <span class="badge bg-danger">{{ collect($relatedComparison)->where('mismatch', true)->count() }} mismatch</span>
                         @else
-                        <span class="badge bg-success">Sesuai</span>
+                        <span class="badge bg-success">{{ __('Sesuai') }}</span>
                         @endif
                     </div>
                     <div class="cv-compare-fields cv-compare-fields--detail">
@@ -750,11 +750,11 @@ $completeProfileGroups = [
                 message = xhr.responseJSON.errors[firstKey][0];
             }
         } else if (xhr.status === 401 || xhr.status === 419) {
-            message = 'Sesi login berakhir. Silakan login ulang.';
+            message = @json(__('Sesi login berakhir. Silakan login ulang.'));
         } else if (xhr.status === 403) {
-            message = 'Anda tidak memiliki akses untuk mengoreksi data ini.';
+            message = @json(__('Anda tidak memiliki akses untuk mengoreksi data ini.'));
         } else if (xhr.status === 0) {
-            message = 'Koneksi bermasalah. Silakan cek jaringan lalu coba kembali.';
+            message = @json(__('Koneksi bermasalah. Silakan cek jaringan lalu coba kembali.'));
         }
 
         return message;
@@ -770,7 +770,7 @@ $completeProfileGroups = [
         const value = String(input.val() || '').trim();
 
         if (!value) {
-            window.CvMakerDialog.fire({ icon: 'warning', title: 'Nilai belum diisi', text: `Masukkan koreksi untuk ${label}.`, confirmButtonText: 'OK' });
+            window.CvMakerDialog.fire({ icon: 'warning', title: @json(__('Nilai belum diisi')), text: `Masukkan koreksi untuk ${label}.`, confirmButtonText: @json(__('OK')) });
             return;
         }
 
@@ -781,8 +781,8 @@ $completeProfileGroups = [
                 ? 'Nilai sensitif akan diperbarui dan dicatat pada audit trail tanpa ditampilkan penuh.'
                 : `Nilai HRIS akan diubah menjadi "${value}".`,
             showCancelButton: true,
-            confirmButtonText: 'Simpan Koreksi',
-            cancelButtonText: 'Batal'
+            confirmButtonText: @json(__('Simpan Koreksi')),
+            cancelButtonText: @json(__('Batal'))
         }).then(function(result) {
             if (!result.isConfirmed) return;
 
@@ -809,19 +809,19 @@ $completeProfileGroups = [
                             icon: 'success',
                             title: response.updated === false ? 'Tidak ada perubahan' : 'Berhasil',
                             text: response.message || 'Koreksi field berhasil disimpan.',
-                            confirmButtonText: 'OK'
+                            confirmButtonText: @json(__('OK'))
                         });
                     }).catch(function() {
                         window.CvMakerDialog.fire({
                             icon: 'warning',
-                            title: 'Koreksi tersimpan',
-                            text: 'Tampilan terbaru gagal dimuat. Silakan refresh halaman.',
-                            confirmButtonText: 'OK'
+                            title: @json(__('Koreksi tersimpan')),
+                            text: @json(__('Tampilan terbaru gagal dimuat. Silakan refresh halaman.')),
+                            confirmButtonText: @json(__('OK'))
                         });
                     });
                 },
                 error: function(xhr) {
-                    window.CvMakerDialog.fire({ icon: 'error', title: 'Gagal', text: cvInlineCorrectionError(xhr), confirmButtonText: 'OK' });
+                    window.CvMakerDialog.fire({ icon: 'error', title: @json(__('Gagal')), text: cvInlineCorrectionError(xhr), confirmButtonText: @json(__('OK')) });
                 },
                 complete: function() {
                     button.prop('disabled', false).html(originalHtml);
@@ -842,9 +842,9 @@ $completeProfileGroups = [
         if (!updateUrl || !fieldKey) {
             window.CvMakerDialog.fire({
                 icon: 'warning',
-                title: 'Update tidak tersedia',
-                text: 'Informasi field yang akan diperbarui tidak lengkap.',
-                confirmButtonText: 'OK'
+                title: @json(__('Update tidak tersedia')),
+                text: @json(__('Informasi field yang akan diperbarui tidak lengkap.')),
+                confirmButtonText: @json(__('OK'))
             });
             return;
         }
@@ -856,8 +856,8 @@ $completeProfileGroups = [
                 ? 'Field ini termasuk data penting. Pastikan nilai CV Maker telah diverifikasi sebelum melanjutkan.'
                 : `Nilai HRIS akan diganti menggunakan nilai CV Maker: "${newValue}".`,
             showCancelButton: true,
-            confirmButtonText: 'Ya, Update Field',
-            cancelButtonText: 'Batal'
+            confirmButtonText: @js(__('Ya, Update Field')),
+            cancelButtonText: @json(__('Batal'))
         }).then(function(result) {
             if (!result.isConfirmed) return;
 
@@ -882,25 +882,25 @@ $completeProfileGroups = [
                     Promise.resolve(refreshRequest).then(function() {
                         window.CvMakerDialog.fire({
                             icon: 'success',
-                            title: 'Berhasil',
+                            title: @json(__('Berhasil')),
                             text: response.message || `${fieldLabel} berhasil diperbarui dari CV Maker.`,
-                            confirmButtonText: 'OK'
+                            confirmButtonText: @json(__('OK'))
                         });
                     }).catch(function() {
                         window.CvMakerDialog.fire({
                             icon: 'warning',
-                            title: 'Update tersimpan',
-                            text: 'Tampilan terbaru gagal dimuat otomatis. Silakan refresh halaman.',
-                            confirmButtonText: 'OK'
+                            title: @json(__('Update tersimpan')),
+                            text: @json(__('Tampilan terbaru gagal dimuat otomatis. Silakan refresh halaman.')),
+                            confirmButtonText: @json(__('OK'))
                         });
                     });
                 },
                 error: function(xhr) {
                     window.CvMakerDialog.fire({
                         icon: 'error',
-                        title: 'Gagal',
+                        title: @json(__('Gagal')),
                         text: cvInlineCorrectionError(xhr),
-                        confirmButtonText: 'OK'
+                        confirmButtonText: @json(__('OK'))
                     });
                 },
                 complete: function() {
@@ -925,9 +925,9 @@ $completeProfileGroups = [
             success: function(response) {
                 window.CvMakerDialog.fire({
                     icon: 'success',
-                    title: 'Berhasil',
+                    title: @json(__('Berhasil')),
                     text: response.message || 'Status pemeriksaan berhasil diperbarui.',
-                    confirmButtonText: 'OK'
+                    confirmButtonText: @json(__('OK'))
                 }).then(function() { window.location.reload(); });
             },
             error: function(xhr) {
@@ -938,7 +938,7 @@ $completeProfileGroups = [
                     const firstKey = Object.keys(xhr.responseJSON.errors)[0];
                     if (firstKey) message = xhr.responseJSON.errors[firstKey][0];
                 }
-                window.CvMakerDialog.fire({ icon: 'error', title: 'Gagal', text: message, confirmButtonText: 'OK' });
+                window.CvMakerDialog.fire({ icon: 'error', title: @json(__('Gagal')), text: message, confirmButtonText: @json(__('OK')) });
             },
             complete: function() {
                 button.prop('disabled', false).html(originalHtml);

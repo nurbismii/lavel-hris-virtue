@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Kontrak Elektronik')
+@section('title', __('Kontrak Elektronik'))
 
 @push('styles')
 <style>
@@ -48,24 +48,24 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Kontrak Elektronik</h4>
-                <small class="text-muted">Generate kontrak, pantau tanda tangan elektronik/manual, dan buka arsip PDF final.</small>
+                <h4 class="fw-bold mb-1">{{ __('Kontrak Elektronik') }}</h4>
+                <small class="text-muted">{{ __('Generate kontrak, pantau tanda tangan elektronik/manual, dan buka arsip PDF final.') }}</small>
             </div>
             <div class="ms-md-auto d-flex flex-wrap gap-2">
                 @if($canManageFirstPartySignature)
                     <a href="{{ route('electronic-contracts.first-party-signature.edit') }}" class="btn btn-outline-primary">
-                        <i class="fas fa-signature me-1"></i> Tanda Tangan Pihak Pertama
+                        <i class="fas fa-signature me-1"></i> {{ __('Tanda Tangan Pihak Pertama') }}
                     </a>
                 @endif
                 <a href="{{ route('electronic-contracts.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i> Buat Kontrak
+                    <i class="fas fa-plus me-1"></i> {{ __('Buat Kontrak') }}
                 </a>
             </div>
         </div>
 
         @if($canManageFirstPartySignature && !$firstPartySignature)
             <div class="alert alert-warning shadow-sm">
-                Tanda tangan master Pihak Pertama belum disimpan. Simpan sekali agar otomatis muncul pada PKWT, Translator, dan Adendum.
+                {{ __('Tanda tangan master Pihak Pertama belum disimpan. Simpan sekali agar otomatis muncul pada PKWT, Translator, dan Adendum.') }}
             </div>
         @endif
 
@@ -129,12 +129,12 @@
                 <form action="{{ route('electronic-contracts.import-pkwt-vhire') }}" method="POST" enctype="multipart/form-data" class="row g-3 align-items-end">
                     @csrf
                     <div class="col-lg-4">
-                        <label class="form-label">Import PKWT 1 untuk V-Hire</label>
+                        <label class="form-label">{{ __('Import PKWT 1 untuk V-Hire') }}</label>
                         <input type="file" name="file" class="form-control @error('file') is-invalid @enderror" accept=".xlsx,.xls">
                         @error('file')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-lg-3">
-                        <label class="form-label">Metode Tanda Tangan</label>
+                        <label class="form-label">{{ __('Metode Tanda Tangan') }}</label>
                         <select name="signing_method" class="form-select @error('signing_method') is-invalid @enderror">
                             @foreach($signingMethodOptions as $value => $label)
                                 <option value="{{ $value }}" {{ old('signing_method', \App\Models\EmployeeContract::SIGNING_METHOD_ELECTRONIC) === $value ? 'selected' : '' }}>
@@ -146,13 +146,13 @@
                     </div>
                     <div class="col-lg-5 d-flex flex-wrap gap-2">
                         <a href="{{ route('electronic-contracts.template-import-pkwt-vhire') }}" class="btn btn-outline-primary">
-                            <i class="fas fa-download me-1"></i> Download Template
+                            <i class="fas fa-download me-1"></i> {{ __('Download Template') }}
                         </a>
                         <button type="submit" class="btn btn-success">
-                            <i class="fas fa-file-import me-1"></i> Import & Kirim ke V-Hire
+                            <i class="fas fa-file-import me-1"></i> {{ __('Import & Kirim ke V-Hire') }}
                         </button>
                         <a href="{{ route('import-histories.index', ['import_type' => \App\Models\ImportHistory::TYPE_PKWT_ONE_CONTRACT]) }}" class="btn btn-outline-secondary">
-                            Riwayat Import
+                            {{ __('Riwayat Import') }}
                         </a>
                     </div>
                 </form>
@@ -164,29 +164,29 @@
                 <form method="GET" class="row g-3 align-items-end">
                     <input type="hidden" name="quick_filter" value="{{ $filters['quick_filter'] ?? 'all' }}">
                     <div class="col-md-3">
-                        <label class="form-label">Cari</label>
-                        <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="NIK, nama, nomor kontrak">
+                        <label class="form-label">{{ __('Cari') }}</label>
+                        <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="{{ __('NIK, nama, nomor kontrak') }}">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Tipe</label>
+                        <label class="form-label">{{ __('Tipe') }}</label>
                         <select name="contract_type" class="form-select">
-                            <option value="">Semua Tipe</option>
+                            <option value="">{{ __('Semua Tipe') }}</option>
                             @foreach($typeOptions as $value => $label)
                                 <option value="{{ $value }}" {{ ($filters['contract_type'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Status</label>
+                        <label class="form-label">{{ __('Status') }}</label>
                         <select name="status" class="form-select">
-                            <option value="">Semua Status</option>
+                            <option value="">{{ __('Semua Status') }}</option>
                             @foreach($statusOptions as $value => $label)
                                 <option value="{{ $value }}" {{ ($filters['status'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Tampilkan</label>
+                        <label class="form-label">{{ __('Tampilkan') }}</label>
                         <select name="per_page" class="form-select">
                             @foreach($perPageOptions as $option)
                                 <option value="{{ $option }}" {{ (int) ($filters['per_page'] ?? 20) === $option ? 'selected' : '' }}>{{ $option }} data</option>
@@ -194,8 +194,8 @@
                         </select>
                     </div>
                     <div class="col-md-3 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary w-100">Filter</button>
-                        <a href="{{ route('electronic-contracts.index') }}" class="btn btn-outline-secondary">Reset</a>
+                        <button type="submit" class="btn btn-primary w-100">{{ __('Filter') }}</button>
+                        <a href="{{ route('electronic-contracts.index') }}" class="btn btn-outline-secondary">{{ __('Reset') }}</a>
                     </div>
                 </form>
             </div>
@@ -207,9 +207,9 @@
                     @csrf
                     <div class="bulk-action-bar d-flex flex-wrap align-items-center gap-2 mb-3">
                         <button type="submit" class="btn btn-success" id="bulkGenerateNikButton" disabled>
-                            <i class="fas fa-id-card me-1"></i> Generate NIK Terpilih
+                            <i class="fas fa-id-card me-1"></i> {{ __('Generate NIK Terpilih') }}
                         </button>
-                        <span class="small text-muted" id="bulkGenerateNikCounter">0 kontrak dipilih</span>
+                        <span class="small text-muted" id="bulkGenerateNikCounter">{{ __('0 kontrak dipilih') }}</span>
                         @error('contract_ids')
                             <span class="text-danger small">{{ $message }}</span>
                         @enderror
@@ -284,13 +284,13 @@
                                         </td>
                                         <td>{{ optional($contract->created_at)->format('d M Y H:i') }}</td>
                                         <td class="text-nowrap">
-                                            <a href="{{ route('electronic-contracts.show', $contract) }}" class="btn btn-sm btn-primary">Detail</a>
+                                            <a href="{{ route('electronic-contracts.show', $contract) }}" class="btn btn-sm btn-primary">{{ __('Detail') }}</a>
                                             <a href="{{ route('electronic-contracts.pdf', $contract) }}" target="_blank" class="btn btn-sm btn-outline-secondary">PDF</a>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="8" class="text-center text-muted py-4">Belum ada kontrak elektronik.</td>
+                                        <td colspan="8" class="text-center text-muted py-4">{{ __('Belum ada kontrak elektronik.') }}</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -362,11 +362,11 @@
 
                 event.preventDefault();
                 window.AppDialog.confirm({
-                    title: 'Generate NIK massal?',
-                    text: 'Generate NIK untuk ' + checkedCount + ' kontrak terpilih.',
+                    title: @json(__('Generate NIK massal?')),
+                    text: @json(__('Generate NIK untuk ')) + checkedCount + ' kontrak terpilih.',
                     icon: 'warning',
-                    confirmButtonText: 'Ya, generate',
-                    cancelButtonText: 'Batal'
+                    confirmButtonText: @js(__('Ya, generate')),
+                    cancelButtonText: @json(__('Batal'))
                 }).then(function (confirmed) {
                     if (!confirmed) {
                         return;

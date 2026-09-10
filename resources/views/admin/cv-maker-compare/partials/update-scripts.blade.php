@@ -44,15 +44,15 @@
             }
 
             if (xhr.status === 401 || xhr.status === 419) {
-                message = 'Sesi login berakhir. Silakan login ulang.';
+                message = @json(__('Sesi login berakhir. Silakan login ulang.'));
             }
 
             if (xhr.status === 403) {
-                message = 'Anda tidak memiliki akses untuk memperbarui data ini.';
+                message = @json(__('Anda tidak memiliki akses untuk memperbarui data ini.'));
             }
 
             if (xhr.status === 0) {
-                message = 'Koneksi bermasalah atau request diblokir. Silakan cek jaringan Anda.';
+                message = @json(__('Koneksi bermasalah atau request diblokir. Silakan cek jaringan Anda.'));
             }
 
             return message;
@@ -179,9 +179,9 @@
             if (!previewUrl || !updateUrl) {
                 window.CvMakerDialog.fire({
                     icon: 'warning',
-                    title: 'Tidak bisa update',
-                    text: 'URL update CV Maker belum tersedia untuk data ini.',
-                    confirmButtonText: 'OK'
+                    title: @json(__('Tidak bisa update')),
+                    text: @json(__('URL update CV Maker belum tersedia untuk data ini.')),
+                    confirmButtonText: @json(__('OK'))
                 });
                 return;
             }
@@ -243,26 +243,26 @@
                         .then(function() {
                             window.CvMakerDialog.fire({
                                 icon: 'success',
-                                title: 'Berhasil',
+                                title: @json(__('Berhasil')),
                                 text: payload.message || 'Data HRIS berhasil diperbarui dari CV Maker.',
-                                confirmButtonText: 'OK'
+                                confirmButtonText: @json(__('OK'))
                             });
                         })
                         .catch(function() {
                             window.CvMakerDialog.fire({
                                 icon: 'warning',
-                                title: 'Data berhasil diperbarui',
-                                text: 'Tampilan terbaru gagal dimuat otomatis. Silakan refresh halaman untuk melihat hasilnya.',
-                                confirmButtonText: 'OK'
+                                title: @json(__('Data berhasil diperbarui')),
+                                text: @json(__('Tampilan terbaru gagal dimuat otomatis. Silakan refresh halaman untuk melihat hasilnya.')),
+                                confirmButtonText: @json(__('OK'))
                             });
                         });
                 },
                 error: function(xhr) {
                     window.CvMakerDialog.fire({
                         icon: 'error',
-                        title: 'Gagal',
+                        title: @json(__('Gagal')),
                         text: errorMessageFromXhr(xhr, 'Data HRIS gagal diperbarui.'),
-                        confirmButtonText: 'OK'
+                        confirmButtonText: @json(__('OK'))
                     });
                 },
                 complete: function() {

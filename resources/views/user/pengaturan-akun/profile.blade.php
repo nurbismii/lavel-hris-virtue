@@ -73,12 +73,12 @@
                     <div class="card-body">
 
                 <div class="row mb-3">
-                    <div class="col-md-4 fw-semibold">User ID</div>
+                    <div class="col-md-4 fw-semibold">{{ __('User ID') }}</div>
                     <div class="col-md-8">{{ $currentUser->id }}</div>
                 </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">Email</div>
+                            <div class="col-md-4 fw-semibold">{{ __('Email') }}</div>
                             <div class="col-md-8">
                                 {{ $currentUser->email }}
                                 @if($currentUser->email_verified_at)

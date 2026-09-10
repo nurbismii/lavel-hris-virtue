@@ -5,11 +5,10 @@
     <div class="card border-0 shadow-sm rounded-4" style="max-width: 500px;">
         <div class="card-body p-5 text-center">
 
-            <h4 class="fw-bold mb-3">Verifikasi Email Anda</h4>
+            <h4 class="fw-bold mb-3">{{ __('Verifikasi Email Anda') }}</h4>
 
             <p class="text-muted mb-4">
-                Kami telah mengirimkan link verifikasi ke email Anda.
-                Silakan cek inbox atau folder spam.
+                {{ __('Kami telah mengirimkan link verifikasi ke email Anda. Silakan cek inbox atau folder spam.') }}
             </p>
 
             @if (session('message'))
@@ -21,7 +20,7 @@
             <form method="POST" action="{{ route('verification.send') }}">
                 @csrf
                 <button type="submit" class="btn btn-primary rounded-3">
-                    Kirim Ulang Email Verifikasi
+                    {{ __('Kirim Ulang Email Verifikasi') }}
                 </button>
             </form>
 
@@ -29,7 +28,7 @@
                 <a href="{{ route('logout') }}"
                     onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
                     class="small text-muted">
-                    Logout
+                    {{ __('Logout') }}
                 </a>
             </div>
 

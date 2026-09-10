@@ -139,7 +139,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Email</label>
+                        <label class="form-label">{{ __('Email') }}</label>
                         <input type="text"
                             class="form-control"
                             value="{{ $user->email }}"
@@ -147,7 +147,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Role Saat Ini</label>
+                        <label class="form-label">{{ __('Role Saat Ini') }}</label>
                         <input type="text"
                             class="form-control"
                             value="{{ $user->display_role_name }}"

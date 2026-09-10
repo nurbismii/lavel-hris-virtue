@@ -37,8 +37,8 @@
     <div class="page-inner">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
-                <h3 class="text-primary mb-1">Delegasi Approval HOD</h3>
-                <small class="text-muted">Atur karyawan dalam departemen/divisi yang boleh verifikasi pengajuan sebelum masuk ke HOD.</small>
+                <h3 class="text-primary mb-1">{{ __('Delegasi Approval HOD') }}</h3>
+                <small class="text-muted">{{ __('Atur karyawan dalam departemen/divisi yang boleh verifikasi pengajuan sebelum masuk ke HOD.') }}</small>
             </div>
         </div>
 
@@ -46,8 +46,8 @@
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
-                        <h5 class="fw-semibold mb-1">Tambah Delegasi</h5>
-                        <p class="text-muted small mb-3">Pilih scope, lalu sistem akan memuat kandidat karyawan secara otomatis.</p>
+                        <h5 class="fw-semibold mb-1">{{ __('Tambah Delegasi') }}</h5>
+                        <p class="text-muted small mb-3">{{ __('Pilih scope, lalu sistem akan memuat kandidat karyawan secara otomatis.') }}</p>
 
                         <form
                             method="POST"
@@ -58,9 +58,9 @@
                             @csrf
 
                             <div class="mb-3">
-                                <label class="form-label">Departemen</label>
+                                <label class="form-label">{{ __('Departemen') }}</label>
                                 <select name="departemen_id" id="delegation_departemen_id" class="form-select">
-                                    <option value="">Pilih departemen</option>
+                                    <option value="">{{ __('Pilih departemen') }}</option>
                                     @foreach($departemens as $departemen)
                                         <option value="{{ $departemen->id }}" {{ (string) $selectedDepartemen === (string) $departemen->id ? 'selected' : '' }}>
                                             {{ $departemen->departemen }}
@@ -70,9 +70,9 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Divisi Opsional</label>
+                                <label class="form-label">{{ __('Divisi Opsional') }}</label>
                                 <select name="divisi_id" id="delegation_divisi_id" class="form-select">
-                                    <option value="">Semua divisi dalam departemen</option>
+                                    <option value="">{{ __('Semua divisi dalam departemen') }}</option>
                                     @foreach($departemens as $departemen)
                                         @foreach($departemen->divisi as $divisi)
                                             <option
@@ -84,11 +84,11 @@
                                         @endforeach
                                     @endforeach
                                 </select>
-                                <small class="text-muted">Kosongkan divisi jika delegasi berlaku untuk satu departemen.</small>
+                                <small class="text-muted">{{ __('Kosongkan divisi jika delegasi berlaku untuk satu departemen.') }}</small>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Modul Delegasi</label>
+                                <label class="form-label">{{ __('Modul Delegasi') }}</label>
                                 <div class="row g-2">
                                     @foreach($modules as $key => $label)
                                         <div class="col-sm-6">
@@ -110,32 +110,32 @@
                                 @error('modules.*')
                                     <div class="text-danger small mt-1">{{ $message }}</div>
                                 @enderror
-                                <small class="text-muted">Pilih beberapa modul sekaligus. Jika "Semua Modul" dicentang, pilihan spesifik lain akan diabaikan.</small>
+                                <small class="text-muted">{{ __('Pilih beberapa modul sekaligus. Jika "Semua Modul" dicentang, pilihan spesifik lain akan diabaikan.') }}</small>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Karyawan Delegasi</label>
+                                <label class="form-label">{{ __('Karyawan Delegasi') }}</label>
                                 <div class="delegation-select2">
                                     <select
                                         name="delegate_user_id"
                                         id="delegation_delegate_user_id"
                                         class="form-select @error('delegate_user_id') is-invalid @enderror"
-                                        data-placeholder="Cari nama atau NIK karyawan"
+                                        data-placeholder="{{ __('Cari nama atau NIK karyawan') }}"
                                         disabled>
-                                        <option value="">Pilih departemen terlebih dahulu</option>
+                                        <option value="">{{ __('Pilih departemen terlebih dahulu') }}</option>
                                     </select>
                                 </div>
                                 @error('delegate_user_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-                                <small class="text-muted" id="delegation_candidate_help">Ketik nama atau NIK untuk mencari kandidat dalam scope terpilih.</small>
+                                <small class="text-muted" id="delegation_candidate_help">{{ __('Ketik nama atau NIK untuk mencari kandidat dalam scope terpilih.') }}</small>
                             </div>
 
-                            <div class="alert alert-info small" id="delegation_candidate_state">Pilih departemen untuk memuat kandidat delegasi.</div>
+                            <div class="alert alert-info small" id="delegation_candidate_state">{{ __('Pilih departemen untuk memuat kandidat delegasi.') }}</div>
 
                             <button type="submit" id="delegation_submit_button" class="btn btn-primary w-100" disabled>
                                 <i class="fas fa-user-check me-1"></i>
-                                Simpan Delegasi
+                                {{ __('Simpan Delegasi') }}
                             </button>
                         </form>
                     </div>
@@ -147,8 +147,8 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                             <div>
-                                <h5 class="fw-semibold mb-1">Delegasi Aktif dan Nonaktif</h5>
-                                <p class="text-muted small mb-0">Gunakan tombol on/off untuk menghentikan delegasi tanpa menghapus histori.</p>
+                                <h5 class="fw-semibold mb-1">{{ __('Delegasi Aktif dan Nonaktif') }}</h5>
+                                <p class="text-muted small mb-0">{{ __('Gunakan tombol on/off untuk menghentikan delegasi tanpa menghapus histori.') }}</p>
                             </div>
                         </div>
 
@@ -177,9 +177,9 @@
                                             <td>{{ $delegation->module_label }}</td>
                                             <td>
                                                 @if($delegation->is_active)
-                                                    <span class="badge bg-success">Aktif</span>
+                                                    <span class="badge bg-success">{{ __('Aktif') }}</span>
                                                 @else
-                                                    <span class="badge bg-secondary">Nonaktif</span>
+                                                    <span class="badge bg-secondary">{{ __('Nonaktif') }}</span>
                                                 @endif
                                             </td>
                                             <td>
@@ -193,7 +193,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted py-4">Belum ada delegasi approval.</td>
+                                            <td colspan="5" class="text-center text-muted py-4">{{ __('Belum ada delegasi approval.') }}</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

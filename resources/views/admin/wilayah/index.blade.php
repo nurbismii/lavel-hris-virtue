@@ -26,21 +26,21 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-map-marked-alt text-primary me-2"></i>
-                    Distribusi Wilayah
+                    {{ __('Distribusi Wilayah') }}
                 </h4>
-                <small class="text-muted">Analisis asal wilayah karyawan aktif dengan fokus Sulawesi Tenggara dan kecamatan prioritas.</small>
+                <small class="text-muted">{{ __('Analisis asal wilayah karyawan aktif dengan fokus Sulawesi Tenggara dan kecamatan prioritas.') }}</small>
             </div>
             <div class="ms-md-auto d-flex flex-wrap gap-2">
                 <a href="{{ route('distribusi.export', $exportQuery) }}" class="btn btn-outline-primary">
                     <i class="fas fa-file-export me-1"></i>
-                    Export CSV
+                    {{ __('Export CSV') }}
                 </a>
                 <a href="{{ route('distribusi.export-excel', $exportQuery) }}" class="btn btn-primary">
                     <i class="fas fa-file-excel me-1"></i>
-                    Export Excel
+                    {{ __('Export Excel') }}
                 </a>
                 <a href="{{ route('distribusi.index') }}" class="btn btn-light border">
-                    Reset Filter
+                    {{ __('Reset Filter') }}
                 </a>
             </div>
         </div>
@@ -48,7 +48,7 @@
         <div class="wilayah-filter-card p-4">
             <form method="GET" action="{{ route('distribusi.index') }}" class="row g-3">
                 <div class="col-12">
-                    <label class="form-label fw-semibold">Area Kerja</label>
+                    <label class="form-label fw-semibold">{{ __('Area Kerja') }}</label>
                     <div class="d-flex flex-wrap gap-2">
                         @foreach($areaKerjaOptions as $area)
                             <label class="wilayah-filter-chip">
@@ -60,9 +60,9 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Provinsi</label>
+                    <label class="form-label fw-semibold">{{ __('Provinsi') }}</label>
                     <select name="provinsi_id" id="wilayah_provinsi" class="form-select">
-                        <option value="">Semua Provinsi</option>
+                        <option value="">{{ __('Semua Provinsi') }}</option>
                         @foreach($provinsiOptions as $provinsi)
                             <option value="{{ $provinsi->id }}" {{ (string) $filters['provinsi_id'] === (string) $provinsi->id ? 'selected' : '' }}>
                                 {{ $provinsi->provinsi }}
@@ -72,9 +72,9 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Kabupaten</label>
+                    <label class="form-label fw-semibold">{{ __('Kabupaten') }}</label>
                     <select name="kabupaten_id" id="wilayah_kabupaten" class="form-select" {{ !$filters['provinsi_id'] ? 'disabled' : '' }}>
-                        <option value="">Semua Kabupaten</option>
+                        <option value="">{{ __('Semua Kabupaten') }}</option>
                         @foreach($kabupatenOptions as $kabupaten)
                             <option value="{{ $kabupaten->id }}" {{ (string) $filters['kabupaten_id'] === (string) $kabupaten->id ? 'selected' : '' }}>
                                 {{ $kabupaten->kabupaten }}
@@ -84,9 +84,9 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Kecamatan</label>
+                    <label class="form-label fw-semibold">{{ __('Kecamatan') }}</label>
                     <select name="kecamatan_id" id="wilayah_kecamatan" class="form-select" {{ !$filters['kabupaten_id'] ? 'disabled' : '' }}>
-                        <option value="">Semua Kecamatan</option>
+                        <option value="">{{ __('Semua Kecamatan') }}</option>
                         @foreach($kecamatanOptions as $kecamatan)
                             <option value="{{ $kecamatan->id }}" {{ (string) $filters['kecamatan_id'] === (string) $kecamatan->id ? 'selected' : '' }}>
                                 {{ $kecamatan->kecamatan }}
@@ -96,9 +96,9 @@
                 </div>
 
                 <div class="col-md-3">
-                    <label class="form-label fw-semibold">Kelurahan</label>
+                    <label class="form-label fw-semibold">{{ __('Kelurahan') }}</label>
                     <select name="kelurahan_id" id="wilayah_kelurahan" class="form-select" {{ !$filters['kecamatan_id'] ? 'disabled' : '' }}>
-                        <option value="">Semua Kelurahan</option>
+                        <option value="">{{ __('Semua Kelurahan') }}</option>
                         @foreach($kelurahanOptions as $kelurahan)
                             <option value="{{ $kelurahan->id }}" {{ (string) $filters['kelurahan_id'] === (string) $kelurahan->id ? 'selected' : '' }}>
                                 {{ $kelurahan->kelurahan }}
@@ -110,9 +110,9 @@
                 <div class="col-12 d-flex flex-wrap gap-2">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-filter me-1"></i>
-                        Terapkan Filter
+                        {{ __('Terapkan Filter') }}
                     </button>
-                    <a href="{{ route('distribusi.index') }}" class="btn btn-light border">Hapus Filter</a>
+                    <a href="{{ route('distribusi.index') }}" class="btn btn-light border">{{ __('Hapus Filter') }}</a>
                 </div>
             </form>
         </div>
@@ -120,28 +120,28 @@
         <div class="row g-3">
             <div class="col-md-3">
                 <div class="wilayah-summary-card p-4 h-100">
-                    <div class="wilayah-summary-card__label">Total Karyawan Aktif</div>
+                    <div class="wilayah-summary-card__label">{{ __('Total Karyawan Aktif') }}</div>
                     <div class="wilayah-summary-card__value">{{ number_format($summary['total']) }}</div>
-                    <div class="wilayah-summary-card__meta">Sesuai filter area dan wilayah yang dipilih.</div>
+                    <div class="wilayah-summary-card__meta">{{ __('Sesuai filter area dan wilayah yang dipilih.') }}</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="wilayah-summary-card p-4 h-100">
-                    <div class="wilayah-summary-card__label">Porsi Sulawesi Tenggara</div>
+                    <div class="wilayah-summary-card__label">{{ __('Porsi Sulawesi Tenggara') }}</div>
                     <div class="wilayah-summary-card__value">{{ number_format($insights['share_sultra'], 1) }}%</div>
                     <div class="wilayah-summary-card__meta">{{ number_format($sultraRegionTotal) }} karyawan berasal dari Sulawesi Tenggara.</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="wilayah-summary-card p-4 h-100">
-                    <div class="wilayah-summary-card__label">Wilayah Lengkap</div>
+                    <div class="wilayah-summary-card__label">{{ __('Wilayah Lengkap') }}</div>
                     <div class="wilayah-summary-card__value">{{ number_format($summary['wilayah_lengkap_persen'], 1) }}%</div>
                     <div class="wilayah-summary-card__meta">{{ number_format($summary['wilayah_lengkap']) }} lengkap, {{ number_format($summary['wilayah_belum_lengkap']) }} masih perlu dilengkapi.</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="wilayah-summary-card p-4 h-100">
-                    <div class="wilayah-summary-card__label">Kabupaten Sultra Terbesar</div>
+                    <div class="wilayah-summary-card__label">{{ __('Kabupaten Sultra Terbesar') }}</div>
                     <div class="wilayah-summary-card__value" style="font-size: 1.25rem;">{{ $insights['leading_sultra_kabupaten'] }}</div>
                     <div class="wilayah-summary-card__meta">{{ number_format($insights['leading_sultra_kabupaten_total']) }} karyawan pada kabupaten terbesar di Sultra.</div>
                 </div>
@@ -162,11 +162,11 @@
                         Provinsi asal: {{ $kabupatenSummary['parent_label'] }}
                     </div>
                     <div class="wilayah-summary-card__tagline mt-1">
-                        Ringkasan kabupaten paling relevan sesuai filter aktif saat ini.
+                        {{ __('Ringkasan kabupaten paling relevan sesuai filter aktif saat ini.') }}
                     </div>
                     <div class="wilayah-summary-card__stat-grid">
                         <div class="wilayah-summary-card__stat-item">
-                            <div class="wilayah-summary-card__stat-label">Total Karyawan</div>
+                            <div class="wilayah-summary-card__stat-label">{{ __('Total Karyawan') }}</div>
                             <div class="wilayah-summary-card__stat-value">{{ number_format($kabupatenSummary['total']) }}</div>
                         </div>
                         <div class="wilayah-summary-card__stat-item">
@@ -189,11 +189,11 @@
                         Kabupaten asal: {{ $kecamatanSummary['parent_label'] }} · {{ $kecamatanSummary['province_label'] }}
                     </div>
                     <div class="wilayah-summary-card__tagline mt-1">
-                        Ringkasan kecamatan yang paling dominan atau sedang dipilih pada filter.
+                        {{ __('Ringkasan kecamatan yang paling dominan atau sedang dipilih pada filter.') }}
                     </div>
                     <div class="wilayah-summary-card__stat-grid">
                         <div class="wilayah-summary-card__stat-item">
-                            <div class="wilayah-summary-card__stat-label">Total Karyawan</div>
+                            <div class="wilayah-summary-card__stat-label">{{ __('Total Karyawan') }}</div>
                             <div class="wilayah-summary-card__stat-value">{{ number_format($kecamatanSummary['total']) }}</div>
                         </div>
                         <div class="wilayah-summary-card__stat-item">
@@ -210,10 +210,10 @@
                 <div class="wilayah-chart-card p-4 h-100">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <h5 class="mb-1 fw-semibold">Pie Regional</h5>
-                            <div class="wilayah-chart-card__hint">Distribusi tiga kelompok besar: Sulawesi, Sulawesi Tenggara, dan Non Sulawesi.</div>
+                            <h5 class="mb-1 fw-semibold">{{ __('Pie Regional') }}</h5>
+                            <div class="wilayah-chart-card__hint">{{ __('Distribusi tiga kelompok besar: Sulawesi, Sulawesi Tenggara, dan Non Sulawesi.') }}</div>
                         </div>
-                        <span class="wilayah-badge">Regional</span>
+                        <span class="wilayah-badge">{{ __('Regional') }}</span>
                     </div>
                     <div class="wilayah-chart-stage">
                         <canvas id="chartRegionalPie"></canvas>
@@ -224,10 +224,10 @@
                 <div class="wilayah-chart-card p-4 h-100">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <h5 class="mb-1 fw-semibold">Top 5 Kabupaten Sultra</h5>
-                            <div class="wilayah-chart-card__hint">Kabupaten di Provinsi Sulawesi Tenggara dengan jumlah karyawan terbanyak.</div>
+                            <h5 class="mb-1 fw-semibold">{{ __('Top 5 Kabupaten Sultra') }}</h5>
+                            <div class="wilayah-chart-card__hint">{{ __('Kabupaten di Provinsi Sulawesi Tenggara dengan jumlah karyawan terbanyak.') }}</div>
                         </div>
-                        <span class="wilayah-badge">Top 5</span>
+                        <span class="wilayah-badge">{{ __('Top 5') }}</span>
                     </div>
                     <div class="wilayah-chart-stage">
                         <canvas id="chartSultraKabupaten"></canvas>
@@ -238,10 +238,10 @@
                 <div class="wilayah-chart-card p-4 h-100">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <h5 class="mb-1 fw-semibold">3 Kecamatan Fokus</h5>
-                            <div class="wilayah-chart-card__hint">Bondoala, Morosi, dan Kapoiala untuk memantau konsentrasi karyawan di area operasional utama.</div>
+                            <h5 class="mb-1 fw-semibold">{{ __('3 Kecamatan Fokus') }}</h5>
+                            <div class="wilayah-chart-card__hint">{{ __('Bondoala, Morosi, dan Kapoiala untuk memantau konsentrasi karyawan di area operasional utama.') }}</div>
                         </div>
-                        <span class="wilayah-badge">Fokus</span>
+                        <span class="wilayah-badge">{{ __('Fokus') }}</span>
                     </div>
                     <div class="wilayah-chart-stage">
                         <canvas id="chartFocusKecamatan"></canvas>
@@ -255,10 +255,10 @@
                 <div class="wilayah-chart-card p-4 h-100">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <h5 class="mb-1 fw-semibold">Seluruh Sulawesi + Gorontalo</h5>
-                            <div class="wilayah-chart-card__hint">Distribusi karyawan aktif dari enam provinsi utama yang paling relevan dengan operasional wilayah timur.</div>
+                            <h5 class="mb-1 fw-semibold">{{ __('Seluruh Sulawesi + Gorontalo') }}</h5>
+                            <div class="wilayah-chart-card__hint">{{ __('Distribusi karyawan aktif dari enam provinsi utama yang paling relevan dengan operasional wilayah timur.') }}</div>
                         </div>
-                        <span class="wilayah-badge">Provinsi</span>
+                        <span class="wilayah-badge">{{ __('Provinsi') }}</span>
                     </div>
                     <div class="wilayah-chart-stage">
                         <canvas id="chartSulawesiGorontalo"></canvas>
@@ -267,11 +267,11 @@
             </div>
             <div class="col-lg-5">
                 <div class="wilayah-insight-card p-4 h-100">
-                    <h5 class="mb-3 fw-semibold">Insight Tambahan</h5>
+                    <h5 class="mb-3 fw-semibold">{{ __('Insight Tambahan') }}</h5>
 
                     <div class="mb-4">
                         <div class="d-flex justify-content-between mb-2">
-                            <span class="wilayah-insight-card__meta">Komposisi Gender</span>
+                            <span class="wilayah-insight-card__meta">{{ __('Komposisi Gender') }}</span>
                             <span class="wilayah-insight-card__meta">{{ number_format($summary['laki_laki']) }} L / {{ number_format($summary['perempuan']) }} P</span>
                         </div>
                         <div class="wilayah-gender-progress d-flex">
@@ -286,23 +286,23 @@
 
                     <div class="wilayah-insight-list">
                         <div class="wilayah-insight-item">
-                            <div class="wilayah-insight-item__label">Fokus 3 Kecamatan</div>
+                            <div class="wilayah-insight-item__label">{{ __('Fokus 3 Kecamatan') }}</div>
                             <div class="wilayah-insight-item__value">{{ number_format($insights['focus_kecamatan_total']) }} karyawan</div>
-                            <div class="wilayah-insight-card__meta">Total karyawan yang saat ini tercatat di Bondoala, Morosi, dan Kapoiala.</div>
+                            <div class="wilayah-insight-card__meta">{{ __('Total karyawan yang saat ini tercatat di Bondoala, Morosi, dan Kapoiala.') }}</div>
                         </div>
                         <div class="wilayah-insight-item">
-                            <div class="wilayah-insight-item__label">Area Kerja Aktif</div>
+                            <div class="wilayah-insight-item__label">{{ __('Area Kerja Aktif') }}</div>
                             <div class="wilayah-insight-item__value">{{ implode(', ', $filters['area_kerja']) }}</div>
-                            <div class="wilayah-insight-card__meta">Chart dan export selalu mengikuti kombinasi area kerja yang aktif saat ini.</div>
+                            <div class="wilayah-insight-card__meta">{{ __('Chart dan export selalu mengikuti kombinasi area kerja yang aktif saat ini.') }}</div>
                         </div>
                         <div class="wilayah-insight-item">
-                            <div class="wilayah-insight-item__label">Sulawesi + Gorontalo</div>
+                            <div class="wilayah-insight-item__label">{{ __('Sulawesi + Gorontalo') }}</div>
                             <div class="wilayah-insight-item__value">{{ number_format($insights['sulawesi_gorontalo_total']) }} karyawan</div>
-                            <div class="wilayah-insight-card__meta">Akumulasi karyawan yang berasal dari seluruh Sulawesi dan Gorontalo pada hasil filter aktif.</div>
+                            <div class="wilayah-insight-card__meta">{{ __('Akumulasi karyawan yang berasal dari seluruh Sulawesi dan Gorontalo pada hasil filter aktif.') }}</div>
                         </div>
                         <div class="wilayah-insight-item">
-                            <div class="wilayah-insight-item__label">Saran Tindak Lanjut</div>
-                            <div class="wilayah-insight-item__value">Lengkapi data wilayah yang kosong</div>
+                            <div class="wilayah-insight-item__label">{{ __('Saran Tindak Lanjut') }}</div>
+                            <div class="wilayah-insight-item__value">{{ __('Lengkapi data wilayah yang kosong') }}</div>
                             <div class="wilayah-insight-card__meta">Masih ada {{ number_format($summary['wilayah_belum_lengkap']) }} karyawan yang wilayahnya belum lengkap.</div>
                         </div>
                     </div>
@@ -313,8 +313,8 @@
         <div class="wilayah-table-card p-4">
             <div class="d-flex justify-content-between align-items-start flex-column flex-md-row gap-2 mb-3">
                 <div>
-                    <h5 class="mb-1 fw-semibold">Ringkasan Distribusi Detail</h5>
-                    <div class="text-muted small">Tabel ini mengikuti filter aktif. Gunakan tombol export untuk mengunduh detail data karyawan per wilayah.</div>
+                    <h5 class="mb-1 fw-semibold">{{ __('Ringkasan Distribusi Detail') }}</h5>
+                    <div class="text-muted small">{{ __('Tabel ini mengikuti filter aktif. Gunakan tombol export untuk mengunduh detail data karyawan per wilayah.') }}</div>
                 </div>
                 <span class="wilayah-badge">{{ number_format(count($distributionRows)) }} baris agregat</span>
             </div>
@@ -347,7 +347,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center text-muted py-4">Belum ada data yang cocok dengan filter yang dipilih.</td>
+                                <td colspan="8" class="text-center text-muted py-4">{{ __('Belum ada data yang cocok dengan filter yang dipilih.') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -775,14 +775,14 @@
             responsive: true,
             order: [[7, 'desc']],
             language: {
-                search: 'Cari:',
+                search: @json(__('Cari:')),
                 paginate: {
                     previous: 'Sebelumnya',
                     next: 'Berikutnya'
                 },
-                info: 'Menampilkan _START_ - _END_ dari _TOTAL_ baris',
-                infoEmpty: 'Belum ada data',
-                zeroRecords: 'Data tidak ditemukan'
+                info: @json(__('Menampilkan _START_ - _END_ dari _TOTAL_ baris')),
+                infoEmpty: @json(__('Belum ada data')),
+                zeroRecords: @json(__('Data tidak ditemukan'))
             }
         });
     });

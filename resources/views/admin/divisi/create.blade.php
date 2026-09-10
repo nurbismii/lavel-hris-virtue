@@ -5,7 +5,7 @@
     <div class="page-inner">
 
         <div class="page-header">
-            <h3 class="fw-bold mb-3">Buat Divisi</h3>
+            <h3 class="fw-bold mb-3">{{ __('Buat Divisi') }}</h3>
         </div>
 
         <div class="card">
@@ -14,9 +14,9 @@
                     @csrf
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Departemen</label>
+                            <label class="form-label">{{ __('Departemen') }}</label>
                             <select name="departemen_id" class="form-select form-control" required>
-                                <option value="">Semua Departemen</option>
+                                <option value="">{{ __('Semua Departemen') }}</option>
 
                                 @php
                                 $groupedDepts = [];
@@ -36,14 +36,14 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Nama Divisi</label>
+                            <label class="form-label">{{ __('Nama Divisi') }}</label>
                             <input type="text" name="nama_divisi" class="form-control" required>
                         </div>
 
                         {{-- BUTTON --}}
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i> Buat
+                                <i class="fas fa-save me-1"></i> {{ __('Buat') }}
                             </button>
                         </div>
                     </div>

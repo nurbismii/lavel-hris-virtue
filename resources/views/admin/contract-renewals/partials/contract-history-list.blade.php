@@ -44,5 +44,5 @@
         </div>
     </details>
 @else
-    <small class="d-block text-muted mt-2">Belum ada riwayat kontrak.</small>
+    <small class="d-block text-muted mt-2">{{ __('Belum ada riwayat kontrak.') }}</small>
 @endif

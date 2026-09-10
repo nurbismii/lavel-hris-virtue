@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Buat Perubahan posisi')
+@section('title', __('Buat Perubahan posisi'))
 
 @push('styles')
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
@@ -44,11 +44,11 @@ $selectedEmployeePayload = $selectedEmployee ? [
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Buat Perubahan posisi</h4>
-                <small class="text-muted">Pengajuan akan masuk workflow HOD lalu HRD. Master karyawan baru berubah setelah HRD approve.</small>
+                <h4 class="fw-bold mb-1">{{ __('Buat Perubahan posisi') }}</h4>
+                <small class="text-muted">{{ __('Pengajuan akan masuk workflow HOD lalu HRD. Master karyawan baru berubah setelah HRD approve.') }}</small>
             </div>
             <div class="ms-md-auto">
-                <a href="{{ route('employee-movements.index') }}" class="btn btn-light border">Kembali</a>
+                <a href="{{ route('employee-movements.index') }}" class="btn btn-light border">{{ __('Kembali') }}</a>
             </div>
         </div>
 
@@ -56,7 +56,7 @@ $selectedEmployeePayload = $selectedEmployee ? [
             action="{{ route('employee-movements.store') }}"
             method="POST"
             data-swal-confirm="Ajukan Perubahan posisi ini ke workflow approval?"
-            data-swal-title="Konfirmasi Pengajuan"
+            data-swal-title="{{ __('Konfirmasi Pengajuan') }}"
             data-swal-confirm-button="Ya, ajukan">
             @csrf
 
@@ -66,12 +66,12 @@ $selectedEmployeePayload = $selectedEmployee ? [
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-12">
-                                    <label class="form-label">Karyawan</label>
+                                    <label class="form-label">{{ __('Karyawan') }}</label>
                                     <select
                                         name="employee_nik"
                                         class="form-select js-movement-employee-select @error('employee_nik') is-invalid @enderror"
                                         data-search-url="{{ route('employee-movements.employees.search') }}"
-                                        data-placeholder="Ketik minimal 2 karakter nama, NIK, posisi, atau jabatan">
+                                        data-placeholder="{{ __('Ketik minimal 2 karakter nama, NIK, posisi, atau jabatan') }}">
                                         @if($selectedEmployee)
                                         <option value="{{ $selectedEmployee->nik }}" selected>
                                             {{ $selectedEmployee->nama_karyawan }} - {{ $selectedEmployee->nik }} | {{ $selectedEmployee->posisi ?: '-' }}
@@ -79,13 +79,13 @@ $selectedEmployeePayload = $selectedEmployee ? [
                                         @endif
                                     </select>
                                     @error('employee_nik')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    <small class="text-muted">Hanya karyawan aktif sesuai scope HR, HOD, atau delegasi HOD yang dapat dipilih.</small>
+                                    <small class="text-muted">{{ __('Hanya karyawan aktif sesuai scope HR, HOD, atau delegasi HOD yang dapat dipilih.') }}</small>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label">Jenis Pergerakan</label>
+                                    <label class="form-label">{{ __('Jenis Pergerakan') }}</label>
                                     <select name="movement_type" id="movementType" class="form-select @error('movement_type') is-invalid @enderror">
-                                        <option value="">-- Pilih Jenis --</option>
+                                        <option value="">{{ __('-- Pilih Jenis --') }}</option>
                                         @foreach($typeOptions as $value => $label)
                                         <option value="{{ $value }}" {{ old('movement_type') === $value ? 'selected' : '' }}>{{ $label }}</option>
                                         @endforeach
@@ -94,25 +94,25 @@ $selectedEmployeePayload = $selectedEmployee ? [
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label">Tanggal Efektif</label>
+                                    <label class="form-label">{{ __('Tanggal Efektif') }}</label>
                                     <input type="date" name="effective_date" class="form-control @error('effective_date') is-invalid @enderror" value="{{ old('effective_date', now()->toDateString()) }}">
                                     @error('effective_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    <small class="text-muted">Jika tanggal efektif di masa depan, HRD dapat menyetujui sekarang dan sistem akan menerapkan perubahan saat tanggal efektif tiba.</small>
+                                    <small class="text-muted">{{ __('Jika tanggal efektif di masa depan, HRD dapat menyetujui sekarang dan sistem akan menerapkan perubahan saat tanggal efektif tiba.') }}</small>
                                 </div>
 
                                 <div class="col-12">
                                     <div id="employeeCurrentSummary" class="movement-summary d-none">
                                         <div class="row g-3">
                                             <div class="col-md-4">
-                                                <div class="movement-summary__label">NIK / Nama</div>
+                                                <div class="movement-summary__label">{{ __('NIK / Nama') }}</div>
                                                 <div class="movement-summary__value" data-current-identity>-</div>
                                             </div>
                                             <div class="col-md-4">
-                                                <div class="movement-summary__label">Posisi / Jabatan Saat Ini</div>
+                                                <div class="movement-summary__label">{{ __('Posisi / Jabatan Saat Ini') }}</div>
                                                 <div class="movement-summary__value" data-current-position>-</div>
                                             </div>
                                             <div class="col-md-4">
-                                                <div class="movement-summary__label">Departemen / Divisi Saat Ini</div>
+                                                <div class="movement-summary__label">{{ __('Departemen / Divisi Saat Ini') }}</div>
                                                 <div class="movement-summary__value" data-current-organization>-</div>
                                             </div>
                                         </div>
@@ -121,30 +121,30 @@ $selectedEmployeePayload = $selectedEmployee ? [
 
                                 <div class="col-12 js-position-fields d-none">
                                     <div class="alert alert-light border mb-0">
-                                        Promosi/demosi hanya mengubah posisi atau jabatan. Jika sekaligus pindah departemen/divisi, catat mutasi sebagai transaksi terpisah.
+                                        {{ __('Promosi/demosi hanya mengubah posisi atau jabatan. Jika sekaligus pindah departemen/divisi, catat mutasi sebagai transaksi terpisah.') }}
                                     </div>
                                 </div>
                                 <div class="col-md-6 js-position-fields d-none">
-                                    <label class="form-label">Posisi Baru</label>
+                                    <label class="form-label">{{ __('Posisi Baru') }}</label>
                                     <input type="text" name="new_posisi" class="form-control @error('new_posisi') is-invalid @enderror" value="{{ old('new_posisi') }}">
                                     @error('new_posisi')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-md-6 js-position-fields d-none">
-                                    <label class="form-label">Jabatan Baru</label>
+                                    <label class="form-label">{{ __('Jabatan Baru') }}</label>
                                     <input type="text" name="new_jabatan" class="form-control @error('new_jabatan') is-invalid @enderror" value="{{ old('new_jabatan') }}">
                                     @error('new_jabatan')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    <small class="text-muted">Kosongkan jika jabatan tetap sama.</small>
+                                    <small class="text-muted">{{ __('Kosongkan jika jabatan tetap sama.') }}</small>
                                 </div>
 
                                 <div class="col-12 js-mutation-fields d-none">
                                     <div class="alert alert-light border mb-0">
-                                        Mutasi memindahkan karyawan ke departemen atau divisi lain. Jika departemen berubah dan divisi dikosongkan, divisi karyawan akan dikosongkan.
+                                        {{ __('Mutasi memindahkan karyawan ke departemen atau divisi lain. Jika departemen berubah dan divisi dikosongkan, divisi karyawan akan dikosongkan.') }}
                                     </div>
                                 </div>
                                 <div class="col-md-6 js-mutation-fields d-none">
-                                    <label class="form-label">Departemen Tujuan</label>
+                                    <label class="form-label">{{ __('Departemen Tujuan') }}</label>
                                     <select name="new_departemen_id" id="newDepartemenId" class="form-select @error('new_departemen_id') is-invalid @enderror">
-                                        <option value="">-- Pilih Departemen --</option>
+                                        <option value="">{{ __('-- Pilih Departemen --') }}</option>
                                         @php
                                         $departemenGroups = [];
                                         foreach ($departemens as $departemen) {
@@ -164,9 +164,9 @@ $selectedEmployeePayload = $selectedEmployee ? [
                                     @error('new_departemen_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-md-6 js-mutation-fields d-none">
-                                    <label class="form-label">Divisi Tujuan</label>
+                                    <label class="form-label">{{ __('Divisi Tujuan') }}</label>
                                     <select name="new_divisi_id" id="newDivisiId" class="form-select @error('new_divisi_id') is-invalid @enderror">
-                                        <option value="">-- Pilih Divisi --</option>
+                                        <option value="">{{ __('-- Pilih Divisi --') }}</option>
                                         @foreach($divisis as $divisi)
                                         <option
                                             value="{{ $divisi->id }}"
@@ -180,14 +180,14 @@ $selectedEmployeePayload = $selectedEmployee ? [
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label">Nomor Referensi / SK</label>
-                                    <input type="text" name="reference_number" class="form-control @error('reference_number') is-invalid @enderror" value="{{ old('reference_number') }}" placeholder="Opsional">
+                                    <label class="form-label">{{ __('Nomor Referensi / SK') }}</label>
+                                    <input type="text" name="reference_number" class="form-control @error('reference_number') is-invalid @enderror" value="{{ old('reference_number') }}" placeholder="{{ __('Opsional') }}">
                                     @error('reference_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
 
                                 <div class="col-12">
-                                    <label class="form-label">Alasan / Dasar Perubahan</label>
-                                    <textarea name="reason" rows="4" class="form-control @error('reason') is-invalid @enderror" placeholder="Tuliskan dasar HR, evaluasi, atau keputusan manajemen.">{{ old('reason') }}</textarea>
+                                    <label class="form-label">{{ __('Alasan / Dasar Perubahan') }}</label>
+                                    <textarea name="reason" rows="4" class="form-control @error('reason') is-invalid @enderror" placeholder="{{ __('Tuliskan dasar HR, evaluasi, atau keputusan manajemen.') }}">{{ old('reason') }}</textarea>
                                     @error('reason')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                             </div>
@@ -196,22 +196,22 @@ $selectedEmployeePayload = $selectedEmployee ? [
 
                     <div class="d-flex gap-2 mt-3">
                         <button type="submit" class="btn btn-primary" data-loading-text="Memproses...">
-                            <i class="fas fa-paper-plane me-1"></i> Ajukan Perubahan
+                            <i class="fas fa-paper-plane me-1"></i> {{ __('Ajukan Perubahan') }}
                         </button>
-                        <a href="{{ route('employee-movements.index') }}" class="btn btn-outline-secondary">Batal</a>
+                        <a href="{{ route('employee-movements.index') }}" class="btn btn-outline-secondary">{{ __('Batal') }}</a>
                     </div>
                 </div>
 
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body">
-                            <h5 class="mb-2">Catatan Kontrol</h5>
+                            <h5 class="mb-2">{{ __('Catatan Kontrol') }}</h5>
                             <ul class="small text-muted ps-3 mb-0">
-                                <li>Pengajuan menyimpan snapshot data lama dan data baru agar approval tetap auditable.</li>
-                                <li>Master karyawan hanya berubah setelah HRD menyetujui pengajuan.</li>
-                                <li>Jika data karyawan berubah saat menunggu approval, HRD final akan ditolak dan perlu pengajuan baru.</li>
-                                <li>Promosi/demosi tidak otomatis menilai level jabatan; HR tetap menentukan jenis berdasarkan dokumen keputusan.</li>
-                                <li>Gunakan tanggal efektif hari ini atau tanggal lampau untuk koreksi administratif yang sudah berlaku.</li>
+                                <li>{{ __('Pengajuan menyimpan snapshot data lama dan data baru agar approval tetap auditable.') }}</li>
+                                <li>{{ __('Master karyawan hanya berubah setelah HRD menyetujui pengajuan.') }}</li>
+                                <li>{{ __('Jika data karyawan berubah saat menunggu approval, HRD final akan ditolak dan perlu pengajuan baru.') }}</li>
+                                <li>{{ __('Promosi/demosi tidak otomatis menilai level jabatan; HR tetap menentukan jenis berdasarkan dokumen keputusan.') }}</li>
+                                <li>{{ __('Gunakan tanggal efektif hari ini atau tanggal lampau untuk koreksi administratif yang sudah berlaku.') }}</li>
                             </ul>
                         </div>
                     </div>

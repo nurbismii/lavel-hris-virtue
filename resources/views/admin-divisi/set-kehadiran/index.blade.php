@@ -15,7 +15,7 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-cogs text-primary me-2"></i>
-                    Setting Hari Off
+                    {{ __('Setting Hari Off') }}
                 </h4>
 
                 <small class="text-muted d-block">
@@ -23,13 +23,13 @@
                     Checkbox tetap bisa dipakai untuk override manual per tanggal.
                     (Cut Off {{ formatDateIndonesia($start) }} - {{ formatDateIndonesia($end) }})
                 </small>
-                <small class="text-muted d-block">Centang = OFF, tidak dicentang = HADIR. Jika kembali sama dengan pola otomatis, override manual akan dihapus.</small>
+                <small class="text-muted d-block">{{ __('Centang = OFF, tidak dicentang = HADIR. Jika kembali sama dengan pola otomatis, override manual akan dihapus.') }}</small>
             </div>
 
             <div class="ms-md-auto pt-3 pt-md-0">
                 <div class="d-flex flex-wrap gap-2 justify-content-md-end">
                     <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalBulkFaceReference">
-                        Bulk Foto Referensi Presensi
+                        {{ __('Bulk Foto Referensi Presensi') }}
                     </button>
                 </div>
             </div>
@@ -37,20 +37,20 @@
 
         <form method="GET" class="row g-2 mb-3 align-items-end attendance-filter">
             <div class="col-md-2">
-                <label class="form-label">Periode</label>
+                <label class="form-label">{{ __('Periode') }}</label>
                 <input type="month" name="periode" value="{{ $periode }}" class="form-control">
             </div>
 
             @if($isDepartmentReadonly)
             <div class="col-md-3">
-                <label class="form-label">Departemen</label>
+                <label class="form-label">{{ __('Departemen') }}</label>
                 <input type="text" class="form-control" value="{{ optional($departemen)->departemen ?? '-' }}" readonly>
             </div>
             @else
             <div class="col-md-3">
-                <label class="form-label">Departemen</label>
+                <label class="form-label">{{ __('Departemen') }}</label>
                 <select id="filter_departemen" name="departemen" class="form-select form-control">
-                    <option value="">Pilih Departemen</option>
+                    <option value="">{{ __('Pilih Departemen') }}</option>
                     @php
                     $groupedDepts = [];
                     foreach ($departemens as $dept) {
@@ -73,15 +73,15 @@
 
             @if($isDivisionReadonly)
             <div class="col-md-3">
-                <label class="form-label">Divisi</label>
+                <label class="form-label">{{ __('Divisi') }}</label>
                 <input type="text" class="form-control" value="{{ optional($divisis->first())->nama_divisi ?? '-' }}" readonly>
                 <input type="hidden" id="filter_divisi" name="divisi" value="{{ $selectedDivisiId }}">
             </div>
             @else
             <div class="col-md-3">
-                <label class="form-label">Divisi</label>
+                <label class="form-label">{{ __('Divisi') }}</label>
                 <select id="filter_divisi" name="divisi" class="form-select form-control" {{ !$selectedDepartemenId ? 'disabled' : '' }}>
-                    <option value="">Semua Divisi</option>
+                    <option value="">{{ __('Semua Divisi') }}</option>
                     @foreach ($divisis as $v)
                     <option value="{{ $v->id }}" {{ (string) $selectedDivisiId === (string) $v->id ? 'selected' : '' }}>
                         {{ $v->nama_divisi }}
@@ -93,26 +93,26 @@
 
             <div class="col-md-2 d-grid">
                 <button class="btn btn-primary">
-                    Tampilkan
+                    {{ __('Tampilkan') }}
                 </button>
             </div>
         </form>
 
         @if($isDivisionScoped && !$isDivisionReadonly)
         <div class="alert alert-light border small">
-            Akun Admin Divisi ini memiliki akses ke beberapa divisi. Pilih divisi yang ingin ditampilkan pada periode ini.
+            {{ __('Akun Admin Divisi ini memiliki akses ke beberapa divisi. Pilih divisi yang ingin ditampilkan pada periode ini.') }}
         </div>
         @endif
 
         @if(!$selectedDepartemenId)
         <div class="alert alert-info">
-            Pilih departemen terlebih dahulu untuk menampilkan setting hari off.
+            {{ __('Pilih departemen terlebih dahulu untuk menampilkan setting hari off.') }}
         </div>
         @endif
 
         @if($requiresDivisionFilter)
         <div class="alert alert-info">
-            Pilih divisi terlebih dahulu agar tabel setting hari off tidak memuat terlalu banyak karyawan sekaligus.
+            {{ __('Pilih divisi terlebih dahulu agar tabel setting hari off tidak memuat terlalu banyak karyawan sekaligus.') }}
         </div>
         @endif
 
@@ -123,9 +123,9 @@
         @endif
 
         <div class="attendance-legend">
-            <span><strong>Centang</strong> berarti OFF.</span>
-            <span><span class="attendance-legend-dot is-sunday"></span> Minggu</span>
-            <span><span class="attendance-legend-dot is-national-holiday"></span> Libur nasional</span>
+            <span><strong>{{ __('Centang') }}</strong> {{ __('berarti OFF.') }}</span>
+            <span><span class="attendance-legend-dot is-sunday"></span> {{ __('Minggu') }}</span>
+            <span><span class="attendance-legend-dot is-national-holiday"></span> {{ __('Libur nasional') }}</span>
             <span class="ms-md-auto">{{ $employees->count() }} karyawan ditampilkan</span>
         </div>
 
@@ -152,7 +152,7 @@
                                     <div>{{ $date->format('d') }}</div>
                                     <small>{{ $date->translatedFormat('D') }}</small>
                                     @if($isNationalHoliday)
-                                        <span class="holiday-chip" title="{{ $holiday->holiday_name }}">L</span>
+                                        <span class="holiday-chip" title="{{ $holiday->holiday_name }}">{{ __('L') }}</span>
                                     @elseif($isSunday)
                                         <span class="holiday-chip holiday-chip--sunday">M</span>
                                     @endif
@@ -178,7 +178,7 @@
                                             <span>{{ optional($employee->work_pattern_start_date)->format('d-m-Y') ?: 'Mulai belum diatur' }}</span>
                                         </div>
                                     @else
-                                        <span class="text-muted small">Belum ada</span>
+                                        <span class="text-muted small">{{ __('Belum ada') }}</span>
                                     @endif
                                 </td>
 
@@ -249,8 +249,8 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="modalBulkFaceReferenceLabel">Bulk Upload Foto Referensi Presensi</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h1 class="modal-title fs-5" id="modalBulkFaceReferenceLabel">{{ __('Bulk Upload Foto Referensi Presensi') }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
             </div>
             <form action="{{ route('set-kehadiran.bulk-upload-face-reference') }}" method="POST" enctype="multipart/form-data" class="js-bulk-upload-form" data-redirect-url="{{ route('set-kehadiran.index', request()->only(['periode', 'departemen', 'divisi'])) }}">
                 @csrf
@@ -260,43 +260,41 @@
 
                 <div class="modal-body">
                     <div class="alert alert-light border small">
-                        Upload satu file ZIP per jenis dokumen.
-                        Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya <code>2200112233.jpg</code>, <code>2200112233.jpeg</code>, atau <code>2200112233.pdf</code>.
-                        ZIP akan diproses di background dan hasil akhirnya dikirim ke notifikasi.
+                        {{ __('Upload satu file ZIP per jenis dokumen. Isi ZIP harus memakai nama file yang mengandung NIK karyawan, misalnya') }} <code>2200112233.jpg</code>, <code>2200112233.jpeg</code>{{ __(', atau') }} <code>2200112233.pdf</code>{{ __('. ZIP akan diproses di background dan hasil akhirnya dikirim ke notifikasi.') }}
                     </div>
 
                     <div class="alert alert-warning small">
-                        <div class="fw-semibold mb-1">Panduan cepat</div>
-                        Batas upload ZIP dari aplikasi ini disiapkan sampai sekitar <code>500MB</code> per file ZIP. Pastikan worker queue aktif agar proses berjalan di background.
+                        <div class="fw-semibold mb-1">{{ __('Panduan cepat') }}</div>
+                        {{ __('Batas upload ZIP dari aplikasi ini disiapkan sampai sekitar') }} <code>500MB</code> {{ __('per file ZIP. Pastikan worker queue aktif agar proses berjalan di background.') }}
                         <div class="mt-2">
                             <a href="{{ asset('upload-templates/contoh-zip-dokumen-karyawan.txt') }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                Download Template ZIP
+                                {{ __('Download Template ZIP') }}
                             </a>
                         </div>
                     </div>
 
-                    <label class="form-label">Pilih ZIP Foto Referensi</label>
+                    <label class="form-label">{{ __('Pilih ZIP Foto Referensi') }}</label>
                     <input type="file" name="face_reference_zip" class="form-control" accept=".zip,application/zip" required>
                     <small class="text-muted d-block mt-2">
-                        Satu ZIP ini hanya akan dipasangkan ke karyawan dalam scope akses Anda. Maksimal sekitar 500MB per ZIP.
+                        {{ __('Satu ZIP ini hanya akan dipasangkan ke karyawan dalam scope akses Anda. Maksimal sekitar 500MB per ZIP.') }}
                     </small>
 
                     <div class="bulk-upload-feedback mt-3 d-none" data-upload-feedback>
                         <div class="d-flex justify-content-between align-items-center gap-3 mb-2">
-                            <div class="bulk-upload-feedback__title">Upload sedang berjalan</div>
+                            <div class="bulk-upload-feedback__title">{{ __('Upload sedang berjalan') }}</div>
                             <div class="bulk-upload-feedback__text" data-upload-percent>0%</div>
                         </div>
                         <div class="progress bulk-upload-feedback__progress">
                             <div class="progress-bar progress-bar-striped progress-bar-animated bulk-upload-feedback__bar" role="progressbar" data-upload-progress-bar></div>
                         </div>
-                        <div class="bulk-upload-feedback__text mt-2 mb-0" data-upload-status>Menyiapkan upload ZIP ke server...</div>
+                        <div class="bulk-upload-feedback__text mt-2 mb-0" data-upload-status>{{ __('Menyiapkan upload ZIP ke server...') }}</div>
                         <div class="bulk-upload-feedback__error mt-2 d-none" data-upload-error></div>
                     </div>
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary" data-submit-label="Upload ZIP">Upload ZIP</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Tutup') }}</button>
+                    <button type="submit" class="btn btn-primary" data-submit-label="Upload ZIP">{{ __('Upload ZIP') }}</button>
                 </div>
             </form>
         </div>

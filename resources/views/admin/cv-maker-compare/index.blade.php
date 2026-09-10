@@ -16,7 +16,7 @@
                 </div>
                 <div>
                     <h4 class="ui-page-title">{{ __('navigation.cv_maker_compare') }}</h4>
-                    <p class="ui-page-subtitle">Review perbedaan data CV Maker dan master HRIS sesuai scope akses karyawan.</p>
+                    <p class="ui-page-subtitle">{{ __('Review perbedaan data CV Maker dan master HRIS sesuai scope akses karyawan.') }}</p>
                 </div>
             </div>
         </div>
@@ -24,7 +24,7 @@
         @if(!$integrationAvailable)
         <div class="alert ui-alert ui-alert--warning cv-compare-alert mb-3">
             <i class="fas fa-exclamation-triangle me-2"></i>
-            Koneksi CV Maker belum dikonfigurasi. Set env <code>CV_MAKER_DB_*</code> dan <code>CV_MAKER_NIK_HASH_KEY</code>.
+            {{ __('Koneksi CV Maker belum dikonfigurasi. Set env') }} <code>CV_MAKER_DB_*</code> {{ __('dan') }} <code>CV_MAKER_NIK_HASH_KEY</code>.
         </div>
         @endif
 
@@ -40,34 +40,34 @@
         <section class="ui-panel cv-compare-panel" aria-labelledby="cvMakerCompareTableTitle">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title" id="cvMakerCompareTableTitle">Pencarian & filter</h5>
-                    <p class="ui-panel__meta">Filter berlaku untuk daftar karyawan, export Excel, email reminder, dan batch PDF.</p>
+                    <h5 class="ui-panel__title" id="cvMakerCompareTableTitle">{{ __('Pencarian & filter') }}</h5>
+                    <p class="ui-panel__meta">{{ __('Filter berlaku untuk daftar karyawan, export Excel, email reminder, dan batch PDF.') }}</p>
                 </div>
                 <button type="button" class="btn btn-sm btn-light border ui-btn-icon" id="btnResetCvCompareFilter">
                     <i class="fas fa-undo"></i>
-                    Reset Filter
+                    {{ __('Reset Filter') }}
                 </button>
             </div>
 
             <div class="ui-panel__body">
                 <details class="cv-compare-filter-panel cv-filter-disclosure">
-                    <summary><span><i class="fas fa-sliders-h me-2" aria-hidden="true"></i>Sesuaikan filter <span class="cv-filter-count" data-cv-filter-count></span></span><span class="cv-filter-disclosure__hint">Buka / tutup</span></summary>
+                    <summary><span><i class="fas fa-sliders-h me-2" aria-hidden="true"></i>{{ __('Sesuaikan filter') }} <span class="cv-filter-count" data-cv-filter-count></span></span><span class="cv-filter-disclosure__hint">{{ __('Buka / tutup') }}</span></summary>
                     <div class="cv-filter-disclosure__body">
                     <div class="row g-3 align-items-end">
                         <div class="col-12">
-                            <div class="small fw-semibold text-uppercase text-muted">Filter HRIS</div>
+                            <div class="small fw-semibold text-uppercase text-muted">{{ __('Filter HRIS') }}</div>
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cvCompanyFilterDropdown">Perusahaan</label>
+                            <label class="form-label" for="cvCompanyFilterDropdown">{{ __('Perusahaan') }}</label>
                             <div class="company-filter">
                                 <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="cvCompanyFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                    <span id="cvFilterAreaLabel">Semua perusahaan</span>
+                                    <span id="cvFilterAreaLabel">{{ __('Semua perusahaan') }}</span>
                                 </button>
                                 <div class="dropdown-menu company-filter__menu" aria-labelledby="cvCompanyFilterDropdown">
                                     <div class="company-filter__menu-header">
-                                        <span>Pilih perusahaan</span>
-                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvAreaFilter">Kosongkan</button>
+                                        <span>{{ __('Pilih perusahaan') }}</span>
+                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvAreaFilter">{{ __('Kosongkan') }}</button>
                                     </div>
                                     @forelse ($areas as $area)
                                     <label class="company-filter__option">
@@ -75,7 +75,7 @@
                                         <span>{{ $area->kode_perusahaan }}</span>
                                     </label>
                                     @empty
-                                    <div class="company-filter__empty">Tidak ada perusahaan tersedia.</div>
+                                    <div class="company-filter__empty">{{ __('Tidak ada perusahaan tersedia.') }}</div>
                                     @endforelse
                                 </div>
                             </div>
@@ -87,9 +87,9 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_departemen">Departemen</label>
+                            <label class="form-label" for="cv_filter_departemen">{{ __('Departemen') }}</label>
                             <select id="cv_filter_departemen" class="form-select">
-                                <option value="">Semua Departemen</option>
+                                <option value="">{{ __('Semua Departemen') }}</option>
                                 @php
                                 $groupedDepts = [];
                                 foreach ($departemens as $department) {
@@ -108,9 +108,9 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_divisi">Divisi</label>
+                            <label class="form-label" for="cv_filter_divisi">{{ __('Divisi') }}</label>
                             <select id="cv_filter_divisi" class="form-select">
-                                <option value="">Semua Divisi</option>
+                                <option value="">{{ __('Semua Divisi') }}</option>
                                 @foreach ($divisis as $division)
                                 <option value="{{ $division->id }}">{{ $division->nama_divisi }}</option>
                                 @endforeach
@@ -118,20 +118,20 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_posisi">Posisi HRIS</label>
-                            <select id="cv_filter_posisi" class="form-select cv-position-filter" multiple data-placeholder="Cari dan pilih posisi HRIS"></select>
+                            <label class="form-label" for="cv_filter_posisi">{{ __('Posisi HRIS') }}</label>
+                            <select id="cv_filter_posisi" class="form-select cv-position-filter" multiple data-placeholder="{{ __('Cari dan pilih posisi HRIS') }}"></select>
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cvHrisJobTitleFilterDropdown">Jabatan HRIS</label>
+                            <label class="form-label" for="cvHrisJobTitleFilterDropdown">{{ __('Jabatan HRIS') }}</label>
                             <div class="company-filter">
                                 <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="cvHrisJobTitleFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                    <span id="cvFilterHrisJobTitleLabel">Semua jabatan HRIS</span>
+                                    <span id="cvFilterHrisJobTitleLabel">{{ __('Semua jabatan HRIS') }}</span>
                                 </button>
                                 <div class="dropdown-menu company-filter__menu" aria-labelledby="cvHrisJobTitleFilterDropdown">
                                     <div class="company-filter__menu-header">
-                                        <span>Pilih awalan posisi HRIS</span>
-                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvHrisJobTitleFilter">Kosongkan</button>
+                                        <span>{{ __('Pilih awalan posisi HRIS') }}</span>
+                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvHrisJobTitleFilter">{{ __('Kosongkan') }}</button>
                                     </div>
                                     @forelse ($hrisJobTitles as $value => $label)
                                     <label class="company-filter__option">
@@ -139,7 +139,7 @@
                                         <span>{{ $label }}</span>
                                     </label>
                                     @empty
-                                    <div class="company-filter__empty">Tidak ada jabatan HRIS tersedia.</div>
+                                    <div class="company-filter__empty">{{ __('Tidak ada jabatan HRIS tersedia.') }}</div>
                                     @endforelse
                                 </div>
                             </div>
@@ -151,29 +151,29 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_resign">Status</label>
+                            <label class="form-label" for="cv_filter_resign">{{ __('Status') }}</label>
                             <select id="cv_filter_resign" class="form-select">
-                                <option value="">Semua Status</option>
-                                <option value="AKTIF" selected>Aktif</option>
-                                <option value="RESIGN SESUAI PROSEDUR">Resign Sesuai Prosedur</option>
-                                <option value="RESIGN TIDAK SESUAI PROSEDUR">Resign Tidak Sesuai Prosedur</option>
-                                <option value="RESIGN TIDAK SESUAI PROSEDUR-PENGAJUAN">Resign Tidak Sesuai Prosedur-Pengajuan</option>
-                                <option value="RESIGN TIDAK SESUAI PROSEDUR-KABUR">Resign Tidak Sesuai Prosedur-Kabur</option>
-                                <option value="RESIGN TIDAK SESUAI PROSEDUR-PAYROLL">Resign Tidak Sesuai Prosedur-Payroll</option>
-                                <option value="PB RESIGN">PB Resign</option>
-                                <option value="PUTUS KONTRAK">Putus Kontrak</option>
-                                <option value="PHK">PHK</option>
-                                <option value="PHK PENSIUN">PHK Pensiun</option>
-                                <option value="PHK PENSIUN DINI">PHK Pensiun Dini</option>
-                                <option value="PHK PIDANA">PHK Pidana</option>
-                                <option value="PHK MENINGGAL DUNIA">PHK Meninggal Dunia</option>
+                                <option value="">{{ __('Semua Status') }}</option>
+                                <option value="AKTIF" selected>{{ __('Aktif') }}</option>
+                                <option value="RESIGN SESUAI PROSEDUR">{{ __('Resign Sesuai Prosedur') }}</option>
+                                <option value="RESIGN TIDAK SESUAI PROSEDUR">{{ __('Resign Tidak Sesuai Prosedur') }}</option>
+                                <option value="RESIGN TIDAK SESUAI PROSEDUR-PENGAJUAN">{{ __('Resign Tidak Sesuai Prosedur-Pengajuan') }}</option>
+                                <option value="RESIGN TIDAK SESUAI PROSEDUR-KABUR">{{ __('Resign Tidak Sesuai Prosedur-Kabur') }}</option>
+                                <option value="RESIGN TIDAK SESUAI PROSEDUR-PAYROLL">{{ __('Resign Tidak Sesuai Prosedur-Payroll') }}</option>
+                                <option value="PB RESIGN">{{ __('PB Resign') }}</option>
+                                <option value="PUTUS KONTRAK">{{ __('Putus Kontrak') }}</option>
+                                <option value="PHK">{{ __('PHK') }}</option>
+                                <option value="PHK PENSIUN">{{ __('PHK Pensiun') }}</option>
+                                <option value="PHK PENSIUN DINI">{{ __('PHK Pensiun Dini') }}</option>
+                                <option value="PHK PIDANA">{{ __('PHK Pidana') }}</option>
+                                <option value="PHK MENINGGAL DUNIA">{{ __('PHK Meninggal Dunia') }}</option>
                             </select>
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_hris_skill_category">Kategori Skill HRIS</label>
+                            <label class="form-label" for="cv_filter_hris_skill_category">{{ __('Kategori Skill HRIS') }}</label>
                             <select id="cv_filter_hris_skill_category" class="form-select">
-                                <option value="">Semua Kategori</option>
+                                <option value="">{{ __('Semua Kategori') }}</option>
                                 @foreach ($skillCategories as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
@@ -181,9 +181,9 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_hris_managerial_category">Kategori Manajerial HRIS</label>
+                            <label class="form-label" for="cv_filter_hris_managerial_category">{{ __('Kategori Manajerial HRIS') }}</label>
                             <select id="cv_filter_hris_managerial_category" class="form-select">
-                                <option value="">Semua Kategori</option>
+                                <option value="">{{ __('Semua Kategori') }}</option>
                                 @foreach ($managerialCategories as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
@@ -191,19 +191,19 @@
                         </div>
 
                         <div class="col-12">
-                            <div class="small fw-semibold text-uppercase text-muted border-top pt-3">Filter CV Maker</div>
+                            <div class="small fw-semibold text-uppercase text-muted border-top pt-3">{{ __('Filter CV Maker') }}</div>
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cvJobTitleFilterDropdown">Jabatan CV Maker</label>
+                            <label class="form-label" for="cvJobTitleFilterDropdown">{{ __('Jabatan CV Maker') }}</label>
                             <div class="company-filter">
                                 <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="cvJobTitleFilterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                    <span id="cvFilterJobTitleLabel">Semua jabatan</span>
+                                    <span id="cvFilterJobTitleLabel">{{ __('Semua jabatan') }}</span>
                                 </button>
                                 <div class="dropdown-menu company-filter__menu" aria-labelledby="cvJobTitleFilterDropdown">
                                     <div class="company-filter__menu-header">
-                                        <span>Pilih jabatan dari CV Maker</span>
-                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvJobTitleFilter">Kosongkan</button>
+                                        <span>{{ __('Pilih jabatan dari CV Maker') }}</span>
+                                        <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvJobTitleFilter">{{ __('Kosongkan') }}</button>
                                     </div>
                                     @forelse ($jobTitles as $jobTitle)
                                     <label class="company-filter__option">
@@ -211,7 +211,7 @@
                                         <span>{{ $jobTitle }}</span>
                                     </label>
                                     @empty
-                                    <div class="company-filter__empty">Tidak ada jabatan tersedia.</div>
+                                    <div class="company-filter__empty">{{ __('Tidak ada jabatan tersedia.') }}</div>
                                     @endforelse
                                 </div>
                             </div>
@@ -223,9 +223,9 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_skill_category">Kategori Skill CV Maker</label>
+                            <label class="form-label" for="cv_filter_skill_category">{{ __('Kategori Skill CV Maker') }}</label>
                             <select id="cv_filter_skill_category" class="form-select">
-                                <option value="">Semua Kategori</option>
+                                <option value="">{{ __('Semua Kategori') }}</option>
                                 @foreach ($skillCategories as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
@@ -233,9 +233,9 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_managerial_category">Kategori Manajerial CV Maker</label>
+                            <label class="form-label" for="cv_filter_managerial_category">{{ __('Kategori Manajerial CV Maker') }}</label>
                             <select id="cv_filter_managerial_category" class="form-select">
-                                <option value="">Semua Kategori</option>
+                                <option value="">{{ __('Semua Kategori') }}</option>
                                 @foreach ($managerialCategories as $value => $label)
                                 <option value="{{ $value }}">{{ $label }}</option>
                                 @endforeach
@@ -243,39 +243,39 @@
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_reminder">Reminder CV</label>
+                            <label class="form-label" for="cv_filter_reminder">{{ __('Reminder CV') }}</label>
                             <select id="cv_filter_reminder" class="form-select">
-                                <option value="">Semua Reminder</option>
-                                <option value="needs_reminder">Perlu Diingatkan</option>
-                                <option value="not_needed">Tidak Perlu Diingatkan</option>
+                                <option value="">{{ __('Semua Reminder') }}</option>
+                                <option value="needs_reminder">{{ __('Perlu Diingatkan') }}</option>
+                                <option value="not_needed">{{ __('Tidak Perlu Diingatkan') }}</option>
                             </select>
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_progress_status">Status Progress</label>
+                            <label class="form-label" for="cv_filter_progress_status">{{ __('Status Progress') }}</label>
                             <select id="cv_filter_progress_status" class="form-select">
-                                <option value="">Semua Progress</option>
-                                <option value="not_complete">Belum Input / Belum Lengkap (termasuk belum diketahui)</option>
-                                <option value="not_synced">Snapshot Belum Tersedia</option>
-                                <option value="no_account">Belum Memiliki Akun CV</option>
-                                <option value="no_profile">Profil CV Belum Dibuat</option>
-                                <option value="in_progress">Dalam Progress</option>
-                                <option value="complete">Sudah Lengkap</option>
+                                <option value="">{{ __('Semua Progress') }}</option>
+                                <option value="not_complete">{{ __('Belum Input / Belum Lengkap (termasuk belum diketahui)') }}</option>
+                                <option value="not_synced">{{ __('Snapshot Belum Tersedia') }}</option>
+                                <option value="no_account">{{ __('Belum Memiliki Akun CV') }}</option>
+                                <option value="no_profile">{{ __('Profil CV Belum Dibuat') }}</option>
+                                <option value="in_progress">{{ __('Dalam Progress') }}</option>
+                                <option value="complete">{{ __('Sudah Lengkap') }}</option>
                             </select>
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cvProgressStepDropdown">Tahap Progress</label>
+                            <label class="form-label" for="cvProgressStepDropdown">{{ __('Tahap Progress') }}</label>
                             <div class="company-filter">
                                 <button class="btn btn-light border dropdown-toggle company-filter__toggle" type="button" id="cvProgressStepDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                                    <span id="cvProgressStepLabel">Semua tahap</span>
+                                    <span id="cvProgressStepLabel">{{ __('Semua tahap') }}</span>
                                 </button>
                                 <div class="dropdown-menu company-filter__menu" aria-labelledby="cvProgressStepDropdown">
                                     <div class="company-filter__menu-header">
-                                        <span>Pilih tahap progress</span>
+                                        <span>{{ __('Pilih tahap progress') }}</span>
                                         <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-link btn-sm p-0" id="btnSelectAllCvProgressSteps">Pilih semua</button>
-                                            <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvProgressSteps">Kosongkan</button>
+                                            <button type="button" class="btn btn-link btn-sm p-0" id="btnSelectAllCvProgressSteps">{{ __('Pilih semua') }}</button>
+                                            <button type="button" class="btn btn-link btn-sm p-0" id="btnClearCvProgressSteps">{{ __('Kosongkan') }}</button>
                                         </div>
                                     </div>
                                     @foreach([
@@ -296,34 +296,34 @@
                                 </div>
                             </div>
                             <select id="cv_filter_progress_step" class="d-none" multiple aria-hidden="true">
-                                <option value="1">1 - Data Pribadi</option>
-                                <option value="2">2 - Ringkasan Profil</option>
-                                <option value="3">3 - Pendidikan</option>
-                                <option value="4">4 - Pengalaman</option>
-                                <option value="5">5 - Keahlian</option>
-                                <option value="6">6 - Sertifikasi</option>
-                                <option value="7">7 - Tambahan</option>
-                                <option value="8">8 - Dokumen</option>
+                                <option value="1">{{ __('1 - Data Pribadi') }}</option>
+                                <option value="2">{{ __('2 - Ringkasan Profil') }}</option>
+                                <option value="3">{{ __('3 - Pendidikan') }}</option>
+                                <option value="4">{{ __('4 - Pengalaman') }}</option>
+                                <option value="5">{{ __('5 - Keahlian') }}</option>
+                                <option value="6">{{ __('6 - Sertifikasi') }}</option>
+                                <option value="7">{{ __('7 - Tambahan') }}</option>
+                                <option value="8">{{ __('8 - Dokumen') }}</option>
                             </select>
                         </div>
 
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_review_status">Status Pemeriksaan</label>
+                            <label class="form-label" for="cv_filter_review_status">{{ __('Status Pemeriksaan') }}</label>
                             <select id="cv_filter_review_status" class="form-select">
-                                <option value="">Semua Pemeriksaan</option>
-                                <option value="unreviewed">Belum Diperiksa</option>
-                                <option value="in_review">Sedang Diperiksa</option>
-                                <option value="needs_employee_confirmation">Perlu Konfirmasi Karyawan</option>
-                                <option value="completed">Selesai Diperiksa</option>
+                                <option value="">{{ __('Semua Pemeriksaan') }}</option>
+                                <option value="unreviewed">{{ __('Belum Diperiksa') }}</option>
+                                <option value="in_review">{{ __('Sedang Diperiksa') }}</option>
+                                <option value="needs_employee_confirmation">{{ __('Perlu Konfirmasi Karyawan') }}</option>
+                                <option value="completed">{{ __('Selesai Diperiksa') }}</option>
                             </select>
                         </div>
                         <div class="col-xl-3 col-md-6 ui-field">
-                            <label class="form-label" for="cv_filter_pdf_status">Status Download PDF</label>
+                            <label class="form-label" for="cv_filter_pdf_status">{{ __('Status Download PDF') }}</label>
                             <select id="cv_filter_pdf_status" class="form-select">
-                                <option value="">Semua Status PDF</option>
-                                <option value="not_downloaded">Belum Diunduh (Tidak Dalam Batch)</option>
-                                <option value="processing">Dalam Batch / Siap Diunduh</option>
-                                <option value="downloaded">Sudah Diunduh</option>
+                                <option value="">{{ __('Semua Status PDF') }}</option>
+                                <option value="not_downloaded">{{ __('Belum Diunduh (Tidak Dalam Batch)') }}</option>
+                                <option value="processing">{{ __('Dalam Batch / Siap Diunduh') }}</option>
+                                <option value="downloaded">{{ __('Sudah Diunduh') }}</option>
                             </select>
                         </div>
                     </div>
@@ -334,29 +334,29 @@
         </section>
 
         <section id="cv-workspace-employees" data-cv-pane="employees" class="ui-panel cv-workspace-panel" aria-labelledby="cv-tab-employees">
-            <div class="ui-panel__header"><div><h5 class="ui-panel__title">Daftar karyawan</h5><p class="ui-panel__meta">Cari karyawan, periksa progres, lalu buka Detail untuk meninjau CV.</p></div></div>
+            <div class="ui-panel__header"><div><h5 class="ui-panel__title">{{ __('Daftar karyawan') }}</h5><p class="ui-panel__meta">{{ __('Cari karyawan, periksa progres, lalu buka Detail untuk meninjau CV.') }}</p></div></div>
             <div class="ui-panel__body">
                 <div class="cv-compare-export-toolbar mt-3 mb-3">
                     <button type="button" class="btn btn-outline-primary ui-btn-icon" id="btnCvIncompleteSupervisors">
-                        <i class="fas fa-filter"></i> Pengawas ke Atas — Belum Lengkap
+                        <i class="fas fa-filter"></i> {{ __('Pengawas ke Atas — Belum Lengkap') }}
                     </button>
                     <button type="button" class="btn btn-success ui-btn-icon" id="btnCvExport">
-                        <i class="fas fa-file-excel"></i> Export Excel Hasil Filter
+                        <i class="fas fa-file-excel"></i> {{ __('Export Excel Hasil Filter') }}
                     </button>
                 </div>
 
                 @if(!auth()->user()->hasRole('Audit CV'))
-                <details class="cv-reminder-disclosure"><summary><i class="fas fa-envelope me-2" aria-hidden="true"></i>Email pengingat <span class="small text-muted">— pilih penerima dari tabel</span></summary>
+                <details class="cv-reminder-disclosure"><summary><i class="fas fa-envelope me-2" aria-hidden="true"></i>{{ __('Email pengingat') }} <span class="small text-muted">{{ __('— pilih penerima dari tabel') }}</span></summary>
                 <div class="d-flex flex-wrap gap-2 align-items-center mt-3 mb-2">
                     <button type="button" class="btn btn-sm btn-primary ui-btn-icon" id="btnCvReminderSelected" disabled>
                         <i class="fas fa-envelope"></i>
-                        Email Pilihan (<span id="cvReminderSelectedCount">0</span>)
+                        {{ __('Email Pilihan (') }}<span id="cvReminderSelectedCount">0</span>)
                     </button>
                     <button type="button" class="btn btn-sm btn-outline-primary ui-btn-icon" id="btnCvReminderFiltered">
                         <i class="fas fa-mail-bulk"></i>
-                        Email Semua Hasil Filter
+                        {{ __('Email Semua Hasil Filter') }}
                     </button>
-                    <span class="small text-muted">Hanya karyawan berstatus Perlu Diingatkan yang akan diproses. Cooldown pengiriman tetap diperiksa oleh server.</span>
+                    <span class="small text-muted">{{ __('Hanya karyawan berstatus Perlu Diingatkan yang akan diproses. Cooldown pengiriman tetap diperiksa oleh server.') }}</span>
                 </div>
 
                 </details>
@@ -369,12 +369,12 @@
                     <table id="cvMakerCompareTable" class="table table-bordered table-striped table-sm small text-sm nowrap align-middle ui-table">
                         <thead>
                             <tr>
-                                <th class="text-center" style="width: 42px"><input type="checkbox" class="form-check-input" id="cvReminderSelectPage" aria-label="Pilih semua reminder pada halaman ini"></th>
+                                <th class="text-center" style="width: 42px"><input type="checkbox" class="form-check-input" id="cvReminderSelectPage" aria-label="{{ __('Pilih semua reminder pada halaman ini') }}"></th>
                                 <th>NIK</th>
-                                <th>Karyawan</th>
+                                <th>{{ __('Karyawan') }}</th>
                                 <th>CV Maker</th>
-                                <th>Hasil</th>
-                                <th>Download PDF</th>
+                                <th>{{ __('Hasil') }}</th>
+                                <th>{{ __('Download PDF') }}</th>
                             </tr>
                         </thead>
                     </table>
@@ -502,22 +502,22 @@
         }
 
         if (xhr.status === 401 || xhr.status === 419) {
-            message = 'Sesi login berakhir. Silakan login ulang.';
+            message = @json(__('Sesi login berakhir. Silakan login ulang.'));
         }
 
         if (xhr.status === 403) {
-            message = 'Anda tidak memiliki akses untuk membuka data compare.';
+            message = @json(__('Anda tidak memiliki akses untuk membuka data compare.'));
         }
 
         if (xhr.status === 0) {
-            message = 'Koneksi bermasalah atau request diblokir. Silakan cek jaringan Anda.';
+            message = @json(__('Koneksi bermasalah atau request diblokir. Silakan cek jaringan Anda.'));
         }
 
         window.CvMakerDialog.fire({
             icon: 'error',
-            title: 'Gagal',
+            title: @json(__('Gagal')),
             text: message,
-            confirmButtonText: 'OK'
+            confirmButtonText: @json(__('OK'))
         });
     }
 
@@ -571,14 +571,14 @@
             searchDelay: 450,
             order: [[2, 'asc']],
             language: {
-                processing: 'Memuat data compare...',
-                search: 'Cari:',
+                processing: @json(__('Memuat data compare...')),
+                search: @json(__('Cari:')),
                 lengthMenu: 'Tampilkan _MENU_ data',
-                info: 'Menampilkan _START_ sampai _END_ dari _TOTAL_ data',
-                infoEmpty: 'Tidak ada data',
-                infoFiltered: '(difilter dari _MAX_ total data)',
-                zeroRecords: 'Data tidak ditemukan',
-                emptyTable: 'Belum ada data compare',
+                info: @json(__('Menampilkan _START_ sampai _END_ dari _TOTAL_ data')),
+                infoEmpty: @json(__('Tidak ada data')),
+                infoFiltered: @json(__('(difilter dari _MAX_ total data)')),
+                zeroRecords: @json(__('Data tidak ditemukan')),
+                emptyTable: @json(__('Belum ada data compare')),
                 paginate: {
                     first: 'Pertama',
                     last: 'Terakhir',
@@ -689,7 +689,7 @@
         const original = button.html();
         const filters = cvReminderFilterPayload();
         filters.cv_reminder = $('#cv_filter_reminder').val();
-        button.prop('disabled', true).text('Membuat Excel...');
+        button.prop('disabled', true).text(@json(__('Membuat Excel...')));
         try {
             const response = await fetch("{{ route('cv-maker-compare.export') }}?" + $.param(filters), {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -712,7 +712,7 @@
             link.click();
             link.remove();
             setTimeout(() => URL.revokeObjectURL(url), 1000);
-            window.CvMakerDialog.fire({ icon: 'success', title: 'File siap', text: 'File Excel berhasil dibuat dan unduhan dimulai.' });
+            window.CvMakerDialog.fire({ icon: 'success', title: @json(__('File siap')), text: @json(__('File Excel berhasil dibuat dan unduhan dimulai.')) });
         } catch (error) {
             showCvCompareAjaxError({ status: 0 }, 'Export gagal diunduh.');
         } finally {
@@ -755,11 +755,11 @@
 
         window.CvMakerDialog.fire({
             icon: 'question',
-            title: 'Kirim reminder CV?',
+            title: @json(__('Kirim reminder CV?')),
             text: `Sistem akan memvalidasi ${targetLabel}, email, scope akses, dan cooldown sebelum memasukkan email ke antrean.`,
             showCancelButton: true,
-            confirmButtonText: 'Masukkan ke Antrean',
-            cancelButtonText: 'Batal'
+            confirmButtonText: @json(__('Masukkan ke Antrean')),
+            cancelButtonText: @json(__('Batal'))
         }).then(function(result) {
             if (!result.isConfirmed) return;
 
@@ -782,9 +782,9 @@
                     renderCvReminderBatchStatus(response.data || {});
                     window.CvMakerDialog.fire({
                         icon: 'success',
-                        title: 'Antrean dibuat',
+                        title: @json(__('Antrean dibuat')),
                         text: response.message,
-                        confirmButtonText: 'OK'
+                        confirmButtonText: @json(__('OK'))
                     });
                     pollCvReminderBatch(response.status_url);
                 },

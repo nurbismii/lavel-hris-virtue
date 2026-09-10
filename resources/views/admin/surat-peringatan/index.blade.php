@@ -8,16 +8,16 @@
             <div>
                 <h4 class="fw-bold">
                     <i class="fas fa-file-alt text-primary me-2"></i>
-                    Data Pelanggaran
+                    {{ __('Data Pelanggaran') }}
                 </h4>
                 <small class="text-muted">
-                    Daftar pelanggaran karyawan yang tercatat dalam sistem. Kelola data pelanggaran dengan mudah dan efisien.
+                    {{ __('Daftar pelanggaran karyawan yang tercatat dalam sistem. Kelola data pelanggaran dengan mudah dan efisien.') }}
                 </small>
             </div>
 
             <div class="ms-md-auto py-2 py-md-0">
                 <a class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalImportSuratPeringatan">
-                    Bulk Pelanggaran
+                    {{ __('Bulk Pelanggaran') }}
                 </a>
             </div>
         </div>
@@ -28,28 +28,28 @@
                 {{-- FILTER --}}
                 <div class="row mb-3 g-2">
                     <div class="col-md-3">
-                        <label class="form-label small">Tanggal mulai</label>
+                        <label class="form-label small">{{ __('Tanggal mulai') }}</label>
                         <input type="date" id="tgl_mulai" class="form-control form-control-sm">
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label small">Tanggal Berakhir</label>
+                        <label class="form-label small">{{ __('Tanggal Berakhir') }}</label>
                         <input type="date" id="tgl_berakhir" class="form-control form-control-sm">
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label small">Level Surat Peringatan</label>
+                        <label class="form-label small">{{ __('Level Surat Peringatan') }}</label>
                         <select id="level_sp" class="form-select form-control-sm">
-                            <option value="">-- Semua level surat peringatan --</option>
-                            <option value="SP1">Surat Peringatan 1</option>
-                            <option value="SP2">Surat Peringatan 2</option>
-                            <option value="SP3">Surat Peringatan 3</option>
+                            <option value="">{{ __('-- Semua level surat peringatan --') }}</option>
+                            <option value="SP1">{{ __('Surat Peringatan 1') }}</option>
+                            <option value="SP2">{{ __('Surat Peringatan 2') }}</option>
+                            <option value="SP3">{{ __('Surat Peringatan 3') }}</option>
                         </select>
                     </div>
 
                     <div class="col-md-3 d-flex align-items-end">
                         <button id="btnFilter" class="btn btn-primary btn-sm w-100">
-                            <i class="fas fa-filter"></i> Terapkan Filter
+                            <i class="fas fa-filter"></i> {{ __('Terapkan Filter') }}
                         </button>
                     </div>
                 </div>
@@ -79,22 +79,22 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="modalImportSuratPeringatanLabel">Import Surat Peringatan</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h1 class="modal-title fs-5" id="modalImportSuratPeringatanLabel">{{ __('Import Surat Peringatan') }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
             </div>
             <form action="{{ route('surat-peringatan.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
                     <div class="col-md-6 col-lg-6">
                         <div class="form-group">
-                            <label for="exampleFormControlFile1">Pilih file excel</label>
+                            <label for="exampleFormControlFile1">{{ __('Pilih file excel') }}</label>
                             <input type="file" name="file" class="form-control-file" id="exampleFormControlFile1">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary">Import</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Tutup') }}</button>
+                    <button type="submit" class="btn btn-primary">{{ __('Import') }}</button>
                 </div>
             </form>
         </div>
@@ -164,14 +164,14 @@
         let nama = $(this).data('nama');
 
         Swal.fire({
-            title: 'Yakin hapus data?',
+            title: @json(__('Yakin hapus data?')),
             html: `Data resign <b>${nama}</b> akan dihapus.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Ya, hapus!',
-            cancelButtonText: 'Batal'
+            confirmButtonText: @js(__('Ya, hapus!')),
+            cancelButtonText: @json(__('Batal'))
         }).then((result) => {
 
             if (result.isConfirmed) {
@@ -189,8 +189,8 @@
 
                         Swal.fire({
                             icon: 'success',
-                            title: 'Berhasil!',
-                            text: 'Data berhasil dihapus.',
+                            title: @json(__('Berhasil!')),
+                            text: @json(__('Data berhasil dihapus.')),
                             timer: 1500,
                             showConfirmButton: false
                         });

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'History Import')
+@section('title', __('History Import'))
 
 @push('styles')
 <style>
@@ -28,69 +28,69 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-file-import text-primary me-2"></i>
-                    History Import
+                    {{ __('History Import') }}
                 </h4>
-                <small class="text-muted">Pantau import karyawan, resign, pelanggaran, foto, dokumen, dan referensi presensi secara terpusat.</small>
+                <small class="text-muted">{{ __('Pantau import karyawan, resign, pelanggaran, foto, dokumen, dan referensi presensi secara terpusat.') }}</small>
             </div>
         </div>
 
         @if(!$isTableReady)
             <div class="alert alert-warning">
-                Fitur history import belum aktif karena tabel <code>import_histories</code> belum tersedia. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+                {{ __('Fitur history import belum aktif karena tabel') }} <code>import_histories</code> {{ __('belum tersedia. Jalankan') }} <code>php artisan migrate</code> {{ __('terlebih dahulu.') }}
             </div>
         @else
             <div class="card shadow-sm border-0 mb-3">
                 <div class="card-body">
                     <form method="GET" class="row g-3 align-items-end">
                         <div class="col-md-2">
-                            <label class="form-label">Dari Tanggal</label>
+                            <label class="form-label">{{ __('Dari Tanggal') }}</label>
                             <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Sampai Tanggal</label>
+                            <label class="form-label">{{ __('Sampai Tanggal') }}</label>
                             <input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] ?? '' }}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Jenis Import</label>
+                            <label class="form-label">{{ __('Jenis Import') }}</label>
                             <select name="import_type" class="form-select">
-                                <option value="">Semua Jenis</option>
+                                <option value="">{{ __('Semua Jenis') }}</option>
                                 @foreach($typeOptions as $value => $label)
                                     <option value="{{ $value }}" {{ ($filters['import_type'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Status</label>
+                            <label class="form-label">{{ __('Status') }}</label>
                             <select name="status" class="form-select">
-                                <option value="">Semua Status</option>
+                                <option value="">{{ __('Semua Status') }}</option>
                                 @foreach($statusOptions as $value => $label)
                                     <option value="{{ $value }}" {{ ($filters['status'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Sumber</label>
+                            <label class="form-label">{{ __('Sumber') }}</label>
                             <select name="source" class="form-select">
-                                <option value="">Semua Sumber</option>
+                                <option value="">{{ __('Semua Sumber') }}</option>
                                 @foreach($sourceOptions as $value => $label)
                                     <option value="{{ $value }}" {{ ($filters['source'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Aktor</label>
-                            <input type="text" name="actor" class="form-control" value="{{ $filters['actor'] ?? '' }}" placeholder="Nama, email, ID">
+                            <label class="form-label">{{ __('Aktor') }}</label>
+                            <input type="text" name="actor" class="form-control" value="{{ $filters['actor'] ?? '' }}" placeholder="{{ __('Nama, email, ID') }}">
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label">Cari</label>
-                            <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="Nama file, import ID, atau error">
+                            <label class="form-label">{{ __('Cari') }}</label>
+                            <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="{{ __('Nama file, import ID, atau error') }}">
                         </div>
                         <div class="col-12 d-flex flex-wrap gap-2">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search me-1"></i> Tampilkan
+                                <i class="fas fa-search me-1"></i> {{ __('Tampilkan') }}
                             </button>
                             <a href="{{ route('import-histories.index') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-undo me-1"></i> Reset
+                                <i class="fas fa-undo me-1"></i> {{ __('Reset') }}
                             </a>
                         </div>
                     </form>
@@ -101,8 +101,8 @@
                 <div class="card-body">
                     <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                         <div>
-                            <h5 class="mb-1">Riwayat Import</h5>
-                            <small class="text-muted">Menampilkan 50 import per halaman, terbaru terlebih dahulu.</small>
+                            <h5 class="mb-1">{{ __('Riwayat Import') }}</h5>
+                            <small class="text-muted">{{ __('Menampilkan 50 import per halaman, terbaru terlebih dahulu.') }}</small>
                         </div>
                         <div class="text-muted small">
                             Total: {{ number_format($importHistories->total()) }} import
@@ -120,7 +120,7 @@
                                     <th style="width: 220px;">{{ __('tables.summary') }}</th>
                                     <th style="width: 190px;">{{ __('tables.actor') }}</th>
                                     <th>{{ __('tables.note') }}</th>
-                                    <th style="width: 145px;">Export Excel</th>
+                                    <th style="width: 145px;">{{ __('Export Excel') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -188,7 +188,7 @@
 
                                             @if(!empty($samples))
                                                 <details>
-                                                    <summary class="small text-primary">Lihat sampel catatan</summary>
+                                                    <summary class="small text-primary">{{ __('Lihat sampel catatan') }}</summary>
                                                     <div class="import-history-samples mt-2">
                                                         @foreach($samples as $sample)
                                                             <div class="border rounded p-2 mb-2 small bg-light">
@@ -208,7 +208,7 @@
                                                 </details>
                                             @elseif(!empty($summary['items']))
                                                 <details>
-                                                    <summary class="small text-primary">Lihat ringkasan ZIP</summary>
+                                                    <summary class="small text-primary">{{ __('Lihat ringkasan ZIP') }}</summary>
                                                     <div class="import-history-samples mt-2">
                                                         @foreach(array_slice($summary['items'], 0, 10) as $item)
                                                             <div class="border rounded p-2 mb-2 small bg-light">
@@ -246,7 +246,7 @@
                                 @empty
                                     <tr>
                                         <td colspan="8" class="text-center text-muted py-4">
-                                            Belum ada history import untuk filter ini.
+                                            {{ __('Belum ada history import untuk filter ini.') }}
                                         </td>
                                     </tr>
                                 @endforelse

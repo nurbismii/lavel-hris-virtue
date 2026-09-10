@@ -1,18 +1,18 @@
 @extends('layouts.app')
 
-@section('title', 'Template Kontrak Elektronik')
+@section('title', __('Template Kontrak Elektronik'))
 
 @section('content')
 <div class="container-fluid">
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Template Kontrak Elektronik</h4>
-                <small class="text-muted">Kelola isi kontrak, KOP, gambar, dan placeholder yang akan dirender ke PDF.</small>
+                <h4 class="fw-bold mb-1">{{ __('Template Kontrak Elektronik') }}</h4>
+                <small class="text-muted">{{ __('Kelola isi kontrak, KOP, gambar, dan placeholder yang akan dirender ke PDF.') }}</small>
             </div>
             <div class="ms-md-auto">
                 <a href="{{ route('electronic-contracts.templates.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i> Tambah Template
+                    <i class="fas fa-plus me-1"></i> {{ __('Tambah Template') }}
                 </a>
             </div>
         </div>
@@ -46,26 +46,26 @@
                                     <td>{{ optional($template->updated_at)->format('d M Y H:i') }}</td>
                                     <td class="text-nowrap">
                                         <a href="{{ route('electronic-contracts.templates.edit', $template) }}" class="btn btn-sm btn-warning">
-                                            Edit
+                                            {{ __('Edit') }}
                                         </a>
                                         <form
                                             action="{{ route('electronic-contracts.templates.destroy', $template) }}"
                                             method="POST"
                                             class="d-inline"
                                             data-swal-confirm="Template yang dihapus tidak bisa dikembalikan."
-                                            data-swal-title="Hapus template?"
+                                            data-swal-title="{{ __('Hapus template?') }}"
                                             data-swal-confirm-button="Ya, hapus"
                                             data-swal-danger="1">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-sm btn-danger" type="submit">Hapus</button>
+                                            <button class="btn btn-sm btn-danger" type="submit">{{ __('Hapus') }}</button>
                                         </form>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="5" class="text-center text-muted py-4">
-                                        Belum ada template kontrak.
+                                        {{ __('Belum ada template kontrak.') }}
                                     </td>
                                 </tr>
                             @endforelse

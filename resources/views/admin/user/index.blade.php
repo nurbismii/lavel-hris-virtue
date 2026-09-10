@@ -22,24 +22,24 @@
                 <div class="card-body">
                     <form id="user-filters" class="row g-3 mb-3 align-items-end">
                         <div class="col-12 col-md-4">
-                            <label for="filter-status" class="form-label">Status akun</label>
+                            <label for="filter-status" class="form-label">{{ __('Status akun') }}</label>
                             <select id="filter-status" class="form-select">
-                                <option value="">Semua status</option>
-                                <option value="aktif">Aktif</option>
-                                <option value="tidak aktif">Tidak aktif</option>
+                                <option value="">{{ __('Semua status') }}</option>
+                                <option value="aktif">{{ __('Aktif') }}</option>
+                                <option value="tidak aktif">{{ __('Tidak aktif') }}</option>
                             </select>
                         </div>
                         <div class="col-12 col-md-4">
-                            <label for="filter-role" class="form-label">Role</label>
+                            <label for="filter-role" class="form-label">{{ __('Role') }}</label>
                             <select id="filter-role" class="form-select">
-                                <option value="">Semua role</option>
+                                <option value="">{{ __('Semua role') }}</option>
                                 @foreach ($roles as $role)
                                     <option value="{{ $role->id }}">{{ $role->permission_role }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-12 col-md-4">
-                            <button type="button" id="reset-user-filters" class="btn btn-outline-secondary">Reset filter & pencarian</button>
+                            <button type="button" id="reset-user-filters" class="btn btn-outline-secondary">{{ __('Reset filter & pencarian') }}</button>
                         </div>
                     </form>
                     <div id="user-table-feedback" class="small text-muted mb-2" role="status" aria-live="polite"></div>
@@ -81,25 +81,25 @@
                 },
                 beforeSend: function () {
                     $('#user-filters :input').prop('disabled', true);
-                    $('#user-table-feedback').text('Memuat data user...');
+                    $('#user-table-feedback').text(@json(__('Memuat data user...')));
                 },
                 complete: function () {
                     $('#user-filters :input').prop('disabled', false);
                 },
                 error: function (xhr) {
-                    var message = 'Data user gagal dimuat. Silakan coba lagi.';
+                    var message = @json(__('Data user gagal dimuat. Silakan coba lagi.'));
                     if (xhr.status === 401 || xhr.status === 419) {
-                        message = 'Sesi login berakhir. Silakan login ulang.';
+                        message = @json(__('Sesi login berakhir. Silakan login ulang.'));
                     } else if (xhr.status === 403) {
-                        message = 'Anda tidak memiliki akses ke data user.';
+                        message = @json(__('Anda tidak memiliki akses ke data user.'));
                     } else if (xhr.status === 0) {
-                        message = 'Koneksi bermasalah. Silakan cek jaringan Anda.';
+                        message = @json(__('Koneksi bermasalah. Silakan cek jaringan Anda.'));
                     } else if (xhr.status === 422) {
-                        message = 'Filter atau pencarian tidak valid. Pencarian maksimal 200 karakter.';
+                        message = @json(__('Filter atau pencarian tidak valid. Pencarian maksimal 200 karakter.'));
                     }
                     $('#table-user_processing').hide();
                     $('#user-table-feedback').text(message);
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: message });
+                    Swal.fire({ icon: 'error', title: @json(__('Gagal')), text: message });
                 }
             },
             columns: [{
@@ -135,10 +135,10 @@
                 }
             ],
             language: {
-                search: 'Cari:',
-                searchPlaceholder: 'NIK, nama, email, role',
-                emptyTable: 'Belum ada data user.',
-                zeroRecords: 'Tidak ada user yang sesuai pencarian atau filter.'
+                search: @json(__('Cari:')),
+                searchPlaceholder: @js(__('NIK, nama, email, role')),
+                emptyTable: @json(__('Belum ada data user.')),
+                zeroRecords: @json(__('Tidak ada user yang sesuai pencarian atau filter.'))
             },
             drawCallback: function () {
                 $('#user-table-feedback').text(this.api().page.info().recordsDisplay + ' user ditemukan.');

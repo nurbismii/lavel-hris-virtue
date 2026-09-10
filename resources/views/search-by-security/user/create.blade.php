@@ -5,7 +5,7 @@
     <div class="page-inner">
 
         <div class="page-header">
-            <h3 class="fw-bold mb-3">Tambah Pengguna</h3>
+            <h3 class="fw-bold mb-3">{{ __('Tambah Pengguna') }}</h3>
         </div>
 
         <div class="card">
@@ -14,7 +14,7 @@
                     @csrf
 
                     {{-- DATA UTAMA --}}
-                    <h5 class="fw-bold mb-3">Data Utama</h5>
+                    <h5 class="fw-bold mb-3">{{ __('Data Utama') }}</h5>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">NIK</label>
@@ -22,37 +22,37 @@
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Nama</label>
+                            <label class="form-label">{{ __('Nama') }}</label>
                             <input type="text" name="name" class="form-control" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Email</label>
+                            <label class="form-label">{{ __('Email') }}</label>
                             <input type="email" name="email" class="form-control" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Tanggal Lahir</label>
+                            <label class="form-label">{{ __('Tanggal Lahir') }}</label>
                             <input type="date" name="tgl_lahir" class="form-control" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Password</label>
+                            <label class="form-label">{{ __('Password') }}</label>
                             <input type="password" name="password" class="form-control" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Konfirmasi Password</label>
+                            <label class="form-label">{{ __('Konfirmasi Password') }}</label>
                             <input type="password" name="confirmed" class="form-control" required>
                         </div>
 
                         {{-- BUTTON --}}
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-1"></i> Simpan
+                                <i class="fas fa-save me-1"></i> {{ __('Simpan') }}
                             </button>
                             <a href="{{ route('search-by-security.index') }}" class="btn btn-secondary">
-                                Kembali
+                                {{ __('Kembali') }}
                             </a>
                         </div>
                     </div>

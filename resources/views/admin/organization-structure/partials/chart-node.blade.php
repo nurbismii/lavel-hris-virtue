@@ -20,7 +20,7 @@
                 </div>
             @empty
                 <div class="org-card__employee org-card__vacant">
-                    <strong>Posisi kosong</strong>
+                    <strong>{{ __('Posisi kosong') }}</strong>
                     <span class="d-block">Kebutuhan {{ $position->planned_headcount }} orang</span>
                 </div>
             @endforelse

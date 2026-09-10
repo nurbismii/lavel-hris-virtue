@@ -7,10 +7,10 @@
             <div>
                 <h4 class="fw-bold">
                     <i class="fas fa-file-invoice-dollar text-primary me-2"></i>
-                    Data V-Payslip
+                    {{ __('Data V-Payslip') }}
                 </h4>
                 <small class="text-muted">
-                    Integrasi dengan data V-Payslip
+                    {{ __('Integrasi dengan data V-Payslip') }}
                 </small>
             </div>
         </div>
@@ -21,19 +21,19 @@
                     <div class="table-responsive">
                         <div class="row mb-3 align-items-end">
                             <div class="col-md-8 mb-2">
-                                <label class="form-label fw-semibold">Filter Periode</label>
+                                <label class="form-label fw-semibold">{{ __('Filter Periode') }}</label>
                                 <input type="month" id="filter_periode" class="form-control form-control-sm">
                             </div>
 
                             <div class="col-md-2 mb-2">
                                 <button class="btn btn-sm btn-primary w-100" id="btnFilter">
-                                    <i class="fas fa-filter"></i> Filter
+                                    <i class="fas fa-filter"></i> {{ __('Filter') }}
                                 </button>
                             </div>
 
                             <div class="col-md-2 mb-2">
                                 <button class="btn btn-sm btn-secondary w-100" id="btnReset">
-                                    <i class="fas fa-sync"></i> Reset
+                                    <i class="fas fa-sync"></i> {{ __('Reset') }}
                                 </button>
                             </div>
                         </div>

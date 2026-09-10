@@ -25,20 +25,20 @@
                 <div>
                     <span class="dashboard-badge">
                         <i class="fas fa-chart-line"></i>
-                        V-People Dashboard
+                        {{ __('V-People Dashboard') }}
                     </span>
 
                     <h3 class="dashboard-title">
-                        Dashboard HR
+                        {{ __('Dashboard HR') }}
                     </h3>
 
                     <p class="dashboard-subtitle mb-0">
-                        Ringkasan data karyawan aktif, mutasi, turnover, dan progress upload dokumen.
+                        {{ __('Ringkasan data karyawan aktif, mutasi, turnover, dan progress upload dokumen.') }}
                     </p>
 
                     <div class="dashboard-period mt-3">
                         <i class="fas fa-calendar-alt"></i>
-                        Dashboard pertanggal:
+                        {{ __('Dashboard pertanggal:') }}
                         <strong>{{ formatDateIndonesia($start) }}</strong>
                         <span>-</span>
                         <strong>{{ formatDateIndonesia($end) }}</strong>
@@ -57,7 +57,7 @@
                 <form method="GET" action="{{ route('home') }}">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-5">
-                            <label class="form-label">Tanggal Mulai</label>
+                            <label class="form-label">{{ __('Tanggal Mulai') }}</label>
                             <div class="input-modern">
                                 <i class="fas fa-calendar-check"></i>
                                 <input
@@ -70,7 +70,7 @@
                         </div>
 
                         <div class="col-md-5">
-                            <label class="form-label">Tanggal Akhir</label>
+                            <label class="form-label">{{ __('Tanggal Akhir') }}</label>
                             <div class="input-modern">
                                 <i class="fas fa-calendar-check"></i>
                                 <input
@@ -85,7 +85,7 @@
                         <div class="col-md-2">
                             <button class="btn btn-dashboard-primary w-100">
                                 <i class="fas fa-filter me-1"></i>
-                                Terapkan
+                                {{ __('Terapkan') }}
                             </button>
                         </div>
                     </div>
@@ -100,15 +100,15 @@
                     <div>
                         <div class="section-label">
                             <i class="fas fa-cloud-upload-alt"></i>
-                            Upload Monitor
+                            {{ __('Upload Monitor') }}
                         </div>
 
                         <h5 class="section-title mb-1">
-                            Progress Upload Dokumen
+                            {{ __('Progress Upload Dokumen') }}
                         </h5>
 
                         <small class="text-muted">
-                            Semua proses bulk upload ditampilkan di sini dan diperbarui otomatis setiap 5 detik.
+                            {{ __('Semua proses bulk upload ditampilkan di sini dan diperbarui otomatis setiap 5 detik.') }}
                         </small>
                     </div>
 
@@ -137,7 +137,7 @@
                         <i class="fas fa-user-check"></i>
                     </div>
                     <div>
-                        <p>Total Karyawan Aktif</p>
+                        <p>{{ __('Total Karyawan Aktif') }}</p>
                         <h4>{{ $totalAktif }}</h4>
                     </div>
                 </div>
@@ -149,7 +149,7 @@
                         <i class="fas fa-user-plus"></i>
                     </div>
                     <div>
-                        <p>Karyawan Masuk</p>
+                        <p>{{ __('Karyawan Masuk') }}</p>
                         <h4>{{ $masuk }}</h4>
                     </div>
                 </div>
@@ -161,7 +161,7 @@
                         <i class="fas fa-user-minus"></i>
                     </div>
                     <div>
-                        <p>Karyawan Keluar</p>
+                        <p>{{ __('Karyawan Keluar') }}</p>
                         <h4>{{ $keluar }}</h4>
                     </div>
                 </div>
@@ -173,7 +173,7 @@
                         <i class="fas fa-percentage"></i>
                     </div>
                     <div>
-                        <p>Turnover</p>
+                        <p>{{ __('Turnover') }}</p>
                         <h4>{{ $turnover }}%</h4>
                     </div>
                 </div>
@@ -186,8 +186,8 @@
                 <div class="card dashboard-card chart-card">
                     <div class="card-header">
                         <div>
-                            <span class="chart-label">Komposisi</span>
-                            <h6>Jenis Kelamin</h6>
+                            <span class="chart-label">{{ __('Komposisi') }}</span>
+                            <h6>{{ __('Jenis Kelamin') }}</h6>
                         </div>
                         <i class="fas fa-venus-mars"></i>
                     </div>
@@ -203,8 +203,8 @@
                 <div class="card dashboard-card chart-card">
                     <div class="card-header">
                         <div>
-                            <span class="chart-label">Periode Terpilih</span>
-                            <h6>Masuk vs Keluar</h6>
+                            <span class="chart-label">{{ __('Periode Terpilih') }}</span>
+                            <h6>{{ __('Masuk vs Keluar') }}</h6>
                         </div>
                         <i class="fas fa-exchange-alt"></i>
                     </div>
@@ -223,8 +223,8 @@
                 <div class="card dashboard-card chart-card">
                     <div class="card-header">
                         <div>
-                            <span class="chart-label">Demografi</span>
-                            <h6>Rentang Umur Karyawan</h6>
+                            <span class="chart-label">{{ __('Demografi') }}</span>
+                            <h6>{{ __('Rentang Umur Karyawan') }}</h6>
                         </div>
                         <i class="fas fa-chart-pie"></i>
                     </div>
@@ -234,7 +234,7 @@
                         </div>
 
                         <small class="chart-note">
-                            Rentang umur ditampilkan per kelipatan 5 tahun mulai dari 17 tahun sampai 57 tahun ke atas.
+                            {{ __('Rentang umur ditampilkan per kelipatan 5 tahun mulai dari 17 tahun sampai 57 tahun ke atas.') }}
                         </small>
                     </div>
                 </div>
@@ -245,7 +245,7 @@
                     <div class="card-header">
                         <div>
                             <span class="chart-label">Tahun {{ $summaryYear }}</span>
-                            <h6>Summary Masuk dan Keluar Bulanan</h6>
+                            <h6>{{ __('Summary Masuk dan Keluar Bulanan') }}</h6>
                         </div>
                         <i class="fas fa-chart-bar"></i>
                     </div>
@@ -255,7 +255,7 @@
                         </div>
 
                         <small class="chart-note">
-                            Cut off bulanan menggunakan periode tanggal 16 bulan sebelumnya sampai 15 bulan berjalan untuk setiap label bulan.
+                            {{ __('Cut off bulanan menggunakan periode tanggal 16 bulan sebelumnya sampai 15 bulan berjalan untuk setiap label bulan.') }}
                         </small>
                     </div>
                 </div>

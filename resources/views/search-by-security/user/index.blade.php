@@ -8,16 +8,16 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-users text-primary me-2"></i>
-                    Data Pengguna
+                    {{ __('Data Pengguna') }}
                 </h4>
                 <small class="text-muted">
-                    Tambah pengguna kepada aplikasi search by security
+                    {{ __('Tambah pengguna kepada aplikasi search by security') }}
                 </small>
             </div>
 
             <div class="ms-md-auto py-2 py-md-0">
                 <a class="btn btn-sm btn-primary" href="{{ route('search-by-security.create') }}">
-                    Tambah Pengguna
+                    {{ __('Tambah Pengguna') }}
                 </a>
             </div>
         </div>
@@ -46,13 +46,13 @@
                                             <span class="icon text-white-50">
                                                 <i class="fas fa-edit"></i>
                                             </span>
-                                            <span class="text">Edit</span>
+                                            <span class="text">{{ __('Edit') }}</span>
                                         </a>
                                         <a href="{{ route('search-by-security.destroy', $user->id) }}" class="btn btn-danger btn-sm btn-icon-split" data-confirm-delete="true">
                                             <span class="icon text-white-50">
                                                 <i class="fas fa-trash"></i>
                                             </span>
-                                            <span class="text">Hapus</span>
+                                            <span class="text">{{ __('Hapus') }}</span>
                                         </a>
                                     </td>
                                 </tr>

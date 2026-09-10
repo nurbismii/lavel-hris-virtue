@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Monitoring Kontrak')
+@section('title', __('Monitoring Kontrak'))
 
 @push('styles')
 <style>
@@ -135,7 +135,7 @@
     <div class="page-inner">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
-                <h3 class="text-primary mb-1">Monitoring Kontrak</h3>
+                <h3 class="text-primary mb-1">{{ __('Monitoring Kontrak') }}</h3>
                 <small class="text-muted">
                     Ringkasan kontrak elektronik, tanda tangan, workflow perpanjangan, dan kontrak yang akan berakhir.
                     Update {{ $period['updated_at'] }} WITA.
@@ -143,11 +143,11 @@
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('contract-renewals.index', request()->query()) }}" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-tasks me-1"></i> Workflow Perpanjangan
+                    <i class="fas fa-tasks me-1"></i> {{ __('Workflow Perpanjangan') }}
                 </a>
                 @if($canOpenElectronicContract)
                     <a href="{{ route('electronic-contracts.index', ['quick_filter' => 'waiting_signature']) }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-signature me-1"></i> Kontrak Menunggu TTD
+                        <i class="fas fa-signature me-1"></i> {{ __('Kontrak Menunggu TTD') }}
                     </a>
                 @endif
             </div>
@@ -157,9 +157,9 @@
             <div class="card-body">
                 <form method="GET" action="{{ route('contract-renewals.dashboard') }}" class="monitor-toolbar">
                     <div>
-                        <label class="form-label small mb-1">Area</label>
+                        <label class="form-label small mb-1">{{ __('Area') }}</label>
                         <select name="area" class="form-select form-select-sm js-contract-area-filter">
-                            <option value="">Semua area</option>
+                            <option value="">{{ __('Semua area') }}</option>
                             @foreach($filterOptions['areas'] as $areaOption)
                                 <option value="{{ $areaOption['code'] }}" {{ ($filters['area'] ?? null) === $areaOption['code'] ? 'selected' : '' }}>
                                     {{ $areaOption['label'] }}
@@ -168,9 +168,9 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label small mb-1">Departemen</label>
+                        <label class="form-label small mb-1">{{ __('Departemen') }}</label>
                         <select name="departemen_id" class="form-select form-select-sm js-contract-department-filter">
-                            <option value="">Semua departemen</option>
+                            <option value="">{{ __('Semua departemen') }}</option>
                             @php
                                 $groupedDepartments = [];
                                 foreach ($filterOptions['departemens'] as $departemen) {
@@ -193,9 +193,9 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label small mb-1">Divisi</label>
+                        <label class="form-label small mb-1">{{ __('Divisi') }}</label>
                         <select name="divisi_id" class="form-select form-select-sm js-contract-division-filter">
-                            <option value="">Semua divisi</option>
+                            <option value="">{{ __('Semua divisi') }}</option>
                             @foreach($filterOptions['divisis'] as $divisi)
                                 <option
                                     value="{{ $divisi->id }}"
@@ -209,7 +209,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label small mb-1">Window</label>
+                        <label class="form-label small mb-1">{{ __('Window') }}</label>
                         <select name="days" class="form-select form-select-sm">
                             @foreach([14, 30, 45, 60, 90, 180] as $option)
                                 <option value="{{ $option }}" {{ (int) $days === $option ? 'selected' : '' }}>{{ $option }} hari</option>
@@ -217,14 +217,14 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label small mb-1">Cari</label>
-                        <input type="text" name="search" class="form-control form-control-sm" value="{{ $search }}" placeholder="Nama, NIK, nomor kontrak">
+                        <label class="form-label small mb-1">{{ __('Cari') }}</label>
+                        <input type="text" name="search" class="form-control form-control-sm" value="{{ $search }}" placeholder="{{ __('Nama, NIK, nomor kontrak') }}">
                     </div>
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary btn-sm flex-fill">
-                            <i class="fas fa-filter me-1"></i> Filter
+                            <i class="fas fa-filter me-1"></i> {{ __('Filter') }}
                         </button>
-                        <a href="{{ route('contract-renewals.dashboard') }}" class="btn btn-light border btn-sm">Reset</a>
+                        <a href="{{ route('contract-renewals.dashboard') }}" class="btn btn-light border btn-sm">{{ __('Reset') }}</a>
                     </div>
                 </form>
             </div>
@@ -232,22 +232,22 @@
 
         <div class="metric-grid mb-4">
             <div class="metric-card">
-                <div class="metric-label">Menunggu TTD</div>
+                <div class="metric-label">{{ __('Menunggu TTD') }}</div>
                 <div class="metric-value">{{ number_format($summary['waiting_signature']) }}</div>
                 <div class="metric-meta">{{ number_format($summary['unsigned_overdue']) }} sudah lewat tanggal akhir</div>
             </div>
             <div class="metric-card">
-                <div class="metric-label">Akan Berakhir</div>
+                <div class="metric-label">{{ __('Akan Berakhir') }}</div>
                 <div class="metric-value">{{ number_format($summary['upcoming_without_workflow']) }}</div>
                 <div class="metric-meta">Belum dibuat workflow dalam {{ $period['label'] }}</div>
             </div>
             <div class="metric-card">
-                <div class="metric-label">Pending Approval</div>
+                <div class="metric-label">{{ __('Pending Approval') }}</div>
                 <div class="metric-value">{{ number_format($summary['pending_hod'] + $summary['pending_hrd']) }}</div>
                 <div class="metric-meta">HOD {{ number_format($summary['pending_hod']) }} / HRD {{ number_format($summary['pending_hrd']) }}</div>
             </div>
             <div class="metric-card">
-                <div class="metric-label">TTD Bulan Ini</div>
+                <div class="metric-label">{{ __('TTD Bulan Ini') }}</div>
                 <div class="metric-value">{{ number_format($summary['signed_this_month']) }}</div>
                 <div class="metric-meta">Dari {{ number_format($summary['total_contracts']) }} kontrak elektronik</div>
             </div>
@@ -258,8 +258,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                         <div>
-                            <h5 class="fw-semibold mb-1">Status Tanda Tangan</h5>
-                            <small class="text-muted">Ringkasan status kontrak elektronik dalam scope filter.</small>
+                            <h5 class="fw-semibold mb-1">{{ __('Status Tanda Tangan') }}</h5>
+                            <small class="text-muted">{{ __('Ringkasan status kontrak elektronik dalam scope filter.') }}</small>
                         </div>
                     </div>
                     <div class="status-list">
@@ -278,8 +278,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                         <div>
-                            <h5 class="fw-semibold mb-1">Tipe Kontrak</h5>
-                            <small class="text-muted">Komposisi PKWT, translator, dan adendum.</small>
+                            <h5 class="fw-semibold mb-1">{{ __('Tipe Kontrak') }}</h5>
+                            <small class="text-muted">{{ __('Komposisi PKWT, translator, dan adendum.') }}</small>
                         </div>
                     </div>
                     <div class="status-list">
@@ -299,8 +299,8 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                     <div>
-                        <h5 class="fw-semibold mb-1">Workflow Perpanjangan</h5>
-                        <small class="text-muted">Jumlah workflow berdasarkan status saat ini.</small>
+                        <h5 class="fw-semibold mb-1">{{ __('Workflow Perpanjangan') }}</h5>
+                        <small class="text-muted">{{ __('Jumlah workflow berdasarkan status saat ini.') }}</small>
                     </div>
                     <span class="badge bg-light text-dark border">{{ number_format($summary['renewal_workflows']) }} workflow</span>
                 </div>
@@ -325,20 +325,20 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                         <div>
-                            <h5 class="fw-semibold mb-1">Menunggu Tanda Tangan</h5>
-                            <small class="text-muted">Kontrak elektronik yang perlu difollow up.</small>
+                            <h5 class="fw-semibold mb-1">{{ __('Menunggu Tanda Tangan') }}</h5>
+                            <small class="text-muted">{{ __('Kontrak elektronik yang perlu difollow up.') }}</small>
                         </div>
                         @if($canOpenElectronicContract)
-                            <a href="{{ route('electronic-contracts.index', ['quick_filter' => 'waiting_signature']) }}" class="btn btn-outline-primary btn-sm">Buka daftar</a>
+                            <a href="{{ route('electronic-contracts.index', ['quick_filter' => 'waiting_signature']) }}" class="btn btn-outline-primary btn-sm">{{ __('Buka daftar') }}</a>
                         @endif
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
-                                    <th>Karyawan</th>
-                                    <th>Kontrak</th>
-                                    <th>Tanggal Akhir</th>
+                                    <th>{{ __('Karyawan') }}</th>
+                                    <th>{{ __('Kontrak') }}</th>
+                                    <th>{{ __('Tanggal Akhir') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -364,7 +364,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="text-center text-muted py-3">Tidak ada kontrak menunggu tanda tangan.</td>
+                                        <td colspan="3" class="text-center text-muted py-3">{{ __('Tidak ada kontrak menunggu tanda tangan.') }}</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -377,18 +377,18 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                         <div>
-                            <h5 class="fw-semibold mb-1">Kontrak Akan Berakhir</h5>
-                            <small class="text-muted">History terbaru yang belum dibuat workflow perpanjangan.</small>
+                            <h5 class="fw-semibold mb-1">{{ __('Kontrak Akan Berakhir') }}</h5>
+                            <small class="text-muted">{{ __('History terbaru yang belum dibuat workflow perpanjangan.') }}</small>
                         </div>
-                        <a href="{{ route('contract-renewals.index', request()->query()) }}" class="btn btn-outline-primary btn-sm">Proses</a>
+                        <a href="{{ route('contract-renewals.index', request()->query()) }}" class="btn btn-outline-primary btn-sm">{{ __('Proses') }}</a>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
-                                    <th>Karyawan</th>
-                                    <th>History</th>
-                                    <th>Akhir</th>
+                                    <th>{{ __('Karyawan') }}</th>
+                                    <th>{{ __('History') }}</th>
+                                    <th>{{ __('Akhir') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -410,7 +410,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="text-center text-muted py-3">Tidak ada kontrak akan berakhir pada filter ini.</td>
+                                        <td colspan="3" class="text-center text-muted py-3">{{ __('Tidak ada kontrak akan berakhir pada filter ini.') }}</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -421,8 +421,8 @@
 
             <div class="card monitor-card">
                 <div class="card-body">
-                    <h5 class="fw-semibold mb-1">Menunggu Approval HOD</h5>
-                    <small class="text-muted d-block mb-3">Antrean rekomendasi perpanjangan di HOD.</small>
+                    <h5 class="fw-semibold mb-1">{{ __('Menunggu Approval HOD') }}</h5>
+                    <small class="text-muted d-block mb-3">{{ __('Antrean rekomendasi perpanjangan di HOD.') }}</small>
                     @include('admin.contract-renewals.partials.pending-renewal-table', [
                         'renewals' => $dashboard['pending_hod_renewals'],
                         'emptyText' => 'Tidak ada antrean HOD.',
@@ -432,8 +432,8 @@
 
             <div class="card monitor-card">
                 <div class="card-body">
-                    <h5 class="fw-semibold mb-1">Menunggu Approval HRD</h5>
-                    <small class="text-muted d-block mb-3">Antrean final sebelum kontrak dibuat atau diputus.</small>
+                    <h5 class="fw-semibold mb-1">{{ __('Menunggu Approval HRD') }}</h5>
+                    <small class="text-muted d-block mb-3">{{ __('Antrean final sebelum kontrak dibuat atau diputus.') }}</small>
                     @include('admin.contract-renewals.partials.pending-renewal-table', [
                         'renewals' => $dashboard['pending_hrd_renewals'],
                         'emptyText' => 'Tidak ada antrean HRD.',

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Detail Kontrak Elektronik')
+@section('title', __('Detail Kontrak Elektronik'))
 
 @push('styles')
 <style>
@@ -81,19 +81,19 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Detail Kontrak</h4>
+                <h4 class="fw-bold mb-1">{{ __('Detail Kontrak') }}</h4>
                 <small class="text-muted">{{ $contract->display_number }} - {{ $contract->display_employee_name }}</small>
             </div>
             <div class="ms-md-auto d-flex flex-wrap gap-2">
-                <a href="{{ route('electronic-contracts.index') }}" class="btn btn-light">Kembali</a>
-                <a href="{{ route('electronic-contracts.preview', $contract) }}" target="_blank" class="btn btn-outline-secondary">Preview HTML</a>
-                <a href="{{ route('electronic-contracts.pdf', $contract) }}" target="_blank" class="btn btn-primary">Buka PDF</a>
+                <a href="{{ route('electronic-contracts.index') }}" class="btn btn-light">{{ __('Kembali') }}</a>
+                <a href="{{ route('electronic-contracts.preview', $contract) }}" target="_blank" class="btn btn-outline-secondary">{{ __('Preview HTML') }}</a>
+                <a href="{{ route('electronic-contracts.pdf', $contract) }}" target="_blank" class="btn btn-primary">{{ __('Buka PDF') }}</a>
             </div>
         </div>
 
         @if($errors->any())
             <div class="alert alert-danger shadow-sm">
-                <div class="fw-semibold mb-1">Proses gagal.</div>
+                <div class="fw-semibold mb-1">{{ __('Proses gagal.') }}</div>
                 <div class="small">{{ $errors->first() }}</div>
             </div>
         @endif
@@ -102,7 +102,7 @@
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
-                        <h5 class="mb-3">Informasi Kontrak</h5>
+                        <h5 class="mb-3">{{ __('Informasi Kontrak') }}</h5>
                         @php
                             $badge = [
                                 'ready' => 'warning',
@@ -112,31 +112,31 @@
                             ][$contract->status] ?? 'secondary';
                         @endphp
                         <dl class="row mb-0">
-                            <dt class="col-5">Status</dt>
+                            <dt class="col-5">{{ __('Status') }}</dt>
                             <dd class="col-7"><span class="badge bg-{{ $badge }}">{{ $contract->status_label }}</span></dd>
-                            <dt class="col-5">Tanda Tangan</dt>
+                            <dt class="col-5">{{ __('Tanda Tangan') }}</dt>
                             <dd class="col-7">{{ $contract->signing_method_label }} / {{ $contract->signature_status_label }}</dd>
-                            <dt class="col-5">Tipe</dt>
+                            <dt class="col-5">{{ __('Tipe') }}</dt>
                             <dd class="col-7">{{ $contract->type_label }}</dd>
                             <dt class="col-5">NIK</dt>
                             <dd class="col-7">{{ $contract->nik ?: '-' }}</dd>
-                            <dt class="col-5">Nama</dt>
+                            <dt class="col-5">{{ __('Nama') }}</dt>
                             <dd class="col-7">{{ $contract->display_employee_name }}</dd>
                             @if($contract->vhire_candidate_id || $contract->onboarding_candidate_id)
-                                <dt class="col-5">Candidate</dt>
+                                <dt class="col-5">{{ __('Candidate') }}</dt>
                                 <dd class="col-7">{{ $contract->candidate_code ?: '-' }}</dd>
-                                <dt class="col-5">No KTP</dt>
+                                <dt class="col-5">{{ __('No KTP') }}</dt>
                                 <dd class="col-7">{{ $contract->masked_no_ktp }}</dd>
                             @endif
-                            <dt class="col-5">No PKWT</dt>
+                            <dt class="col-5">{{ __('No PKWT') }}</dt>
                             <dd class="col-7">{{ $contract->pkwt_number }}</dd>
-                            <dt class="col-5">No Adendum</dt>
+                            <dt class="col-5">{{ __('No Adendum') }}</dt>
                             <dd class="col-7">{{ $contract->addendum_number ?: '-' }}</dd>
-                            <dt class="col-5">Periode</dt>
+                            <dt class="col-5">{{ __('Periode') }}</dt>
                             <dd class="col-7">{{ optional($contract->contract_start_date)->format('d M Y') ?: '-' }} s/d {{ optional($contract->contract_end_date)->format('d M Y') ?: '-' }}</dd>
-                            <dt class="col-5">Gaji</dt>
+                            <dt class="col-5">{{ __('Gaji') }}</dt>
                             <dd class="col-7">Rp {{ number_format((float) $contract->salary, 0, ',', '.') }}</dd>
-                            <dt class="col-5">Uang Makan</dt>
+                            <dt class="col-5">{{ __('Uang Makan') }}</dt>
                             <dd class="col-7">Rp {{ number_format((float) $contract->meal_allowance, 0, ',', '.') }}</dd>
                         </dl>
                     </div>
@@ -145,13 +145,13 @@
                 @if($contract->signature)
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-body">
-                            <h5 class="mb-3">Tanda Tangan Pihak Kedua</h5>
+                            <h5 class="mb-3">{{ __('Tanda Tangan Pihak Kedua') }}</h5>
                             <dl class="row mb-0">
-                                <dt class="col-5">Waktu</dt>
+                                <dt class="col-5">{{ __('Waktu') }}</dt>
                                 <dd class="col-7">{{ optional($contract->signature->signed_at)->format('d M Y H:i') }}</dd>
                                 <dt class="col-5">IP</dt>
                                 <dd class="col-7">{{ $contract->signature->ip_address ?: '-' }}</dd>
-                                <dt class="col-5">Hash PDF</dt>
+                                <dt class="col-5">{{ __('Hash PDF') }}</dt>
                                 <dd class="col-7 small text-break">{{ $contract->pdf_hash ?: '-' }}</dd>
                             </dl>
                         </div>
@@ -160,18 +160,18 @@
 
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
-                        <h5 class="mb-2">Flow Manual</h5>
-                        <p class="small text-muted mb-3">Gunakan bagian ini jika kontrak ditandatangani offline lalu arsip scan/PDF disimpan di HRIS.</p>
+                        <h5 class="mb-2">{{ __('Flow Manual') }}</h5>
+                        <p class="small text-muted mb-3">{{ __('Gunakan bagian ini jika kontrak ditandatangani offline lalu arsip scan/PDF disimpan di HRIS.') }}</p>
 
                         @if($contract->manual_signed_file_path)
                             <dl class="row small mb-3">
-                                <dt class="col-5">Status Review</dt>
+                                <dt class="col-5">{{ __('Status Review') }}</dt>
                                 <dd class="col-7">{{ $contract->manual_verification_status_label }}</dd>
-                                <dt class="col-5">Diunggah</dt>
+                                <dt class="col-5">{{ __('Diunggah') }}</dt>
                                 <dd class="col-7">{{ optional($contract->manual_uploaded_at)->format('d M Y H:i') ?: '-' }}</dd>
                             </dl>
                             <a href="{{ route('electronic-contracts.manual-signed-file.show', $contract) }}" target="_blank" class="btn btn-outline-secondary w-100 mb-3">
-                                Buka File Manual
+                                {{ __('Buka File Manual') }}
                             </a>
                         @endif
 
@@ -180,16 +180,16 @@
                                 method="POST"
                                 enctype="multipart/form-data"
                                 data-swal-confirm="File kontrak manual akan disimpan sebagai arsip resmi HRIS."
-                                data-swal-title="Simpan arsip kontrak manual?"
+                                data-swal-title="{{ __('Simpan arsip kontrak manual?') }}"
                                 data-swal-confirm-button="Ya, simpan">
                             @csrf
                             <div class="mb-2">
-                                <label class="form-label small">File PDF/JPG/PNG</label>
+                                <label class="form-label small">{{ __('File PDF/JPG/PNG') }}</label>
                                 <input type="file" name="manual_signed_file" class="form-control @error('manual_signed_file') is-invalid @enderror" accept=".pdf,.jpg,.jpeg,.png">
                                 @error('manual_signed_file')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-2">
-                                <label class="form-label small">Status Review</label>
+                                <label class="form-label small">{{ __('Status Review') }}</label>
                                 <select name="manual_verification_status" class="form-select @error('manual_verification_status') is-invalid @enderror">
                                     @foreach($manualVerificationStatusOptions as $value => $label)
                                         <option value="{{ $value }}" {{ old('manual_verification_status', $contract->manual_verification_status ?: \App\Models\EmployeeContract::MANUAL_VERIFICATION_PENDING) === $value ? 'selected' : '' }}>
@@ -200,12 +200,12 @@
                                 @error('manual_verification_status')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small">Catatan</label>
+                                <label class="form-label small">{{ __('Catatan') }}</label>
                                 <textarea name="manual_note" rows="2" class="form-control @error('manual_note') is-invalid @enderror">{{ old('manual_note', $contract->manual_note) }}</textarea>
                                 @error('manual_note')<div class="invalid-feedback">{{ $message }}</div>@enderror
                             </div>
                             <button type="submit" class="btn btn-outline-primary w-100">
-                                Simpan Arsip Manual
+                                {{ __('Simpan Arsip Manual') }}
                             </button>
                         </form>
                     </div>
@@ -213,8 +213,8 @@
 
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
-                        <h5 class="mb-2">Tanda Tangan Pihak Pertama</h5>
-                        <p class="small text-muted mb-3">Tanda tangan ini memakai master Pihak Pertama dan otomatis digunakan untuk semua tipe kontrak.</p>
+                        <h5 class="mb-2">{{ __('Tanda Tangan Pihak Pertama') }}</h5>
+                        <p class="small text-muted mb-3">{{ __('Tanda tangan ini memakai master Pihak Pertama dan otomatis digunakan untuk semua tipe kontrak.') }}</p>
 
                         @if($firstPartySignaturePreview)
                             <div class="first-party-signature-preview mb-3">
@@ -225,13 +225,13 @@
                             </div>
                         @else
                             <div class="alert alert-warning small py-2">
-                                Tanda tangan master Pihak Pertama belum disimpan.
+                                {{ __('Tanda tangan master Pihak Pertama belum disimpan.') }}
                             </div>
                         @endif
 
                         @if($canManageFirstPartySignature)
                             <a href="{{ route('electronic-contracts.first-party-signature.edit') }}" class="btn btn-outline-primary w-100">
-                                Kelola Tanda Tangan Master
+                                {{ __('Kelola Tanda Tangan Master') }}
                             </a>
                         @endif
                     </div>
@@ -240,20 +240,20 @@
                 @if($contract->vhire_candidate_id || $contract->onboarding_candidate_id)
                     <div class="card border-0 shadow-sm mb-3">
                         <div class="card-body">
-                            <h5 class="mb-2">Integrasi V-Hire</h5>
+                            <h5 class="mb-2">{{ __('Integrasi V-Hire') }}</h5>
                             <dl class="row small mb-3">
-                                <dt class="col-5">Visible V-Hire</dt>
+                                <dt class="col-5">{{ __('Visible V-Hire') }}</dt>
                                 <dd class="col-7">{{ $contract->visible_in_vhire ? 'Ya' : 'Tidak' }}</dd>
-                                <dt class="col-5">Sync Kontrak</dt>
+                                <dt class="col-5">{{ __('Sync Kontrak') }}</dt>
                                 <dd class="col-7">{{ optional($contract->vhire_contract_synced_at)->format('d M Y H:i') ?: 'Belum sukses' }}</dd>
-                                <dt class="col-5">Sync Aktivasi</dt>
+                                <dt class="col-5">{{ __('Sync Aktivasi') }}</dt>
                                 <dd class="col-7">{{ optional($contract->vhire_activation_synced_at)->format('d M Y H:i') ?: 'Belum sukses' }}</dd>
                             </dl>
 
                             <form action="{{ route('electronic-contracts.retry-vhire-sync', $contract) }}" method="POST" class="mb-3">
                                 @csrf
                                 <button type="submit" class="btn btn-outline-primary w-100">
-                                    Retry Sync Kontrak ke V-Hire
+                                    {{ __('Retry Sync Kontrak ke V-Hire') }}
                                 </button>
                             </form>
 
@@ -269,12 +269,12 @@
                                         method="POST"
                                         class="mb-3"
                                         data-swal-confirm="Sistem akan membuat data employee, generate NIK dari sequence terbesar, dan mengaktivasi kandidat ke HRIS."
-                                        data-swal-title="Generate NIK baru?"
+                                        data-swal-title="{{ __('Generate NIK baru?') }}"
                                         data-swal-confirm-button="Ya, generate">
                                         @csrf
-                                        <label class="form-label small">Generate NIK Karyawan</label>
+                                        <label class="form-label small">{{ __('Generate NIK Karyawan') }}</label>
                                         <button class="btn btn-primary w-100" type="submit">
-                                            Generate NIK &amp; Aktivasi
+                                            {{ __('Generate NIK & Aktivasi') }}
                                         </button>
                                     </form>
                                 @endif
@@ -283,14 +283,14 @@
                                     action="{{ route('electronic-contracts.activate-vhire-candidate', $contract) }}"
                                     method="POST"
                                     data-swal-confirm="Kandidat akan ditautkan ke NIK HRIS dan kontrak akan disembunyikan dari V-Hire."
-                                    data-swal-title="Aktivasi kandidat?"
+                                    data-swal-title="{{ __('Aktivasi kandidat?') }}"
                                     data-swal-confirm-button="Ya, aktivasi">
                                     @csrf
-                                    <label class="form-label small">Aktivasi ke NIK HRIS</label>
+                                    <label class="form-label small">{{ __('Aktivasi ke NIK HRIS') }}</label>
                                     <div class="input-group">
-                                        <input type="text" name="employee_nik" class="form-control @error('employee_nik') is-invalid @enderror" value="{{ old('employee_nik') }}" placeholder="Masukkan NIK employee">
+                                        <input type="text" name="employee_nik" class="form-control @error('employee_nik') is-invalid @enderror" value="{{ old('employee_nik') }}" placeholder="{{ __('Masukkan NIK employee') }}">
                                         <button class="btn btn-success" type="submit">
-                                            Aktivasi
+                                            {{ __('Aktivasi') }}
                                         </button>
                                         @error('employee_nik')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                     </div>
@@ -335,13 +335,13 @@
                                                                     {{ \Illuminate\Support\Str::limit($syncDetail, 90) }}
                                                                 </summary>
                                                                 <div class="small text-muted mt-2">
-                                                                    <div class="fw-semibold text-body">Error / Response</div>
+                                                                    <div class="fw-semibold text-body">{{ __('Error / Response') }}</div>
                                                                     <pre class="bg-light border rounded p-2 mb-2 text-wrap">{{ $syncDetail }}</pre>
                                                                     @if($syncLog->idempotency_key)
-                                                                        <div><strong>Idempotency Key:</strong> {{ $syncLog->idempotency_key }}</div>
+                                                                        <div><strong>{{ __('Idempotency Key:') }}</strong> {{ $syncLog->idempotency_key }}</div>
                                                                     @endif
                                                                     @if($syncLog->next_retry_at)
-                                                                        <div><strong>Retry berikutnya:</strong> {{ optional($syncLog->next_retry_at)->format('d M Y H:i') }}</div>
+                                                                        <div><strong>{{ __('Retry berikutnya:') }}</strong> {{ optional($syncLog->next_retry_at)->format('d M Y H:i') }}</div>
                                                                     @endif
                                                                 </div>
                                                             </details>
@@ -366,11 +366,11 @@
                         action="{{ route('electronic-contracts.cancel', $contract) }}"
                         method="POST"
                         data-swal-confirm="Kontrak akan dibatalkan dan statusnya berubah menjadi cancelled."
-                        data-swal-title="Batalkan kontrak?"
+                        data-swal-title="{{ __('Batalkan kontrak?') }}"
                         data-swal-confirm-button="Ya, batalkan"
                         data-swal-danger="1">
                         @csrf
-                        <button type="submit" class="btn btn-outline-danger w-100">Batalkan Kontrak</button>
+                        <button type="submit" class="btn btn-outline-danger w-100">{{ __('Batalkan Kontrak') }}</button>
                     </form>
                 @endif
             </div>
@@ -392,7 +392,7 @@
 
                 <div class="card border-0 shadow-sm mt-3">
                     <div class="card-body">
-                        <h5 class="mb-3">Audit Log Terakhir</h5>
+                        <h5 class="mb-3">{{ __('Audit Log Terakhir') }}</h5>
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered mb-0">
                                 <thead class="table-light">
@@ -413,7 +413,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="4" class="text-center text-muted py-3">Belum ada audit log.</td>
+                                            <td colspan="4" class="text-center text-muted py-3">{{ __('Belum ada audit log.') }}</td>
                                         </tr>
                                     @endforelse
                                 </tbody>

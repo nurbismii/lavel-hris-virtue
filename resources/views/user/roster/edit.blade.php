@@ -18,10 +18,10 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
         <div class="wizard-wrap">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
                 <div>
-                    <h3 class="fw-bold text-primary mb-1">Edit Pengajuan Cuti Roster</h3>
-                    <small class="text-muted">Versi step by step agar proses edit tetap nyaman di mobile dan konsisten dengan form create.</small>
+                    <h3 class="fw-bold text-primary mb-1">{{ __('Edit Pengajuan Cuti Roster') }}</h3>
+                    <small class="text-muted">{{ __('Versi step by step agar proses edit tetap nyaman di mobile dan konsisten dengan form create.') }}</small>
                 </div>
-                <a href="{{ route('roster.index') }}" class="btn btn-sm btn-primary"><i class="fas fa-arrow-left me-1"></i> Kembali</a>
+                <a href="{{ route('roster.index') }}" class="btn btn-sm btn-primary"><i class="fas fa-arrow-left me-1"></i> {{ __('Kembali') }}</a>
             </div>
 
             <form id="rosterWizardForm" action="{{ route('roster.update', $roster->id) }}" method="POST" enctype="multipart/form-data" data-off-dates-url="{{ Auth::user()->hasRole(['Staff Roster', 'Super Admin']) ? route('roster-off.effective-dates') : '' }}">
@@ -33,38 +33,38 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                     <div class="card-body p-3 p-md-4">
                         <div class="wizard-head">
                             <div class="wizard-step active" data-step-indicator="1"><span class="wizard-num">1</span>
-                                <div><span class="wizard-label">Langkah 1</span><span class="wizard-title">Data Karyawan</span></div>
+                                <div><span class="wizard-label">{{ __('Langkah 1') }}</span><span class="wizard-title">{{ __('Data Karyawan') }}</span></div>
                             </div>
                             <div class="wizard-step" data-step-indicator="2"><span class="wizard-num">2</span>
-                                <div><span class="wizard-label">Langkah 2</span><span class="wizard-title">Periode Roster</span></div>
+                                <div><span class="wizard-label">{{ __('Langkah 2') }}</span><span class="wizard-title">{{ __('Periode Roster') }}</span></div>
                             </div>
                             <div class="wizard-step" data-step-indicator="3"><span class="wizard-num">3</span>
-                                <div><span class="wizard-label">Langkah 3</span><span class="wizard-title">Rencana</span></div>
+                                <div><span class="wizard-label">{{ __('Langkah 3') }}</span><span class="wizard-title">{{ __('Rencana') }}</span></div>
                             </div>
                             <div class="wizard-step" data-step-indicator="4"><span class="wizard-num">4</span>
-                                <div><span class="wizard-label">Langkah 4</span><span class="wizard-title">Perjalanan</span></div>
+                                <div><span class="wizard-label">{{ __('Langkah 4') }}</span><span class="wizard-title">{{ __('Perjalanan') }}</span></div>
                             </div>
                         </div>
 
                         <section class="wizard-pane active" data-step-pane="1">
                             <div class="pane-head">
                                 <div>
-                                    <h5 class="pane-title">Informasi Karyawan</h5>
-                                    <p class="pane-text">Pastikan identitas dasar dan kontak pengajuan masih sesuai sebelum disimpan ulang.</p>
+                                    <h5 class="pane-title">{{ __('Informasi Karyawan') }}</h5>
+                                    <p class="pane-text">{{ __('Pastikan identitas dasar dan kontak pengajuan masih sesuai sebelum disimpan ulang.') }}</p>
                                 </div>
-                                <span class="pane-chip"><i class="fas fa-user-edit"></i> Mode edit</span>
+                                <span class="pane-chip"><i class="fas fa-user-edit"></i> {{ __('Mode edit') }}</span>
                             </div>
                             <div class="box">
                                 <div class="box-body">
                                     <div class="info-grid">
-                                        <div class="info-item"><small>Nama</small><strong>{{ $employee->nama_karyawan }}</strong></div>
+                                        <div class="info-item"><small>{{ __('Nama') }}</small><strong>{{ $employee->nama_karyawan }}</strong></div>
                                         <div class="info-item"><small>NIK</small><strong>{{ $employee->nik }}</strong></div>
-                                        <div class="info-item"><small>Departemen</small><strong>{{ optional(optional($employee->divisi)->departemen)->departemen ?? '-' }}</strong></div>
-                                        <div class="info-item"><small>Posisi</small><strong>{{ $employee->posisi ?? '-' }}</strong></div>
+                                        <div class="info-item"><small>{{ __('Departemen') }}</small><strong>{{ optional(optional($employee->divisi)->departemen)->departemen ?? '-' }}</strong></div>
+                                        <div class="info-item"><small>{{ __('Posisi') }}</small><strong>{{ $employee->posisi ?? '-' }}</strong></div>
                                     </div>
                                     <div class="row g-3">
-                                        <div class="col-md-6"><label class="form-label">Email</label><input type="email" name="email" class="form-control" value="{{ old('email', $roster->email) }}" required></div>
-                                        <div class="col-md-6"><label class="form-label">No HP</label><input type="text" name="no_telp" class="form-control" value="{{ old('no_telp', $roster->no_telp) }}" required></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Email') }}</label><input type="email" name="email" class="form-control" value="{{ old('email', $roster->email) }}" required></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('No HP') }}</label><input type="text" name="no_telp" class="form-control" value="{{ old('no_telp', $roster->no_telp) }}" required></div>
                                     </div>
                                 </div>
                             </div>
@@ -73,27 +73,27 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                         <section class="wizard-pane" data-step-pane="2">
                             <div class="pane-head">
                                 <div>
-                                    <h5 class="pane-title">Periode Roster Saat Ini</h5>
-                                    <p class="pane-text">Perbarui periode aktif dan status mingguan jika ada perubahan pada jadwal kerja roster.</p>
+                                    <h5 class="pane-title">{{ __('Periode Roster Saat Ini') }}</h5>
+                                    <p class="pane-text">{{ __('Perbarui periode aktif dan status mingguan jika ada perubahan pada jadwal kerja roster.') }}</p>
                                 </div>
-                                <span class="pane-chip"><i class="fas fa-calendar-alt"></i> 5 minggu roster</span>
+                                <span class="pane-chip"><i class="fas fa-calendar-alt"></i> {{ __('5 minggu roster') }}</span>
                             </div>
                             <div class="box">
                                 <div class="box-head">
-                                    <h6 class="box-title">Periode Aktif</h6>
-                                    <p class="box-text">Isi tanggal awal dan akhir periode roster yang sedang berjalan.</p>
+                                    <h6 class="box-title">{{ __('Periode Aktif') }}</h6>
+                                    <p class="box-text">{{ __('Isi tanggal awal dan akhir periode roster yang sedang berjalan.') }}</p>
                                 </div>
                                 <div class="box-body">
                                     <div class="row g-3">
-                                        <div class="col-md-6"><label class="form-label">Periode Awal</label><input type="date" name="periode_awal" class="form-control" value="{{ old('periode_awal', optional($roster->periodeKerjaRoster)->periode_awal) }}" required></div>
-                                        <div class="col-md-6"><label class="form-label">Periode Akhir</label><input type="date" name="periode_akhir" class="form-control" value="{{ old('periode_akhir', optional($roster->periodeKerjaRoster)->periode_akhir) }}" required></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Periode Awal') }}</label><input type="date" name="periode_awal" class="form-control" value="{{ old('periode_awal', optional($roster->periodeKerjaRoster)->periode_awal) }}" required></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Periode Akhir') }}</label><input type="date" name="periode_akhir" class="form-control" value="{{ old('periode_akhir', optional($roster->periodeKerjaRoster)->periode_akhir) }}" required></div>
                                     </div>
                                 </div>
                             </div>
                             <div class="box">
                                 <div class="box-head">
-                                    <h6 class="box-title">Status Mingguan</h6>
-                                    <p class="box-text">Pilih OFF atau BEKERJA untuk setiap minggu dan masukkan tanggalnya.</p>
+                                    <h6 class="box-title">{{ __('Status Mingguan') }}</h6>
+                                    <p class="box-text">{{ __('Pilih OFF atau BEKERJA untuk setiap minggu dan masukkan tanggalnya.') }}</p>
                                 </div>
                                 <div class="box-body">
                                     <div class="week-list">
@@ -104,21 +104,21 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                                         <div class="week-item">
                                             <div class="week-label">{{ $weekLabels[$no - 1] }}</div>
                                             <div>
-                                                <label class="form-label">Status</label>
+                                                <label class="form-label">{{ __('Status') }}</label>
                                                 <select name="{{ $field }}" class="form-select form-control">
-                                                    <option value="OFF" {{ old($field, optional($roster->periodeKerjaRoster)->{$field}) === 'OFF' ? 'selected' : '' }}>OFF</option>
-                                                    <option value="BEKERJA" {{ old($field, optional($roster->periodeKerjaRoster)->{$field}) === 'BEKERJA' ? 'selected' : '' }}>BEKERJA</option>
+                                                    <option value="OFF" {{ old($field, optional($roster->periodeKerjaRoster)->{$field}) === 'OFF' ? 'selected' : '' }}>{{ __('OFF') }}</option>
+                                                    <option value="BEKERJA" {{ old($field, optional($roster->periodeKerjaRoster)->{$field}) === 'BEKERJA' ? 'selected' : '' }}>{{ __('BEKERJA') }}</option>
                                                 </select>
                                             </div>
                                             <div>
-                                                <label class="form-label">Tanggal</label>
+                                                <label class="form-label">{{ __('Tanggal') }}</label>
                                                 <input type="date" name="{{ $dateField }}" class="form-control" value="{{ old($dateField, optional($roster->periodeKerjaRoster)->{$dateField}) }}" required>
                                             </div>
                                         </div>
                                         @endforeach
                                     </div>
                                     <div class="alert alert-light border small mt-3 mb-0" id="approvedRosterOffList">
-                                        Isi periode awal dan akhir untuk mendeteksi OFF roster yang sudah disetujui.
+                                        {{ __('Isi periode awal dan akhir untuk mendeteksi OFF roster yang sudah disetujui.') }}
                                     </div>
                                 </div>
                             </div>
@@ -127,26 +127,26 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                         <section class="wizard-pane" data-step-pane="3">
                             <div class="pane-head">
                                 <div>
-                                    <h5 class="pane-title">Pilih Jenis Rencana</h5>
-                                    <p class="pane-text">Sesuaikan jenis rencana dan ubah hanya bagian yang memang relevan untuk pengajuan ini.</p>
+                                    <h5 class="pane-title">{{ __('Pilih Jenis Rencana') }}</h5>
+                                    <p class="pane-text">{{ __('Sesuaikan jenis rencana dan ubah hanya bagian yang memang relevan untuk pengajuan ini.') }}</p>
                                 </div>
-                                <span class="pane-chip"><i class="fas fa-layer-group"></i> Bagian tampil sesuai pilihan</span>
+                                <span class="pane-chip"><i class="fas fa-layer-group"></i> {{ __('Bagian tampil sesuai pilihan') }}</span>
                             </div>
                             <div class="plan-grid">
                                 <div class="plan-option">
                                     <input type="radio" name="tipe_rencana" value="1" id="roster" {{ (string) $selectedPlanType === '1' ? 'checked' : '' }} required>
                                     <label for="roster">
-                                        <span class="plan-tag cuti"><i class="fas fa-umbrella-beach"></i> Cuti Roster</span>
-                                        <strong>Atur cuti roster, tahunan, dan OFF</strong>
-                                        <span class="desc">Gunakan bagian ini jika pengajuan roster berisi kombinasi cuti dan hari istirahat.</span>
+                                        <span class="plan-tag cuti"><i class="fas fa-umbrella-beach"></i> {{ __('Cuti Roster') }}</span>
+                                        <strong>{{ __('Atur cuti roster, tahunan, dan OFF') }}</strong>
+                                        <span class="desc">{{ __('Gunakan bagian ini jika pengajuan roster berisi kombinasi cuti dan hari istirahat.') }}</span>
                                     </label>
                                 </div>
                                 <div class="plan-option">
                                     <input type="radio" name="tipe_rencana" value="2" id="insentif" {{ (string) $selectedPlanType === '2' ? 'checked' : '' }}>
                                     <label for="insentif">
-                                        <span class="plan-tag insentif"><i class="fas fa-briefcase"></i> Insentif</span>
-                                        <strong>Atur periode kerja insentif</strong>
-                                        <span class="desc">Pilih ini jika pengajuan yang sedang diedit fokus pada tambahan hari kerja insentif.</span>
+                                        <span class="plan-tag insentif"><i class="fas fa-briefcase"></i> {{ __('Insentif') }}</span>
+                                        <strong>{{ __('Atur periode kerja insentif') }}</strong>
+                                        <span class="desc">{{ __('Pilih ini jika pengajuan yang sedang diedit fokus pada tambahan hari kerja insentif.') }}</span>
                                     </label>
                                 </div>
                             </div>
@@ -154,25 +154,25 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                             <div class="plan-panel {{ (string) $selectedPlanType === '1' ? 'active' : '' }}" id="planPanelCuti">
                                 <div class="box">
                                     <div class="box-head">
-                                        <h6 class="box-title">Jadwal Cuti Roster</h6>
-                                        <p class="box-text">Perbarui rentang cuti roster, cuti tahunan, dan OFF. Sistem akan mengecek tumpang tindih otomatis.</p>
+                                        <h6 class="box-title">{{ __('Jadwal Cuti Roster') }}</h6>
+                                        <p class="box-text">{{ __('Perbarui rentang cuti roster, cuti tahunan, dan OFF. Sistem akan mengecek tumpang tindih otomatis.') }}</p>
                                     </div>
                                     <div class="box-body">
                                         <div class="row g-3">
-                                            <div class="col-md-6"><label class="form-label">Tanggal mulai cuti roster</label><input type="date" id="mulai_cuti_roster" name="tgl_mulai_cuti_roster" class="form-control" value="{{ old('tgl_mulai_cuti_roster', $roster->tgl_mulai_cuti) }}"></div>
-                                            <div class="col-md-6"><label class="form-label">Tanggal akhir cuti roster</label><input type="date" id="akhir_cuti_roster" name="tgl_berakhir_cuti_roster" class="form-control" value="{{ old('tgl_berakhir_cuti_roster', $roster->tgl_mulai_cuti_berakhir) }}"></div>
-                                            <div class="col-md-6"><label class="form-label">Tanggal mulai cuti tahunan</label><input type="date" id="mulai_cuti_tahunan" name="tgl_mulai_cuti_tahunan" class="form-control" value="{{ old('tgl_mulai_cuti_tahunan', $roster->tgl_mulai_cuti_tahunan) }}"></div>
-                                            <div class="col-md-6"><label class="form-label">Tanggal akhir cuti tahunan</label><input type="date" id="akhir_cuti_tahunan" name="tgl_berakhir_cuti_tahunan" class="form-control" value="{{ old('tgl_berakhir_cuti_tahunan', $roster->tgl_mulai_cuti_tahunan_berakhir) }}"></div>
-                                            <div class="col-md-6"><label class="form-label">Tanggal mulai off</label><input type="date" id="mulai_off" name="tgl_mulai_off" class="form-control" value="{{ old('tgl_mulai_off', $roster->tgl_mulai_off) }}"></div>
-                                            <div class="col-md-6"><label class="form-label">Tanggal akhir off</label><input type="date" id="akhir_off" name="tgl_berakhir_off" class="form-control" value="{{ old('tgl_berakhir_off', $roster->tgl_mulai_off_berakhir) }}"></div>
+                                            <div class="col-md-6"><label class="form-label">{{ __('Tanggal mulai cuti roster') }}</label><input type="date" id="mulai_cuti_roster" name="tgl_mulai_cuti_roster" class="form-control" value="{{ old('tgl_mulai_cuti_roster', $roster->tgl_mulai_cuti) }}"></div>
+                                            <div class="col-md-6"><label class="form-label">{{ __('Tanggal akhir cuti roster') }}</label><input type="date" id="akhir_cuti_roster" name="tgl_berakhir_cuti_roster" class="form-control" value="{{ old('tgl_berakhir_cuti_roster', $roster->tgl_mulai_cuti_berakhir) }}"></div>
+                                            <div class="col-md-6"><label class="form-label">{{ __('Tanggal mulai cuti tahunan') }}</label><input type="date" id="mulai_cuti_tahunan" name="tgl_mulai_cuti_tahunan" class="form-control" value="{{ old('tgl_mulai_cuti_tahunan', $roster->tgl_mulai_cuti_tahunan) }}"></div>
+                                            <div class="col-md-6"><label class="form-label">{{ __('Tanggal akhir cuti tahunan') }}</label><input type="date" id="akhir_cuti_tahunan" name="tgl_berakhir_cuti_tahunan" class="form-control" value="{{ old('tgl_berakhir_cuti_tahunan', $roster->tgl_mulai_cuti_tahunan_berakhir) }}"></div>
+                                            <div class="col-md-6"><label class="form-label">{{ __('Tanggal mulai off') }}</label><input type="date" id="mulai_off" name="tgl_mulai_off" class="form-control" value="{{ old('tgl_mulai_off', $roster->tgl_mulai_off) }}"></div>
+                                            <div class="col-md-6"><label class="form-label">{{ __('Tanggal akhir off') }}</label><input type="date" id="akhir_off" name="tgl_berakhir_off" class="form-control" value="{{ old('tgl_berakhir_off', $roster->tgl_mulai_off_berakhir) }}"></div>
                                         </div>
                                         <div class="summary-grid">
-                                            <div class="summary-item"><small>Cuti Roster</small><strong><span id="total_cuti_roster">0</span> Hari</strong></div>
-                                            <div class="summary-item"><small>Cuti Tahunan</small><strong><span id="total_cuti_tahunan">0</span> Hari</strong></div>
-                                            <div class="summary-item"><small>OFF</small><strong><span id="total_off">0</span> Hari</strong></div>
+                                            <div class="summary-item"><small>{{ __('Cuti Roster') }}</small><strong><span id="total_cuti_roster">0</span> {{ __('Hari') }}</strong></div>
+                                            <div class="summary-item"><small>{{ __('Cuti Tahunan') }}</small><strong><span id="total_cuti_tahunan">0</span> {{ __('Hari') }}</strong></div>
+                                            <div class="summary-item"><small>{{ __('OFF') }}</small><strong><span id="total_off">0</span> {{ __('Hari') }}</strong></div>
                                         </div>
                                         <div class="total-banner">
-                                            <div><small>Total Keseluruhan Roster</small><strong id="grand_total">0 Hari</strong></div>
+                                            <div><small>{{ __('Total Keseluruhan Roster') }}</small><strong id="grand_total">{{ __('0 Hari') }}</strong></div>
                                             <i class="fas fa-calendar-check fa-lg"></i>
                                         </div>
                                     </div>
@@ -182,20 +182,20 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                             <div class="plan-panel {{ (string) $selectedPlanType === '2' ? 'active' : '' }}" id="planPanelInsentif">
                                 <div class="box">
                                     <div class="box-head">
-                                        <h6 class="box-title">Jadwal Insentif</h6>
-                                        <p class="box-text">Perbarui rentang kerja insentif. Total akan dihitung dari minggu bekerja dan durasi insentif.</p>
+                                        <h6 class="box-title">{{ __('Jadwal Insentif') }}</h6>
+                                        <p class="box-text">{{ __('Perbarui rentang kerja insentif. Total akan dihitung dari minggu bekerja dan durasi insentif.') }}</p>
                                     </div>
                                     <div class="box-body">
                                         <div class="row g-3">
-                                            <div class="col-md-6"><label class="form-label">Tanggal mulai insentif</label><input type="date" id="tgl_awal_kerja" name="tgl_awal_kerja" class="form-control" value="{{ old('tgl_awal_kerja', $roster->tgl_awal_kerja) }}"></div>
-                                            <div class="col-md-6"><label class="form-label">Tanggal akhir insentif</label><input type="date" id="tgl_akhir_kerja" name="tgl_akhir_kerja" class="form-control" value="{{ old('tgl_akhir_kerja', $roster->tgl_akhir_kerja) }}"></div>
+                                            <div class="col-md-6"><label class="form-label">{{ __('Tanggal mulai insentif') }}</label><input type="date" id="tgl_awal_kerja" name="tgl_awal_kerja" class="form-control" value="{{ old('tgl_awal_kerja', $roster->tgl_awal_kerja) }}"></div>
+                                            <div class="col-md-6"><label class="form-label">{{ __('Tanggal akhir insentif') }}</label><input type="date" id="tgl_akhir_kerja" name="tgl_akhir_kerja" class="form-control" value="{{ old('tgl_akhir_kerja', $roster->tgl_akhir_kerja) }}"></div>
                                         </div>
                                         <div class="summary-grid summary-grid--two-columns">
-                                            <div class="summary-item"><small>Hari Insentif</small><strong><span id="total_insentif">0</span> Hari</strong></div>
-                                            <div class="summary-item"><small>Status Bekerja</small><strong><span id="jumlah_bekerja">0</span> Minggu</strong></div>
+                                            <div class="summary-item"><small>{{ __('Hari Insentif') }}</small><strong><span id="total_insentif">0</span> {{ __('Hari') }}</strong></div>
+                                            <div class="summary-item"><small>{{ __('Status Bekerja') }}</small><strong><span id="jumlah_bekerja">0</span> {{ __('Minggu') }}</strong></div>
                                         </div>
                                         <div class="total-banner success">
-                                            <div><small>Total Keseluruhan Insentif</small><strong id="grand_total_insentif">0 Hari</strong></div>
+                                            <div><small>{{ __('Total Keseluruhan Insentif') }}</small><strong id="grand_total_insentif">{{ __('0 Hari') }}</strong></div>
                                             <i class="fas fa-briefcase fa-lg"></i>
                                         </div>
                                     </div>
@@ -206,53 +206,53 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                         <section class="wizard-pane" data-step-pane="4">
                             <div class="pane-head">
                                 <div>
-                                    <h5 class="pane-title">Detail Perjalanan dan Berkas</h5>
-                                    <p class="pane-text">Periksa ulang jadwal perjalanan dan ganti berkas pendukung bila memang ada pembaruan.</p>
+                                    <h5 class="pane-title">{{ __('Detail Perjalanan dan Berkas') }}</h5>
+                                    <p class="pane-text">{{ __('Periksa ulang jadwal perjalanan dan ganti berkas pendukung bila memang ada pembaruan.') }}</p>
                                 </div>
-                                <span class="pane-chip"><i class="fas fa-plane-departure"></i> Langkah terakhir</span>
+                                <span class="pane-chip"><i class="fas fa-plane-departure"></i> {{ __('Langkah terakhir') }}</span>
                             </div>
                             <div class="box">
                                 <div class="box-head">
-                                    <h6 class="box-title">Detail Keberangkatan</h6>
-                                    <p class="box-text">Perbarui tanggal, jam, rute, dan catatan keberangkatan bila ada perubahan.</p>
+                                    <h6 class="box-title">{{ __('Detail Keberangkatan') }}</h6>
+                                    <p class="box-text">{{ __('Perbarui tanggal, jam, rute, dan catatan keberangkatan bila ada perubahan.') }}</p>
                                 </div>
                                 <div class="box-body">
                                     <div class="row g-3">
-                                        <div class="col-md-6"><label class="form-label">Tanggal Keberangkatan</label><input type="date" name="tanggal_keberangkatan" class="form-control" value="{{ old('tanggal_keberangkatan', $roster->tgl_keberangkatan) }}"></div>
-                                        <div class="col-md-6"><label class="form-label">Jam Keberangkatan</label><input type="text" name="jam_keberangkatan" class="form-control" placeholder="07:00" value="{{ old('jam_keberangkatan', $roster->jam_keberangkatan) }}"></div>
-                                        <div class="col-md-6"><label class="form-label">Dari</label><select name="kota_awal_keberangkatan" class="form-select form-control search-airport" data-placeholder="Cari bandara keberangkatan...">@if($roster->kota_awal_keberangkatan)<option value="{{ $roster->kota_awal_keberangkatan }}" selected>{{ $roster->kota_awal_keberangkatan }}</option>@endif</select></div>
-                                        <div class="col-md-6"><label class="form-label">Tujuan</label><select name="kota_tujuan_keberangkatan" class="form-select form-control search-airport" data-placeholder="Cari bandara tujuan...">@if($roster->kota_tujuan_keberangkatan)<option value="{{ $roster->kota_tujuan_keberangkatan }}" selected>{{ $roster->kota_tujuan_keberangkatan }}</option>@endif</select></div>
-                                        <div class="col-md-12"><label class="form-label">Catatan Penting</label><textarea name="catatan_penting_keberangkatan" class="form-control" rows="4">{{ old('catatan_penting_keberangkatan', $roster->catatan_penting_keberangkatan) }}</textarea></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Tanggal Keberangkatan') }}</label><input type="date" name="tanggal_keberangkatan" class="form-control" value="{{ old('tanggal_keberangkatan', $roster->tgl_keberangkatan) }}"></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Jam Keberangkatan') }}</label><input type="text" name="jam_keberangkatan" class="form-control" placeholder="07:00" value="{{ old('jam_keberangkatan', $roster->jam_keberangkatan) }}"></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Dari') }}</label><select name="kota_awal_keberangkatan" class="form-select form-control search-airport" data-placeholder="{{ __('Cari bandara keberangkatan...') }}">@if($roster->kota_awal_keberangkatan)<option value="{{ $roster->kota_awal_keberangkatan }}" selected>{{ $roster->kota_awal_keberangkatan }}</option>@endif</select></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Tujuan') }}</label><select name="kota_tujuan_keberangkatan" class="form-select form-control search-airport" data-placeholder="{{ __('Cari bandara tujuan...') }}">@if($roster->kota_tujuan_keberangkatan)<option value="{{ $roster->kota_tujuan_keberangkatan }}" selected>{{ $roster->kota_tujuan_keberangkatan }}</option>@endif</select></div>
+                                        <div class="col-md-12"><label class="form-label">{{ __('Catatan Penting') }}</label><textarea name="catatan_penting_keberangkatan" class="form-control" rows="4">{{ old('catatan_penting_keberangkatan', $roster->catatan_penting_keberangkatan) }}</textarea></div>
                                     </div>
                                 </div>
                             </div>
                             <div class="box">
                                 <div class="box-head">
-                                    <h6 class="box-title">Detail Kepulangan</h6>
-                                    <p class="box-text">Perbarui detail perjalanan pulang bila ada perubahan jadwal atau rute.</p>
+                                    <h6 class="box-title">{{ __('Detail Kepulangan') }}</h6>
+                                    <p class="box-text">{{ __('Perbarui detail perjalanan pulang bila ada perubahan jadwal atau rute.') }}</p>
                                 </div>
                                 <div class="box-body">
                                     <div class="row g-3">
-                                        <div class="col-md-6"><label class="form-label">Tanggal Kepulangan</label><input type="date" name="tanggal_kepulangan" class="form-control" value="{{ old('tanggal_kepulangan', $roster->tgl_kepulangan) }}"></div>
-                                        <div class="col-md-6"><label class="form-label">Jam Kepulangan</label><input type="text" name="jam_kepulangan" class="form-control" placeholder="07:00" value="{{ old('jam_kepulangan', $roster->jam_kepulangan) }}"></div>
-                                        <div class="col-md-6"><label class="form-label">Dari</label><select name="kota_awal_kepulangan" class="form-select form-control search-airport" data-placeholder="Cari bandara asal pulang...">@if($roster->kota_awal_kepulangan)<option value="{{ $roster->kota_awal_kepulangan }}" selected>{{ $roster->kota_awal_kepulangan }}</option>@endif</select></div>
-                                        <div class="col-md-6"><label class="form-label">Tujuan</label><select name="kota_tujuan_kepulangan" class="form-select form-control search-airport" data-placeholder="Cari bandara tujuan pulang...">@if($roster->kota_tujuan_kepulangan)<option value="{{ $roster->kota_tujuan_kepulangan }}" selected>{{ $roster->kota_tujuan_kepulangan }}</option>@endif</select></div>
-                                        <div class="col-md-12"><label class="form-label">Catatan Penting</label><textarea name="catatan_penting_kepulangan" class="form-control" rows="4">{{ old('catatan_penting_kepulangan', $roster->catatan_penting_kepulangan) }}</textarea></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Tanggal Kepulangan') }}</label><input type="date" name="tanggal_kepulangan" class="form-control" value="{{ old('tanggal_kepulangan', $roster->tgl_kepulangan) }}"></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Jam Kepulangan') }}</label><input type="text" name="jam_kepulangan" class="form-control" placeholder="07:00" value="{{ old('jam_kepulangan', $roster->jam_kepulangan) }}"></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Dari') }}</label><select name="kota_awal_kepulangan" class="form-select form-control search-airport" data-placeholder="{{ __('Cari bandara asal pulang...') }}">@if($roster->kota_awal_kepulangan)<option value="{{ $roster->kota_awal_kepulangan }}" selected>{{ $roster->kota_awal_kepulangan }}</option>@endif</select></div>
+                                        <div class="col-md-6"><label class="form-label">{{ __('Tujuan') }}</label><select name="kota_tujuan_kepulangan" class="form-select form-control search-airport" data-placeholder="{{ __('Cari bandara tujuan pulang...') }}">@if($roster->kota_tujuan_kepulangan)<option value="{{ $roster->kota_tujuan_kepulangan }}" selected>{{ $roster->kota_tujuan_kepulangan }}</option>@endif</select></div>
+                                        <div class="col-md-12"><label class="form-label">{{ __('Catatan Penting') }}</label><textarea name="catatan_penting_kepulangan" class="form-control" rows="4">{{ old('catatan_penting_kepulangan', $roster->catatan_penting_kepulangan) }}</textarea></div>
                                     </div>
                                 </div>
                             </div>
                             <div class="box">
                                 <div class="box-head">
-                                    <h6 class="box-title">Berkas Pendukung</h6>
-                                    <p class="box-text">Upload file baru bila perlu mengganti berkas lama.</p>
+                                    <h6 class="box-title">{{ __('Berkas Pendukung') }}</h6>
+                                    <p class="box-text">{{ __('Upload file baru bila perlu mengganti berkas lama.') }}</p>
                                 </div>
                                 <div class="box-body">
                                     <div class="upload-box">
-                                        <label class="form-label fw-semibold">Upload Berkas Baru</label>
+                                        <label class="form-label fw-semibold">{{ __('Upload Berkas Baru') }}</label>
                                         <input type="file" name="berkas_cuti" class="form-control">
                                         @if($roster->file)
                                         <a href="{{ route('roster.attachment', $roster->id) }}" target="_blank" class="btn btn-sm btn-outline-primary mt-3">
-                                            Lihat File Lama
+                                            {{ __('Lihat File Lama') }}
                                         </a>
                                         @endif
                                     </div>
@@ -261,9 +261,9 @@ $weekFields = [1 => 'satu', 2 => 'dua', 3 => 'tiga', 4 => 'empat', 5 => 'lima'];
                         </section>
 
                         <div class="wizard-footer">
-                            <button type="button" class="btn btn-light border d-none" id="wizardPrevBtn"><i class="fas fa-arrow-left me-2"></i>Sebelumnya</button>
-                            <button type="button" class="btn btn-primary" id="wizardNextBtn">Lanjutkan<i class="fas fa-arrow-right ms-2"></i></button>
-                            <button type="submit" class="btn btn-success d-none" id="wizardSubmitBtn"><i class="fas fa-save me-2"></i>Simpan Perubahan</button>
+                            <button type="button" class="btn btn-light border d-none" id="wizardPrevBtn"><i class="fas fa-arrow-left me-2"></i>{{ __('Sebelumnya') }}</button>
+                            <button type="button" class="btn btn-primary" id="wizardNextBtn">{{ __('Lanjutkan') }}<i class="fas fa-arrow-right ms-2"></i></button>
+                            <button type="submit" class="btn btn-success d-none" id="wizardSubmitBtn"><i class="fas fa-save me-2"></i>{{ __('Simpan Perubahan') }}</button>
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Jadwal Roster')
+@section('title', __('Jadwal Roster'))
 
 @section('content')
 <div id="rosterActionFeedback"
@@ -12,18 +12,18 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Jadwal Roster</h4>
-                <small class="text-muted">Siklus 10 minggu bekerja dan 2 minggu off. Periode I–V dihitung otomatis berdasarkan tanggal mulai off dalam tahun yang sama.</small>
+                <h4 class="fw-bold mb-1">{{ __('Jadwal Roster') }}</h4>
+                <small class="text-muted">{{ __('Siklus 10 minggu bekerja dan 2 minggu off. Periode I–V dihitung otomatis berdasarkan tanggal mulai off dalam tahun yang sama.') }}</small>
             </div>
             <div class="ms-md-auto">
                 <a href="{{ route('roster-schedules.history') }}" class="btn btn-outline-primary me-1">
-                    <i class="fas fa-history me-1"></i> Riwayat Excel
+                    <i class="fas fa-history me-1"></i> {{ __('Riwayat Excel') }}
                 </a>
                 <a href="{{ route('roster-schedules.import.create') }}" class="btn btn-outline-secondary me-1">
-                    <i class="fas fa-file-import me-1"></i> Import Riwayat
+                    <i class="fas fa-file-import me-1"></i> {{ __('Import Riwayat') }}
                 </a>
                 <a href="{{ route('roster-schedules.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i> Generate Jadwal
+                    <i class="fas fa-plus me-1"></i> {{ __('Generate Jadwal') }}
                 </a>
             </div>
         </div>
@@ -32,38 +32,38 @@
             <div class="card-body">
                 <form method="GET" class="row g-2 align-items-end">
                     <div class="col-lg-4 col-md-6">
-                        <label class="form-label">Cari karyawan</label>
-                        <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control" placeholder="Nama atau NIK">
+                        <label class="form-label">{{ __('Cari karyawan') }}</label>
+                        <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control" placeholder="{{ __('Nama atau NIK') }}">
                     </div>
                     <div class="col-lg-2 col-md-3">
-                        <label class="form-label">Tahun</label>
+                        <label class="form-label">{{ __('Tahun') }}</label>
                         <select name="year" class="form-select">
-                            <option value="">Semua tahun</option>
+                            <option value="">{{ __('Semua tahun') }}</option>
                             @foreach($yearOptions as $year)
                             <option value="{{ $year }}" @selected((string)($filters['year'] ?? '') === (string)$year)>{{ $year }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-3">
-                        <label class="form-label">Realisasi</label>
+                        <label class="form-label">{{ __('Realisasi') }}</label>
                         <select name="realization_type" class="form-select">
-                            <option value="">Semua</option>
+                            <option value="">{{ __('Semua') }}</option>
                             @foreach($realizationOptions as $value => $label)
                             <option value="{{ $value }}" @selected(($filters['realization_type'] ?? '') === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-3">
-                        <label class="form-label">Status</label>
+                        <label class="form-label">{{ __('Status') }}</label>
                         <select name="active" class="form-select">
-                            <option value="">Semua</option>
-                            <option value="1" @selected(($filters['active'] ?? '') === '1')>Aktif</option>
-                            <option value="0" @selected(($filters['active'] ?? '') === '0')>Nonaktif</option>
+                            <option value="">{{ __('Semua') }}</option>
+                            <option value="1" @selected(($filters['active'] ?? '') === '1')>{{ __('Aktif') }}</option>
+                            <option value="0" @selected(($filters['active'] ?? '') === '0')>{{ __('Nonaktif') }}</option>
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-3 d-flex gap-2">
-                        <button class="btn btn-primary flex-fill">Filter</button>
-                        <a href="{{ route('roster-schedules.index') }}" class="btn btn-light border">Reset</a>
+                        <button class="btn btn-primary flex-fill">{{ __('Filter') }}</button>
+                        <a href="{{ route('roster-schedules.index') }}" class="btn btn-light border">{{ __('Reset') }}</a>
                     </div>
                 </form>
             </div>
@@ -75,13 +75,13 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Karyawan</th>
-                                <th>Periode</th>
-                                <th>Masa Kerja</th>
-                                <th>Jadwal Off</th>
-                                <th>Realisasi</th>
-                                <th>Reminder</th>
-                                <th class="text-end">Aksi</th>
+                                <th>{{ __('Karyawan') }}</th>
+                                <th>{{ __('Periode') }}</th>
+                                <th>{{ __('Masa Kerja') }}</th>
+                                <th>{{ __('Jadwal Off') }}</th>
+                                <th>{{ __('Realisasi') }}</th>
+                                <th>{{ __('Reminder') }}</th>
+                                <th class="text-end">{{ __('Aksi') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -100,7 +100,7 @@
                                     {{ $schedule->off_start->format('d M Y') }}<br><small class="text-muted">s.d. {{ $schedule->off_end->format('d M Y') }}</small>
                                     @if($schedule->isOverduePending($today))
                                         <div class="mt-1">
-                                            <span class="badge bg-danger">Terlambat Mengajukan</span>
+                                            <span class="badge bg-danger">{{ __('Terlambat Mengajukan') }}</span>
                                             <small class="d-block text-danger mt-1">
                                                 Terlambat {{ $schedule->off_start->diffInDays($today) }} hari
                                             </small>
@@ -114,10 +114,10 @@
                                             : ($schedule->realization_type === 'insentif' ? 'info' : 'warning');
                                     @endphp
                                     <span class="badge bg-{{ $realizationClass }}">{{ $schedule->realization_label }}</span>
-                                    @if(!$schedule->is_active)<span class="badge bg-secondary">Nonaktif</span>@endif
+                                    @if(!$schedule->is_active)<span class="badge bg-secondary">{{ __('Nonaktif') }}</span>@endif
                                     @if($schedule->manual_submitted_at)
                                         <div class="mt-1">
-                                            <span class="badge bg-dark">Pengajuan Manual</span>
+                                            <span class="badge bg-dark">{{ __('Pengajuan Manual') }}</span>
                                             @if($schedule->manual_reference_number)
                                                 <small class="d-block text-muted mt-1">Referensi: {{ $schedule->manual_reference_number }}</small>
                                             @endif
@@ -134,17 +134,17 @@
                                 </td>
                                 <td id="roster-reminder-status-{{ $schedule->id }}">
                                     @if($schedule->reminder_queued_at)
-                                    <span class="badge bg-info">Dalam antrean</span>
+                                    <span class="badge bg-info">{{ __('Dalam antrean') }}</span>
                                     @elseif($schedule->reminder_failed_at && (!$schedule->reminder_sent_at || $schedule->reminder_failed_at->gt($schedule->reminder_sent_at)))
-                                    <span class="badge bg-danger" title="{{ $schedule->reminder_error }}">Gagal</span>
+                                    <span class="badge bg-danger" title="{{ $schedule->reminder_error }}">{{ __('Gagal') }}</span>
                                     @elseif($schedule->reminder_sent_at)
-                                    <span class="badge bg-success">Terkirim</span>
+                                    <span class="badge bg-success">{{ __('Terkirim') }}</span>
                                     <div><small class="text-muted">{{ $schedule->reminder_sent_at->format('d M Y H:i') }}</small></div>
                                     @elseif($schedule->isOverduePending($today))
-                                    <span class="badge bg-warning text-dark">Belum dikirim</span>
-                                    <div><small class="text-muted">Reminder perlu diproses</small></div>
+                                    <span class="badge bg-warning text-dark">{{ __('Belum dikirim') }}</span>
+                                    <div><small class="text-muted">{{ __('Reminder perlu diproses') }}</small></div>
                                     @else
-                                    <span class="badge bg-light text-dark border">Belum jatuh tempo</span>
+                                    <span class="badge bg-light text-dark border">{{ __('Belum jatuh tempo') }}</span>
                                     @endif
                                 </td>
                                 <td class="text-end">
@@ -157,7 +157,7 @@
                                                     data-manual-action="{{ route('roster-schedules.manual-submission.store', $schedule) }}"
                                                     aria-haspopup="dialog"
                                                     aria-controls="manualSubmissionModal">
-                                                <i class="fas fa-file-signature me-1"></i> Catat Pengajuan Manual
+                                                <i class="fas fa-file-signature me-1"></i> {{ __('Catat Pengajuan Manual') }}
                                             </button>
                                         @endif
                                         @if($schedule->isOverduePending($today))
@@ -198,7 +198,7 @@
                                             <button type="button"
                                                     class="btn btn-sm btn-outline-secondary js-reminder-unavailable-button"
                                                     data-reminder-unavailable-reason="{{ $reminderUnavailableReason }}">
-                                                <i class="fas fa-info-circle me-1"></i> Lihat Status Reminder
+                                                <i class="fas fa-info-circle me-1"></i> {{ __('Lihat Status Reminder') }}
                                             </button>
                                             @else
                                             <form method="POST"
@@ -209,17 +209,17 @@
                                                         class="btn btn-sm btn-outline-danger js-roster-reminder-button"
                                                         data-reminder-employee="{{ optional($schedule->employee)->nama_karyawan ?: 'Karyawan tidak ditemukan' }} ({{ $schedule->employee_nik }})"
                                                         data-reminder-period="{{ optional($schedule->off_start)->format('d M Y') ?: '-' }} s.d. {{ optional($schedule->off_end)->format('d M Y') ?: '-' }}">
-                                                    <i class="fas fa-paper-plane me-1"></i> Kirim Reminder Lagi
+                                                    <i class="fas fa-paper-plane me-1"></i> {{ __('Kirim Reminder Lagi') }}
                                                 </button>
                                             </form>
                                             @endif
                                         @endif
-                                        <a href="{{ route('roster-schedules.edit', $schedule) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                        <a href="{{ route('roster-schedules.edit', $schedule) }}" class="btn btn-sm btn-outline-primary">{{ __('Edit') }}</a>
                                     </div>
                                 </td>
                             </tr>
                             @empty
-                            <tr><td colspan="7" class="text-center py-5 text-muted">Belum ada jadwal roster sesuai filter.</td></tr>
+                            <tr><td colspan="7" class="text-center py-5 text-muted">{{ __('Belum ada jadwal roster sesuai filter.') }}</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -240,39 +240,39 @@
                 <input type="hidden" name="manual_schedule_id" id="manualScheduleId" value="{{ old('manual_schedule_id') }}">
                 <div class="modal-header">
                     <div>
-                        <h5 class="modal-title" id="manualSubmissionModalLabel">Catat Pengajuan Manual</h5>
+                        <h5 class="modal-title" id="manualSubmissionModalLabel">{{ __('Catat Pengajuan Manual') }}</h5>
                         <small class="text-muted" id="manualSubmissionEmployee"></small>
                     </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Tutup') }}"></button>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-info py-2">
-                        Form ini mencatat penerimaan pengajuan offline dan tidak membuat approval digital.
+                        {{ __('Form ini mencatat penerimaan pengajuan offline dan tidak membuat approval digital.') }}
                     </div>
                     <div class="mb-3">
-                        <label for="manualRealizationType" class="form-label">Realisasi <span class="text-danger">*</span></label>
+                        <label for="manualRealizationType" class="form-label">{{ __('Realisasi') }} <span class="text-danger">*</span></label>
                         <select name="realization_type" id="manualRealizationType" class="form-select @error('realization_type') is-invalid @enderror" required>
-                            <option value="">Pilih realisasi</option>
-                            <option value="{{ \App\Models\RosterSchedule::REALIZATION_CUTI }}" @if(old('realization_type') === \App\Models\RosterSchedule::REALIZATION_CUTI) selected @endif>Cuti Roster</option>
-                            <option value="{{ \App\Models\RosterSchedule::REALIZATION_INSENTIF }}" @if(old('realization_type') === \App\Models\RosterSchedule::REALIZATION_INSENTIF) selected @endif>Insentif</option>
+                            <option value="">{{ __('Pilih realisasi') }}</option>
+                            <option value="{{ \App\Models\RosterSchedule::REALIZATION_CUTI }}" @if(old('realization_type') === \App\Models\RosterSchedule::REALIZATION_CUTI) selected @endif>{{ __('Cuti Roster') }}</option>
+                            <option value="{{ \App\Models\RosterSchedule::REALIZATION_INSENTIF }}" @if(old('realization_type') === \App\Models\RosterSchedule::REALIZATION_INSENTIF) selected @endif>{{ __('Insentif') }}</option>
                         </select>
                         @error('realization_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="mb-3">
-                        <label for="manualReferenceNumber" class="form-label">Nomor referensi</label>
+                        <label for="manualReferenceNumber" class="form-label">{{ __('Nomor referensi') }}</label>
                         <input type="text" name="manual_reference_number" id="manualReferenceNumber" maxlength="100" value="{{ old('manual_reference_number') }}" class="form-control @error('manual_reference_number') is-invalid @enderror">
                         @error('manual_reference_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div>
-                        <label for="manualSubmissionNote" class="form-label">Catatan</label>
+                        <label for="manualSubmissionNote" class="form-label">{{ __('Catatan') }}</label>
                         <textarea name="manual_submission_note" id="manualSubmissionNote" maxlength="500" class="form-control @error('manual_submission_note') is-invalid @enderror" rows="3">{{ old('manual_submission_note') }}</textarea>
                         @error('manual_submission_note')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">{{ __('Batal') }}</button>
                     <button type="button" class="btn btn-success js-manual-submission-submit-button">
-                        <i class="fas fa-save me-1"></i> Simpan Pengajuan Manual
+                        <i class="fas fa-save me-1"></i> {{ __('Simpan Pengajuan Manual') }}
                     </button>
                 </div>
             </form>
@@ -369,11 +369,11 @@ function initializeRosterScheduleActions() {
 
             if (window.AppDialog && typeof window.AppDialog.confirm === 'function') {
                 window.AppDialog.confirm({
-                    title: 'Catat Pengajuan Manual?',
-                    text: 'Form pencatatan pengajuan offline akan dibuka untuk ' + (button.dataset.manualEmployee || 'karyawan ini') + '.',
+                    title: @json(__('Catat Pengajuan Manual?')),
+                    text: @json(__('Form pencatatan pengajuan offline akan dibuka untuk ')) + (button.dataset.manualEmployee || 'karyawan ini') + '.',
                     icon: 'info',
-                    confirmButtonText: 'Buka Form',
-                    cancelButtonText: 'Batal'
+                    confirmButtonText: @json(__('Buka Form')),
+                    cancelButtonText: @json(__('Batal'))
                 }).then(function (confirmed) {
                     if (confirmed) {
                         showFeedback('Form pengajuan manual dibuka. Lengkapi data lalu tekan Simpan.', 'info');
@@ -433,11 +433,11 @@ function initializeRosterScheduleActions() {
 
             if (window.AppDialog && typeof window.AppDialog.confirm === 'function') {
                 window.AppDialog.confirm({
-                    title: 'Kirim Reminder Lagi?',
-                    text: 'Reminder periode ' + period + ' akan dikirim ke email ' + employeeName + '.',
+                    title: @json(__('Kirim Reminder Lagi?')),
+                    text: @json(__('Reminder periode ')) + period + ' akan dikirim ke email ' + employeeName + '.',
                     icon: 'warning',
-                    confirmButtonText: 'Ya, Kirim',
-                    cancelButtonText: 'Batal'
+                    confirmButtonText: @js(__('Ya, Kirim')),
+                    cancelButtonText: @json(__('Batal'))
                 }).then(function (confirmed) {
                     if (confirmed) {
                         submitReminder();
@@ -488,11 +488,11 @@ function initializeRosterScheduleActions() {
 
         if (window.AppDialog && typeof window.AppDialog.confirm === 'function') {
             window.AppDialog.confirm({
-                title: 'Simpan Pengajuan Manual?',
+                title: @json(__('Simpan Pengajuan Manual?')),
                 text: realizationLabel + ' akan dicatat sebagai pengajuan offline untuk ' + employeeName + '.',
                 icon: 'warning',
-                confirmButtonText: 'Ya, Simpan',
-                cancelButtonText: 'Batal'
+                confirmButtonText: @js(__('Ya, Simpan')),
+                cancelButtonText: @json(__('Batal'))
             }).then(function (confirmed) {
                 if (confirmed) {
                     submitForm();

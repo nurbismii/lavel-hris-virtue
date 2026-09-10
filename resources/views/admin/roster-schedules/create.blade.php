@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Generate Jadwal Roster')
+@section('title', __('Generate Jadwal Roster'))
 
 @push('styles')
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.3/css/select2.min.css" rel="stylesheet" />
@@ -11,10 +11,10 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Generate Jadwal Roster</h4>
-                <small class="text-muted">Tanggal mulai adalah hari pertama masa kerja 10 minggu. Sistem otomatis membuat 14 hari off dan jadwal berikutnya setiap 84 hari.</small>
+                <h4 class="fw-bold mb-1">{{ __('Generate Jadwal Roster') }}</h4>
+                <small class="text-muted">{{ __('Tanggal mulai adalah hari pertama masa kerja 10 minggu. Sistem otomatis membuat 14 hari off dan jadwal berikutnya setiap 84 hari.') }}</small>
             </div>
-            <div class="ms-md-auto"><a href="{{ route('roster-schedules.index') }}" class="btn btn-light border">Kembali</a></div>
+            <div class="ms-md-auto"><a href="{{ route('roster-schedules.index') }}" class="btn btn-light border">{{ __('Kembali') }}</a></div>
         </div>
 
         <div class="row justify-content-center">
@@ -28,7 +28,7 @@
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-12">
-                                    <label class="form-label">Karyawan aktif</label>
+                                    <label class="form-label">{{ __('Karyawan aktif') }}</label>
                                     <select name="employee_nik" id="employeeNik" class="form-select @error('employee_nik') is-invalid @enderror" data-search-url="{{ route('roster-schedules.employees.search') }}" required>
                                         @if($selectedEmployee)
                                         <option value="{{ $selectedEmployee->nik }}" selected>{{ $selectedEmployee->nama_karyawan }} - {{ $selectedEmployee->nik }}</option>
@@ -37,20 +37,20 @@
                                     @error('employee_nik')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Mulai masa kerja 10 minggu</label>
+                                    <label class="form-label">{{ __('Mulai masa kerja 10 minggu') }}</label>
                                     <input type="date" name="work_start" id="workStart" value="{{ old('work_start', optional(optional($selectedEmployee)->work_pattern_start_date)->format('Y-m-d')) }}" class="form-control @error('work_start') is-invalid @enderror" required>
                                     @error('work_start')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Jumlah jadwal</label>
+                                    <label class="form-label">{{ __('Jumlah jadwal') }}</label>
                                     <input type="number" name="cycles" value="{{ old('cycles', 10) }}" min="1" max="60" class="form-control @error('cycles') is-invalid @enderror" required>
-                                    <small class="text-muted">10 jadwal kira-kira mencakup dua tahun.</small>
+                                    <small class="text-muted">{{ __('10 jadwal kira-kira mencakup dua tahun.') }}</small>
                                     @error('cycles')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                             </div>
                         </div>
                         <div class="card-footer bg-white text-end">
-                            <button type="submit" class="btn btn-primary" data-loading-text="Membuat jadwal...">Generate Jadwal</button>
+                            <button type="submit" class="btn btn-primary" data-loading-text="Membuat jadwal...">{{ __('Generate Jadwal') }}</button>
                         </div>
                     </div>
                 </form>
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const select = $('#employeeNik');
     select.select2({
         width: '100%',
-        placeholder: 'Ketik minimal 2 karakter nama atau NIK',
+        placeholder: @json(__('Ketik minimal 2 karakter nama atau NIK')),
         ajax: {
             url: select.data('search-url'),
             dataType: 'json',

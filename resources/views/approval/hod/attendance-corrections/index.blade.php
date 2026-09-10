@@ -5,14 +5,14 @@
     <div class="page-inner">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="text-primary mb-1">Approval Koreksi Presensi</h3>
-                <small class="text-muted">Review HOD untuk koreksi presensi dan izin presensi parsial karyawan.</small>
+                <h3 class="text-primary mb-1">{{ __('Approval Koreksi Presensi') }}</h3>
+                <small class="text-muted">{{ __('Review HOD untuk koreksi presensi dan izin presensi parsial karyawan.') }}</small>
             </div>
         </div>
 
         @if(!$isTableReady)
         <div class="alert alert-warning">
-            Fitur Koreksi Presensi belum aktif lengkap. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+            {{ __('Fitur Koreksi Presensi belum aktif lengkap. Jalankan') }} <code>php artisan migrate</code> {{ __('terlebih dahulu.') }}
         </div>
         @else
         <div class="card">
@@ -51,7 +51,7 @@
                                     @endforeach
                                     @if($correction->attachment_path)
                                     <a href="{{ route('attendance-corrections.attachment', $correction->id) }}" target="_blank" class="d-block small mt-1">
-                                        <i class="fas fa-paperclip me-1"></i> Lihat lampiran
+                                        <i class="fas fa-paperclip me-1"></i> {{ __('Lihat lampiran') }}
                                     </a>
                                     @endif
                                 </td>
@@ -70,26 +70,26 @@
                                         @csrf
                                         <div class="d-flex gap-2">
                                             <button name="action" value="1" class="btn btn-success btn-sm">
-                                                Approve HOD
+                                                {{ __('Approve HOD') }}
                                             </button>
                                             <button type="button" name="action" value="2" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
-                                                Reject HOD
+                                                {{ __('Reject HOD') }}
                                             </button>
                                         </div>
                                     </form>
                                     @elseif($hodStatus === \App\Models\AttendanceCorrection::STATUS_APPROVED && $hrdStatus === \App\Models\AttendanceCorrection::STATUS_PENDING)
-                                    <span class="badge bg-info">Menunggu HR</span>
-                                    <small class="d-block text-muted mt-1">Disetujui HOD</small>
+                                    <span class="badge bg-info">{{ __('Menunggu HR') }}</span>
+                                    <small class="d-block text-muted mt-1">{{ __('Disetujui HOD') }}</small>
                                     @elseif($hodStatus === \App\Models\AttendanceCorrection::STATUS_APPROVED && $hrdStatus === \App\Models\AttendanceCorrection::STATUS_APPROVED)
-                                    <span class="badge bg-success">Selesai</span>
-                                    <small class="d-block text-muted mt-1">Sudah diterapkan HR</small>
+                                    <span class="badge bg-success">{{ __('Selesai') }}</span>
+                                    <small class="d-block text-muted mt-1">{{ __('Sudah diterapkan HR') }}</small>
                                     @elseif($hodStatus === \App\Models\AttendanceCorrection::STATUS_APPROVED && $hrdStatus === \App\Models\AttendanceCorrection::STATUS_REJECTED)
-                                    <span class="badge bg-danger">Ditolak HR</span>
+                                    <span class="badge bg-danger">{{ __('Ditolak HR') }}</span>
                                     @if($correction->hrd_rejection_reason)
                                     <small class="d-block text-danger mt-1">{{ $correction->hrd_rejection_reason }}</small>
                                     @endif
                                     @else
-                                    <span class="badge bg-danger">Ditolak HOD</span>
+                                    <span class="badge bg-danger">{{ __('Ditolak HOD') }}</span>
                                     @if($correction->hod_rejection_reason)
                                     <small class="d-block text-danger mt-1">{{ $correction->hod_rejection_reason }}</small>
                                     @endif
@@ -99,7 +99,7 @@
                             @empty
                             <tr>
                                 <td colspan="7" class="text-center text-muted py-4">
-                                    Tidak ada Koreksi Presensi dalam scope Anda.
+                                    {{ __('Tidak ada Koreksi Presensi dalam scope Anda.') }}
                                 </td>
                             </tr>
                             @endforelse

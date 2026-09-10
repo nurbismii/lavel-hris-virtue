@@ -8,16 +8,16 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-user-minus text-primary me-2"></i>
-                    Data Resign
+                    {{ __('Data Resign') }}
                 </h4>
                 <small class="text-muted">
-                    Daftar resign VDNI/VDNIP
+                    {{ __('Daftar resign VDNI/VDNIP') }}
                 </small>
             </div>
 
             <div class="ms-md-auto py-2 py-md-0">
                 <a class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalImportResign">
-                    Bulk Resign
+                    {{ __('Bulk Resign') }}
                 </a>
             </div>
         </div>
@@ -28,37 +28,37 @@
                 {{-- FILTER --}}
                 <div class="row mb-3 g-2">
                     <div class="col-md-3">
-                        <label class="form-label small">Periode Awal</label>
+                        <label class="form-label small">{{ __('Periode Awal') }}</label>
                         <input type="date" id="periode_awal" class="form-control form-control-sm">
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label small">Periode Akhir</label>
+                        <label class="form-label small">{{ __('Periode Akhir') }}</label>
                         <input type="date" id="periode_akhir" class="form-control form-control-sm">
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label small">Tipe Resign</label>
+                        <label class="form-label small">{{ __('Tipe Resign') }}</label>
                         <select id="tipe" class="form-select">
-                            <option value="" selected>Semua Kategori Resign</option>
-                            <option value="RESIGN SESUAI PROSEDUR">Resign Sesuai Prosedur</option>
-                            <option value="RESIGN TIDAK SESUAI PROSEDUR">Resign Tidak Sesuai Prosedur</option>
-                            <option value="RESIGN TIDAK SESUAI PROSEDUR-PENGAJUAN">Resign Tidak Sesuai Prosedur-Pengajuan</option>
-                            <option value="RESIGN TIDAK SESUAI PROSEDUR-KABUR">Resign Tidak Sesuai Prosedur-Kabur</option>
-                            <option value="RESIGN TIDAK SESUAI PROSEDUR-PAYROLL">Resign Tidak Sesuai Prosedur-Payroll</option>
-                            <option value="PB RESIGN">PB Resign</option>
-                            <option value="PUTUS KONTRAK">Putus Kontrak</option>
-                            <option value="PHK">PHK</option>
-                            <option value="PHK PENSIUN">PHK Pensiun</option>
-                            <option value="PHK PENSIUN DINI">PHK Pensiun Dini</option>
-                            <option value="PHK PIDANA">PHK Pidana</option>
-                            <option value="PHK MENINGGAL DUNIA">PHK Meninggal Dunia</option>
+                            <option value="" selected>{{ __('Semua Kategori Resign') }}</option>
+                            <option value="RESIGN SESUAI PROSEDUR">{{ __('Resign Sesuai Prosedur') }}</option>
+                            <option value="RESIGN TIDAK SESUAI PROSEDUR">{{ __('Resign Tidak Sesuai Prosedur') }}</option>
+                            <option value="RESIGN TIDAK SESUAI PROSEDUR-PENGAJUAN">{{ __('Resign Tidak Sesuai Prosedur-Pengajuan') }}</option>
+                            <option value="RESIGN TIDAK SESUAI PROSEDUR-KABUR">{{ __('Resign Tidak Sesuai Prosedur-Kabur') }}</option>
+                            <option value="RESIGN TIDAK SESUAI PROSEDUR-PAYROLL">{{ __('Resign Tidak Sesuai Prosedur-Payroll') }}</option>
+                            <option value="PB RESIGN">{{ __('PB Resign') }}</option>
+                            <option value="PUTUS KONTRAK">{{ __('Putus Kontrak') }}</option>
+                            <option value="PHK">{{ __('PHK') }}</option>
+                            <option value="PHK PENSIUN">{{ __('PHK Pensiun') }}</option>
+                            <option value="PHK PENSIUN DINI">{{ __('PHK Pensiun Dini') }}</option>
+                            <option value="PHK PIDANA">{{ __('PHK Pidana') }}</option>
+                            <option value="PHK MENINGGAL DUNIA">{{ __('PHK Meninggal Dunia') }}</option>
                         </select>
                     </div>
 
                     <div class="col-md-3 d-flex align-items-end">
                         <button id="btnFilter" class="btn btn-primary btn-sm w-100">
-                            <i class="fas fa-filter"></i> Terapkan Filter
+                            <i class="fas fa-filter"></i> {{ __('Terapkan Filter') }}
                         </button>
                     </div>
                 </div>
@@ -89,22 +89,22 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="modalImportResignLabel">Import Resign</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <h1 class="modal-title fs-5" id="modalImportResignLabel">{{ __('Import Resign') }}</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
             </div>
             <form action="{{ route('resign.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="modal-body">
                     <div class="col-md-6 col-lg-6">
                         <div class="form-group">
-                            <label for="exampleFormControlFile1">Pilih file excel</label>
+                            <label for="exampleFormControlFile1">{{ __('Pilih file excel') }}</label>
                             <input type="file" name="file" class="form-control-file" id="exampleFormControlFile1">
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                    <button type="submit" class="btn btn-primary">Import</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('Tutup') }}</button>
+                    <button type="submit" class="btn btn-primary">{{ __('Import') }}</button>
                 </div>
             </form>
         </div>
@@ -216,14 +216,14 @@
         let nama = $(this).data('nama');
 
         Swal.fire({
-            title: 'Yakin hapus data?',
+            title: @json(__('Yakin hapus data?')),
             html: `Data resign <b>${nama}</b> akan dihapus.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Ya, hapus!',
-            cancelButtonText: 'Batal'
+            confirmButtonText: @js(__('Ya, hapus!')),
+            cancelButtonText: @json(__('Batal'))
         }).then((result) => {
 
             if (result.isConfirmed) {
@@ -241,8 +241,8 @@
 
                         Swal.fire({
                             icon: 'success',
-                            title: 'Berhasil!',
-                            text: 'Data berhasil dihapus.',
+                            title: @json(__('Berhasil!')),
+                            text: @json(__('Data berhasil dihapus.')),
                             timer: 1500,
                             showConfirmButton: false
                         });

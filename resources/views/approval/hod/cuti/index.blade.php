@@ -7,9 +7,9 @@
         {{-- HEADER --}}
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="text-primary">Approval Cuti Tahunan</h3>
+                <h3 class="text-primary">{{ __('Approval Cuti Tahunan') }}</h3>
                 <small class="text-muted">
-                    Persetujuan HOD untuk karyawan pengajuan cuti tahunan
+                    {{ __('Persetujuan HOD untuk karyawan pengajuan cuti tahunan') }}
                 </small>
             </div>
         </div>
@@ -49,22 +49,22 @@
                                 <form action="{{ route('approval.cuti.hod.process', $cuti->id) }}" method="POST">
                                     @csrf
                                     <button name="action" value="1" class="btn btn-success btn-sm">
-                                        Approve
+                                        {{ __('Approve') }}
                                     </button>
                                     <button type="button" name="action" value="2" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
-                                        Reject
+                                        {{ __('Reject') }}
                                     </button>
                                 </form>
                                 @elseif($hodStatus === 1 && $hrdStatus === 0)
-                                    <span class="badge bg-info">Menunggu HR</span>
-                                    <small class="d-block text-muted mt-1">Disetujui HOD</small>
+                                    <span class="badge bg-info">{{ __('Menunggu HR') }}</span>
+                                    <small class="d-block text-muted mt-1">{{ __('Disetujui HOD') }}</small>
                                 @elseif($hodStatus === 1 && $hrdStatus === 1)
-                                    <span class="badge bg-success">Disetujui HR</span>
-                                    <small class="d-block text-muted mt-1">Proses selesai</small>
+                                    <span class="badge bg-success">{{ __('Disetujui HR') }}</span>
+                                    <small class="d-block text-muted mt-1">{{ __('Proses selesai') }}</small>
                                 @elseif($hodStatus === 1 && $hrdStatus === 2)
-                                    <span class="badge bg-danger">Ditolak HR</span>
+                                    <span class="badge bg-danger">{{ __('Ditolak HR') }}</span>
                                 @else
-                                    <span class="badge bg-danger">Ditolak HOD</span>
+                                    <span class="badge bg-danger">{{ __('Ditolak HOD') }}</span>
                                 @endif
                             </td>
                         </tr>

@@ -114,14 +114,14 @@
                 <div>
                     <a href="{{ route('data-presensi.index') }}" class="btn btn-light btn-sm border mb-3">
                         <i class="fas fa-arrow-left me-1"></i>
-                        Data Presensi
+                        {{ __('Data Presensi') }}
                     </a>
                     <h4 class="fw-bold mb-1">
                         <i class="fas fa-user-check text-primary me-2"></i>
-                        Review Presensi Wajah
+                        {{ __('Review Presensi Wajah') }}
                     </h4>
                     <p class="text-muted mb-0">
-                        Tinjau presensi pending atau ditolak berdasarkan selfie, lokasi GPS, perangkat, dan catatan keamanan sebelum HR memberi keputusan.
+                        {{ __('Tinjau presensi pending atau ditolak berdasarkan selfie, lokasi GPS, perangkat, dan catatan keamanan sebelum HR memberi keputusan.') }}
                     </p>
                 </div>
 
@@ -129,19 +129,19 @@
                     <div class="row g-2">
                         <div class="col-4">
                             <div class="face-review-stat">
-                                <small>Pending</small>
+                                <small>{{ __('Pending') }}</small>
                                 <div class="h4 fw-bold mb-0 text-warning">{{ number_format($summary['pending'] ?? 0) }}</div>
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="face-review-stat">
-                                <small>Ditolak</small>
+                                <small>{{ __('Ditolak') }}</small>
                                 <div class="h4 fw-bold mb-0 text-danger">{{ number_format($summary['rejected'] ?? 0) }}</div>
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="face-review-stat">
-                                <small>Verified</small>
+                                <small>{{ __('Verified') }}</small>
                                 <div class="h4 fw-bold mb-0 text-success">{{ number_format($summary['verified'] ?? 0) }}</div>
                             </div>
                         </div>
@@ -153,31 +153,31 @@
         <form method="GET" action="{{ route('data-presensi.face-review.index') }}" class="face-review-filter p-3 mb-4">
             <div class="row g-3 align-items-end">
                 <div class="col-md-3">
-                    <label class="form-label">Status</label>
+                    <label class="form-label">{{ __('Status') }}</label>
                     <select name="status" class="form-select form-control">
-                        <option value="queue" {{ ($filters['status'] ?? 'queue') === 'queue' ? 'selected' : '' }}>Queue pending dan rejected</option>
-                        <option value="{{ \App\Models\Presensi::STATUS_ABSEN_PENDING_REVIEW }}" {{ ($filters['status'] ?? '') === \App\Models\Presensi::STATUS_ABSEN_PENDING_REVIEW ? 'selected' : '' }}>Pending review</option>
-                        <option value="{{ \App\Models\Presensi::STATUS_ABSEN_REJECTED }}" {{ ($filters['status'] ?? '') === \App\Models\Presensi::STATUS_ABSEN_REJECTED ? 'selected' : '' }}>Rejected</option>
-                        <option value="{{ \App\Models\Presensi::STATUS_ABSEN_VERIFIED }}" {{ ($filters['status'] ?? '') === \App\Models\Presensi::STATUS_ABSEN_VERIFIED ? 'selected' : '' }}>Verified</option>
-                        <option value="all" {{ ($filters['status'] ?? '') === 'all' ? 'selected' : '' }}>Semua status</option>
+                        <option value="queue" {{ ($filters['status'] ?? 'queue') === 'queue' ? 'selected' : '' }}>{{ __('Queue pending dan rejected') }}</option>
+                        <option value="{{ \App\Models\Presensi::STATUS_ABSEN_PENDING_REVIEW }}" {{ ($filters['status'] ?? '') === \App\Models\Presensi::STATUS_ABSEN_PENDING_REVIEW ? 'selected' : '' }}>{{ __('Pending review') }}</option>
+                        <option value="{{ \App\Models\Presensi::STATUS_ABSEN_REJECTED }}" {{ ($filters['status'] ?? '') === \App\Models\Presensi::STATUS_ABSEN_REJECTED ? 'selected' : '' }}>{{ __('Rejected') }}</option>
+                        <option value="{{ \App\Models\Presensi::STATUS_ABSEN_VERIFIED }}" {{ ($filters['status'] ?? '') === \App\Models\Presensi::STATUS_ABSEN_VERIFIED ? 'selected' : '' }}>{{ __('Verified') }}</option>
+                        <option value="all" {{ ($filters['status'] ?? '') === 'all' ? 'selected' : '' }}>{{ __('Semua status') }}</option>
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Dari Tanggal</label>
+                    <label class="form-label">{{ __('Dari Tanggal') }}</label>
                     <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="form-control">
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Sampai Tanggal</label>
+                    <label class="form-label">{{ __('Sampai Tanggal') }}</label>
                     <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="form-control">
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Cari Karyawan</label>
-                    <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="form-control" placeholder="NIK atau nama">
+                    <label class="form-label">{{ __('Cari Karyawan') }}</label>
+                    <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="form-control" placeholder="{{ __('NIK atau nama') }}">
                 </div>
                 <div class="col-md-2 d-grid">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-filter me-1"></i>
-                        Terapkan
+                        {{ __('Terapkan') }}
                     </button>
                 </div>
             </div>
@@ -205,7 +205,7 @@
                             <div class="face-review-selfie-placeholder">
                                 <span>
                                     <i class="fas fa-image d-block mb-2"></i>
-                                    Selfie tidak tersedia
+                                    {{ __('Selfie tidak tersedia') }}
                                 </span>
                             </div>
                         @endif
@@ -243,7 +243,7 @@
                         <div class="row g-3">
                             <div class="col-lg-4">
                                 <div class="face-review-info">
-                                    <div class="face-review-info-label mb-2">Lokasi GPS</div>
+                                    <div class="face-review-info-label mb-2">{{ __('Lokasi GPS') }}</div>
                                     @if($gps && filled($gps->lat) && filled($gps->long))
                                         <div class="face-review-info-value">{{ $gps->lat }}, {{ $gps->long }}</div>
                                         <div class="small text-muted mt-1">
@@ -255,37 +255,37 @@
                                         <div class="small text-muted mt-1">{{ optional($gps->created_at)->format('d M Y H:i:s') }}</div>
                                         <a href="https://www.google.com/maps?q={{ $gps->lat }},{{ $gps->long }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm mt-2">
                                             <i class="fas fa-map-marker-alt me-1"></i>
-                                            Buka Maps
+                                            {{ __('Buka Maps') }}
                                         </a>
                                     @else
-                                        <div class="face-review-info-value">Belum ada bukti GPS</div>
-                                        <div class="small text-muted mt-1">Tidak ditemukan log lokasi pada waktu submit presensi ini.</div>
+                                        <div class="face-review-info-value">{{ __('Belum ada bukti GPS') }}</div>
+                                        <div class="small text-muted mt-1">{{ __('Tidak ditemukan log lokasi pada waktu submit presensi ini.') }}</div>
                                     @endif
                                 </div>
                             </div>
 
                             <div class="col-lg-4">
                                 <div class="face-review-info">
-                                    <div class="face-review-info-label mb-2">Device dan Jaringan</div>
-                                    <div class="small text-muted">Device</div>
+                                    <div class="face-review-info-label mb-2">{{ __('Device dan Jaringan') }}</div>
+                                    <div class="small text-muted">{{ __('Device') }}</div>
                                     <div class="face-review-info-value">{{ optional($presensi)->device_info ?: '-' }}</div>
-                                    <div class="small text-muted mt-2">IP Address</div>
+                                    <div class="small text-muted mt-2">{{ __('IP Address') }}</div>
                                     <div class="face-review-info-value">{{ optional($presensi)->ip_address ?: optional($gps)->ip_address ?: '-' }}</div>
-                                    <div class="small text-muted mt-2">User Agent</div>
+                                    <div class="small text-muted mt-2">{{ __('User Agent') }}</div>
                                     <div class="face-review-info-value small">{{ \Illuminate\Support\Str::limit(optional($presensi)->user_agent ?: optional($gps)->user_agent ?: '-', 120) }}</div>
                                 </div>
                             </div>
 
                             <div class="col-lg-4">
                                 <div class="face-review-info">
-                                    <div class="face-review-info-label mb-2">Verifikasi Wajah</div>
-                                    <div class="small text-muted">Method</div>
+                                    <div class="face-review-info-label mb-2">{{ __('Verifikasi Wajah') }}</div>
+                                    <div class="small text-muted">{{ __('Method') }}</div>
                                     <div class="face-review-info-value">{{ $verification->face_verification_method ?: ($meta['method'] ?? '-') }}</div>
-                                    <div class="small text-muted mt-2">Distance</div>
+                                    <div class="small text-muted mt-2">{{ __('Distance') }}</div>
                                     <div class="face-review-info-value">
                                         {{ filled($verification->face_verification_distance) ? number_format((float) $verification->face_verification_distance, 4) : ($meta['client_distance'] ?? '-') }}
                                     </div>
-                                    <div class="small text-muted mt-2">Catatan Sistem</div>
+                                    <div class="small text-muted mt-2">{{ __('Catatan Sistem') }}</div>
                                     <div class="face-review-info-value small">{{ \Illuminate\Support\Str::limit($meta['message'] ?? '-', 120) }}</div>
                                 </div>
                             </div>
@@ -294,7 +294,7 @@
                         <div class="row g-3 align-items-start mt-1">
                             <div class="col-lg-5">
                                 <div class="face-review-info">
-                                    <div class="face-review-info-label mb-2">Keputusan Terakhir</div>
+                                    <div class="face-review-info-label mb-2">{{ __('Keputusan Terakhir') }}</div>
                                     <div class="face-review-info-value">
                                         {{ \App\Models\PresensiVerification::reviewDecisionLabel($verification->review_decision) }}
                                     </div>
@@ -313,26 +313,26 @@
                             <div class="col-lg-7">
                                 <form method="POST" action="{{ route('data-presensi.face-review.decide', $verification) }}" class="face-review-info"
                                       data-swal-confirm="Simpan keputusan review presensi wajah ini?"
-                                      data-swal-title="Konfirmasi Review"
+                                      data-swal-title="{{ __('Konfirmasi Review') }}"
                                       data-swal-icon="warning"
                                       data-swal-confirm-button="Ya, simpan">
                                     @csrf
                                     <div class="row g-2">
                                         <div class="col-md-4">
-                                            <label class="form-label">Keputusan HR</label>
+                                            <label class="form-label">{{ __('Keputusan HR') }}</label>
                                             <select name="decision" class="form-select form-control" required>
-                                                <option value="{{ \App\Models\PresensiVerification::REVIEW_APPROVED }}">Setujui</option>
-                                                <option value="{{ \App\Models\PresensiVerification::REVIEW_REJECTED }}">Tolak</option>
+                                                <option value="{{ \App\Models\PresensiVerification::REVIEW_APPROVED }}">{{ __('Setujui') }}</option>
+                                                <option value="{{ \App\Models\PresensiVerification::REVIEW_REJECTED }}">{{ __('Tolak') }}</option>
                                             </select>
                                         </div>
                                         <div class="col-md-8">
-                                            <label class="form-label">Catatan HR</label>
-                                            <textarea name="review_note" class="form-control face-review-note" maxlength="2000" placeholder="Wajib diisi saat menolak presensi">{{ old('review_note') }}</textarea>
+                                            <label class="form-label">{{ __('Catatan HR') }}</label>
+                                            <textarea name="review_note" class="form-control face-review-note" maxlength="2000" placeholder="{{ __('Wajib diisi saat menolak presensi') }}">{{ old('review_note') }}</textarea>
                                         </div>
                                         <div class="col-12 d-flex justify-content-end">
                                             <button type="submit" class="btn btn-primary">
                                                 <i class="fas fa-save me-1"></i>
-                                                Simpan Keputusan
+                                                {{ __('Simpan Keputusan') }}
                                             </button>
                                         </div>
                                     </div>
@@ -345,8 +345,8 @@
         @empty
             <div class="face-review-empty text-center p-5">
                 <i class="fas fa-check-circle text-success fa-2x mb-3"></i>
-                <h5 class="fw-bold">Queue review kosong</h5>
-                <p class="text-muted mb-0">Tidak ada presensi wajah yang sesuai dengan filter saat ini.</p>
+                <h5 class="fw-bold">{{ __('Queue review kosong') }}</h5>
+                <p class="text-muted mb-0">{{ __('Tidak ada presensi wajah yang sesuai dengan filter saat ini.') }}</p>
             </div>
         @endforelse
 

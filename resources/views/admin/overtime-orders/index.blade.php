@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title', 'Perintah Lembur')
+@section('title', __('Perintah Lembur'))
 
 @section('content')
 <div class="container-fluid">
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
             <div>
-                <h4 class="fw-bold mb-1">Perintah Lembur</h4>
-                <small class="text-muted">Buat instruksi lembur untuk karyawan dan pantau responsnya.</small>
+                <h4 class="fw-bold mb-1">{{ __('Perintah Lembur') }}</h4>
+                <small class="text-muted">{{ __('Buat instruksi lembur untuk karyawan dan pantau responsnya.') }}</small>
             </div>
             <div class="ms-md-auto py-2 py-md-0">
-                <a href="{{ route('overtime-orders.create') }}" class="btn btn-primary">Buat Perintah</a>
+                <a href="{{ route('overtime-orders.create') }}" class="btn btn-primary">{{ __('Buat Perintah') }}</a>
             </div>
         </div>
 
@@ -19,16 +19,16 @@
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
                     <div class="col-md-4">
-                        <label class="form-label">Status Respons</label>
+                        <label class="form-label">{{ __('Status Respons') }}</label>
                         <select name="response_status" class="form-select">
-                            <option value="">Semua Status</option>
+                            <option value="">{{ __('Semua Status') }}</option>
                             @foreach ($responseOptions as $value => $label)
                                 <option value="{{ $value }}" {{ request('response_status') === $value ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100">Filter</button>
+                        <button type="submit" class="btn btn-primary w-100">{{ __('Filter') }}</button>
                     </div>
                 </form>
             </div>
@@ -67,14 +67,14 @@
                                     <td>{{ optional($overtimeOrder->requester)->name ?? '-' }}</td>
                                     <td class="text-nowrap">
                                         <a href="{{ route('overtime-orders.show', $overtimeOrder->id) }}" class="btn btn-info">
-                                            Detail
+                                            {{ __('Detail') }}
                                         </a>
                                         @if($overtimeOrder->employee_response_status === \App\Models\OvertimeOrder::RESPONSE_PENDING)
                                             <form action="{{ route('overtime-orders.destroy', $overtimeOrder->id) }}" method="POST" class="d-inline">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-danger">
-                                                    Batalkan
+                                                    {{ __('Batalkan') }}
                                                 </button>
                                             </form>
                                         @endif
@@ -82,7 +82,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="text-center text-muted py-4">Belum ada perintah lembur.</td>
+                                    <td colspan="7" class="text-center text-muted py-4">{{ __('Belum ada perintah lembur.') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

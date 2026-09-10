@@ -34,18 +34,18 @@
             <div class="ms-md-auto pt-3 pt-md-0">
                 <a href="{{ route('data-presensi.index') }}" class="btn btn-outline-primary btn-sm me-2">
                     <i class="fas fa-table me-1"></i>
-                    Data Presensi
+                    {{ __('Data Presensi') }}
                 </a>
                 <a href="{{ route('data-presensi.face-review.index') }}" class="btn btn-primary btn-sm">
                     <i class="fas fa-user-check me-1"></i>
-                    Review Wajah
+                    {{ __('Review Wajah') }}
                 </a>
             </div>
         </div>
 
         @if($errors->any())
             <div class="alert alert-danger">
-                <strong>Filter tidak valid.</strong>
+                <strong>{{ __('Filter tidak valid.') }}</strong>
                 <ul class="mb-0 mt-2">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -58,17 +58,17 @@
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-2">
-                        <label class="form-label">Tanggal Awal</label>
+                        <label class="form-label">{{ __('Tanggal Awal') }}</label>
                         <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] }}">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Tanggal Akhir</label>
+                        <label class="form-label">{{ __('Tanggal Akhir') }}</label>
                         <input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] }}">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Jenis Anomali</label>
+                        <label class="form-label">{{ __('Jenis Anomali') }}</label>
                         <select name="anomaly" class="form-select form-control">
-                            <option value="all" {{ $filters['anomaly'] === 'all' ? 'selected' : '' }}>Semua anomali</option>
+                            <option value="all" {{ $filters['anomaly'] === 'all' ? 'selected' : '' }}>{{ __('Semua anomali') }}</option>
                             @foreach($anomalyTypes as $key => $type)
                                 <option value="{{ $key }}" {{ $filters['anomaly'] === $key ? 'selected' : '' }}>
                                     {{ $type['label'] }}
@@ -77,12 +77,12 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Perusahaan</label>
+                        <label class="form-label">{{ __('Perusahaan') }}</label>
                         <select
                             name="area[]"
                             class="form-select form-control js-anomaly-company-select"
                             multiple
-                            data-placeholder="Pilih perusahaan">
+                            data-placeholder="{{ __('Pilih perusahaan') }}">
                             @foreach($areas as $area)
                                 <option value="{{ $area->kode_perusahaan }}" {{ in_array($area->kode_perusahaan, $filters['area'], true) ? 'selected' : '' }}>
                                     {{ $area->kode_perusahaan }}
@@ -91,9 +91,9 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Departemen</label>
+                        <label class="form-label">{{ __('Departemen') }}</label>
                         <select name="departemen_id" class="form-select form-control">
-                            <option value="">Semua departemen</option>
+                            <option value="">{{ __('Semua departemen') }}</option>
                             @foreach($departemens as $departemen)
                                 <option value="{{ $departemen->id }}" {{ (string) $filters['departemen_id'] === (string) $departemen->id ? 'selected' : '' }}>
                                     {{ $departemen->departemen }}
@@ -102,9 +102,9 @@
                         </select>
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Divisi</label>
+                        <label class="form-label">{{ __('Divisi') }}</label>
                         <select name="divisi_id" class="form-select form-control">
-                            <option value="">Semua divisi</option>
+                            <option value="">{{ __('Semua divisi') }}</option>
                             @foreach($divisis as $divisi)
                                 <option value="{{ $divisi->id }}" {{ (string) $filters['divisi_id'] === (string) $divisi->id ? 'selected' : '' }}>
                                     {{ $divisi->nama_divisi }}
@@ -115,7 +115,7 @@
                     <div class="col-md-2 d-grid">
                         <button type="submit" class="btn btn-primary" data-original-text="Tampilkan">
                             <i class="fas fa-search me-1"></i>
-                            Tampilkan
+                            {{ __('Tampilkan') }}
                         </button>
                     </div>
                 </div>
@@ -143,15 +143,15 @@
                     <table class="table table-bordered table-striped table-sm align-middle w-100" id="attendance-anomaly-table">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 105px;">Tanggal</th>
+                                <th style="width: 105px;">{{ __('Tanggal') }}</th>
                                 <th style="width: 120px;">NIK</th>
-                                <th>Karyawan</th>
-                                <th>Organisasi</th>
-                                <th style="width: 190px;">Jam</th>
-                                <th style="width: 150px;">Status</th>
-                                <th>Anomali</th>
+                                <th>{{ __('Karyawan') }}</th>
+                                <th>{{ __('Organisasi') }}</th>
+                                <th style="width: 190px;">{{ __('Jam') }}</th>
+                                <th style="width: 150px;">{{ __('Status') }}</th>
+                                <th>{{ __('Anomali') }}</th>
                                 <th style="width: 180px;">GPS</th>
-                                <th style="width: 90px;">Aksi</th>
+                                <th style="width: 90px;">{{ __('Aksi') }}</th>
                             </tr>
                         </thead>
                     </table>

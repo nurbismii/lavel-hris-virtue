@@ -11,30 +11,30 @@
             @endif
 
             <div class="col-md-4">
-                <label class="form-label">Kode Rule</label>
+                <label class="form-label">{{ __('Kode Rule') }}</label>
                 <input
                     type="text"
                     name="code"
                     class="form-control text-uppercase @error('code') is-invalid @enderror"
                     value="{{ old('code', $rule->code) }}"
                     placeholder="PP35_WORKDAY_HOUR_1">
-                <small class="text-muted">Unik, gunakan huruf/angka/underscore.</small>
+                <small class="text-muted">{{ __('Unik, gunakan huruf/angka/underscore.') }}</small>
                 @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
             <div class="col-md-8">
-                <label class="form-label">Nama Rule</label>
+                <label class="form-label">{{ __('Nama Rule') }}</label>
                 <input
                     type="text"
                     name="name"
                     class="form-control @error('name') is-invalid @enderror"
                     value="{{ old('name', $rule->name) }}"
-                    placeholder="Hari kerja - jam pertama">
+                    placeholder="{{ __('Hari kerja - jam pertama') }}">
                 @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Pola Rule</label>
+                <label class="form-label">{{ __('Pola Rule') }}</label>
                 <select name="schedule_type" class="form-select @error('schedule_type') is-invalid @enderror">
                     @foreach($ruleScheduleTypeOptions as $value => $label)
                         <option value="{{ $value }}" {{ old('schedule_type', $rule->schedule_type) === $value ? 'selected' : '' }}>
@@ -46,7 +46,7 @@
             </div>
 
             <div class="col-md-4">
-                <label class="form-label">Jenis Hari</label>
+                <label class="form-label">{{ __('Jenis Hari') }}</label>
                 <select name="day_type" class="form-select @error('day_type') is-invalid @enderror">
                     @foreach($dayTypeOptions as $value => $label)
                         <option value="{{ $value }}" {{ old('day_type', $rule->day_type) === $value ? 'selected' : '' }}>
@@ -58,7 +58,7 @@
             </div>
 
             <div class="col-md-2">
-                <label class="form-label">Jam Mulai</label>
+                <label class="form-label">{{ __('Jam Mulai') }}</label>
                 <input
                     type="number"
                     name="hour_from"
@@ -70,7 +70,7 @@
             </div>
 
             <div class="col-md-2">
-                <label class="form-label">Jam Akhir</label>
+                <label class="form-label">{{ __('Jam Akhir') }}</label>
                 <input
                     type="number"
                     name="hour_to"
@@ -78,13 +78,13 @@
                     max="24"
                     class="form-control @error('hour_to') is-invalid @enderror"
                     value="{{ old('hour_to', $rule->hour_to) }}"
-                    placeholder="Kosong">
-                <small class="text-muted">Kosong = seterusnya.</small>
+                    placeholder="{{ __('Kosong') }}">
+                <small class="text-muted">{{ __('Kosong = seterusnya.') }}</small>
                 @error('hour_to')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
             <div class="col-md-3">
-                <label class="form-label">Pengali</label>
+                <label class="form-label">{{ __('Pengali') }}</label>
                 <input
                     type="number"
                     name="multiplier"
@@ -98,7 +98,7 @@
             </div>
 
             <div class="col-md-3">
-                <label class="form-label">Urutan</label>
+                <label class="form-label">{{ __('Urutan') }}</label>
                 <input
                     type="number"
                     name="sort_order"
@@ -110,7 +110,7 @@
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Status</label>
+                <label class="form-label">{{ __('Status') }}</label>
                 <div class="form-check form-switch mt-2">
                     <input type="hidden" name="is_active" value="0">
                     <input
@@ -120,18 +120,18 @@
                         value="1"
                         id="is_active"
                         {{ old('is_active', $rule->exists ? $rule->is_active : true) ? 'checked' : '' }}>
-                    <label class="form-check-label" for="is_active">Aktif digunakan kalkulator</label>
+                    <label class="form-check-label" for="is_active">{{ __('Aktif digunakan kalkulator') }}</label>
                 </div>
             </div>
 
             <div class="col-md-12">
-                <label class="form-label">Dasar Hukum</label>
+                <label class="form-label">{{ __('Dasar Hukum') }}</label>
                 <input
                     type="text"
                     name="legal_basis"
                     class="form-control @error('legal_basis') is-invalid @enderror"
                     value="{{ old('legal_basis', $rule->legal_basis) }}"
-                    placeholder="PP 35/2021 Pasal 31 ayat ...">
+                    placeholder="{{ __('PP 35/2021 Pasal 31 ayat ...') }}">
                 @error('legal_basis')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
 
@@ -139,7 +139,7 @@
                 <button type="submit" class="btn btn-primary">
                     {{ $isEdit ? 'Simpan Perubahan' : 'Simpan Rule' }}
                 </button>
-                <a href="{{ route('overtime-masters.index') }}" class="btn btn-outline-secondary">Batal</a>
+                <a href="{{ route('overtime-masters.index') }}" class="btn btn-outline-secondary">{{ __('Batal') }}</a>
             </div>
         </form>
     </div>

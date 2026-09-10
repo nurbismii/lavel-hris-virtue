@@ -21,16 +21,16 @@
     <div class="page-inner">
 
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="fw-bold">Detail Perusahaan</h3>
+            <h3 class="fw-bold">{{ __('Detail Perusahaan') }}</h3>
             <a href="{{ route('perusahaan.index') }}" class="btn btn-secondary btn-sm">
-                <i class="fas fa-arrow-left"></i> Kembali
+                <i class="fas fa-arrow-left"></i> {{ __('Kembali') }}
             </a>
         </div>
 
         {{-- INFO PERUSAHAAN --}}
         <div class="card mb-4">
             <div class="card-header fw-semibold">
-                Informasi Perusahaan
+                {{ __('Informasi Perusahaan') }}
             </div>
             <div class="card-body">
                 <table class="table table-borderless table-sm mb-0">
@@ -57,22 +57,22 @@
         {{-- DEPARTEMEN & DIVISI --}}
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span class="fw-semibold">Struktur Organisasi</span>
+                <span class="fw-semibold">{{ __('Struktur Organisasi') }}</span>
 
                 <div>
                     <a href="{{ route('departemen.create', $perusahaan->id) }}" target="_blank"
                         class="btn btn-sm btn-primary">
-                        <i class="fas fa-plus"></i> Departemen
+                        <i class="fas fa-plus"></i> {{ __('Departemen') }}
                     </a>
 
                     <a href="{{ route('divisi.create', $perusahaan->id) }}" target="_blank"
                         class="btn btn-sm btn-success">
-                        <i class="fas fa-plus"></i> Divisi
+                        <i class="fas fa-plus"></i> {{ __('Divisi') }}
                     </a>
 
                     <a class="btn btn-sm btn-warning" id="btnMergeDivisi">
                         <i class="fas fa-plus"></i>
-                        Merge Selected Divisi
+                        {{ __('Merge Selected Divisi') }}
                     </a>
                 </div>
             </div>
@@ -174,7 +174,7 @@
                                 @else
                                 <p class="text-muted mb-0">
                                     <i class="fas fa-info-circle"></i>
-                                    Belum ada divisi
+                                    {{ __('Belum ada divisi') }}
                                 </p>
                                 @endif
 
@@ -183,7 +183,7 @@
                     </div>
                     @empty
                     <p class="text-muted text-center mb-0">
-                        Belum ada departemen
+                        {{ __('Belum ada departemen') }}
                     </p>
                     @endforelse
 
@@ -198,12 +198,12 @@
         <div class="modal-content">
 
             <div class="modal-header">
-                <h5 class="modal-title">Merge Divisi</h5>
+                <h5 class="modal-title">{{ __('Merge Divisi') }}</h5>
             </div>
 
             <div class="modal-body">
 
-                <label>Pindahkan ke divisi</label>
+                <label>{{ __('Pindahkan ke divisi') }}</label>
 
                 <select class="form-control" id="targetDivisi">
 
@@ -227,11 +227,11 @@
 
             <div class="modal-footer">
                 <button class="btn btn-secondary" data-bs-dismiss="modal">
-                    Batal
+                    {{ __('Batal') }}
                 </button>
 
                 <button class="btn btn-warning" id="confirmMerge">
-                    Merge
+                    {{ __('Merge') }}
                 </button>
             </div>
 
@@ -255,7 +255,7 @@
                     const form = this.closest('form');
 
                     Swal.fire({
-                        title: 'Hapus Departemen?',
+                        title: @json(__('Hapus Departemen?')),
                         html: `
                         <small>
                             Semua <b>divisi</b> di dalam departemen ini juga akan terhapus.<br>
@@ -266,8 +266,8 @@
                         showCancelButton: true,
                         confirmButtonColor: '#d33',
                         cancelButtonColor: '#6c757d',
-                        cancelButtonText: 'Batal',
-                        confirmButtonText: 'Ya, Hapus',
+                        cancelButtonText: @json(__('Batal')),
+                        confirmButtonText: @js(__('Ya, Hapus')),
                         reverseButtons: true
                     }).then((result) => {
                         if (result.isConfirmed) {

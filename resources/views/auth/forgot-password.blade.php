@@ -14,35 +14,34 @@
 
                 <div class="brand-badge">
                     <i class="fas fa-key"></i>
-                    Password Recovery
+                    {{ __('Password Recovery') }}
                 </div>
 
                 <h1 class="brand-title">
-                    Pulihkan akses akun dengan aman.
+                    {{ __('Pulihkan akses akun dengan aman.') }}
                 </h1>
 
                 <p class="brand-text">
-                    Masukkan email yang terdaftar pada akun V-People.
-                    Sistem akan mengirimkan link reset password agar Anda dapat membuat password baru.
+                    {{ __('Masukkan email yang terdaftar pada akun V-People. Sistem akan mengirimkan link reset password agar Anda dapat membuat password baru.') }}
                 </p>
 
                 <div class="feature-card">
                     <div class="feature-item">
                         <i class="fas fa-envelope-open-text"></i>
-                        <strong>Email Terdaftar</strong>
-                        <span>Link reset dikirim ke email akun Anda.</span>
+                        <strong>{{ __('Email Terdaftar') }}</strong>
+                        <span>{{ __('Link reset dikirim ke email akun Anda.') }}</span>
                     </div>
 
                     <div class="feature-item">
                         <i class="fas fa-shield-alt"></i>
-                        <strong>Aman</strong>
-                        <span>Reset dilakukan melalui token validasi.</span>
+                        <strong>{{ __('Aman') }}</strong>
+                        <span>{{ __('Reset dilakukan melalui token validasi.') }}</span>
                     </div>
 
                     <div class="feature-item">
                         <i class="fas fa-sign-in-alt"></i>
-                        <strong>Akses Ulang</strong>
-                        <span>Login kembali setelah password diganti.</span>
+                        <strong>{{ __('Akses Ulang') }}</strong>
+                        <span>{{ __('Login kembali setelah password diganti.') }}</span>
                     </div>
                 </div>
             </div>
@@ -67,12 +66,12 @@
                         <div class="mb-4">
                             <div class="auth-badge">
                                 <i class="fas fa-lock-open"></i>
-                                Reset Password
+                                {{ __('Reset Password') }}
                             </div>
 
-                            <h3 class="reset-title mb-2">Lupa Password?</h3>
+                            <h3 class="reset-title mb-2">{{ __('Lupa Password?') }}</h3>
                             <p class="reset-subtitle mb-0">
-                                Masukkan email akun Anda untuk menerima link reset password.
+                                {{ __('Masukkan email akun Anda untuk menerima link reset password.') }}
                             </p>
                         </div>
 
@@ -86,7 +85,7 @@
                         <div class="reset-info">
                             <i class="fas fa-info-circle"></i>
                             <span>
-                                Pastikan email yang dimasukkan sesuai dengan email yang digunakan saat registrasi akun V-People.
+                                {{ __('Pastikan email yang dimasukkan sesuai dengan email yang digunakan saat registrasi akun V-People.') }}
                             </span>
                         </div>
 
@@ -96,7 +95,7 @@
                             {{-- Email --}}
                             <div class="mb-4">
                                 <label for="email" class="form-label">
-                                    Email Address
+                                    {{ __('Email Address') }}
                                 </label>
 
                                 <div class="input-group-modern">
@@ -122,7 +121,7 @@
                             {{-- Button --}}
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary btn-reset">
-                                    Kirim Link Reset
+                                    {{ __('Kirim Link Reset') }}
                                     <i class="fas fa-paper-plane ms-2"></i>
                                 </button>
                             </div>
@@ -130,7 +129,7 @@
                             <div class="text-center small">
                                 <a href="{{ route('login') }}" class="auth-link">
                                     <i class="fas fa-arrow-left me-1"></i>
-                                    Kembali ke Login
+                                    {{ __('Kembali ke Login') }}
                                 </a>
                             </div>
                         </form>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard Approval HOD')
+@section('title', __('Dashboard Approval HOD'))
 
 @push('styles')
 <style>
@@ -114,7 +114,7 @@
     <div class="page-inner">
         <div class="dashboard-toolbar mb-4">
             <div>
-                <h3 class="text-primary mb-1">Dashboard Approval HOD</h3>
+                <h3 class="text-primary mb-1">{{ __('Dashboard Approval HOD') }}</h3>
                 <small class="text-muted">
                     Pantau antrean HOD, pengajuan yang sudah naik ke HRD, dan prioritas approval dalam scope karyawan Anda.
                     Update {{ $dashboard['generated_at'] }} WITA.
@@ -122,37 +122,37 @@
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('approval.cuti.hod') }}" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-calendar-check me-1"></i> Cuti
+                    <i class="fas fa-calendar-check me-1"></i> {{ __('Cuti') }}
                 </a>
                 <a href="{{ route('approval.izin.hod') }}" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-file-signature me-1"></i> Izin
+                    <i class="fas fa-file-signature me-1"></i> {{ __('Izin') }}
                 </a>
                 <a href="{{ route('approval.roster.hod') }}" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-plane-departure me-1"></i> Roster
+                    <i class="fas fa-plane-departure me-1"></i> {{ __('Roster') }}
                 </a>
             </div>
         </div>
 
         <div class="metric-grid mb-4">
             <div class="metric-card">
-                <div class="metric-label">Menunggu HOD</div>
+                <div class="metric-label">{{ __('Menunggu HOD') }}</div>
                 <div class="metric-value">{{ number_format($summary['pending_hod']) }}</div>
-                <small class="text-muted">Siap diproses di level HOD</small>
+                <small class="text-muted">{{ __('Siap diproses di level HOD') }}</small>
             </div>
             <div class="metric-card">
-                <div class="metric-label">Menunggu HRD</div>
+                <div class="metric-label">{{ __('Menunggu HRD') }}</div>
                 <div class="metric-value">{{ number_format($summary['pending_hrd']) }}</div>
-                <small class="text-muted">Sudah disetujui HOD, belum final HRD</small>
+                <small class="text-muted">{{ __('Sudah disetujui HOD, belum final HRD') }}</small>
             </div>
             <div class="metric-card">
-                <div class="metric-label">Lewat SLA HOD</div>
+                <div class="metric-label">{{ __('Lewat SLA HOD') }}</div>
                 <div class="metric-value">{{ number_format($summary['over_sla']) }}</div>
                 <small class="text-muted">SLA HOD {{ $dashboard['sla_hours']['hod'] }} jam</small>
             </div>
             <div class="metric-card">
-                <div class="metric-label">Tanggal Dekat</div>
+                <div class="metric-label">{{ __('Tanggal Dekat') }}</div>
                 <div class="metric-value">{{ number_format($summary['due_soon'] + $summary['effective_overdue']) }}</div>
-                <small class="text-muted">Tanggal efektif lewat atau <= 7 hari</small>
+                <small class="text-muted">{{ __('Tanggal efektif lewat atau') }} <= 7 hari</small>
             </div>
         </div>
 
@@ -179,21 +179,21 @@
                     </div>
                     <h6 class="fw-semibold mb-2">{{ $module['label'] }}</h6>
                     <div class="d-flex justify-content-between small mb-1">
-                        <span>Menunggu HOD</span>
+                        <span>{{ __('Menunggu HOD') }}</span>
                         <strong>{{ number_format($module['pending_hod']) }}</strong>
                     </div>
                     <div class="d-flex justify-content-between small mb-1">
-                        <span>Menunggu HRD</span>
+                        <span>{{ __('Menunggu HRD') }}</span>
                         <strong>{{ number_format($module['pending_hrd']) }}</strong>
                     </div>
                     <div class="d-flex justify-content-between small mb-3">
-                        <span>Delegasi</span>
+                        <span>{{ __('Delegasi') }}</span>
                         <strong>{{ number_format($module['delegation_pending']) }}</strong>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="{{ route($module['route_hod']) }}" class="btn btn-sm btn-outline-primary flex-fill">HOD</a>
+                        <a href="{{ route($module['route_hod']) }}" class="btn btn-sm btn-outline-primary flex-fill">{{ __('HOD') }}</a>
                         @if($canOpenHrdQueue)
-                            <a href="{{ route($module['route_hrd']) }}" class="btn btn-sm btn-light border flex-fill">HRD</a>
+                            <a href="{{ route($module['route_hrd']) }}" class="btn btn-sm btn-light border flex-fill">{{ __('HRD') }}</a>
                         @endif
                     </div>
                 </div>
@@ -205,8 +205,8 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
                         <div>
-                            <h5 class="fw-semibold mb-1">Prioritas Approval HOD</h5>
-                            <small class="text-muted">Diurutkan dari antrean paling lama.</small>
+                            <h5 class="fw-semibold mb-1">{{ __('Prioritas Approval HOD') }}</h5>
+                            <small class="text-muted">{{ __('Diurutkan dari antrean paling lama.') }}</small>
                         </div>
                         <span class="badge bg-warning text-dark">{{ number_format($summary['pending_hod']) }} pending</span>
                     </div>
@@ -214,10 +214,10 @@
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
-                                    <th>Karyawan</th>
-                                    <th>Jenis</th>
-                                    <th>Tanggal</th>
-                                    <th>Umur</th>
+                                    <th>{{ __('Karyawan') }}</th>
+                                    <th>{{ __('Jenis') }}</th>
+                                    <th>{{ __('Tanggal') }}</th>
+                                    <th>{{ __('Umur') }}</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -242,12 +242,12 @@
                                         </td>
                                         <td>{{ $ageLabel($item['age_hours'], $item['age_days']) }}</td>
                                         <td class="text-end">
-                                            <a href="{{ $item['route'] }}" class="btn btn-sm btn-outline-primary">Buka</a>
+                                            <a href="{{ $item['route'] }}" class="btn btn-sm btn-outline-primary">{{ __('Buka') }}</a>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="5" class="text-center text-muted py-3">Tidak ada antrean HOD saat ini.</td>
+                                        <td colspan="5" class="text-center text-muted py-3">{{ __('Tidak ada antrean HOD saat ini.') }}</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -258,15 +258,15 @@
 
             <div class="card">
                 <div class="card-body">
-                    <h5 class="fw-semibold mb-1">Menunggu HRD</h5>
-                    <small class="text-muted d-block mb-3">Pengajuan dalam scope Anda yang sudah disetujui HOD dan belum final HRD.</small>
+                    <h5 class="fw-semibold mb-1">{{ __('Menunggu HRD') }}</h5>
+                    <small class="text-muted d-block mb-3">{{ __('Pengajuan dalam scope Anda yang sudah disetujui HOD dan belum final HRD.') }}</small>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover">
                             <thead>
                                 <tr>
-                                    <th>Karyawan</th>
-                                    <th>Jenis</th>
-                                    <th>Umur</th>
+                                    <th>{{ __('Karyawan') }}</th>
+                                    <th>{{ __('Jenis') }}</th>
+                                    <th>{{ __('Umur') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -281,7 +281,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="text-center text-muted py-3">Tidak ada antrean HRD dalam scope Anda.</td>
+                                        <td colspan="3" class="text-center text-muted py-3">{{ __('Tidak ada antrean HRD dalam scope Anda.') }}</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -293,17 +293,17 @@
 
         <div class="card">
             <div class="card-body">
-                <h5 class="fw-semibold mb-1">Area Perlu Perhatian</h5>
-                <small class="text-muted d-block mb-3">Departemen/divisi dengan antrean approval terbanyak dalam scope Anda.</small>
+                <h5 class="fw-semibold mb-1">{{ __('Area Perlu Perhatian') }}</h5>
+                <small class="text-muted d-block mb-3">{{ __('Departemen/divisi dengan antrean approval terbanyak dalam scope Anda.') }}</small>
                 <div class="table-responsive">
                     <table class="table table-sm table-hover">
                         <thead>
                             <tr>
-                                <th>Departemen</th>
-                                <th>Divisi</th>
-                                <th>Menunggu HOD</th>
-                                <th>Menunggu HRD</th>
-                                <th>Total</th>
+                                <th>{{ __('Departemen') }}</th>
+                                <th>{{ __('Divisi') }}</th>
+                                <th>{{ __('Menunggu HOD') }}</th>
+                                <th>{{ __('Menunggu HRD') }}</th>
+                                <th>{{ __('Total') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -317,7 +317,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-3">Belum ada antrean approval.</td>
+                                    <td colspan="5" class="text-center text-muted py-3">{{ __('Belum ada antrean approval.') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

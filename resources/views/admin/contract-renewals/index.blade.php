@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Perpanjangan Kontrak')
+@section('title', __('Perpanjangan Kontrak'))
 
 @push('styles')
 <style>
@@ -64,12 +64,12 @@
     <div class="page-inner">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
-                <h3 class="text-primary mb-1">Perpanjangan Kontrak</h3>
-                <small class="text-muted">Pantau kontrak yang akan berakhir, lakukan penilaian HOD atau delegasikan penilaian, lalu HRD menyetujui perpanjangan atau putus kontrak.</small>
+                <h3 class="text-primary mb-1">{{ __('Perpanjangan Kontrak') }}</h3>
+                <small class="text-muted">{{ __('Pantau kontrak yang akan berakhir, lakukan penilaian HOD atau delegasikan penilaian, lalu HRD menyetujui perpanjangan atau putus kontrak.') }}</small>
             </div>
             <form method="GET" action="{{ route('contract-renewals.index') }}" class="d-flex flex-wrap gap-2 justify-content-md-end">
                 <select name="area" class="form-select form-select-sm js-contract-area-filter" style="width: 190px;">
-                    <option value="">Semua area</option>
+                    <option value="">{{ __('Semua area') }}</option>
                     @foreach($filterOptions['areas'] as $areaOption)
                         <option value="{{ $areaOption['code'] }}" {{ ($filters['area'] ?? null) === $areaOption['code'] ? 'selected' : '' }}>
                             {{ $areaOption['label'] }}
@@ -77,7 +77,7 @@
                     @endforeach
                 </select>
                 <select name="departemen_id" class="form-select form-select-sm js-contract-department-filter" style="width: 220px;">
-                    <option value="">Semua departemen</option>
+                    <option value="">{{ __('Semua departemen') }}</option>
                     @php
                         $groupedDepartments = [];
                         foreach ($filterOptions['departemens'] as $departemen) {
@@ -99,7 +99,7 @@
                     @endforeach
                 </select>
                 <select name="divisi_id" class="form-select form-select-sm js-contract-division-filter" style="width: 220px;">
-                    <option value="">Semua divisi</option>
+                    <option value="">{{ __('Semua divisi') }}</option>
                     @foreach($filterOptions['divisis'] as $divisi)
                         <option
                             value="{{ $divisi->id }}"
@@ -117,7 +117,7 @@
                     class="form-control form-control-sm"
                     style="width: 220px;"
                     value="{{ $search ?? '' }}"
-                    placeholder="Cari nama / NIK"
+                    placeholder="{{ __('Cari nama / NIK') }}"
                 >
                 <select name="days" class="form-select form-select-sm" style="width: 150px;">
                     @foreach([30, 45, 60, 90] as $option)
@@ -125,16 +125,16 @@
                     @endforeach
                 </select>
                 <select name="status" class="form-select form-select-sm" style="width: 220px;">
-                    <option value="">Semua status workflow</option>
+                    <option value="">{{ __('Semua status workflow') }}</option>
                     @foreach($statusOptions as $key => $label)
                         <option value="{{ $key }}" {{ $status === $key ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
                 </select>
                 <button class="btn btn-primary btn-sm">
-                    <i class="fas fa-filter me-1"></i> Filter
+                    <i class="fas fa-filter me-1"></i> {{ __('Filter') }}
                 </button>
                 <a href="{{ route('contract-renewals.index') }}" class="btn btn-light border btn-sm">
-                    Reset
+                    {{ __('Reset') }}
                 </a>
             </form>
         </div>
@@ -144,15 +144,15 @@
                 <div class="card-body">
                     <div class="row g-3 align-items-end">
                         <div class="col-lg-7">
-                            <h5 class="fw-semibold mb-1">Import History PKWT dan Adendum</h5>
-                            <p class="text-muted small mb-0">Unggah file Excel berisi history kontrak karyawan.</p>
+                            <h5 class="fw-semibold mb-1">{{ __('Import History PKWT dan Adendum') }}</h5>
+                            <p class="text-muted small mb-0">{{ __('Unggah file Excel berisi history kontrak karyawan.') }}</p>
                         </div>
                         <div class="col-lg-5">
                             <form method="POST" action="{{ route('contract-renewals.import-history') }}" enctype="multipart/form-data" class="d-flex gap-2" data-loading-text="Mengunggah...">
                                 @csrf
                                 <input type="file" name="file" class="form-control form-control-sm @error('file') is-invalid @enderror" accept=".xlsx,.xls" required>
                                 <button class="btn btn-outline-primary btn-sm text-nowrap">
-                                    <i class="fas fa-upload me-1"></i> Import
+                                    <i class="fas fa-upload me-1"></i> {{ __('Import') }}
                                 </button>
                             </form>
                             @error('file')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
@@ -166,8 +166,8 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                     <div>
-                        <h5 class="fw-semibold mb-1">Kontrak Akan Berakhir</h5>
-                        <p class="text-muted small mb-0">Data diambil dari history kontrak terbaru setiap karyawan dan hanya menampilkan kontrak yang belum dibuat workflow perpanjangannya.</p>
+                        <h5 class="fw-semibold mb-1">{{ __('Kontrak Akan Berakhir') }}</h5>
+                        <p class="text-muted small mb-0">{{ __('Data diambil dari history kontrak terbaru setiap karyawan dan hanya menampilkan kontrak yang belum dibuat workflow perpanjangannya.') }}</p>
                     </div>
                     <span class="badge bg-light text-dark border">{{ $upcomingHistories->total() }} data</span>
                 </div>
@@ -192,36 +192,36 @@
 
                         <div class="row g-2 align-items-end">
                             <div class="col-lg-3 col-md-6">
-                                <label class="form-label small mb-1">Aksi Kolektif</label>
+                                <label class="form-label small mb-1">{{ __('Aksi Kolektif') }}</label>
                                 <select name="bulk_action" class="form-select form-select-sm js-bulk-action" required>
-                                    <option value="create_workflow">Buat workflow terpilih</option>
+                                    <option value="create_workflow">{{ __('Buat workflow terpilih') }}</option>
                                     @if($canApproveHod)
-                                        <option value="hod_direct">Buat workflow + Nilai HOD</option>
+                                        <option value="hod_direct">{{ __('Buat workflow + Nilai HOD') }}</option>
                                     @endif
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-6">
-                                <label class="form-label small mb-1">Keputusan HOD</label>
+                                <label class="form-label small mb-1">{{ __('Keputusan HOD') }}</label>
                                 <select name="assessment_months" class="form-select form-select-sm js-bulk-hod-field">
-                                    <option value="">Pilih keputusan</option>
+                                    <option value="">{{ __('Pilih keputusan') }}</option>
                                     @foreach($assessmentDecisionOptions as $value => $label)
                                         <option value="{{ $value }}">{{ $label }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-8">
-                                <label class="form-label small mb-1">Catatan HOD</label>
-                                <input type="text" name="assessment_note" class="form-control form-control-sm js-bulk-hod-field" placeholder="Opsional untuk penilaian HOD kolektif">
+                                <label class="form-label small mb-1">{{ __('Catatan HOD') }}</label>
+                                <input type="text" name="assessment_note" class="form-control form-control-sm js-bulk-hod-field" placeholder="{{ __('Opsional untuk penilaian HOD kolektif') }}">
                             </div>
                             <div class="col-lg-3 col-md-4">
                                 <button class="btn btn-primary btn-sm w-100">
                                     <i class="fas fa-tasks me-1"></i>
-                                    Proses Terpilih
+                                    {{ __('Proses Terpilih') }}
                                     <span class="badge bg-light text-dark ms-1 js-selected-contract-count">0</span>
                                 </button>
                             </div>
                         </div>
-                        <small class="text-muted d-block mt-2">Maksimal 100 kontrak per aksi. Pilihan mengikuti data pada halaman ini dan tetap divalidasi ulang di server.</small>
+                        <small class="text-muted d-block mt-2">{{ __('Maksimal 100 kontrak per aksi. Pilihan mengikuti data pada halaman ini dan tetap divalidasi ulang di server.') }}</small>
                     </form>
                 @endif
 
@@ -231,7 +231,7 @@
                             <tr>
                                 @if($canManageRenewalWorkflow)
                                     <th style="width: 42px;">
-                                        <input type="checkbox" class="form-check-input js-select-all-contracts" aria-label="Pilih semua kontrak pada halaman ini">
+                                        <input type="checkbox" class="form-check-input js-select-all-contracts" aria-label="{{ __('Pilih semua kontrak pada halaman ini') }}">
                                     </th>
                                 @endif
                                 <th>{{ __('tables.employee') }}</th>
@@ -280,17 +280,17 @@
                                                 @csrf
                                                 <input type="hidden" name="history_id" value="{{ $history->id }}">
                                                 <button class="btn btn-primary btn-sm w-100">
-                                                    <i class="fas fa-plus me-1"></i> Buat Workflow
+                                                    <i class="fas fa-plus me-1"></i> {{ __('Buat Workflow') }}
                                                 </button>
                                             </form>
                                         @else
-                                            <small class="text-muted">Tidak ada aksi.</small>
+                                            <small class="text-muted">{{ __('Tidak ada aksi.') }}</small>
                                         @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="{{ $canManageRenewalWorkflow ? 6 : 5 }}" class="text-center text-muted py-4">Tidak ada kontrak yang akan berakhir dalam filter hari ini, atau workflow-nya sudah dibuat.</td>
+                                    <td colspan="{{ $canManageRenewalWorkflow ? 6 : 5 }}" class="text-center text-muted py-4">{{ __('Tidak ada kontrak yang akan berakhir dalam filter hari ini, atau workflow-nya sudah dibuat.') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -307,8 +307,8 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                     <div>
-                        <h5 class="fw-semibold mb-1">Workflow Perpanjangan</h5>
-                        <p class="text-muted small mb-0">Urutan: HOD menilai langsung atau delegasi penilaian, approval HRD, lalu kontrak elektronik muncul di self service hanya jika kontrak diperpanjang.</p>
+                        <h5 class="fw-semibold mb-1">{{ __('Workflow Perpanjangan') }}</h5>
+                        <p class="text-muted small mb-0">{{ __('Urutan: HOD menilai langsung atau delegasi penilaian, approval HRD, lalu kontrak elektronik muncul di self service hanya jika kontrak diperpanjang.') }}</p>
                     </div>
                     <span class="badge bg-light text-dark border">{{ $renewals->total() }} workflow</span>
                 </div>
@@ -375,7 +375,7 @@
                                                 </small>
                                             @else
                                                 <small class="d-block text-muted mt-1">
-                                                    Status karyawan otomatis H+1 tanggal akhir kontrak.
+                                                    {{ __('Status karyawan otomatis H+1 tanggal akhir kontrak.') }}
                                                 </small>
                                             @endif
                                         @endif
@@ -394,7 +394,7 @@
                                         @if($renewal->assessment_months !== null)
                                             @if($isTerminationDecision)
                                                 <strong class="text-danger">{{ $renewal->assessment_label }}</strong>
-                                                <small class="d-block text-muted">Tidak diperpanjang setelah tanggal akhir saat ini.</small>
+                                                <small class="d-block text-muted">{{ __('Tidak diperpanjang setelah tanggal akhir saat ini.') }}</small>
                                             @else
                                                 <strong>{{ $renewal->assessment_label }}</strong>
                                                 <small class="d-block text-muted">Sampai {{ optional($newEndDate)->format('d M Y') ?: '-' }}</small>
@@ -406,7 +406,7 @@
                                                 <small class="d-block text-muted">{{ \Illuminate\Support\Str::limit($renewal->assessment_note, 90) }}</small>
                                             @endif
                                         @else
-                                            <span class="text-muted">Belum dinilai</span>
+                                            <span class="text-muted">{{ __('Belum dinilai') }}</span>
                                         @endif
                                     </td>
                                     <td>
@@ -420,10 +420,10 @@
                                                         <select
                                                             name="delegate_user_id"
                                                             class="form-select js-contract-delegate-select"
-                                                            data-placeholder="Cari nama atau NIK delegasi"
+                                                            data-placeholder="{{ __('Cari nama atau NIK delegasi') }}"
                                                             required
                                                         >
-                                                            <option value="">Pilih delegasi</option>
+                                                            <option value="">{{ __('Pilih delegasi') }}</option>
                                                             @foreach($options as $candidate)
                                                                 <option value="{{ $candidate->id }}" {{ (string) $renewal->delegate_user_id === (string) $candidate->id ? 'selected' : '' }}>
                                                                     {{ optional($candidate->employee)->nama_karyawan ?: $candidate->name }} - {{ $candidate->nik_karyawan }}
@@ -432,7 +432,7 @@
                                                         </select>
                                                     </div>
                                                     <div class="col-12">
-                                                        <button class="btn btn-outline-primary btn-sm w-100">Delegasikan Penilaian</button>
+                                                        <button class="btn btn-outline-primary btn-sm w-100">{{ __('Delegasikan Penilaian') }}</button>
                                                     </div>
                                                 </div>
                                             </form>
@@ -444,22 +444,22 @@
                                                 <div class="row g-2">
                                                     <div class="col-12">
                                                         <select name="assessment_months" class="form-select form-select-sm" required>
-                                                            <option value="">Keputusan</option>
+                                                            <option value="">{{ __('Keputusan') }}</option>
                                                             @foreach($assessmentDecisionOptions as $value => $label)
                                                                 <option value="{{ $value }}">{{ $label }}</option>
                                                             @endforeach
                                                         </select>
                                                     </div>
                                                     <div class="col-12">
-                                                        <input type="text" name="assessment_note" class="form-control form-control-sm" placeholder="Catatan delegasi">
+                                                        <input type="text" name="assessment_note" class="form-control form-control-sm" placeholder="{{ __('Catatan delegasi') }}">
                                                     </div>
                                                     <div class="col-12">
-                                                        <button class="btn btn-success btn-sm w-100">Kirim Penilaian Delegasi</button>
+                                                        <button class="btn btn-success btn-sm w-100">{{ __('Kirim Penilaian Delegasi') }}</button>
                                                     </div>
                                                 </div>
                                             </form>
                                         @elseif(!$canChooseAssessmentPath)
-                                            <small class="text-muted">Tidak ada aksi delegasi.</small>
+                                            <small class="text-muted">{{ __('Tidak ada aksi delegasi.') }}</small>
                                         @endif
                                     </td>
                                     <td>
@@ -472,17 +472,17 @@
                                                 <div class="row g-2">
                                                     <div class="col-12">
                                                         <select name="assessment_months" class="form-select form-select-sm" required>
-                                                            <option value="">Keputusan</option>
+                                                            <option value="">{{ __('Keputusan') }}</option>
                                                             @foreach($assessmentDecisionOptions as $value => $label)
                                                                 <option value="{{ $value }}">{{ $label }}</option>
                                                             @endforeach
                                                         </select>
                                                     </div>
                                                     <div class="col-12">
-                                                        <input type="text" name="assessment_note" class="form-control form-control-sm" placeholder="Catatan HOD">
+                                                        <input type="text" name="assessment_note" class="form-control form-control-sm" placeholder="{{ __('Catatan HOD') }}">
                                                     </div>
                                                     <div class="col-12">
-                                                        <button class="btn btn-success btn-sm w-100">Nilai & Approve HOD</button>
+                                                        <button class="btn btn-success btn-sm w-100">{{ __('Nilai & Approve HOD') }}</button>
                                                     </div>
                                                 </div>
                                             </form>
@@ -493,19 +493,19 @@
                                                 <form method="POST" action="{{ route('contract-renewals.hod.process', $renewal) }}" data-confirm-message="Setujui rekomendasi penilaian kontrak ini di level HOD?" data-loading-text="Memproses...">
                                                     @csrf
                                                     <input type="hidden" name="action" value="1">
-                                                    <button class="btn btn-success btn-sm w-100">Approve HOD</button>
+                                                    <button class="btn btn-success btn-sm w-100">{{ __('Approve HOD') }}</button>
                                                 </form>
                                                 <form method="POST" action="{{ route('contract-renewals.hod.process', $renewal) }}" data-confirm-message="Tolak rekomendasi penilaian kontrak ini di level HOD?" data-loading-text="Memproses...">
                                                     @csrf
                                                     <input type="hidden" name="action" value="2">
                                                     <div class="input-group input-group-sm">
-                                                        <input type="text" name="note" class="form-control" placeholder="Alasan tolak" required>
-                                                        <button class="btn btn-outline-danger">Reject</button>
+                                                        <input type="text" name="note" class="form-control" placeholder="{{ __('Alasan tolak') }}" required>
+                                                        <button class="btn btn-outline-danger">{{ __('Reject') }}</button>
                                                     </div>
                                                 </form>
                                             </div>
                                         @elseif(!$canApproveHod || (!$canChooseAssessmentPath && $renewal->status !== \App\Models\EmployeeContractRenewal::STATUS_WAITING_HOD_APPROVAL))
-                                            <small class="text-muted">Tidak ada aksi HOD.</small>
+                                            <small class="text-muted">{{ __('Tidak ada aksi HOD.') }}</small>
                                         @endif
                                     </td>
                                     <td>
@@ -522,8 +522,8 @@
                                                     @csrf
                                                     <input type="hidden" name="action" value="2">
                                                     <div class="input-group input-group-sm">
-                                                        <input type="text" name="note" class="form-control" placeholder="Alasan tolak" required>
-                                                        <button class="btn btn-outline-danger">Reject</button>
+                                                        <input type="text" name="note" class="form-control" placeholder="{{ __('Alasan tolak') }}" required>
+                                                        <button class="btn btn-outline-danger">{{ __('Reject') }}</button>
                                                     </div>
                                                 </form>
                                             </div>
@@ -538,28 +538,28 @@
                                                 <div class="row g-2">
                                                     <div class="col-12">
                                                         <select name="assessment_months" class="form-select form-select-sm" required>
-                                                            <option value="">Durasi baru</option>
+                                                            <option value="">{{ __('Durasi baru') }}</option>
                                                             @foreach($renewalDurationOptions as $value => $label)
                                                                 <option value="{{ $value }}">{{ $label }}</option>
                                                             @endforeach
                                                         </select>
                                                     </div>
                                                     <div class="col-12">
-                                                        <input type="text" name="revision_note" class="form-control form-control-sm" placeholder="Alasan revisi" required>
+                                                        <input type="text" name="revision_note" class="form-control form-control-sm" placeholder="{{ __('Alasan revisi') }}" required>
                                                     </div>
                                                     <div class="col-12">
-                                                        <button class="btn btn-warning btn-sm w-100">Revisi ke Perpanjangan</button>
+                                                        <button class="btn btn-warning btn-sm w-100">{{ __('Revisi ke Perpanjangan') }}</button>
                                                     </div>
                                                 </div>
                                             </form>
                                         @else
-                                            <small class="text-muted">Tidak ada aksi HRD.</small>
+                                            <small class="text-muted">{{ __('Tidak ada aksi HRD.') }}</small>
                                         @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center text-muted py-4">Belum ada workflow perpanjangan kontrak.</td>
+                                    <td colspan="6" class="text-center text-muted py-4">{{ __('Belum ada workflow perpanjangan kontrak.') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -832,10 +832,10 @@
 
                 window.AppDialog.confirm({
                     icon: 'question',
-                    title: 'Konfirmasi',
+                    title: @json(__('Konfirmasi')),
                     text: message,
-                    confirmButtonText: 'Ya, lanjutkan',
-                    cancelButtonText: 'Batal'
+                    confirmButtonText: @js(__('Ya, lanjutkan')),
+                    cancelButtonText: @json(__('Batal'))
                 }).then(function (confirmed) {
                     if (confirmed) {
                         submitForm();

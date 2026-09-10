@@ -1,18 +1,18 @@
 @extends('layouts.app')
 
-@section('title', 'Klausul Adendum')
+@section('title', __('Klausul Adendum'))
 
 @section('content')
 <div class="container-fluid">
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Klausul Adendum</h4>
-                <small class="text-muted">Klausul 1 hanya untuk adendum pertama. Adendum kedua dan seterusnya otomatis memakai Klausul 2.</small>
+                <h4 class="fw-bold mb-1">{{ __('Klausul Adendum') }}</h4>
+                <small class="text-muted">{{ __('Klausul 1 hanya untuk adendum pertama. Adendum kedua dan seterusnya otomatis memakai Klausul 2.') }}</small>
             </div>
             <div class="ms-md-auto">
                 <a href="{{ route('electronic-contracts.clauses.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i> Tambah Klausul
+                    <i class="fas fa-plus me-1"></i> {{ __('Tambah Klausul') }}
                 </a>
             </div>
         </div>
@@ -42,24 +42,24 @@
                                     </td>
                                     <td>{{ optional($clause->updated_at)->format('d M Y H:i') }}</td>
                                     <td class="text-nowrap">
-                                        <a href="{{ route('electronic-contracts.clauses.edit', $clause) }}" class="btn btn-sm btn-warning">Edit</a>
+                                        <a href="{{ route('electronic-contracts.clauses.edit', $clause) }}" class="btn btn-sm btn-warning">{{ __('Edit') }}</a>
                                         <form
                                             action="{{ route('electronic-contracts.clauses.destroy', $clause) }}"
                                             method="POST"
                                             class="d-inline"
                                             data-swal-confirm="Klausul yang dihapus tidak bisa dikembalikan."
-                                            data-swal-title="Hapus klausul?"
+                                            data-swal-title="{{ __('Hapus klausul?') }}"
                                             data-swal-confirm-button="Ya, hapus"
                                             data-swal-danger="1">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="btn btn-sm btn-danger" type="submit">Hapus</button>
+                                            <button class="btn btn-sm btn-danger" type="submit">{{ __('Hapus') }}</button>
                                         </form>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">Belum ada klausul adendum.</td>
+                                    <td colspan="5" class="text-center text-muted py-4">{{ __('Belum ada klausul adendum.') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -191,9 +191,9 @@
                             <dd class="col-7">{{ $contract->type_label }}</dd>
                             <dt class="col-5">{{ __('tables.nik') }}</dt>
                             <dd class="col-7">{{ $contract->nik }}</dd>
-                            <dt class="col-5">No PKWT</dt>
+                            <dt class="col-5">{{ __('No PKWT') }}</dt>
                             <dd class="col-7">{{ $contract->pkwt_number }}</dd>
-                            <dt class="col-5">No Adendum</dt>
+                            <dt class="col-5">{{ __('No Adendum') }}</dt>
                             <dd class="col-7">{{ $contract->addendum_number ?: '-' }}</dd>
                         </dl>
                     </div>
@@ -240,7 +240,7 @@
                             <dd class="col-7">{{ optional($contract->signature->signed_at)->format('d M Y H:i') }}</dd>
                             <dt class="col-5">IP</dt>
                             <dd class="col-7">{{ $contract->signature->ip_address ?: '-' }}</dd>
-                            <dt class="col-5">Hash</dt>
+                            <dt class="col-5">{{ __('Hash') }}</dt>
                             <dd class="col-7 small text-break">{{ $contract->pdf_hash ?: '-' }}</dd>
                         </dl>
                     </div>

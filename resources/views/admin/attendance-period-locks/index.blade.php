@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Closing Presensi')
+@section('title', __('Closing Presensi'))
 
 @php
     $summaryLabels = [
@@ -32,23 +32,23 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-lock text-primary me-2"></i>
-                    Closing Presensi
+                    {{ __('Closing Presensi') }}
                 </h4>
                 <small class="text-muted">
-                    Kunci periode presensi agar data payroll tidak berubah tanpa proses buka ulang yang tercatat.
+                    {{ __('Kunci periode presensi agar data payroll tidak berubah tanpa proses buka ulang yang tercatat.') }}
                 </small>
             </div>
         </div>
 
         @if(!$isTableReady)
             <div class="alert alert-warning">
-                Fitur closing presensi belum aktif karena tabel <code>attendance_period_locks</code> belum tersedia. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+                {{ __('Fitur closing presensi belum aktif karena tabel') }} <code>attendance_period_locks</code> {{ __('belum tersedia. Jalankan') }} <code>php artisan migrate</code> {{ __('terlebih dahulu.') }}
             </div>
         @endif
 
         @if($errors->any())
             <div class="alert alert-danger">
-                <strong>Validasi gagal.</strong>
+                <strong>{{ __('Validasi gagal.') }}</strong>
                 <ul class="mb-0 mt-2">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -61,21 +61,21 @@
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label">Cutoff Payroll</label>
+                        <label class="form-label">{{ __('Cutoff Payroll') }}</label>
                         <input type="month" name="period_month" class="form-control" value="{{ $periodMonth }}">
                     </div>
                     <div class="col-md-5">
-                        <label class="form-label">Rentang Periode</label>
+                        <label class="form-label">{{ __('Rentang Periode') }}</label>
                         <div class="form-control bg-light">
                             {{ $period['label'] }}
                         </div>
                     </div>
                     <div class="col-md-4 d-flex flex-wrap gap-2">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search me-1"></i> Tampilkan
+                            <i class="fas fa-search me-1"></i> {{ __('Tampilkan') }}
                         </button>
                         <a href="{{ route('attendance-period-locks.index') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-undo me-1"></i> Reset
+                            <i class="fas fa-undo me-1"></i> {{ __('Reset') }}
                         </a>
                     </div>
                 </form>
@@ -102,7 +102,7 @@
 
             @if($hasBlockers || session('closing_summary'))
                 <div class="alert alert-warning">
-                    Selesaikan item pending yang berwarna merah sebelum periode dikunci. Closing tidak akan memaksa approval atau review yang belum selesai.
+                    {{ __('Selesaikan item pending yang berwarna merah sebelum periode dikunci. Closing tidak akan memaksa approval atau review yang belum selesai.') }}
                 </div>
             @endif
 
@@ -120,17 +120,17 @@
 
             <div class="card shadow-sm border-0 mb-3">
                 <div class="card-body">
-                    <h5 class="mb-1">Tutup Periode</h5>
+                    <h5 class="mb-1">{{ __('Tutup Periode') }}</h5>
                     <p class="text-muted small mb-3">
-                        Setelah dikunci, perubahan presensi, cuti, izin, roster, koreksi presensi, review wajah, dan lembur pada periode ini akan ditolak oleh sistem.
+                        {{ __('Setelah dikunci, perubahan presensi, cuti, izin, roster, koreksi presensi, review wajah, dan lembur pada periode ini akan ditolak oleh sistem.') }}
                     </p>
                     <form method="POST" action="{{ route('attendance-period-locks.store') }}" class="js-lock-action">
                         @csrf
                         <input type="hidden" name="period_month" value="{{ $period['period_key'] }}">
                         <div class="row g-3 align-items-end">
                             <div class="col-md-8">
-                                <label class="form-label">Catatan Closing</label>
-                                <textarea name="close_note" class="form-control" rows="2" maxlength="500" placeholder="Contoh: Data periode sudah direview HR dan siap dipakai payroll.">{{ old('close_note') }}</textarea>
+                                <label class="form-label">{{ __('Catatan Closing') }}</label>
+                                <textarea name="close_note" class="form-control" rows="2" maxlength="500" placeholder="{{ __('Contoh: Data periode sudah direview HR dan siap dipakai payroll.') }}">{{ old('close_note') }}</textarea>
                             </div>
                             <div class="col-md-4 d-grid">
                                 <button
@@ -138,7 +138,7 @@
                                     class="btn btn-danger"
                                     data-loading-text="Mengunci..."
                                     {{ ($currentLock && $currentLock->is_locked) || $hasBlockers ? 'disabled' : '' }}>
-                                    <i class="fas fa-lock me-1"></i> Kunci Periode
+                                    <i class="fas fa-lock me-1"></i> {{ __('Kunci Periode') }}
                                 </button>
                             </div>
                         </div>
@@ -150,8 +150,8 @@
                 <div class="card-body">
                     <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                         <div>
-                            <h5 class="mb-1">Riwayat Closing</h5>
-                            <small class="text-muted">Periode terbaru ditampilkan paling atas.</small>
+                            <h5 class="mb-1">{{ __('Riwayat Closing') }}</h5>
+                            <small class="text-muted">{{ __('Periode terbaru ditampilkan paling atas.') }}</small>
                         </div>
                     </div>
 
@@ -159,12 +159,12 @@
                         <table class="table table-bordered table-striped table-sm align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 100px;">Periode</th>
-                                    <th style="width: 210px;">Rentang</th>
-                                    <th style="width: 120px;">Status</th>
-                                    <th>Closing</th>
-                                    <th>Buka Ulang</th>
-                                    <th style="width: 280px;">Aksi</th>
+                                    <th style="width: 100px;">{{ __('Periode') }}</th>
+                                    <th style="width: 210px;">{{ __('Rentang') }}</th>
+                                    <th style="width: 120px;">{{ __('Status') }}</th>
+                                    <th>{{ __('Closing') }}</th>
+                                    <th>{{ __('Buka Ulang') }}</th>
+                                    <th style="width: 280px;">{{ __('Aksi') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -195,21 +195,21 @@
                                             @if($lock->is_locked)
                                                 <form method="POST" action="{{ route('attendance-period-locks.reopen', $lock) }}" class="js-lock-action">
                                                     @csrf
-                                                    <label class="form-label small mb-1">Alasan buka ulang</label>
-                                                    <textarea name="reopen_note" class="form-control form-control-sm mb-2" rows="2" maxlength="500" required placeholder="Wajib diisi"></textarea>
+                                                    <label class="form-label small mb-1">{{ __('Alasan buka ulang') }}</label>
+                                                    <textarea name="reopen_note" class="form-control form-control-sm mb-2" rows="2" maxlength="500" required placeholder="{{ __('Wajib diisi') }}"></textarea>
                                                     <button type="submit" class="btn btn-sm btn-outline-danger" data-loading-text="Membuka...">
-                                                        <i class="fas fa-unlock me-1"></i> Buka Ulang
+                                                        <i class="fas fa-unlock me-1"></i> {{ __('Buka Ulang') }}
                                                     </button>
                                                 </form>
                                             @else
-                                                <span class="text-muted small">Tidak ada aksi.</span>
+                                                <span class="text-muted small">{{ __('Tidak ada aksi.') }}</span>
                                             @endif
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
                                         <td colspan="6" class="text-center text-muted py-4">
-                                            Belum ada periode yang dikunci.
+                                            {{ __('Belum ada periode yang dikunci.') }}
                                         </td>
                                     </tr>
                                 @endforelse

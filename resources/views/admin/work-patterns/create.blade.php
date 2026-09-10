@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Tambah Master Jadwal Kerja')
+@section('title', __('Tambah Master Jadwal Kerja'))
 
 @section('content')
 @php
@@ -65,10 +65,10 @@
     <div class="page-inner">
         <div class="d-flex justify-content-between align-items-center pt-2 pb-4">
             <div>
-                <h4 class="fw-bold mb-1">Tambah Master Jadwal Kerja</h4>
-                <small class="text-muted">Simpan pola kerja yang nanti bisa dipasang ke data karyawan.</small>
+                <h4 class="fw-bold mb-1">{{ __('Tambah Master Jadwal Kerja') }}</h4>
+                <small class="text-muted">{{ __('Simpan pola kerja yang nanti bisa dipasang ke data karyawan.') }}</small>
             </div>
-            <a href="{{ route('work-patterns.index') }}" class="btn btn-light">Kembali</a>
+            <a href="{{ route('work-patterns.index') }}" class="btn btn-light">{{ __('Kembali') }}</a>
         </div>
 
         <div class="card">
@@ -76,59 +76,59 @@
                 <form action="{{ route('work-patterns.store') }}" method="POST" class="row g-3">
                     @csrf
                     <div class="col-12">
-                        <label class="form-label">Preset Cepat</label>
+                        <label class="form-label">{{ __('Preset Cepat') }}</label>
                         <div class="d-flex flex-wrap gap-2">
                             <button
                                 type="button"
                                 class="btn btn-outline-primary js-pattern-preset"
                                 data-preset='{{ json_encode($patternPresets['weekly_6_1']) }}'>
-                                6:1 Mingguan
+                                {{ __('6:1 Mingguan') }}
                             </button>
                             <button
                                 type="button"
                                 class="btn btn-outline-primary js-pattern-preset"
                                 data-preset='{{ json_encode($patternPresets['weekly_5_2']) }}'>
-                                5:2 Mingguan
+                                {{ __('5:2 Mingguan') }}
                             </button>
                             <button
                                 type="button"
                                 class="btn btn-outline-primary js-pattern-preset"
                                 data-preset='{{ json_encode($patternPresets['cycle_5_2_day']) }}'>
-                                5:2 Harian
+                                {{ __('5:2 Harian') }}
                             </button>
                             <button
                                 type="button"
                                 class="btn btn-outline-primary js-pattern-preset"
                                 data-preset='{{ json_encode($patternPresets['cycle_6_1_day']) }}'>
-                                6:1 Harian
+                                {{ __('6:1 Harian') }}
                             </button>
                             <button
                                 type="button"
                                 class="btn btn-outline-primary js-pattern-preset"
                                 data-preset='{{ json_encode($patternPresets['cycle_10_2']) }}'>
-                                10:2 Siklus
+                                {{ __('10:2 Siklus') }}
                             </button>
                             <button
                                 type="button"
                                 class="btn btn-outline-primary js-pattern-preset"
                                 data-preset='{{ json_encode($patternPresets['cycle_8_2']) }}'>
-                                8:2 Siklus
+                                {{ __('8:2 Siklus') }}
                             </button>
                         </div>
-                        <small class="text-muted d-block mt-2">Preset ini hanya mengisi pola kerja. Jam masuk, jam pulang, dan jadwal istirahat tetap bisa Anda atur sendiri.</small>
+                        <small class="text-muted d-block mt-2">{{ __('Preset ini hanya mengisi pola kerja. Jam masuk, jam pulang, dan jadwal istirahat tetap bisa Anda atur sendiri.') }}</small>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Kode</label>
-                        <input type="text" id="patternCode" name="code" class="form-control @error('code') is-invalid @enderror" value="{{ old('code') }}" placeholder="Contoh: 6-1">
+                        <label class="form-label">{{ __('Kode') }}</label>
+                        <input type="text" id="patternCode" name="code" class="form-control @error('code') is-invalid @enderror" value="{{ old('code') }}" placeholder="{{ __('Contoh: 6-1') }}">
                         @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-8">
-                        <label class="form-label">Nama Pola Kerja</label>
-                        <input type="text" id="patternName" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="Contoh: 6 Hari Kerja 1 Hari Off">
+                        <label class="form-label">{{ __('Nama Pola Kerja') }}</label>
+                        <input type="text" id="patternName" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="{{ __('Contoh: 6 Hari Kerja 1 Hari Off') }}">
                         @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Basis Pola Kerja</label>
+                        <label class="form-label">{{ __('Basis Pola Kerja') }}</label>
                         <select name="pattern_basis" id="patternBasis" class="form-select @error('pattern_basis') is-invalid @enderror">
                             @foreach($basisOptions as $value => $label)
                                 <option value="{{ $value }}" {{ old('pattern_basis', \App\Models\WorkPattern::BASIS_WEEKLY) === $value ? 'selected' : '' }}>{{ $label }}</option>
@@ -137,7 +137,7 @@
                         @error('pattern_basis')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-8 js-weekly-section">
-                        <label class="form-label">Hari Kerja Mingguan</label>
+                        <label class="form-label">{{ __('Hari Kerja Mingguan') }}</label>
                         <div class="d-flex flex-wrap gap-3 pt-2">
                             @foreach($weekdayOptions as $value => $label)
                                 <div class="form-check">
@@ -152,17 +152,17 @@
                                 </div>
                             @endforeach
                         </div>
-                        <small class="text-muted d-block mt-2">Contoh 6:1 mingguan = Senin sampai Sabtu dicentang, Minggu tidak dicentang.</small>
+                        <small class="text-muted d-block mt-2">{{ __('Contoh 6:1 mingguan = Senin sampai Sabtu dicentang, Minggu tidak dicentang.') }}</small>
                         @error('weekly_work_days')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                         @error('weekly_work_days.*')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Durasi Kerja</label>
+                        <label class="form-label">{{ __('Durasi Kerja') }}</label>
                         <input type="number" min="1" name="work_duration_value" id="workDurationValue" class="form-control @error('work_duration_value') is-invalid @enderror" value="{{ old('work_duration_value', 6) }}">
                         @error('work_duration_value')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Satuan Kerja</label>
+                        <label class="form-label">{{ __('Satuan Kerja') }}</label>
                         <select name="work_duration_unit" id="workDurationUnit" class="form-select @error('work_duration_unit') is-invalid @enderror">
                             @foreach($unitOptions as $value => $label)
                                 <option value="{{ $value }}" {{ old('work_duration_unit', 'day') === $value ? 'selected' : '' }}>{{ $label }}</option>
@@ -171,12 +171,12 @@
                         @error('work_duration_unit')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Durasi Off</label>
+                        <label class="form-label">{{ __('Durasi Off') }}</label>
                         <input type="number" min="0" name="off_duration_value" id="offDurationValue" class="form-control @error('off_duration_value') is-invalid @enderror" value="{{ old('off_duration_value', 1) }}">
                         @error('off_duration_value')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Satuan Off</label>
+                        <label class="form-label">{{ __('Satuan Off') }}</label>
                         <select name="off_duration_unit" id="offDurationUnit" class="form-select @error('off_duration_unit') is-invalid @enderror">
                             @foreach($unitOptions as $value => $label)
                                 <option value="{{ $value }}" {{ old('off_duration_unit', 'day') === $value ? 'selected' : '' }}>{{ $label }}</option>
@@ -185,51 +185,51 @@
                         @error('off_duration_unit')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Jam Masuk</label>
+                        <label class="form-label">{{ __('Jam Masuk') }}</label>
                         <input type="time" name="start_time" class="form-control @error('start_time') is-invalid @enderror" value="{{ old('start_time') }}">
-                        <small class="text-muted">Digunakan sebagai awal rentang jam kerja.</small>
+                        <small class="text-muted">{{ __('Digunakan sebagai awal rentang jam kerja.') }}</small>
                         @error('start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Jam Pulang</label>
+                        <label class="form-label">{{ __('Jam Pulang') }}</label>
                         <input type="time" name="end_time" class="form-control @error('end_time') is-invalid @enderror" value="{{ old('end_time') }}">
-                        <small class="text-muted">Dipakai sebagai akhir rentang kerja kotor sebelum dikurangi jadwal istirahat.</small>
+                        <small class="text-muted">{{ __('Dipakai sebagai akhir rentang kerja kotor sebelum dikurangi jadwal istirahat.') }}</small>
                         @error('end_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Jam Istirahat</label>
+                        <label class="form-label">{{ __('Jam Istirahat') }}</label>
                         <input type="time" name="break_start_time" class="form-control @error('break_start_time') is-invalid @enderror" value="{{ old('break_start_time') }}">
-                        <small class="text-muted">Opsional. Isi jika pola kerja punya jadwal istirahat baku.</small>
+                        <small class="text-muted">{{ __('Opsional. Isi jika pola kerja punya jadwal istirahat baku.') }}</small>
                         @error('break_start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Jam Kembali Bekerja</label>
+                        <label class="form-label">{{ __('Jam Kembali Bekerja') }}</label>
                         <input type="time" name="break_end_time" class="form-control @error('break_end_time') is-invalid @enderror" value="{{ old('break_end_time') }}">
-                        <small class="text-muted">Opsional. Jika diisi, sistem akan menghitung jam kerja efektif setelah istirahat.</small>
+                        <small class="text-muted">{{ __('Opsional. Jika diisi, sistem akan menghitung jam kerja efektif setelah istirahat.') }}</small>
                         @error('break_end_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-12 js-sixth-day-section">
                         <div class="border rounded p-3 bg-light-subtle">
-                            <h6 class="mb-1">Jam Kerja Hari ke-6 Mingguan</h6>
-                            <small class="text-muted d-block mb-3">Opsional. Dipakai khusus untuk pola mingguan yang memiliki minimal 6 hari kerja, misalnya Sabtu lebih singkat pada pola 6:1 mingguan.</small>
+                            <h6 class="mb-1">{{ __('Jam Kerja Hari ke-6 Mingguan') }}</h6>
+                            <small class="text-muted d-block mb-3">{{ __('Opsional. Dipakai khusus untuk pola mingguan yang memiliki minimal 6 hari kerja, misalnya Sabtu lebih singkat pada pola 6:1 mingguan.') }}</small>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label">Jam Masuk Hari ke-6</label>
+                                    <label class="form-label">{{ __('Jam Masuk Hari ke-6') }}</label>
                                     <input type="time" id="sixthDayStartTime" name="sixth_day_start_time" class="form-control js-sixth-day-input @error('sixth_day_start_time') is-invalid @enderror" value="{{ old('sixth_day_start_time') }}">
                                     @error('sixth_day_start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Jam Pulang Hari ke-6</label>
+                                    <label class="form-label">{{ __('Jam Pulang Hari ke-6') }}</label>
                                     <input type="time" id="sixthDayEndTime" name="sixth_day_end_time" class="form-control js-sixth-day-input @error('sixth_day_end_time') is-invalid @enderror" value="{{ old('sixth_day_end_time') }}">
                                     @error('sixth_day_end_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Jam Istirahat Hari ke-6</label>
+                                    <label class="form-label">{{ __('Jam Istirahat Hari ke-6') }}</label>
                                     <input type="time" id="sixthDayBreakStartTime" name="sixth_day_break_start_time" class="form-control js-sixth-day-input @error('sixth_day_break_start_time') is-invalid @enderror" value="{{ old('sixth_day_break_start_time') }}">
                                     @error('sixth_day_break_start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">Jam Kembali Hari ke-6</label>
+                                    <label class="form-label">{{ __('Jam Kembali Hari ke-6') }}</label>
                                     <input type="time" id="sixthDayBreakEndTime" name="sixth_day_break_end_time" class="form-control js-sixth-day-input @error('sixth_day_break_end_time') is-invalid @enderror" value="{{ old('sixth_day_break_end_time') }}">
                                     @error('sixth_day_break_end_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
@@ -241,27 +241,27 @@
                             <input type="hidden" name="national_holiday_as_off" value="0">
                             <input class="form-check-input" type="checkbox" value="1" id="national_holiday_as_off" name="national_holiday_as_off" {{ old('national_holiday_as_off', true) ? 'checked' : '' }}>
                             <label class="form-check-label" for="national_holiday_as_off">
-                                Tanggal merah nasional otomatis dianggap off
+                                {{ __('Tanggal merah nasional otomatis dianggap off') }}
                             </label>
                         </div>
-                        <small class="text-muted d-block mt-1">Nonaktifkan opsi ini untuk pola seperti 10:2 atau 8:2 jika tanggal merah tetap dianggap hari kerja biasa.</small>
+                        <small class="text-muted d-block mt-1">{{ __('Nonaktifkan opsi ini untuk pola seperti 10:2 atau 8:2 jika tanggal merah tetap dianggap hari kerja biasa.') }}</small>
                     </div>
                     <div class="col-md-12">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" value="1" id="is_active" name="is_active" {{ old('is_active', true) ? 'checked' : '' }}>
                             <label class="form-check-label" for="is_active">
-                                Pola kerja aktif
+                                {{ __('Pola kerja aktif') }}
                             </label>
                         </div>
                     </div>
                     <div class="col-md-12">
-                        <label class="form-label">Keterangan</label>
-                        <textarea name="description" rows="4" class="form-control @error('description') is-invalid @enderror" placeholder="Contoh: Dipakai untuk karyawan site dengan pola 10 bulan kerja dan 2 minggu off.">{{ old('description') }}</textarea>
+                        <label class="form-label">{{ __('Keterangan') }}</label>
+                        <textarea name="description" rows="4" class="form-control @error('description') is-invalid @enderror" placeholder="{{ __('Contoh: Dipakai untuk karyawan site dengan pola 10 bulan kerja dan 2 minggu off.') }}">{{ old('description') }}</textarea>
                         @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-12 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">Simpan</button>
-                        <a href="{{ route('work-patterns.index') }}" class="btn btn-outline-secondary">Batal</a>
+                        <button type="submit" class="btn btn-primary">{{ __('Simpan') }}</button>
+                        <a href="{{ route('work-patterns.index') }}" class="btn btn-outline-secondary">{{ __('Batal') }}</a>
                     </div>
                 </form>
             </div>

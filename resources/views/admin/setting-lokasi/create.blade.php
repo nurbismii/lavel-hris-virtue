@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Tambah Lokasi Presensi')
+@section('title', __('Tambah Lokasi Presensi'))
 
 @push('styles')
 <link
@@ -19,14 +19,14 @@
                     <i class="fas fa-map-marker-alt"></i>
                 </span>
                 <div>
-                    <h3 class="ui-page-title">Tambah Lokasi Presensi</h3>
-                    <p class="ui-page-subtitle">Buat master titik lokasi. Pembagian karyawan dilakukan lewat assignment lokasi presensi.</p>
+                    <h3 class="ui-page-title">{{ __('Tambah Lokasi Presensi') }}</h3>
+                    <p class="ui-page-subtitle">{{ __('Buat master titik lokasi. Pembagian karyawan dilakukan lewat assignment lokasi presensi.') }}</p>
                 </div>
             </div>
             <div class="ui-page-actions">
                 <a href="{{ route('setting-lokasi-presensi.index') }}" class="btn btn-light border ui-btn-icon" data-loading-text="Kembali...">
                     <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                    <span>Kembali</span>
+                    <span>{{ __('Kembali') }}</span>
                 </a>
             </div>
         </div>
@@ -34,8 +34,8 @@
         <section class="ui-panel" aria-labelledby="attendanceLocationFormTitle">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title" id="attendanceLocationFormTitle">Data Lokasi</h5>
-                    <p class="ui-panel__meta">Klik peta atau tarik marker untuk menentukan titik presensi paling akurat.</p>
+                    <h5 class="ui-panel__title" id="attendanceLocationFormTitle">{{ __('Data Lokasi') }}</h5>
+                    <p class="ui-panel__meta">{{ __('Klik peta atau tarik marker untuk menentukan titik presensi paling akurat.') }}</p>
                 </div>
             </div>
 
@@ -45,7 +45,7 @@
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-8 ui-field">
-                            <label class="form-label" for="nama_lokasi">Nama Lokasi Presensi</label>
+                            <label class="form-label" for="nama_lokasi">{{ __('Nama Lokasi Presensi') }}</label>
                             <input
                                 type="text"
                                 id="nama_lokasi"
@@ -53,13 +53,13 @@
                                 class="form-control @error('nama_lokasi') is-invalid @enderror"
                                 value="{{ old('nama_lokasi') }}"
                                 maxlength="150"
-                                placeholder="Contoh: Gate Gudang B, Office VDNI, Mess Site A"
+                                placeholder="{{ __('Contoh: Gate Gudang B, Office VDNI, Mess Site A') }}"
                                 required>
                             @error('nama_lokasi')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="col-md-4 ui-field">
-                            <label class="form-label" for="radius">Radius (meter)</label>
+                            <label class="form-label" for="radius">{{ __('Radius (meter)') }}</label>
                             <input
                                 type="number"
                                 id="radius"
@@ -75,22 +75,22 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold" for="location">Titik Lokasi Presensi</label>
+                        <label class="form-label fw-semibold" for="location">{{ __('Titik Lokasi Presensi') }}</label>
                         <div id="location" class="ui-map-frame"></div>
                         <div class="ui-map-hint">
                             <div class="ui-table-note">
-                                Gunakan lokasi perangkat sebagai titik awal, lalu koreksi marker jika GPS belum presisi.
+                                {{ __('Gunakan lokasi perangkat sebagai titik awal, lalu koreksi marker jika GPS belum presisi.') }}
                             </div>
                             <button type="button" id="getCurrentLocationButton" class="btn btn-warning btn-sm ui-btn-icon" onclick="getLocation()">
                                 <i class="fas fa-crosshairs" aria-hidden="true"></i>
-                                <span>Ambil Lokasi Saat Ini</span>
+                                <span>{{ __('Ambil Lokasi Saat Ini') }}</span>
                             </button>
                         </div>
                     </div>
 
                     <div class="row g-3">
                         <div class="col-md-6 ui-field">
-                            <label class="form-label" for="latitude">Latitude</label>
+                            <label class="form-label" for="latitude">{{ __('Latitude') }}</label>
                             <input
                                 type="text"
                                 id="latitude"
@@ -103,7 +103,7 @@
                         </div>
 
                         <div class="col-md-6 ui-field">
-                            <label class="form-label" for="longitude">Longitude</label>
+                            <label class="form-label" for="longitude">{{ __('Longitude') }}</label>
                             <input
                                 type="text"
                                 id="longitude"
@@ -121,11 +121,11 @@
                     <div class="ui-actions ui-actions--end ui-actions--sm-stack">
                         <a href="{{ route('setting-lokasi-presensi.index') }}" class="btn btn-light border ui-btn-icon" data-loading-text="Kembali...">
                             <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                            <span>Kembali</span>
+                            <span>{{ __('Kembali') }}</span>
                         </a>
                         <button type="submit" class="btn btn-primary ui-btn-icon" data-loading-text="Menyimpan lokasi...">
                             <i class="fas fa-save" aria-hidden="true"></i>
-                            <span>Simpan Lokasi</span>
+                            <span>{{ __('Simpan Lokasi') }}</span>
                         </button>
                     </div>
                 </form>
@@ -186,7 +186,7 @@
 
         marker = L.marker(center, {
             draggable: true,
-            title: 'Titik lokasi presensi'
+            title: @json(__('Titik lokasi presensi'))
         }).addTo(map);
 
         circle = L.circle(center, {

@@ -13,35 +13,34 @@
 
                 <div class="brand-badge">
                     <i class="fas fa-user-plus"></i>
-                    V-People Registration
+                    {{ __('V-People Registration') }}
                 </div>
 
                 <h1 class="brand-title">
-                    Buat akun dan mulai akses layanan HR.
+                    {{ __('Buat akun dan mulai akses layanan HR.') }}
                 </h1>
 
                 <p class="brand-text">
-                    Daftarkan akun V-People menggunakan data karyawan yang valid untuk mengakses
-                    layanan presensi, slip gaji, pengajuan, dan informasi karyawan secara aman.
+                    {{ __('Daftarkan akun V-People menggunakan data karyawan yang valid untuk mengakses layanan presensi, slip gaji, pengajuan, dan informasi karyawan secara aman.') }}
                 </p>
 
                 <div class="feature-card">
                     <div class="feature-item">
                         <i class="fas fa-id-card"></i>
-                        <strong>Validasi NIK</strong>
-                        <span>Akun terhubung dengan data karyawan.</span>
+                        <strong>{{ __('Validasi NIK') }}</strong>
+                        <span>{{ __('Akun terhubung dengan data karyawan.') }}</span>
                     </div>
 
                     <div class="feature-item">
                         <i class="fas fa-lock"></i>
-                        <strong>Akses Aman</strong>
-                        <span>Data login digunakan untuk sistem internal.</span>
+                        <strong>{{ __('Akses Aman') }}</strong>
+                        <span>{{ __('Data login digunakan untuk sistem internal.') }}</span>
                     </div>
 
                     <div class="feature-item">
                         <i class="fas fa-mobile-alt"></i>
-                        <strong>Mobile Ready</strong>
-                        <span>Nyaman digunakan dari perangkat mobile.</span>
+                        <strong>{{ __('Mobile Ready') }}</strong>
+                        <span>{{ __('Nyaman digunakan dari perangkat mobile.') }}</span>
                     </div>
                 </div>
             </div>
@@ -66,12 +65,12 @@
                         <div class="mb-4">
                             <div class="auth-badge">
                                 <i class="fas fa-shield-alt"></i>
-                                Secure Registration
+                                {{ __('Secure Registration') }}
                             </div>
 
-                            <h3 class="register-title mb-2">Daftar Akun Baru</h3>
+                            <h3 class="register-title mb-2">{{ __('Daftar Akun Baru') }}</h3>
                             <p class="register-subtitle mb-0">
-                                Isi data akun dengan benar agar dapat terhubung dengan data karyawan.
+                                {{ __('Isi data akun dengan benar agar dapat terhubung dengan data karyawan.') }}
                             </p>
                         </div>
 
@@ -81,7 +80,7 @@
                             {{-- NIK --}}
                             <div class="mb-3">
                                 <label for="nik_karyawan" class="form-label">
-                                    Nomor Induk Karyawan (NIK)
+                                    {{ __('Nomor Induk Karyawan (NIK)') }}
                                 </label>
 
                                 <div class="input-group-modern">
@@ -92,7 +91,7 @@
                                         name="nik_karyawan"
                                         class="form-control form-control-modern @error('nik_karyawan') is-invalid @enderror"
                                         value="{{ old('nik_karyawan') }}"
-                                        placeholder="Masukkan NIK karyawan"
+                                        placeholder="{{ __('Masukkan NIK karyawan') }}"
                                         autocomplete="off"
                                         required>
 
@@ -107,7 +106,7 @@
                             {{-- Email --}}
                             <div class="mb-3">
                                 <label for="email" class="form-label">
-                                    Email
+                                    {{ __('Email') }}
                                 </label>
 
                                 <div class="input-group-modern">
@@ -133,7 +132,7 @@
                             {{-- Password --}}
                             <div class="mb-3">
                                 <label for="password" class="form-label">
-                                    Password
+                                    {{ __('Password') }}
                                 </label>
 
                                 <div class="input-group-modern">
@@ -143,7 +142,7 @@
                                         type="password"
                                         name="password"
                                         class="form-control form-control-modern pe-5 @error('password') is-invalid @enderror"
-                                        placeholder="Masukkan password"
+                                        placeholder="{{ __('Masukkan password') }}"
                                         autocomplete="new-password"
                                         required>
 
@@ -151,7 +150,7 @@
                                         type="button"
                                         class="password-toggle"
                                         onclick="toggleRegisterPassword('password', 'passwordIcon')"
-                                        aria-label="Tampilkan password">
+                                        aria-label="{{ __('Tampilkan password') }}">
                                         <i id="passwordIcon" class="fas fa-eye"></i>
                                     </button>
 
@@ -166,7 +165,7 @@
                             {{-- Konfirmasi Password --}}
                             <div class="mb-4">
                                 <label for="password_confirmation" class="form-label">
-                                    Konfirmasi Password
+                                    {{ __('Konfirmasi Password') }}
                                 </label>
 
                                 <div class="input-group-modern">
@@ -176,7 +175,7 @@
                                         type="password"
                                         name="password_confirmation"
                                         class="form-control form-control-modern pe-5"
-                                        placeholder="Ulangi password"
+                                        placeholder="{{ __('Ulangi password') }}"
                                         autocomplete="new-password"
                                         required>
 
@@ -184,7 +183,7 @@
                                         type="button"
                                         class="password-toggle"
                                         onclick="toggleRegisterPassword('password_confirmation', 'passwordConfirmIcon')"
-                                        aria-label="Tampilkan konfirmasi password">
+                                        aria-label="{{ __('Tampilkan konfirmasi password') }}">
                                         <i id="passwordConfirmIcon" class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -193,15 +192,15 @@
                             {{-- Button --}}
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary btn-register">
-                                    Daftar Sekarang
+                                    {{ __('Daftar Sekarang') }}
                                     <i class="fas fa-arrow-right ms-2"></i>
                                 </button>
                             </div>
 
                             <div class="text-center small text-muted">
-                                Sudah punya akun?
+                                {{ __('Sudah punya akun?') }}
                                 <a href="{{ route('login') }}" class="auth-link">
-                                    Masuk di sini
+                                    {{ __('Masuk di sini') }}
                                 </a>
                             </div>
                         </form>

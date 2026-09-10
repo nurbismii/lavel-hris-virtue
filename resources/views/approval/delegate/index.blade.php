@@ -9,8 +9,8 @@
     <div class="page-inner">
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
             <div>
-                <h3 class="text-primary mb-1">Approval Delegasi</h3>
-                <small class="text-muted">Verifikasi pengajuan karyawan sebelum diteruskan ke HOD.</small>
+                <h3 class="text-primary mb-1">{{ __('Approval Delegasi') }}</h3>
+                <small class="text-muted">{{ __('Verifikasi pengajuan karyawan sebelum diteruskan ke HOD.') }}</small>
             </div>
         </div>
 
@@ -35,7 +35,7 @@
                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
                     <div>
                         <h5 class="fw-semibold mb-1">{{ $moduleLabel }}</h5>
-                        <p class="text-muted small mb-0">Satu dari delegasi aktif cukup melakukan approval agar pengajuan masuk ke antrean HOD.</p>
+                        <p class="text-muted small mb-0">{{ __('Satu dari delegasi aktif cukup melakukan approval agar pengajuan masuk ke antrean HOD.') }}</p>
                     </div>
                 </div>
 
@@ -74,7 +74,7 @@
                                             <small class="d-block text-muted mt-1">{{ $item->keterangan ?: '-' }}</small>
                                             @if($item->foto && $item->foto !== '-')
                                                 <a href="{{ route('approval.delegate.izin.proof', $item->id) }}" target="_blank" class="small d-block mt-1">
-                                                    <i class="fas fa-paperclip me-1"></i> Lihat bukti
+                                                    <i class="fas fa-paperclip me-1"></i> {{ __('Lihat bukti') }}
                                                 </a>
                                             @endif
                                         @elseif($module === \App\Models\ApprovalDelegation::MODULE_ROSTER)
@@ -82,11 +82,11 @@
                                             <small class="d-block text-muted mt-1">{{ optional($item->periodeKerjaRoster)->alasan ?: '-' }}</small>
                                             @if($item->file)
                                                 <a href="{{ route('approval.delegate.roster.attachment', $item->id) }}" target="_blank" class="small d-block mt-1">
-                                                    <i class="fas fa-paperclip me-1"></i> Lihat lampiran
+                                                    <i class="fas fa-paperclip me-1"></i> {{ __('Lihat lampiran') }}
                                                 </a>
                                             @endif
                                         @elseif($module === \App\Models\ApprovalDelegation::MODULE_ROSTER_OFF)
-                                            <span class="fw-semibold">OFF Roster</span>
+                                            <span class="fw-semibold">{{ __('OFF Roster') }}</span>
                                             <small class="d-block text-muted">{{ $item->alasan ?: '-' }}</small>
                                         @elseif($module === \App\Models\ApprovalDelegation::MODULE_ATTENDANCE_CORRECTION)
                                             @foreach($item->requestedChanges() as $label => $value)
@@ -95,7 +95,7 @@
                                             <small class="d-block text-muted mt-1">{{ \Illuminate\Support\Str::limit($item->reason, 100) }}</small>
                                             @if($item->attachment_path)
                                                 <a href="{{ route('attendance-corrections.attachment', $item->id) }}" target="_blank" class="small d-block mt-1">
-                                                    <i class="fas fa-paperclip me-1"></i> Lihat lampiran
+                                                    <i class="fas fa-paperclip me-1"></i> {{ __('Lihat lampiran') }}
                                                 </a>
                                             @endif
                                         @endif
@@ -122,11 +122,11 @@
                                             <div class="d-flex gap-2">
                                                 <button name="action" value="1" class="btn btn-success btn-sm">
                                                     <i class="fas fa-check me-1"></i>
-                                                    Approve
+                                                    {{ __('Approve') }}
                                                 </button>
                                                 <button type="button" name="action" value="2" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
                                                     <i class="fas fa-times me-1"></i>
-                                                    Reject
+                                                    {{ __('Reject') }}
                                                 </button>
                                             </div>
                                         </form>
@@ -134,7 +134,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">Tidak ada pengajuan menunggu delegasi untuk modul ini.</td>
+                                    <td colspan="5" class="text-center text-muted py-4">{{ __('Tidak ada pengajuan menunggu delegasi untuk modul ini.') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

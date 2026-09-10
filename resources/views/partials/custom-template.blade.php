@@ -1,9 +1,9 @@
 <div class="custom-template">
-    <div class="title">Settings</div>
+    <div class="title">{{ __('Settings') }}</div>
     <div class="custom-content">
         <div class="switcher">
             <div class="switch-block">
-                <h4>Logo Header</h4>
+                <h4>{{ __('Logo Header') }}</h4>
                 <div class="btnSwitch">
                     <button
                         type="button"
@@ -69,7 +69,7 @@
                 </div>
             </div>
             <div class="switch-block">
-                <h4>Navbar Header</h4>
+                <h4>{{ __('Navbar Header') }}</h4>
                 <div class="btnSwitch">
                     <button
                         type="button"
@@ -135,7 +135,7 @@
                 </div>
             </div>
             <div class="switch-block">
-                <h4>Sidebar</h4>
+                <h4>{{ __('Sidebar') }}</h4>
                 <div class="btnSwitch">
                     <button
                         type="button"

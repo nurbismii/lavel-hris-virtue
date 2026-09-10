@@ -4,7 +4,7 @@
         <div class="mt-1">
             {{ $errors->first() }}
         </div>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('Close') }}"></button>
     </div>
 @endif
 
@@ -12,7 +12,7 @@
     @if(session($sessionKey))
         <div class="alert alert-{{ $alertClass }} alert-dismissible fade show" role="alert">
             {{ session($sessionKey) }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ __('Close') }}"></button>
         </div>
     @endif
 @endforeach

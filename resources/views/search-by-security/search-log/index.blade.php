@@ -8,10 +8,10 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-search text-primary me-2"></i>
-                    Logs
+                    {{ __('Logs') }}
                 </h4>
                 <small class="text-muted">
-                    Riwayat pencarian data karyawan tidak aktif
+                    {{ __('Riwayat pencarian data karyawan tidak aktif') }}
                 </small>
             </div>
         </div>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Audit Trail')
+@section('title', __('Audit Trail'))
 
 @push('styles')
 <style>
@@ -25,41 +25,41 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-clipboard-list text-primary me-2"></i>
-                    Audit Trail
+                    {{ __('Audit Trail') }}
                 </h4>
-                <small class="text-muted">Pantau riwayat approval HOD dan HR secara terpusat.</small>
+                <small class="text-muted">{{ __('Pantau riwayat approval HOD dan HR secara terpusat.') }}</small>
             </div>
         </div>
 
         @if(!$isTableReady)
             <div class="alert alert-warning">
-                Fitur audit trail belum aktif karena tabel <code>audit_trails</code> belum tersedia. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+                {{ __('Fitur audit trail belum aktif karena tabel') }} <code>audit_trails</code> {{ __('belum tersedia. Jalankan') }} <code>php artisan migrate</code> {{ __('terlebih dahulu.') }}
             </div>
         @else
             <div class="card shadow-sm border-0 mb-3">
                 <div class="card-body">
                     <form method="GET" class="row g-3 align-items-end">
                         <div class="col-md-2">
-                            <label class="form-label">Dari Tanggal</label>
+                            <label class="form-label">{{ __('Dari Tanggal') }}</label>
                             <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Sampai Tanggal</label>
+                            <label class="form-label">{{ __('Sampai Tanggal') }}</label>
                             <input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] ?? '' }}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Modul</label>
+                            <label class="form-label">{{ __('Modul') }}</label>
                             <select name="module" class="form-select">
-                                <option value="">Semua Modul</option>
+                                <option value="">{{ __('Semua Modul') }}</option>
                                 @foreach($moduleOptions as $value => $label)
                                     <option value="{{ $value }}" {{ ($filters['module'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Event</label>
+                            <label class="form-label">{{ __('Event') }}</label>
                             <select name="event" class="form-select">
-                                <option value="">Semua Event</option>
+                                <option value="">{{ __('Semua Event') }}</option>
                                 @foreach($eventLabels as $value => $label)
                                     <option value="{{ $value }}" {{ ($filters['event'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
@@ -67,18 +67,18 @@
                         </div>
                         <div class="col-md-2">
                             <label class="form-label">NIK</label>
-                            <input type="text" name="employee_nik" class="form-control" value="{{ $filters['employee_nik'] ?? '' }}" placeholder="NIK karyawan">
+                            <input type="text" name="employee_nik" class="form-control" value="{{ $filters['employee_nik'] ?? '' }}" placeholder="{{ __('NIK karyawan') }}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">Aktor</label>
-                            <input type="text" name="actor" class="form-control" value="{{ $filters['actor'] ?? '' }}" placeholder="Nama atau ID">
+                            <label class="form-label">{{ __('Aktor') }}</label>
+                            <input type="text" name="actor" class="form-control" value="{{ $filters['actor'] ?? '' }}" placeholder="{{ __('Nama atau ID') }}">
                         </div>
                         <div class="col-12 d-flex flex-wrap gap-2">
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search me-1"></i> Tampilkan
+                                <i class="fas fa-search me-1"></i> {{ __('Tampilkan') }}
                             </button>
                             <a href="{{ route('audit-trails.index') }}" class="btn btn-outline-secondary">
-                                <i class="fas fa-undo me-1"></i> Reset
+                                <i class="fas fa-undo me-1"></i> {{ __('Reset') }}
                             </a>
                         </div>
                     </form>
@@ -89,8 +89,8 @@
                 <div class="card-body">
                     <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                         <div>
-                            <h5 class="mb-1">Riwayat Aktivitas</h5>
-                            <small class="text-muted">Menampilkan 50 log per halaman, terbaru terlebih dahulu.</small>
+                            <h5 class="mb-1">{{ __('Riwayat Aktivitas') }}</h5>
+                            <small class="text-muted">{{ __('Menampilkan 50 log per halaman, terbaru terlebih dahulu.') }}</small>
                         </div>
                         <div class="text-muted small">
                             Total: {{ number_format($auditTrails->total()) }} log
@@ -143,14 +143,14 @@
                                         <td>{{ $trail->note ?: '-' }}</td>
                                         <td>
                                             <details>
-                                                <summary class="small text-primary">Lihat detail</summary>
+                                                <summary class="small text-primary">{{ __('Lihat detail') }}</summary>
                                                 <div class="mt-2">
-                                                    <strong class="small">Sebelum</strong>
+                                                    <strong class="small">{{ __('Sebelum') }}</strong>
                                                     <pre class="audit-trail-json bg-light border rounded p-2 mb-2 small">{{ json_encode($oldValues, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
-                                                    <strong class="small">Sesudah</strong>
+                                                    <strong class="small">{{ __('Sesudah') }}</strong>
                                                     <pre class="audit-trail-json bg-light border rounded p-2 mb-2 small">{{ json_encode($newValues, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
                                                     @if(!empty($metadata))
-                                                        <strong class="small">Metadata</strong>
+                                                        <strong class="small">{{ __('Metadata') }}</strong>
                                                         <pre class="audit-trail-json bg-light border rounded p-2 mb-0 small">{{ json_encode($metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
                                                     @endif
                                                 </div>
@@ -160,7 +160,7 @@
                                 @empty
                                     <tr>
                                         <td colspan="7" class="text-center text-muted py-4">
-                                            Belum ada audit trail untuk filter ini.
+                                            {{ __('Belum ada audit trail untuk filter ini.') }}
                                         </td>
                                     </tr>
                                 @endforelse

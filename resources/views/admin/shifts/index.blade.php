@@ -1,18 +1,18 @@
 @extends('layouts.app')
 
-@section('title', 'Master Shift')
+@section('title', __('Master Shift'))
 
 @section('content')
 <div class="container-fluid">
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
             <div>
-                <h4 class="fw-bold mb-1">Master Shift</h4>
-                <small class="text-muted">Kelola sumber jam kerja untuk Reguler, Shift 1, Shift 2, Shift 3, atau shift custom lain.</small>
+                <h4 class="fw-bold mb-1">{{ __('Master Shift') }}</h4>
+                <small class="text-muted">{{ __('Kelola sumber jam kerja untuk Reguler, Shift 1, Shift 2, Shift 3, atau shift custom lain.') }}</small>
             </div>
             <div class="ms-md-auto py-2 py-md-0">
                 <a href="{{ route('shifts.create') }}" class="btn btn-primary">
-                    Tambah Shift
+                    {{ __('Tambah Shift') }}
                 </a>
             </div>
         </div>
@@ -53,20 +53,20 @@
                                     <td>{{ $shift->description ?: '-' }}</td>
                                     <td class="text-nowrap">
                                         <a href="{{ route('shifts.edit', $shift->id) }}" class="btn btn-warning">
-                                            Edit
+                                            {{ __('Edit') }}
                                         </a>
                                         <form action="{{ route('shifts.destroy', $shift->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-danger">
-                                                Hapus
+                                                {{ __('Hapus') }}
                                             </button>
                                         </form>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="text-center text-muted py-4">Belum ada master shift.</td>
+                                    <td colspan="8" class="text-center text-muted py-4">{{ __('Belum ada master shift.') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

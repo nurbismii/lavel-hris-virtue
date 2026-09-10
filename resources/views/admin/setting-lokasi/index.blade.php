@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Lokasi Presensi')
+@section('title', __('Lokasi Presensi'))
 
 @section('content')
 @php
@@ -35,15 +35,15 @@
                     <i class="fas fa-map-marker-alt"></i>
                 </span>
                 <div>
-                    <h3 class="ui-page-title">Lokasi Presensi</h3>
-                    <p class="ui-page-subtitle">Kelola titik presensi dan assignment lokasi massal untuk karyawan aktif.</p>
+                    <h3 class="ui-page-title">{{ __('Lokasi Presensi') }}</h3>
+                    <p class="ui-page-subtitle">{{ __('Kelola titik presensi dan assignment lokasi massal untuk karyawan aktif.') }}</p>
                 </div>
             </div>
 
             <div class="ui-page-actions">
                 <a href="{{ route('setting-lokasi-presensi.create') }}" class="btn btn-primary ui-btn-icon" data-loading-text="Membuka...">
                     <i class="fa fa-plus" aria-hidden="true"></i>
-                    <span>Tambah Lokasi</span>
+                    <span>{{ __('Tambah Lokasi') }}</span>
                 </a>
             </div>
         </div>
@@ -51,12 +51,12 @@
         <section class="ui-panel mb-4" aria-labelledby="bulkLocationTitle">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title" id="bulkLocationTitle">Assign Lokasi Presensi Massal</h5>
-                    <p class="ui-panel__meta">Gunakan filter organisasi atau daftar NIK spesifik untuk membagi karyawan dalam divisi yang sama ke lokasi berbeda.</p>
+                    <h5 class="ui-panel__title" id="bulkLocationTitle">{{ __('Assign Lokasi Presensi Massal') }}</h5>
+                    <p class="ui-panel__meta">{{ __('Gunakan filter organisasi atau daftar NIK spesifik untuk membagi karyawan dalam divisi yang sama ke lokasi berbeda.') }}</p>
                 </div>
                 <span class="ui-status-pill ui-status-pill--success">
                     <i class="fas fa-user-check" aria-hidden="true"></i>
-                    Karyawan aktif saja
+                    {{ __('Karyawan aktif saja') }}
                 </span>
             </div>
 
@@ -69,9 +69,9 @@
                     <input type="hidden" name="bulk_preview" value="1">
 
                     <div class="col-lg-4 ui-field">
-                        <label class="form-label" for="bulk_lokasi_absen_id">Lokasi Tujuan</label>
+                        <label class="form-label" for="bulk_lokasi_absen_id">{{ __('Lokasi Tujuan') }}</label>
                         <select id="bulk_lokasi_absen_id" name="bulk_lokasi_absen_id" class="form-select @error('bulk_lokasi_absen_id') is-invalid @enderror">
-                            <option value="">-- Pilih Lokasi Presensi --</option>
+                            <option value="">{{ __('-- Pilih Lokasi Presensi --') }}</option>
                             @foreach ($lokasi as $lok)
                                 <option value="{{ $lok->id }}" {{ $selectedLocation === (string) $lok->id ? 'selected' : '' }}>
                                     {{ $lok->display_name }}
@@ -83,9 +83,9 @@
                     </div>
 
                     <div class="col-lg-2 ui-field">
-                        <label class="form-label" for="bulkLocationPerusahaan">Area</label>
+                        <label class="form-label" for="bulkLocationPerusahaan">{{ __('Area') }}</label>
                         <select name="bulk_perusahaan_id" id="bulkLocationPerusahaan" class="form-select @error('bulk_perusahaan_id') is-invalid @enderror">
-                            <option value="">Semua Area</option>
+                            <option value="">{{ __('Semua Area') }}</option>
                             @foreach ($companies as $company)
                                 <option value="{{ $company->id }}" {{ $selectedPerusahaan === (string) $company->id ? 'selected' : '' }}>
                                     {{ $company->kode_perusahaan ?? $company->nama_perusahaan ?? $company->id }}
@@ -96,9 +96,9 @@
                     </div>
 
                     <div class="col-lg-3 ui-field">
-                        <label class="form-label" for="bulkLocationDepartemen">Departemen</label>
+                        <label class="form-label" for="bulkLocationDepartemen">{{ __('Departemen') }}</label>
                         <select name="bulk_departemen_id" id="bulkLocationDepartemen" class="form-select @error('bulk_departemen_id') is-invalid @enderror">
-                            <option value="">Semua Departemen</option>
+                            <option value="">{{ __('Semua Departemen') }}</option>
                             @foreach ($departemens as $departemen)
                                 <option
                                     value="{{ $departemen->id }}"
@@ -112,9 +112,9 @@
                     </div>
 
                     <div class="col-lg-3 ui-field">
-                        <label class="form-label" for="bulkLocationDivisi">Divisi</label>
+                        <label class="form-label" for="bulkLocationDivisi">{{ __('Divisi') }}</label>
                         <select name="bulk_divisi_id" id="bulkLocationDivisi" class="form-select @error('bulk_divisi_id') is-invalid @enderror">
-                            <option value="">Semua Divisi</option>
+                            <option value="">{{ __('Semua Divisi') }}</option>
                             @foreach ($divisions as $division)
                                 <option
                                     value="{{ $division->id }}"
@@ -130,53 +130,53 @@
                     </div>
 
                     <div class="col-lg-2 ui-field">
-                        <label class="form-label" for="bulk_effective_from">Mulai Berlaku</label>
+                        <label class="form-label" for="bulk_effective_from">{{ __('Mulai Berlaku') }}</label>
                         <input type="date" id="bulk_effective_from" name="bulk_effective_from" class="form-control @error('bulk_effective_from') is-invalid @enderror" value="{{ $selectedEffectiveFrom }}">
                         @error('bulk_effective_from')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
                     <div class="col-lg-2 ui-field">
-                        <label class="form-label" for="bulk_effective_until">Selesai Berlaku</label>
+                        <label class="form-label" for="bulk_effective_until">{{ __('Selesai Berlaku') }}</label>
                         <input type="date" id="bulk_effective_until" name="bulk_effective_until" class="form-control @error('bulk_effective_until') is-invalid @enderror" value="{{ $selectedEffectiveUntil }}">
                         @error('bulk_effective_until')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
                     <div class="col-lg-5 ui-field">
-                        <label class="form-label" for="bulk_note">Catatan</label>
-                        <input type="text" id="bulk_note" name="bulk_note" class="form-control @error('bulk_note') is-invalid @enderror" value="{{ $selectedNote }}" maxlength="255" placeholder="Contoh: Penempatan Gudang B periode Mei">
+                        <label class="form-label" for="bulk_note">{{ __('Catatan') }}</label>
+                        <input type="text" id="bulk_note" name="bulk_note" class="form-control @error('bulk_note') is-invalid @enderror" value="{{ $selectedNote }}" maxlength="255" placeholder="{{ __('Contoh: Penempatan Gudang B periode Mei') }}">
                         @error('bulk_note')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
 
                     <div class="col-lg-3 ui-field">
-                        <label class="form-label" for="bulk_assignment_mode">Mode Assignment</label>
+                        <label class="form-label" for="bulk_assignment_mode">{{ __('Mode Assignment') }}</label>
                         <select id="bulk_assignment_mode" name="bulk_assignment_mode" class="form-select @error('bulk_assignment_mode') is-invalid @enderror">
                             <option value="replace" {{ $selectedAssignmentMode === 'replace' ? 'selected' : '' }}>
-                                Replace lokasi aktif lama
+                                {{ __('Replace lokasi aktif lama') }}
                             </option>
                             <option value="append" {{ $selectedAssignmentMode === 'append' ? 'selected' : '' }}>
-                                Tambahkan lokasi aktif
+                                {{ __('Tambahkan lokasi aktif') }}
                             </option>
                         </select>
                         @error('bulk_assignment_mode')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        <small class="text-muted d-block mt-1">Pilih tambahkan jika karyawan boleh presensi di beberapa titik dalam periode yang sama.</small>
+                        <small class="text-muted d-block mt-1">{{ __('Pilih tambahkan jika karyawan boleh presensi di beberapa titik dalam periode yang sama.') }}</small>
                     </div>
 
                     <div class="col-lg-9 ui-field">
-                        <label class="form-label" for="bulk_employee_niks">NIK Spesifik</label>
+                        <label class="form-label" for="bulk_employee_niks">{{ __('NIK Spesifik') }}</label>
                         <textarea
                             id="bulk_employee_niks"
                             name="bulk_employee_niks"
                             rows="4"
                             class="form-control @error('bulk_employee_niks') is-invalid @enderror"
-                            placeholder="Opsional. Isi jika dalam departemen/divisi yang sama perlu dibagi ke beberapa lokasi. Pisahkan NIK dengan baris baru, koma, titik koma, atau spasi.">{{ $selectedEmployeeNiks }}</textarea>
+                            placeholder="{{ __('Opsional. Isi jika dalam departemen/divisi yang sama perlu dibagi ke beberapa lokasi. Pisahkan NIK dengan baris baru, koma, titik koma, atau spasi.') }}">{{ $selectedEmployeeNiks }}</textarea>
                         @error('bulk_employee_niks')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        <small class="text-muted d-block mt-1">Jika diisi, assignment hanya berlaku untuk NIK yang cocok dengan scope akses dan filter di atas.</small>
+                        <small class="text-muted d-block mt-1">{{ __('Jika diisi, assignment hanya berlaku untuk NIK yang cocok dengan scope akses dan filter di atas.') }}</small>
                     </div>
 
                     <div class="col-lg-3 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary ui-btn-icon w-100" data-loading-text="Memuat preview...">
                             <i class="fas fa-search" aria-hidden="true"></i>
-                            <span>Preview Assignment</span>
+                            <span>{{ __('Preview Assignment') }}</span>
                         </button>
                     </div>
                 </form>
@@ -187,7 +187,7 @@
             <section class="ui-panel mb-4" aria-labelledby="bulkLocationPreviewTitle">
                 <div class="ui-panel__header">
                     <div>
-                        <h5 class="ui-panel__title" id="bulkLocationPreviewTitle">Preview Assignment Massal</h5>
+                        <h5 class="ui-panel__title" id="bulkLocationPreviewTitle">{{ __('Preview Assignment Massal') }}</h5>
                         <p class="ui-panel__meta">
                             Target: {{ $bulkPreview['selected_location']->display_name }}
                             | Mulai {{ $bulkPreview['effective_from'] }}
@@ -211,8 +211,8 @@
                 <div class="ui-panel__body">
                     @if(!empty($bulkPreview['requested_niks']))
                         <div class="ui-help-panel mb-3">
-                            <strong>Mode NIK spesifik aktif.</strong>
-                            Sistem hanya memproses NIK yang ada di daftar, aktif, berada dalam scope akses, dan cocok dengan filter organisasi yang dipilih.
+                            <strong>{{ __('Mode NIK spesifik aktif.') }}</strong>
+                            {{ __('Sistem hanya memproses NIK yang ada di daftar, aktif, berada dalam scope akses, dan cocok dengan filter organisasi yang dipilih.') }}
                         </div>
                     @endif
 
@@ -229,7 +229,7 @@
 
                     @if ($bulkPreview['total'] < 1)
                         <div class="alert ui-alert ui-alert--warning mb-0">
-                            Tidak ada karyawan aktif yang cocok dengan filter ini.
+                            {{ __('Tidak ada karyawan aktif yang cocok dengan filter ini.') }}
                         </div>
                     @else
                         <div class="ui-table-wrap mb-3">
@@ -265,7 +265,7 @@
                                                         </div>
                                                     @endforeach
                                                 @else
-                                                    <span class="text-muted">Default divisi / belum ada assignment karyawan</span>
+                                                    <span class="text-muted">{{ __('Default divisi / belum ada assignment karyawan') }}</span>
                                                 @endif
                                             </td>
                                         </tr>
@@ -301,14 +301,14 @@
                             <div class="form-check mb-3">
                                 <input class="form-check-input @error('confirm_bulk_assignment') is-invalid @enderror" type="checkbox" value="1" id="confirmBulkAssignment" name="confirm_bulk_assignment">
                                 <label class="form-check-label" for="confirmBulkAssignment">
-                                    Saya sudah memeriksa preview dan memahami assignment ini akan diterapkan massal.
+                                    {{ __('Saya sudah memeriksa preview dan memahami assignment ini akan diterapkan massal.') }}
                                 </label>
                                 @error('confirm_bulk_assignment')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                             </div>
 
                             <button type="submit" class="btn btn-success ui-btn-icon" data-loading-text="Menyimpan assignment...">
                                 <i class="fas fa-check" aria-hidden="true"></i>
-                                <span>Terapkan Assignment Massal</span>
+                                <span>{{ __('Terapkan Assignment Massal') }}</span>
                             </button>
                         </form>
                     @endif
@@ -319,8 +319,8 @@
         <section class="ui-panel" aria-labelledby="locationTableTitle">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title" id="locationTableTitle">Daftar Titik Presensi</h5>
-                    <p class="ui-panel__meta">Pantau titik koordinat, radius, dan jumlah assignment karyawan aktif.</p>
+                    <h5 class="ui-panel__title" id="locationTableTitle">{{ __('Daftar Titik Presensi') }}</h5>
+                    <p class="ui-panel__meta">{{ __('Pantau titik koordinat, radius, dan jumlah assignment karyawan aktif.') }}</p>
                 </div>
             </div>
 
@@ -357,7 +357,7 @@
                                         <div class="ui-actions">
                                             <a href="{{ route('setting-lokasi-presensi.edit', $lok->id) }}" class="btn btn-sm btn-primary ui-btn-icon" data-loading-text="Membuka...">
                                                 <i class="fas fa-edit" aria-hidden="true"></i>
-                                                <span>Edit</span>
+                                                <span>{{ __('Edit') }}</span>
                                             </a>
                                             <form
                                                 action="{{ route('setting-lokasi-presensi.destroy', $lok->id) }}"
@@ -369,7 +369,7 @@
                                                 @method('DELETE')
                                                 <button type="submit" class="btn btn-outline-danger btn-sm ui-btn-icon" data-loading-text="Menghapus...">
                                                     <i class="fas fa-trash" aria-hidden="true"></i>
-                                                    <span>Hapus</span>
+                                                    <span>{{ __('Hapus') }}</span>
                                                 </button>
                                             </form>
                                         </div>
@@ -391,8 +391,8 @@
         $("#table-lokasi-presensi").DataTable({
             responsive: true,
             language: {
-                emptyTable: 'Belum ada lokasi presensi.',
-                zeroRecords: 'Tidak ada lokasi presensi yang cocok dengan pencarian.'
+                emptyTable: @json(__('Belum ada lokasi presensi.')),
+                zeroRecords: @json(__('Tidak ada lokasi presensi yang cocok dengan pencarian.'))
             }
         });
     });

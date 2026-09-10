@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Tanda Tangan Pihak Pertama')
+@section('title', __('Tanda Tangan Pihak Pertama'))
 
 @push('styles')
 <style>
@@ -32,11 +32,11 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Tanda Tangan Pihak Pertama</h4>
-                <small class="text-muted">Input sekali untuk dipakai otomatis pada semua kontrak PKWT, Translator, dan Adendum.</small>
+                <h4 class="fw-bold mb-1">{{ __('Tanda Tangan Pihak Pertama') }}</h4>
+                <small class="text-muted">{{ __('Input sekali untuk dipakai otomatis pada semua kontrak PKWT, Translator, dan Adendum.') }}</small>
             </div>
             <div class="ms-md-auto">
-                <a href="{{ route('electronic-contracts.index') }}" class="btn btn-light">Kembali</a>
+                <a href="{{ route('electronic-contracts.index') }}" class="btn btn-light">{{ __('Kembali') }}</a>
             </div>
         </div>
 
@@ -44,25 +44,25 @@
             <div class="col-lg-5">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
-                        <h5 class="mb-3">Tanda Tangan Aktif</h5>
+                        <h5 class="mb-3">{{ __('Tanda Tangan Aktif') }}</h5>
 
                         @if($signaturePreview)
                             <div class="first-party-signature-preview mb-3">
                                 <img src="{{ $signaturePreview }}" alt="Tanda tangan Pihak Pertama">
                             </div>
                             <dl class="row mb-0">
-                                <dt class="col-5">Nama</dt>
+                                <dt class="col-5">{{ __('Nama') }}</dt>
                                 <dd class="col-7">{{ $signature->signer_name }}</dd>
-                                <dt class="col-5">Jabatan</dt>
+                                <dt class="col-5">{{ __('Jabatan') }}</dt>
                                 <dd class="col-7">{{ $signature->signer_position ?: '-' }}</dd>
-                                <dt class="col-5">Sumber</dt>
+                                <dt class="col-5">{{ __('Sumber') }}</dt>
                                 <dd class="col-7">{{ $signature->signature_source === 'uploaded' ? 'Upload gambar' : 'Buat langsung' }}</dd>
-                                <dt class="col-5">Diperbarui</dt>
+                                <dt class="col-5">{{ __('Diperbarui') }}</dt>
                                 <dd class="col-7">{{ optional($signature->signed_at)->format('d M Y H:i') ?: '-' }}</dd>
                             </dl>
                         @else
                             <div class="alert alert-warning mb-0">
-                                Belum ada tanda tangan Pihak Pertama. Karyawan tetap bisa melihat kontrak, tetapi slot Pihak Pertama akan kosong sampai tanda tangan disimpan.
+                                {{ __('Belum ada tanda tangan Pihak Pertama. Karyawan tetap bisa melihat kontrak, tetapi slot Pihak Pertama akan kosong sampai tanda tangan disimpan.') }}
                             </div>
                         @endif
                     </div>
@@ -72,9 +72,9 @@
             <div class="col-lg-7">
                 <div class="card border-0 shadow-sm">
                     <div class="card-body">
-                        <h5 class="mb-2">Input Tanda Tangan</h5>
+                        <h5 class="mb-2">{{ __('Input Tanda Tangan') }}</h5>
                         <p class="small text-muted mb-3">
-                            Tanda tangan ini akan otomatis muncul di slot <code>{{ '{' . '{' . 'tanda_tangan_pihak_pertama' . '}' . '}' }}</code> untuk semua kontrak yang memakai template default.
+                            {{ __('Tanda tangan ini akan otomatis muncul di slot') }} <code>{{ '{' . '{' . 'tanda_tangan_pihak_pertama' . '}' . '}' }}</code> {{ __('untuk semua kontrak yang memakai template default.') }}
                         </p>
 
                         @php($signatureMode = old('signature_mode', 'draw'))
@@ -84,11 +84,11 @@
                             <div class="d-flex flex-wrap gap-3 mb-3">
                                 <div class="form-check">
                                     <input class="form-check-input js-first-party-mode" type="radio" name="signature_mode" id="firstPartyModeDraw" value="draw" {{ $signatureMode === 'draw' ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="firstPartyModeDraw">Buat langsung</label>
+                                    <label class="form-check-label" for="firstPartyModeDraw">{{ __('Buat langsung') }}</label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input js-first-party-mode" type="radio" name="signature_mode" id="firstPartyModeUpload" value="upload" {{ $signatureMode === 'upload' ? 'checked' : '' }}>
-                                    <label class="form-check-label" for="firstPartyModeUpload">Upload foto</label>
+                                    <label class="form-check-label" for="firstPartyModeUpload">{{ __('Upload foto') }}</label>
                                 </div>
                             </div>
                             @error('signature_mode')<div class="text-danger small mb-2">{{ $message }}</div>@enderror
@@ -98,18 +98,18 @@
                                 <input type="hidden" name="signature_data" id="firstPartySignatureData">
                                 @error('signature_data')<div class="text-danger small mt-2">{{ $message }}</div>@enderror
                                 <button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="clearFirstPartySignature">
-                                    Bersihkan
+                                    {{ __('Bersihkan') }}
                                 </button>
                             </div>
 
                             <div id="firstPartyUploadPanel">
                                 <input type="file" name="signature_file" class="form-control @error('signature_file') is-invalid @enderror" accept="image/png,image/jpeg">
                                 @error('signature_file')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                <div class="form-text">Gunakan JPG/PNG maksimal 2 MB. Background putih atau transparan lebih rapi untuk PDF.</div>
+                                <div class="form-text">{{ __('Gunakan JPG/PNG maksimal 2 MB. Background putih atau transparan lebih rapi untuk PDF.') }}</div>
                             </div>
 
                             <button type="submit" class="btn btn-primary mt-3">
-                                Simpan Tanda Tangan Master
+                                {{ __('Simpan Tanda Tangan Master') }}
                             </button>
                         </form>
                     </div>

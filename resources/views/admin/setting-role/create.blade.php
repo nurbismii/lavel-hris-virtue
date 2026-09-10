@@ -88,7 +88,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-semibold">{{ __('access.setting_role.default_roles') }}</label>
                             <div class="border rounded-3 px-3 py-2 bg-light small text-muted h-100 d-flex align-items-center">
-                                Super Admin, HR, HOD, Manager, Supervisor, Staff, Admin Divisi
+                                {{ __('Super Admin, HR, HOD, Manager, Supervisor, Staff, Admin Divisi') }}
                             </div>
                         </div>
 
@@ -230,7 +230,7 @@
                                                 <i class="fas fa-trash me-1"></i> {{ __('access.setting_role.delete') }}
                                             </a>
                                         @else
-                                            <span class="badge bg-light text-muted border">Role sistem</span>
+                                            <span class="badge bg-light text-muted border">{{ __('Role sistem') }}</span>
                                         @endif
                                     </td>
                                 </tr>
@@ -255,7 +255,7 @@
                     <h5 class="modal-title" id="roleMenuDetailModalLabel">{{ __('access.setting_role.role_menu_detail') }}</h5>
                     <small id="roleMenuDetailRoleName" class="text-muted d-block"></small>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
             </div>
             <div class="modal-body">
                 <div id="roleMenuDetailContent" class="role-menu-modal__badges"></div>

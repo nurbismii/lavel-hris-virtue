@@ -196,11 +196,11 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
         <div class="roster-show-wrap">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                 <div>
-                    <h3 class="fw-bold text-primary mb-1">Review Approval Roster HRD</h3>
-                    <small class="text-muted">Tampilan detail approval HR dibuat konsisten dengan versi HOD agar proses review terasa lebih familiar.</small>
+                    <h3 class="fw-bold text-primary mb-1">{{ __('Review Approval Roster HRD') }}</h3>
+                    <small class="text-muted">{{ __('Tampilan detail approval HR dibuat konsisten dengan versi HOD agar proses review terasa lebih familiar.') }}</small>
                 </div>
                 <a href="{{ route('approval.roster.hrd') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>Kembali
+                    <i class="fas fa-arrow-left me-2"></i>{{ __('Kembali') }}
                 </a>
             </div>
 
@@ -208,9 +208,9 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                 <div class="card-body p-4">
                     <div class="row g-3 align-items-start">
                         <div class="col-lg-7">
-                            <span class="badge bg-light text-primary px-3 py-2 mb-3">Approval HRD</span>
+                            <span class="badge bg-light text-primary px-3 py-2 mb-3">{{ __('Approval HRD') }}</span>
                             <h2 class="fw-bold mb-2">{{ optional($employee)->nama_karyawan ?? 'Karyawan tidak ditemukan' }}</h2>
-                            <p class="mb-3 text-white-50">Halaman ini membantu review akhir di level HRD setelah pengajuan roster lolos persetujuan HOD.</p>
+                            <p class="mb-3 text-white-50">{{ __('Halaman ini membantu review akhir di level HRD setelah pengajuan roster lolos persetujuan HOD.') }}</p>
                             <div class="d-flex flex-wrap gap-2">
                                 {!! $roster->status_rencana_label !!}
                                 {!! $roster->status_hod_label !!}
@@ -221,25 +221,25 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                             <div class="row g-3">
                                 <div class="col-sm-6">
                                     <div class="hero-meta p-3 h-100">
-                                        <small class="label-soft d-block mb-1 text-white-50">Nomor Surat</small>
+                                        <small class="label-soft d-block mb-1 text-white-50">{{ __('Nomor Surat') }}</small>
                                         <div class="fw-semibold">{{ $roster->nomor_surat ?? '-' }}</div>
                                     </div>
                                 </div>
                                 <div class="col-sm-6">
                                     <div class="hero-meta p-3 h-100">
-                                        <small class="label-soft d-block mb-1 text-white-50">Tanggal Pengajuan</small>
+                                        <small class="label-soft d-block mb-1 text-white-50">{{ __('Tanggal Pengajuan') }}</small>
                                         <div class="fw-semibold">{{ $dateText($roster->tanggal_pengajuan) }}</div>
                                     </div>
                                 </div>
                                 <div class="col-sm-6">
                                     <div class="hero-meta p-3 h-100">
-                                        <small class="label-soft d-block mb-1 text-white-50">Periode Kerja</small>
+                                        <small class="label-soft d-block mb-1 text-white-50">{{ __('Periode Kerja') }}</small>
                                         <div class="fw-semibold">{{ $rangeText($periode->periode_awal, $periode->periode_akhir) }}</div>
                                     </div>
                                 </div>
                                 <div class="col-sm-6">
                                     <div class="hero-meta p-3 h-100">
-                                        <small class="label-soft d-block mb-1 text-white-50">Total Sistem</small>
+                                        <small class="label-soft d-block mb-1 text-white-50">{{ __('Total Sistem') }}</small>
                                         <div class="fw-semibold">{{ $totalKeseluruhan }} Hari</div>
                                     </div>
                                 </div>
@@ -261,15 +261,15 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                 <div class="col-md-6 col-xl-3">
                     <div class="mini-stat p-3">
                         <span class="icon mb-3"><i class="fas fa-user-check"></i></span>
-                        <small class="d-block mb-1">Status HOD</small>
+                        <small class="d-block mb-1">{{ __('Status HOD') }}</small>
                         <div class="fw-bold">{!! $roster->status_hod_label !!}</div>
-                        <div class="text-muted small mt-1">Approval HRD dilanjutkan setelah status HOD diterima.</div>
+                        <div class="text-muted small mt-1">{{ __('Approval HRD dilanjutkan setelah status HOD diterima.') }}</div>
                     </div>
                 </div>
                 <div class="col-md-6 col-xl-3">
                     <div class="mini-stat p-3">
                         <span class="icon mb-3"><i class="fas fa-phone-alt"></i></span>
-                        <small class="d-block mb-1">Kontak</small>
+                        <small class="d-block mb-1">{{ __('Kontak') }}</small>
                         <div class="fw-bold">{{ $roster->no_telp ?: '-' }}</div>
                         <div class="text-muted small mt-1">{{ $roster->email ?: 'Email tidak tersedia' }}</div>
                     </div>
@@ -277,7 +277,7 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                 <div class="col-md-6 col-xl-3">
                     <div class="mini-stat p-3">
                         <span class="icon mb-3"><i class="fas fa-paperclip"></i></span>
-                        <small class="d-block mb-1">Lampiran</small>
+                        <small class="d-block mb-1">{{ __('Lampiran') }}</small>
                         <div class="fw-bold">{{ $attachmentUrl ? 'Tersedia' : 'Tidak ada' }}</div>
                         <div class="text-muted small mt-1">{{ $attachmentUrl ? 'Dokumen bisa dibuka dari panel samping.' : 'Pengajuan ini tidak menyertakan file.' }}</div>
                     </div>
@@ -291,18 +291,18 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                             <div class="card-body p-4">
                                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                                     <div>
-                                        <h5 class="section-title mb-1">Informasi Karyawan</h5>
-                                        <p class="text-muted mb-0">Identitas dasar pemohon untuk memastikan keputusan HRD diberikan pada pengajuan yang tepat.</p>
+                                        <h5 class="section-title mb-1">{{ __('Informasi Karyawan') }}</h5>
+                                        <p class="text-muted mb-0">{{ __('Identitas dasar pemohon untuk memastikan keputusan HRD diberikan pada pengajuan yang tepat.') }}</p>
                                     </div>
-                                    <span class="badge bg-primary-subtle text-primary px-3 py-2">Profil Pemohon</span>
+                                    <span class="badge bg-primary-subtle text-primary px-3 py-2">{{ __('Profil Pemohon') }}</span>
                                 </div>
                                 <div class="row g-3">
-                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">Nama</small><div class="fw-semibold">{{ optional($employee)->nama_karyawan ?? '-' }}</div></div></div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">{{ __('Nama') }}</small><div class="fw-semibold">{{ optional($employee)->nama_karyawan ?? '-' }}</div></div></div>
                                     <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">NIK</small><div class="fw-semibold">{{ $roster->nik_karyawan }}</div></div></div>
-                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">Departemen</small><div class="fw-semibold">{{ $department->departemen ?? '-' }}</div></div></div>
-                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">Divisi</small><div class="fw-semibold">{{ $division->nama_divisi ?? '-' }}</div></div></div>
-                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">Email</small><div class="fw-semibold">{{ $roster->email ?: '-' }}</div></div></div>
-                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">No. HP</small><div class="fw-semibold">{{ $roster->no_telp ?: '-' }}</div></div></div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">{{ __('Departemen') }}</small><div class="fw-semibold">{{ $department->departemen ?? '-' }}</div></div></div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">{{ __('Divisi') }}</small><div class="fw-semibold">{{ $division->nama_divisi ?? '-' }}</div></div></div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">{{ __('Email') }}</small><div class="fw-semibold">{{ $roster->email ?: '-' }}</div></div></div>
+                                    <div class="col-md-6"><div class="detail-box p-3"><small class="d-block mb-1">{{ __('No. HP') }}</small><div class="fw-semibold">{{ $roster->no_telp ?: '-' }}</div></div></div>
                                 </div>
                             </div>
                         </div>
@@ -311,8 +311,8 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                             <div class="card-body p-4">
                                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                                     <div>
-                                        <h5 class="section-title mb-1">Periode Roster dan Minggu Kerja</h5>
-                                        <p class="text-muted mb-0">Susunan minggu kerja tetap ditampilkan agar HRD bisa memverifikasi pola kerja dan ketepatan pengajuan.</p>
+                                        <h5 class="section-title mb-1">{{ __('Periode Roster dan Minggu Kerja') }}</h5>
+                                        <p class="text-muted mb-0">{{ __('Susunan minggu kerja tetap ditampilkan agar HRD bisa memverifikasi pola kerja dan ketepatan pengajuan.') }}</p>
                                     </div>
                                     <span class="badge bg-info-subtle text-info px-3 py-2">{{ $rangeText($periode->periode_awal, $periode->periode_akhir) }}</span>
                                 </div>
@@ -341,7 +341,7 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                 </div>
                                 @if ((int) $periode->tipe_rencana === 2)
                                 <div class="alert alert-success border-0 rounded-4 mt-3 mb-0">
-                                    Total minggu berstatus <strong>BEKERJA</strong> yang masuk hitungan insentif: <strong>{{ $jumlahBekerja }} minggu</strong>.
+                                    {{ __('Total minggu berstatus') }} <strong>{{ __('BEKERJA') }}</strong> {{ __('yang masuk hitungan insentif:') }} <strong>{{ $jumlahBekerja }} minggu</strong>.
                                 </div>
                                 @endif
                             </div>
@@ -351,48 +351,48 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                             <div class="card-body p-4">
                                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                                     <div>
-                                        <h5 class="section-title mb-1">Ringkasan Rencana</h5>
-                                        <p class="text-muted mb-0">Total hari dan rentang tanggal ditampilkan jelas untuk membantu validasi akhir di level HRD.</p>
+                                        <h5 class="section-title mb-1">{{ __('Ringkasan Rencana') }}</h5>
+                                        <p class="text-muted mb-0">{{ __('Total hari dan rentang tanggal ditampilkan jelas untuk membantu validasi akhir di level HRD.') }}</p>
                                     </div>
                                     <span class="badge bg-success-subtle text-success px-3 py-2">Total {{ $totalKeseluruhan }} Hari</span>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="detail-box p-3 h-100">
-                                            <small class="d-block mb-2">Cuti Roster</small>
+                                            <small class="d-block mb-2">{{ __('Cuti Roster') }}</small>
                                             <div class="fw-semibold">{{ $rangeText($roster->tgl_mulai_cuti, $roster->tgl_mulai_cuti_berakhir) }}</div>
                                             <span class="badge bg-primary mt-3 px-3 py-2">{{ $cutiRosterHari }} Hari</span>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="detail-box p-3 h-100">
-                                            <small class="d-block mb-2">Cuti Tahunan</small>
+                                            <small class="d-block mb-2">{{ __('Cuti Tahunan') }}</small>
                                             <div class="fw-semibold">{{ $rangeText($roster->tgl_mulai_cuti_tahunan, $roster->tgl_mulai_cuti_tahunan_berakhir) }}</div>
                                             <span class="badge bg-info mt-3 px-3 py-2">{{ $cutiTahunanHari }} Hari</span>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="detail-box p-3 h-100">
-                                            <small class="d-block mb-2">OFF Tambahan</small>
+                                            <small class="d-block mb-2">{{ __('OFF Tambahan') }}</small>
                                             <div class="fw-semibold">{{ $rangeText($roster->tgl_mulai_off, $roster->tgl_mulai_off_berakhir) }}</div>
                                             <span class="badge bg-secondary mt-3 px-3 py-2">{{ $offHari }} Hari</span>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="detail-box p-3 h-100">
-                                            <small class="d-block mb-2">Insentif</small>
+                                            <small class="d-block mb-2">{{ __('Insentif') }}</small>
                                             <div class="fw-semibold">{{ $rangeText($roster->tgl_awal_kerja, $roster->tgl_akhir_kerja) }}</div>
                                             @if ((int) $periode->tipe_rencana === 2)
                                             <span class="badge bg-success mt-3 px-3 py-2">{{ $insentifHari }} Hari</span>
                                             @else
-                                            <span class="badge bg-light text-secondary border mt-3 px-3 py-2">Tidak dihitung</span>
+                                            <span class="badge bg-light text-secondary border mt-3 px-3 py-2">{{ __('Tidak dihitung') }}</span>
                                             @endif
                                         </div>
                                     </div>
                                 </div>
                                 @if ($periode->alasan)
                                 <div class="note-box p-3 mt-3">
-                                    <small class="d-block mb-2 fw-bold text-uppercase" style="letter-spacing:.06em;">Alasan Pengajuan</small>
+                                    <small class="d-block mb-2 fw-bold text-uppercase" style="letter-spacing:.06em;">{{ __('Alasan Pengajuan') }}</small>
                                     {{ $periode->alasan }}
                                 </div>
                                 @endif
@@ -403,16 +403,16 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                             <div class="card-body p-4">
                                 <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
                                     <div>
-                                        <h5 class="section-title mb-1">Detail Perjalanan</h5>
-                                        <p class="text-muted mb-0">Informasi perjalanan tetap ditampilkan untuk membantu review administratif dan kebutuhan mobilitas karyawan.</p>
+                                        <h5 class="section-title mb-1">{{ __('Detail Perjalanan') }}</h5>
+                                        <p class="text-muted mb-0">{{ __('Informasi perjalanan tetap ditampilkan untuk membantu review administratif dan kebutuhan mobilitas karyawan.') }}</p>
                                     </div>
-                                    <span class="badge bg-warning-subtle text-warning px-3 py-2">Perjalanan</span>
+                                    <span class="badge bg-warning-subtle text-warning px-3 py-2">{{ __('Perjalanan') }}</span>
                                 </div>
                                 @if ($hasTravel)
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <div class="travel-box p-3 h-100">
-                                            <small class="d-block mb-2">Keberangkatan</small>
+                                            <small class="d-block mb-2">{{ __('Keberangkatan') }}</small>
                                             <div class="fw-semibold">{{ $dateText($roster->tgl_keberangkatan) }}{{ $roster->jam_keberangkatan ? ' | ' . $roster->jam_keberangkatan : '' }}</div>
                                             <div class="route-box p-3 mt-3">{{ $roster->kota_awal_keberangkatan ?: '-' }} <i class="fas fa-arrow-right mx-2"></i> {{ $roster->kota_tujuan_keberangkatan ?: '-' }}</div>
                                             <div class="text-muted small mt-3">{{ $roster->catatan_penting_keberangkatan ?: 'Tidak ada catatan tambahan.' }}</div>
@@ -420,7 +420,7 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                     </div>
                                     <div class="col-md-6">
                                         <div class="travel-box p-3 h-100">
-                                            <small class="d-block mb-2">Kepulangan</small>
+                                            <small class="d-block mb-2">{{ __('Kepulangan') }}</small>
                                             <div class="fw-semibold">{{ $dateText($roster->tgl_kepulangan) }}{{ $roster->jam_kepulangan ? ' | ' . $roster->jam_kepulangan : '' }}</div>
                                             <div class="route-box p-3 mt-3">{{ $roster->kota_awal_kepulangan ?: '-' }} <i class="fas fa-arrow-right mx-2"></i> {{ $roster->kota_tujuan_kepulangan ?: '-' }}</div>
                                             <div class="text-muted small mt-3">{{ $roster->catatan_penting_kepulangan ?: 'Tidak ada catatan tambahan.' }}</div>
@@ -428,7 +428,7 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                     </div>
                                 </div>
                                 @else
-                                <div class="empty-box p-3">Detail perjalanan belum diisi. Review tetap dapat dilanjutkan berdasarkan data roster yang tersedia.</div>
+                                <div class="empty-box p-3">{{ __('Detail perjalanan belum diisi. Review tetap dapat dilanjutkan berdasarkan data roster yang tersedia.') }}</div>
                                 @endif
                             </div>
                         </div>
@@ -438,17 +438,17 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                 <div class="col-xl-4">
                     <div class="side-card card">
                         <div class="card-body p-4">
-                            <h5 class="section-title mb-1">Panel Keputusan HRD</h5>
-                            <p class="text-muted mb-3">Gunakan panel ini untuk melakukan review akhir setelah approval HOD selesai diproses.</p>
+                            <h5 class="section-title mb-1">{{ __('Panel Keputusan HRD') }}</h5>
+                            <p class="text-muted mb-3">{{ __('Gunakan panel ini untuk melakukan review akhir setelah approval HOD selesai diproses.') }}</p>
 
                             <div class="decision-box p-3 mb-3">
-                                <small class="d-block mb-2 label-soft">Status Saat Ini</small>
+                                <small class="d-block mb-2 label-soft">{{ __('Status Saat Ini') }}</small>
                                 <div>{!! $roster->status_hrd_label !!}</div>
                             </div>
 
                             @if ($attachmentUrl)
                             <a href="{{ $attachmentUrl }}" target="_blank" class="btn btn-outline-primary w-100 action-btn mb-3">
-                                <i class="fas fa-file-alt me-2"></i>Buka Lampiran Pendukung
+                                <i class="fas fa-file-alt me-2"></i>{{ __('Buka Lampiran Pendukung') }}
                             </a>
                             @endif
 
@@ -458,24 +458,24 @@ $hasTravel = $roster->tgl_keberangkatan || $roster->jam_keberangkatan || $roster
                                     @csrf
                                     <input type="hidden" name="action" value="1">
                                     <button type="submit" class="btn btn-success w-100 action-btn">
-                                        <i class="fas fa-check-circle me-2"></i>Setujui Pengajuan
+                                        <i class="fas fa-check-circle me-2"></i>{{ __('Setujui Pengajuan') }}
                                     </button>
                                 </form>
                                 <form action="{{ route('approval.roster.hrd.process', $roster->id) }}" method="POST">
                                     @csrf
                                     <input type="hidden" name="action" value="2">
                                     <button type="button" class="btn btn-outline-danger w-100 action-btn js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
-                                        <i class="fas fa-times-circle me-2"></i>Tolak Pengajuan
+                                        <i class="fas fa-times-circle me-2"></i>{{ __('Tolak Pengajuan') }}
                                     </button>
                                 </form>
                             </div>
                             @else
-                            <div class="empty-box p-3">Pengajuan ini sudah diproses di level HRD, sehingga tombol tindakan tidak ditampilkan lagi.</div>
+                            <div class="empty-box p-3">{{ __('Pengajuan ini sudah diproses di level HRD, sehingga tombol tindakan tidak ditampilkan lagi.') }}</div>
                             @endif
 
                             <div class="decision-box p-3 mt-3">
-                                <small class="d-block mb-2 label-soft">Catatan Review Cepat</small>
-                                <div class="text-muted small">Pastikan status HOD sudah diterima, total hari sesuai, dan dokumen pendukung sudah cukup sebelum keputusan HRD disimpan.</div>
+                                <small class="d-block mb-2 label-soft">{{ __('Catatan Review Cepat') }}</small>
+                                <div class="text-muted small">{{ __('Pastikan status HOD sudah diterima, total hari sesuai, dan dokumen pendukung sudah cukup sebelum keputusan HRD disimpan.') }}</div>
                             </div>
                         </div>
                     </div>

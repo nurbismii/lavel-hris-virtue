@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Master Jadwal Kerja')
+@section('title', __('Master Jadwal Kerja'))
 
 @section('content')
 @php
@@ -24,12 +24,12 @@
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4">
             <div>
-                <h4 class="fw-bold mb-1">Master Jadwal Kerja</h4>
-                <small class="text-muted">Kelola pola kerja dasar seperti 5:1, 6:1, atau 10 bulan kerja dan 2 minggu off.</small>
+                <h4 class="fw-bold mb-1">{{ __('Master Jadwal Kerja') }}</h4>
+                <small class="text-muted">{{ __('Kelola pola kerja dasar seperti 5:1, 6:1, atau 10 bulan kerja dan 2 minggu off.') }}</small>
             </div>
             <div class="ms-md-auto py-2 py-md-0">
                 <a href="{{ route('work-patterns.create') }}" class="btn btn-primary">
-                    Tambah Pola Kerja
+                    {{ __('Tambah Pola Kerja') }}
                 </a>
             </div>
         </div>
@@ -38,20 +38,20 @@
             <div class="card-body">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
                     <div>
-                        <h5 class="mb-1">Assign Massal Per Divisi</h5>
-                        <small class="text-muted">Pola kerja yang dipilih akan diterapkan ke semua karyawan aktif dalam divisi tersebut.</small>
+                        <h5 class="mb-1">{{ __('Assign Massal Per Divisi') }}</h5>
+                        <small class="text-muted">{{ __('Pola kerja yang dipilih akan diterapkan ke semua karyawan aktif dalam divisi tersebut.') }}</small>
                     </div>
                 </div>
 
                 <form action="{{ route('work-patterns.bulk-assign') }}" method="POST" class="row g-3">
                     @csrf
                     <div class="col-lg-3">
-                        <label class="form-label">Perusahaan</label>
+                        <label class="form-label">{{ __('Perusahaan') }}</label>
                         <select
                             name="perusahaan_id"
                             id="bulkAssignPerusahaan"
                             class="form-select">
-                            <option value="">-- Pilih Perusahaan --</option>
+                            <option value="">{{ __('-- Pilih Perusahaan --') }}</option>
                             @foreach ($companies as $company)
                                 <option value="{{ $company->id }}" {{ $selectedPerusahaan === (string) $company->id ? 'selected' : '' }}>
                                     {{ $company->kode_perusahaan ?? $company->nama_perusahaan ?? $company->id }}
@@ -60,12 +60,12 @@
                         </select>
                     </div>
                     <div class="col-lg-3">
-                        <label class="form-label">Departemen</label>
+                        <label class="form-label">{{ __('Departemen') }}</label>
                         <select
                             name="departemen_id"
                             id="bulkAssignDepartemen"
                             class="form-select">
-                            <option value="">-- Pilih Departemen --</option>
+                            <option value="">{{ __('-- Pilih Departemen --') }}</option>
                             @foreach ($departemens as $departemen)
                                 <option
                                     value="{{ $departemen->id }}"
@@ -77,12 +77,12 @@
                         </select>
                     </div>
                     <div class="col-lg-3">
-                        <label class="form-label">Divisi</label>
+                        <label class="form-label">{{ __('Divisi') }}</label>
                         <select
                             name="divisi_id"
                             id="bulkAssignDivisi"
                             class="form-select @error('divisi_id') is-invalid @enderror">
-                            <option value="">-- Pilih Divisi --</option>
+                            <option value="">{{ __('-- Pilih Divisi --') }}</option>
                             @foreach ($divisions as $division)
                                 <option
                                     value="{{ $division->id }}"
@@ -96,9 +96,9 @@
                         @error('divisi_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-lg-3">
-                        <label class="form-label">Master Pola Kerja</label>
+                        <label class="form-label">{{ __('Master Pola Kerja') }}</label>
                         <select name="work_pattern_id" class="form-select @error('work_pattern_id') is-invalid @enderror">
-                            <option value="">-- Pilih Pola Kerja --</option>
+                            <option value="">{{ __('-- Pilih Pola Kerja --') }}</option>
                             @foreach ($activeWorkPatterns as $workPattern)
                                 <option value="{{ $workPattern->id }}" {{ (string) old('work_pattern_id') === (string) $workPattern->id ? 'selected' : '' }}>
                                     {{ $workPattern->code }} - {{ $workPattern->name }} ({{ $workPattern->cycle_summary }} | {{ $workPattern->work_time_range_text }})
@@ -108,12 +108,12 @@
                         @error('work_pattern_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-lg-3">
-                        <label class="form-label">Mulai Berlaku</label>
+                        <label class="form-label">{{ __('Mulai Berlaku') }}</label>
                         <input type="date" name="work_pattern_start_date" class="form-control @error('work_pattern_start_date') is-invalid @enderror" value="{{ old('work_pattern_start_date', now()->toDateString()) }}">
                         @error('work_pattern_start_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-lg-3 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">Assign Massal</button>
+                        <button type="submit" class="btn btn-primary w-100">{{ __('Assign Massal') }}</button>
                     </div>
                 </form>
             </div>
@@ -160,20 +160,20 @@
                                     <td>{{ $workPattern->description ?: '-' }}</td>
                                     <td class="text-nowrap">
                                         <a href="{{ route('work-patterns.edit', $workPattern->id) }}" class="btn btn-warning">
-                                            Edit
+                                            {{ __('Edit') }}
                                         </a>
                                         <form action="{{ route('work-patterns.destroy', $workPattern->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-danger">
-                                                Hapus
+                                                {{ __('Hapus') }}
                                             </button>
                                         </form>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="text-center text-muted py-4">Belum ada master jadwal kerja.</td>
+                                    <td colspan="9" class="text-center text-muted py-4">{{ __('Belum ada master jadwal kerja.') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Saldo Cuti')
+@section('title', __('Saldo Cuti'))
 
 @section('content')
 <div class="container-fluid">
@@ -9,15 +9,15 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-calendar-check text-primary me-2"></i>
-                    Saldo Cuti Resmi
+                    {{ __('Saldo Cuti Resmi') }}
                 </h4>
-                <small class="text-muted">Pantau saldo cuti tahunan karyawan aktif VDNI dan VDNIP.</small>
+                <small class="text-muted">{{ __('Pantau saldo cuti tahunan karyawan aktif VDNI dan VDNIP.') }}</small>
             </div>
         </div>
 
         @if(!$isTableReady)
             <div class="alert alert-warning">
-                Fitur ledger saldo cuti belum aktif karena tabel <code>leave_balance_ledgers</code> belum tersedia. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+                {{ __('Fitur ledger saldo cuti belum aktif karena tabel') }} <code>leave_balance_ledgers</code> {{ __('belum tersedia. Jalankan') }} <code>php artisan migrate</code> {{ __('terlebih dahulu.') }}
             </div>
         @endif
 
@@ -25,15 +25,15 @@
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
                     <div class="col-md-5">
-                        <label class="form-label">Cari Karyawan</label>
-                        <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="NIK atau nama karyawan">
+                        <label class="form-label">{{ __('Cari Karyawan') }}</label>
+                        <input type="text" name="search" class="form-control" value="{{ $filters['search'] ?? '' }}" placeholder="{{ __('NIK atau nama karyawan') }}">
                     </div>
                     <div class="col-md-7 d-flex flex-wrap gap-2">
                         <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search me-1"></i> Tampilkan
+                            <i class="fas fa-search me-1"></i> {{ __('Tampilkan') }}
                         </button>
                         <a href="{{ route('leave-balances.index') }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-undo me-1"></i> Reset
+                            <i class="fas fa-undo me-1"></i> {{ __('Reset') }}
                         </a>
                     </div>
                 </form>
@@ -44,8 +44,8 @@
             <div class="card-body">
                 <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                     <div>
-                        <h5 class="mb-1">Daftar Saldo Karyawan</h5>
-                        <small class="text-muted">Menampilkan karyawan aktif dengan area kerja VDNI dan VDNIP.</small>
+                        <h5 class="mb-1">{{ __('Daftar Saldo Karyawan') }}</h5>
+                        <small class="text-muted">{{ __('Menampilkan karyawan aktif dengan area kerja VDNI dan VDNIP.') }}</small>
                     </div>
                     <div class="text-muted small">Total: {{ number_format($employees->total()) }} karyawan</div>
                 </div>
@@ -80,14 +80,14 @@
                                     </td>
                                     <td>
                                         <a href="{{ route('leave-balances.show', $employee->nik) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-list me-1"></i> Ledger
+                                            <i class="fas fa-list me-1"></i> {{ __('Ledger') }}
                                         </a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="7" class="text-center text-muted py-4">
-                                        Tidak ada karyawan untuk filter ini.
+                                        {{ __('Tidak ada karyawan untuk filter ini.') }}
                                     </td>
                                 </tr>
                             @endforelse

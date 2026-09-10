@@ -2,9 +2,9 @@
     <table class="table table-sm table-hover">
         <thead>
             <tr>
-                <th>Karyawan</th>
-                <th>Keputusan</th>
-                <th>Akhir Saat Ini</th>
+                <th>{{ __('Karyawan') }}</th>
+                <th>{{ __('Keputusan') }}</th>
+                <th>{{ __('Akhir Saat Ini') }}</th>
             </tr>
         </thead>
         <tbody>

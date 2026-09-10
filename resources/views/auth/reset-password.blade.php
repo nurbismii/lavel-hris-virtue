@@ -13,35 +13,34 @@
 
                 <div class="brand-badge">
                     <i class="fas fa-shield-alt"></i>
-                    New Password Setup
+                    {{ __('New Password Setup') }}
                 </div>
 
                 <h1 class="brand-title">
-                    Buat password baru yang lebih aman.
+                    {{ __('Buat password baru yang lebih aman.') }}
                 </h1>
 
                 <p class="brand-text">
-                    Gunakan password yang kuat untuk melindungi akses akun V-People.
-                    Setelah password berhasil diperbarui, Anda dapat login kembali menggunakan password baru.
+                    {{ __('Gunakan password yang kuat untuk melindungi akses akun V-People. Setelah password berhasil diperbarui, Anda dapat login kembali menggunakan password baru.') }}
                 </p>
 
                 <div class="feature-card">
                     <div class="feature-item">
                         <i class="fas fa-key"></i>
-                        <strong>Password Baru</strong>
-                        <span>Ganti password lama dengan yang lebih aman.</span>
+                        <strong>{{ __('Password Baru') }}</strong>
+                        <span>{{ __('Ganti password lama dengan yang lebih aman.') }}</span>
                     </div>
 
                     <div class="feature-item">
                         <i class="fas fa-user-lock"></i>
-                        <strong>Akun Aman</strong>
-                        <span>Token reset digunakan untuk validasi akses.</span>
+                        <strong>{{ __('Akun Aman') }}</strong>
+                        <span>{{ __('Token reset digunakan untuk validasi akses.') }}</span>
                     </div>
 
                     <div class="feature-item">
                         <i class="fas fa-sign-in-alt"></i>
-                        <strong>Login Ulang</strong>
-                        <span>Masuk kembali setelah reset berhasil.</span>
+                        <strong>{{ __('Login Ulang') }}</strong>
+                        <span>{{ __('Masuk kembali setelah reset berhasil.') }}</span>
                     </div>
                 </div>
             </div>
@@ -66,19 +65,19 @@
                         <div class="mb-4">
                             <div class="auth-badge">
                                 <i class="fas fa-lock"></i>
-                                Reset Password
+                                {{ __('Reset Password') }}
                             </div>
 
-                            <h3 class="reset-title mb-2">Buat Password Baru</h3>
+                            <h3 class="reset-title mb-2">{{ __('Buat Password Baru') }}</h3>
                             <p class="reset-subtitle mb-0">
-                                Masukkan email dan password baru untuk memulihkan akses akun.
+                                {{ __('Masukkan email dan password baru untuk memulihkan akses akun.') }}
                             </p>
                         </div>
 
                         <div class="password-info">
                             <i class="fas fa-info-circle"></i>
                             <span>
-                                Gunakan password minimal 8 karakter dan hindari memakai password yang mudah ditebak.
+                                {{ __('Gunakan password minimal 8 karakter dan hindari memakai password yang mudah ditebak.') }}
                             </span>
                         </div>
 
@@ -90,7 +89,7 @@
                             {{-- Email --}}
                             <div class="mb-3">
                                 <label for="email" class="form-label">
-                                    Email Address
+                                    {{ __('Email Address') }}
                                 </label>
 
                                 <div class="input-group-modern">
@@ -116,7 +115,7 @@
                             {{-- Password --}}
                             <div class="mb-3">
                                 <label for="password" class="form-label">
-                                    Password Baru
+                                    {{ __('Password Baru') }}
                                 </label>
 
                                 <div class="input-group-modern">
@@ -126,7 +125,7 @@
                                         type="password"
                                         name="password"
                                         class="form-control form-control-modern pe-5 @error('password') is-invalid @enderror"
-                                        placeholder="Masukkan password baru"
+                                        placeholder="{{ __('Masukkan password baru') }}"
                                         autocomplete="new-password"
                                         required>
 
@@ -134,7 +133,7 @@
                                         type="button"
                                         class="password-toggle"
                                         onclick="toggleResetPassword('password', 'passwordIcon')"
-                                        aria-label="Tampilkan password">
+                                        aria-label="{{ __('Tampilkan password') }}">
                                         <i id="passwordIcon" class="fas fa-eye"></i>
                                     </button>
 
@@ -149,7 +148,7 @@
                             {{-- Confirm Password --}}
                             <div class="mb-4">
                                 <label for="password_confirmation" class="form-label">
-                                    Konfirmasi Password
+                                    {{ __('Konfirmasi Password') }}
                                 </label>
 
                                 <div class="input-group-modern">
@@ -159,7 +158,7 @@
                                         type="password"
                                         name="password_confirmation"
                                         class="form-control form-control-modern pe-5"
-                                        placeholder="Ulangi password baru"
+                                        placeholder="{{ __('Ulangi password baru') }}"
                                         autocomplete="new-password"
                                         required>
 
@@ -167,7 +166,7 @@
                                         type="button"
                                         class="password-toggle"
                                         onclick="toggleResetPassword('password_confirmation', 'passwordConfirmIcon')"
-                                        aria-label="Tampilkan konfirmasi password">
+                                        aria-label="{{ __('Tampilkan konfirmasi password') }}">
                                         <i id="passwordConfirmIcon" class="fas fa-eye"></i>
                                     </button>
                                 </div>
@@ -176,7 +175,7 @@
                             {{-- Button --}}
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary btn-reset">
-                                    Reset Password
+                                    {{ __('Reset Password') }}
                                     <i class="fas fa-arrow-right ms-2"></i>
                                 </button>
                             </div>
@@ -184,7 +183,7 @@
                             <div class="text-center small">
                                 <a href="{{ route('login') }}" class="auth-link">
                                     <i class="fas fa-arrow-left me-1"></i>
-                                    Kembali ke Login
+                                    {{ __('Kembali ke Login') }}
                                 </a>
                             </div>
                         </form>

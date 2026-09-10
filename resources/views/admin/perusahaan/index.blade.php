@@ -7,10 +7,10 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas fa-hotel text-primary me-2"></i>
-                    Data Perusahaan
+                    {{ __('Data Perusahaan') }}
                 </h4>
                 <small class="text-muted">
-                    Daftar departemen/divisi
+                    {{ __('Daftar departemen/divisi') }}
                 </small>
             </div>
         </div>
@@ -39,19 +39,19 @@
                                             <span class="icon text-white-50">
                                                 <i class="fas fa-eye"></i>
                                             </span>
-                                            <span class="text">Detail</span>
+                                            <span class="text">{{ __('Detail') }}</span>
                                         </a>
                                         <a href="{{ route('perusahaan.edit', $p->id) }}" class="btn btn-sm btn-warning btn-sm btn-icon-split">
                                             <span class="icon text-white-50">
                                                 <i class="fas fa-edit"></i>
                                             </span>
-                                            <span class="text">Edit</span>
+                                            <span class="text">{{ __('Edit') }}</span>
                                         </a>
                                         <a href="{{ route('perusahaan.destroy', $p->id) }}" class="btn btn-danger btn-sm btn-icon-split" data-confirm-delete="true">
                                             <span class="icon text-white-50">
                                                 <i class="fas fa-trash"></i>
                                             </span>
-                                            <span class="text">Hapus</span>
+                                            <span class="text">{{ __('Hapus') }}</span>
                                         </a>
                                     </td>
                                 </tr>

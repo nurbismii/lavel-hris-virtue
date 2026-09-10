@@ -515,9 +515,9 @@ if ($hour < 11) {
                                         {{ now()->translatedFormat('l, d F Y') }}
                                     </div>
 
-                                    <a href="{{ route('kotak-masuk.index') }}" class="hero-mobile-notif d-lg-none" aria-label="Buka notifikasi">
+                                    <a href="{{ route('kotak-masuk.index') }}" class="hero-mobile-notif d-lg-none" aria-label="{{ __('Buka notifikasi') }}">
                                         <i class="fas fa-bell"></i>
-                                        <span class="hero-mobile-notif__label">Notif</span>
+                                        <span class="hero-mobile-notif__label">{{ __('Notif') }}</span>
                                         @if($dashboardUnreadNotifications > 0)
                                         <span class="hero-mobile-notif__badge">{{ $dashboardUnreadNotifications }}</span>
                                         @endif
@@ -549,7 +549,7 @@ if ($hour < 11) {
                 </div>
             </div>
 
-            <div class="mobile-command-strip d-lg-none" aria-label="Aksi cepat dashboard">
+            <div class="mobile-command-strip d-lg-none" aria-label="{{ __('Aksi cepat dashboard') }}">
                 @if($attendanceSummary && $canAccessPresensi && $presensiRoute)
                 <a href="{{ $presensiRoute }}" class="mobile-command mobile-command--primary">
                     <span class="mobile-command__icon">
@@ -568,7 +568,7 @@ if ($hour < 11) {
                     </span>
                     <span>
                         <strong>{{ $totalAccessibleMenuCount }}</strong>
-                        <small>Menu aktif</small>
+                        <small>{{ __('Menu aktif') }}</small>
                     </span>
                 </button>
 
@@ -578,7 +578,7 @@ if ($hour < 11) {
                     </span>
                     <span>
                         <strong>{{ $dashboardUnreadNotifications }}</strong>
-                        <small>Notifikasi</small>
+                        <small>{{ __('Notifikasi') }}</small>
                     </span>
                 </a>
 
@@ -588,7 +588,7 @@ if ($hour < 11) {
                     </span>
                     <span>
                         <strong>{{ $sisaCuti }}</strong>
-                        <small>Sisa cuti</small>
+                        <small>{{ __('Sisa cuti') }}</small>
                     </span>
                 </a>
             </div>
@@ -602,7 +602,7 @@ if ($hour < 11) {
                     <div class="attendance-live-panel">
                         <span class="attendance-live-panel__label">
                             <i class="fas fa-clock"></i>
-                            Waktu Realtime
+                            {{ __('Waktu Realtime') }}
                         </span>
                         <strong id="dashboardRealtimeClock" class="attendance-live-panel__clock">
                             {{ now()->format('H:i:s') }}
@@ -611,9 +611,9 @@ if ($hour < 11) {
                             {{ now()->translatedFormat('l, d M Y') }} WITA
                         </small>
 
-                        <div class="attendance-progress" aria-label="Progress presensi hari ini">
+                        <div class="attendance-progress" aria-label="{{ __('Progress presensi hari ini') }}">
                             <div class="attendance-progress__meta">
-                                <span>Progress presensi hari ini</span>
+                                <span>{{ __('Progress presensi hari ini') }}</span>
                                 <strong>{{ $attendanceDoneCount }}/{{ $attendanceTotalCount }}</strong>
                             </div>
                             <div class="attendance-progress__track">
@@ -715,7 +715,7 @@ if ($hour < 11) {
                                 <h5 class="modal-title" id="allAccessMenuModalLabel">{{ __('access.dashboard_menu.all_access_title') }}</h5>
                                 <small class="text-muted">{{ __('access.dashboard_menu.all_access_subtitle') }}</small>
                             </div>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
                         </div>
                         <div class="modal-body">
                             <div class="menu-access-tools">
@@ -724,14 +724,14 @@ if ($hour < 11) {
                                     <input
                                         type="search"
                                         id="dashboardMenuSearch"
-                                        placeholder="Cari menu..."
+                                        placeholder="{{ __('Cari menu...') }}"
                                         autocomplete="off"
                                         data-dashboard-menu-search>
                                 </label>
 
-                                <div class="menu-access-filter" aria-label="Filter grup menu">
+                                <div class="menu-access-filter" aria-label="{{ __('Filter grup menu') }}">
                                     <button type="button" class="is-active" data-dashboard-menu-filter="all">
-                                        Semua
+                                        {{ __('Semua') }}
                                     </button>
                                     @foreach($allAccessibleMenuItems as $group => $menus)
                                     <button type="button" data-dashboard-menu-filter="{{ \Illuminate\Support\Str::slug((string) $group) }}">
@@ -767,8 +767,8 @@ if ($hour < 11) {
 
                             <div class="menu-access-empty d-none" data-dashboard-menu-empty>
                                 <i class="fas fa-search"></i>
-                                <strong>Menu tidak ditemukan</strong>
-                                <span>Coba kata kunci lain atau pilih filter Semua.</span>
+                                <strong>{{ __('Menu tidak ditemukan') }}</strong>
+                                <span>{{ __('Coba kata kunci lain atau pilih filter Semua.') }}</span>
                             </div>
                         </div>
                     </div>
@@ -780,9 +780,9 @@ if ($hour < 11) {
                 <div class="dashboard-card account-activity-card" data-account-card>
                     <div class="section-header">
                         <div>
-                            <h2 class="section-title">Aktivitas Akun</h2>
+                            <h2 class="section-title">{{ __('Aktivitas Akun') }}</h2>
                             <p class="section-subtitle">
-                                Status akses dan aktivitas login terbaru untuk membantu Anda memantau keamanan akun.
+                                {{ __('Status akses dan aktivitas login terbaru untuk membantu Anda memantau keamanan akun.') }}
                             </p>
                         </div>
                         <button
@@ -790,7 +790,7 @@ if ($hour < 11) {
                             class="dashboard-detail-toggle d-lg-none"
                             data-account-toggle
                             aria-expanded="false">
-                            <span>Lihat detail</span>
+                            <span>{{ __('Lihat detail') }}</span>
                             <i class="fas fa-chevron-down"></i>
                         </button>
                     </div>
@@ -798,7 +798,7 @@ if ($hour < 11) {
                     <div class="activity-list" data-account-details>
                         <div class="activity-row">
                             <div>
-                                <small>Status</small>
+                                <small>{{ __('Status') }}</small>
                                 <span class="status-pill status-pill--{{ $statusTone }}">
                                     <i class="fas fa-circle"></i>
                                     {{ $statusText }}
@@ -809,7 +809,7 @@ if ($hour < 11) {
 
                         <div class="activity-row">
                             <div>
-                                <small>Email Login</small>
+                                <small>{{ __('Email Login') }}</small>
                                 <strong>{{ $currentUser->email ?? '-' }}</strong>
                             </div>
                             <strong>{{ $verificationText }}</strong>
@@ -817,7 +817,7 @@ if ($hour < 11) {
 
                         <div class="activity-row">
                             <div>
-                                <small>Verifikasi Email</small>
+                                <small>{{ __('Verifikasi Email') }}</small>
                                 <strong>{{ $verifiedAtText }}</strong>
                             </div>
                             <span class="status-pill status-pill--{{ $verificationTone }}">
@@ -828,7 +828,7 @@ if ($hour < 11) {
 
                         <div class="activity-row">
                             <div>
-                                <small>Login Terakhir</small>
+                                <small>{{ __('Login Terakhir') }}</small>
                                 <strong>{{ $lastLoginText }}</strong>
                             </div>
                             <strong>{{ $lastLoginHuman }}</strong>

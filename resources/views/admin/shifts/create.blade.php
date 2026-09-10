@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Tambah Master Shift')
+@section('title', __('Tambah Master Shift'))
 
 @section('content')
 @php
@@ -31,10 +31,10 @@
     <div class="page-inner">
         <div class="d-flex justify-content-between align-items-center pt-2 pb-4">
             <div>
-                <h4 class="fw-bold mb-1">Tambah Master Shift</h4>
-                <small class="text-muted">Simpan jam kerja yang nanti bisa dipakai pada pengaturan shift harian.</small>
+                <h4 class="fw-bold mb-1">{{ __('Tambah Master Shift') }}</h4>
+                <small class="text-muted">{{ __('Simpan jam kerja yang nanti bisa dipakai pada pengaturan shift harian.') }}</small>
             </div>
-            <a href="{{ route('shifts.index') }}" class="btn btn-light">Kembali</a>
+            <a href="{{ route('shifts.index') }}" class="btn btn-light">{{ __('Kembali') }}</a>
         </div>
 
         <div class="card">
@@ -42,27 +42,27 @@
                 <form action="{{ route('shifts.store') }}" method="POST" class="row g-3">
                     @csrf
                     <div class="col-12">
-                        <label class="form-label">Preset Cepat</label>
+                        <label class="form-label">{{ __('Preset Cepat') }}</label>
                         <div class="d-flex flex-wrap gap-2">
-                            <button type="button" class="btn btn-outline-primary js-shift-preset" data-preset='{{ json_encode($shiftPresets['reguler']) }}'>Reguler</button>
-                            <button type="button" class="btn btn-outline-primary js-shift-preset" data-preset='{{ json_encode($shiftPresets['shift_1']) }}'>Shift 1</button>
-                            <button type="button" class="btn btn-outline-primary js-shift-preset" data-preset='{{ json_encode($shiftPresets['shift_2']) }}'>Shift 2</button>
-                            <button type="button" class="btn btn-outline-primary js-shift-preset" data-preset='{{ json_encode($shiftPresets['shift_3']) }}'>Shift 3</button>
+                            <button type="button" class="btn btn-outline-primary js-shift-preset" data-preset='{{ json_encode($shiftPresets['reguler']) }}'>{{ __('Reguler') }}</button>
+                            <button type="button" class="btn btn-outline-primary js-shift-preset" data-preset='{{ json_encode($shiftPresets['shift_1']) }}'>{{ __('Shift 1') }}</button>
+                            <button type="button" class="btn btn-outline-primary js-shift-preset" data-preset='{{ json_encode($shiftPresets['shift_2']) }}'>{{ __('Shift 2') }}</button>
+                            <button type="button" class="btn btn-outline-primary js-shift-preset" data-preset='{{ json_encode($shiftPresets['shift_3']) }}'>{{ __('Shift 3') }}</button>
                         </div>
-                        <small class="text-muted d-block mt-2">Preset hanya mengisi kode, nama, dan tipe shift. Jam kerja tetap Anda tentukan sendiri.</small>
+                        <small class="text-muted d-block mt-2">{{ __('Preset hanya mengisi kode, nama, dan tipe shift. Jam kerja tetap Anda tentukan sendiri.') }}</small>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Kode</label>
-                        <input type="text" id="shiftCode" name="code" class="form-control @error('code') is-invalid @enderror" value="{{ old('code') }}" placeholder="Contoh: REGULER">
+                        <label class="form-label">{{ __('Kode') }}</label>
+                        <input type="text" id="shiftCode" name="code" class="form-control @error('code') is-invalid @enderror" value="{{ old('code') }}" placeholder="{{ __('Contoh: REGULER') }}">
                         @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Nama Shift</label>
-                        <input type="text" id="shiftName" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="Contoh: Shift 1">
+                        <label class="form-label">{{ __('Nama Shift') }}</label>
+                        <input type="text" id="shiftName" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" placeholder="{{ __('Contoh: Shift 1') }}">
                         @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Tipe Shift</label>
+                        <label class="form-label">{{ __('Tipe Shift') }}</label>
                         <select name="type" id="shiftType" class="form-select @error('type') is-invalid @enderror">
                             @foreach($typeOptions as $value => $label)
                                 <option value="{{ $value }}" {{ old('type', \App\Models\Shift::TYPE_CUSTOM) === $value ? 'selected' : '' }}>{{ $label }}</option>
@@ -71,43 +71,43 @@
                         @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Jam Masuk</label>
+                        <label class="form-label">{{ __('Jam Masuk') }}</label>
                         <input type="time" name="start_time" class="form-control @error('start_time') is-invalid @enderror" value="{{ old('start_time') }}">
                         @error('start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Jam Pulang</label>
+                        <label class="form-label">{{ __('Jam Pulang') }}</label>
                         <input type="time" name="end_time" class="form-control @error('end_time') is-invalid @enderror" value="{{ old('end_time') }}">
                         @error('end_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Jam Istirahat</label>
+                        <label class="form-label">{{ __('Jam Istirahat') }}</label>
                         <input type="time" name="break_start_time" class="form-control @error('break_start_time') is-invalid @enderror" value="{{ old('break_start_time') }}">
-                        <small class="text-muted">Opsional.</small>
+                        <small class="text-muted">{{ __('Opsional.') }}</small>
                         @error('break_start_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Jam Kembali Bekerja</label>
+                        <label class="form-label">{{ __('Jam Kembali Bekerja') }}</label>
                         <input type="time" name="break_end_time" class="form-control @error('break_end_time') is-invalid @enderror" value="{{ old('break_end_time') }}">
-                        <small class="text-muted">Opsional.</small>
+                        <small class="text-muted">{{ __('Opsional.') }}</small>
                         @error('break_end_time')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-md-12">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" value="1" id="is_active" name="is_active" {{ old('is_active', true) ? 'checked' : '' }}>
                             <label class="form-check-label" for="is_active">
-                                Shift aktif
+                                {{ __('Shift aktif') }}
                             </label>
                         </div>
                     </div>
                     <div class="col-md-12">
-                        <label class="form-label">Keterangan</label>
-                        <textarea name="description" rows="4" class="form-control @error('description') is-invalid @enderror" placeholder="Contoh: Dipakai untuk operasional malam atau lembur site.">{{ old('description') }}</textarea>
+                        <label class="form-label">{{ __('Keterangan') }}</label>
+                        <textarea name="description" rows="4" class="form-control @error('description') is-invalid @enderror" placeholder="{{ __('Contoh: Dipakai untuk operasional malam atau lembur site.') }}">{{ old('description') }}</textarea>
                         @error('description')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="col-12 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">Simpan</button>
-                        <a href="{{ route('shifts.index') }}" class="btn btn-outline-secondary">Batal</a>
+                        <button type="submit" class="btn btn-primary">{{ __('Simpan') }}</button>
+                        <a href="{{ route('shifts.index') }}" class="btn btn-outline-secondary">{{ __('Batal') }}</a>
                     </div>
                 </form>
             </div>

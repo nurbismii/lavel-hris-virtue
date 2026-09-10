@@ -1,61 +1,61 @@
 @extends('layouts.app')
 
-@section('title', 'Riwayat Roster Excel')
+@section('title', __('Riwayat Roster Excel'))
 
 @section('content')
 <div class="container-fluid">
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Riwayat Roster dari Excel</h4>
-                <small class="text-muted">Arsip tanggal dan keterangan asli per tahun/periode. Data ini tidak berubah ketika jadwal aktif diedit.</small>
+                <h4 class="fw-bold mb-1">{{ __('Riwayat Roster dari Excel') }}</h4>
+                <small class="text-muted">{{ __('Arsip tanggal dan keterangan asli per tahun/periode. Data ini tidak berubah ketika jadwal aktif diedit.') }}</small>
             </div>
             <div class="ms-md-auto">
-                <a href="{{ route('roster-schedules.index') }}" class="btn btn-light border">Kembali ke Jadwal</a>
+                <a href="{{ route('roster-schedules.index') }}" class="btn btn-light border">{{ __('Kembali ke Jadwal') }}</a>
             </div>
         </div>
 
         <div class="alert alert-warning">
-            Label <strong>Perlu Review</strong> berarti keterangan Excel tidak menyebut “Cuti” atau “Insentif” secara tegas. HR perlu mengonfirmasi berdasarkan dokumen pendukung.
+            {{ __('Label') }} <strong>{{ __('Perlu Review') }}</strong> {{ __('berarti keterangan Excel tidak menyebut “Cuti” atau “Insentif” secara tegas. HR perlu mengonfirmasi berdasarkan dokumen pendukung.') }}
         </div>
 
         <div class="card border-0 shadow-sm mb-3">
             <div class="card-body">
                 <form method="GET" class="row g-2 align-items-end">
                     <div class="col-lg-4 col-md-6">
-                        <label class="form-label">Cari karyawan</label>
-                        <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control" placeholder="Nama atau NIK">
+                        <label class="form-label">{{ __('Cari karyawan') }}</label>
+                        <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control" placeholder="{{ __('Nama atau NIK') }}">
                     </div>
                     <div class="col-lg-2 col-md-3">
-                        <label class="form-label">Tahun</label>
+                        <label class="form-label">{{ __('Tahun') }}</label>
                         <select name="year" class="form-select">
-                            <option value="">Semua tahun</option>
+                            <option value="">{{ __('Semua tahun') }}</option>
                             @foreach($yearOptions as $year)
                             <option value="{{ $year }}" @selected((string)($filters['year'] ?? '') === (string)$year)>{{ $year }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-3">
-                        <label class="form-label">Klasifikasi</label>
+                        <label class="form-label">{{ __('Klasifikasi') }}</label>
                         <select name="classification" class="form-select">
-                            <option value="">Semua</option>
+                            <option value="">{{ __('Semua') }}</option>
                             @foreach($classificationOptions as $value => $label)
                             <option value="{{ $value }}" @selected(($filters['classification'] ?? '') === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-3">
-                        <label class="form-label">Review</label>
+                        <label class="form-label">{{ __('Review') }}</label>
                         <select name="review_status" class="form-select">
-                            <option value="">Semua</option>
-                            <option value="pending" @selected(($filters['review_status'] ?? '') === 'pending')>Perlu Review</option>
-                            <option value="confirmed" @selected(($filters['review_status'] ?? '') === 'confirmed')>Terkonfirmasi</option>
-                            <option value="not_required" @selected(($filters['review_status'] ?? '') === 'not_required')>Tidak diperlukan</option>
+                            <option value="">{{ __('Semua') }}</option>
+                            <option value="pending" @selected(($filters['review_status'] ?? '') === 'pending')>{{ __('Perlu Review') }}</option>
+                            <option value="confirmed" @selected(($filters['review_status'] ?? '') === 'confirmed')>{{ __('Terkonfirmasi') }}</option>
+                            <option value="not_required" @selected(($filters['review_status'] ?? '') === 'not_required')>{{ __('Tidak diperlukan') }}</option>
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-3 d-flex gap-2">
-                        <button class="btn btn-primary flex-fill">Filter</button>
-                        <a href="{{ route('roster-schedules.history') }}" class="btn btn-light border">Reset</a>
+                        <button class="btn btn-primary flex-fill">{{ __('Filter') }}</button>
+                        <a href="{{ route('roster-schedules.history') }}" class="btn btn-light border">{{ __('Reset') }}</a>
                     </div>
                 </form>
             </div>
@@ -67,13 +67,13 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Karyawan</th>
-                                <th>Periode</th>
-                                <th>Jadwal Off</th>
-                                <th>Klasifikasi</th>
-                                <th>Keterangan Periode</th>
-                                <th>Sumber</th>
-                                <th class="text-end">Aksi</th>
+                                <th>{{ __('Karyawan') }}</th>
+                                <th>{{ __('Periode') }}</th>
+                                <th>{{ __('Jadwal Off') }}</th>
+                                <th>{{ __('Klasifikasi') }}</th>
+                                <th>{{ __('Keterangan Periode') }}</th>
+                                <th>{{ __('Sumber') }}</th>
+                                <th class="text-end">{{ __('Aksi') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -97,9 +97,9 @@
                                 <td>
                                     <span class="badge bg-{{ $badgeClass }}">{{ $history->classification_label }}</span>
                                     @if($history->review_status === 'pending')
-                                    <div><span class="badge bg-warning text-dark mt-1">Perlu Review</span></div>
+                                    <div><span class="badge bg-warning text-dark mt-1">{{ __('Perlu Review') }}</span></div>
                                     @elseif($history->review_status === 'confirmed')
-                                    <div><span class="badge bg-success mt-1">Dikonfirmasi HR</span></div>
+                                    <div><span class="badge bg-success mt-1">{{ __('Dikonfirmasi HR') }}</span></div>
                                     @endif
                                 </td>
                                 <td style="min-width:260px;max-width:420px">
@@ -116,11 +116,11 @@
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    <a href="{{ route('roster-schedules.history.review', $history) }}" class="btn btn-sm btn-outline-primary">Review</a>
+                                    <a href="{{ route('roster-schedules.history.review', $history) }}" class="btn btn-sm btn-outline-primary">{{ __('Review') }}</a>
                                 </td>
                             </tr>
                             @empty
-                            <tr><td colspan="7" class="text-center py-5 text-muted">Belum ada riwayat roster sesuai filter.</td></tr>
+                            <tr><td colspan="7" class="text-center py-5 text-muted">{{ __('Belum ada riwayat roster sesuai filter.') }}</td></tr>
                             @endforelse
                         </tbody>
                     </table>

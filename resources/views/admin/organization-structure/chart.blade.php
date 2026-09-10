@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Bagan Struktur Organisasi')
+@section('title', __('Bagan Struktur Organisasi'))
 
 @push('styles')
 <style>
@@ -41,11 +41,11 @@
     <div class="page-inner">
         <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 pt-2 pb-4">
             <div>
-                <h3 class="fw-bold mb-1">Bagan Struktur Organisasi</h3>
-                <p class="text-muted mb-0">Hubungan bagan berasal dari atasan struktural pada master posisi, bukan hanya urutan level.</p>
+                <h3 class="fw-bold mb-1">{{ __('Bagan Struktur Organisasi') }}</h3>
+                <p class="text-muted mb-0">{{ __('Hubungan bagan berasal dari atasan struktural pada master posisi, bukan hanya urutan level.') }}</p>
             </div>
             @if(auth()->user()->hasRole(['Super Admin', 'HR']))
-            <a href="{{ route('organization-structure.index', ['departemen_id' => $selectedDepartmentId]) }}" class="btn btn-outline-primary"><i class="fas fa-cog me-1"></i> Kelola Master</a>
+            <a href="{{ route('organization-structure.index', ['departemen_id' => $selectedDepartmentId]) }}" class="btn btn-outline-primary"><i class="fas fa-cog me-1"></i> {{ __('Kelola Master') }}</a>
             @endif
         </div>
 
@@ -53,9 +53,9 @@
             <div class="card-body">
                 <form method="GET" action="{{ route('organization-structure.chart') }}" class="row g-3 align-items-end">
                     <div class="col-lg-8">
-                        <label class="form-label">Departemen</label>
+                        <label class="form-label">{{ __('Departemen') }}</label>
                         <select name="departemen_id" class="form-select" required>
-                            <option value="">Pilih departemen</option>
+                            <option value="">{{ __('Pilih departemen') }}</option>
                             @foreach($departments as $department)
                             <option value="{{ $department->id }}" {{ (string) $selectedDepartmentId === (string) $department->id ? 'selected' : '' }}>
                                 {{ optional($department->perusahaan)->kode_perusahaan }} — {{ $department->departemen }}
@@ -63,7 +63,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-lg-4"><button class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> Tampilkan Struktur</button></div>
+                    <div class="col-lg-4"><button class="btn btn-primary w-100"><i class="fas fa-filter me-1"></i> {{ __('Tampilkan Struktur') }}</button></div>
                 </form>
             </div>
         </div>
@@ -72,15 +72,15 @@
         <div class="card">
             <div class="card-header bg-white d-flex flex-column flex-md-row justify-content-between gap-2 align-items-md-center">
                 <div><h5 class="mb-1">{{ $selectedDepartment->departemen }}</h5><small class="text-muted">{{ optional($selectedDepartment->perusahaan)->nama_perusahaan }}</small></div>
-                <div class="d-flex flex-wrap gap-2"><span class="badge bg-light text-dark border">Level dapat diubah melalui master VPeople</span><span class="badge bg-light text-dark border">Posisi kosong tetap ditampilkan</span></div>
+                <div class="d-flex flex-wrap gap-2"><span class="badge bg-light text-dark border">{{ __('Level dapat diubah melalui master VPeople') }}</span><span class="badge bg-light text-dark border">{{ __('Posisi kosong tetap ditampilkan') }}</span></div>
             </div>
             <div class="card-body p-0">
                 @if($chartRoots->isEmpty())
                 <div class="text-center py-5 px-3">
                     <i class="fas fa-sitemap fa-3x text-muted mb-3"></i>
-                    <h5>Struktur belum disusun</h5>
-                    <p class="text-muted mb-3">Tambahkan posisi organisasi dan tentukan atasan struktural untuk departemen ini.</p>
-                    @if(auth()->user()->hasRole(['Super Admin', 'HR']))<a href="{{ route('organization-structure.index', ['departemen_id' => $selectedDepartmentId, 'section' => 'positions']) }}#positions" class="btn btn-primary">Susun Posisi</a>@endif
+                    <h5>{{ __('Struktur belum disusun') }}</h5>
+                    <p class="text-muted mb-3">{{ __('Tambahkan posisi organisasi dan tentukan atasan struktural untuk departemen ini.') }}</p>
+                    @if(auth()->user()->hasRole(['Super Admin', 'HR']))<a href="{{ route('organization-structure.index', ['departemen_id' => $selectedDepartmentId, 'section' => 'positions']) }}#positions" class="btn btn-primary">{{ __('Susun Posisi') }}</a>@endif
                 </div>
                 @else
                 <div class="org-chart-shell" aria-label="Bagan organisasi {{ $selectedDepartment->departemen }}">
@@ -94,7 +94,7 @@
             </div>
         </div>
         @else
-        <div class="alert alert-warning">Tidak ada departemen yang tersedia dalam scope akses Anda.</div>
+        <div class="alert alert-warning">{{ __('Tidak ada departemen yang tersedia dalam scope akses Anda.') }}</div>
         @endif
     </div>
 </div>

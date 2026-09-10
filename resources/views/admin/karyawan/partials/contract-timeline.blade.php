@@ -27,9 +27,9 @@
     <div class="employee-edit-section__card">
         <div class="employee-contract-timeline__header">
             <div>
-                <div class="employee-edit-section__title">Riwayat Kontrak</div>
+                <div class="employee-edit-section__title">{{ __('Riwayat Kontrak') }}</div>
                 <div class="employee-edit-section__caption">
-                    Timeline ini menampilkan riwayat kontrak yang tersedia dari import history dan kontrak elektronik, termasuk karyawan yang belum masuk daftar perpanjangan.
+                    {{ __('Timeline ini menampilkan riwayat kontrak yang tersedia dari import history dan kontrak elektronik, termasuk karyawan yang belum masuk daftar perpanjangan.') }}
                 </div>
             </div>
             <span class="employee-contract-badge employee-contract-badge--soft">
@@ -43,24 +43,24 @@
                     <i class="fas fa-file-contract"></i>
                 </div>
                 <div>
-                    <div class="employee-contract-empty__title">Belum ada riwayat kontrak.</div>
+                    <div class="employee-contract-empty__title">{{ __('Belum ada riwayat kontrak.') }}</div>
                     <div class="employee-contract-empty__text">
-                        Data akan tampil setelah history kontrak diimport atau kontrak elektronik karyawan dibuat.
+                        {{ __('Data akan tampil setelah history kontrak diimport atau kontrak elektronik karyawan dibuat.') }}
                     </div>
                 </div>
             </div>
         @else
             <div class="employee-contract-summary">
                 <div class="employee-contract-summary__item">
-                    <span>Total Riwayat</span>
+                    <span>{{ __('Total Riwayat') }}</span>
                     <strong>{{ $timelineItems->count() }}</strong>
                 </div>
                 <div class="employee-contract-summary__item">
-                    <span>Kontrak Elektronik</span>
+                    <span>{{ __('Kontrak Elektronik') }}</span>
                     <strong>{{ $electronicContractCount }}</strong>
                 </div>
                 <div class="employee-contract-summary__item">
-                    <span>Akhir Kontrak Terbaru</span>
+                    <span>{{ __('Akhir Kontrak Terbaru') }}</span>
                     <strong>{{ $formatDate($latestTimelineItem['end_date'] ?? null) }}</strong>
                 </div>
             </div>
@@ -104,7 +104,7 @@
                                                 {{ $item['raw_type'] ?: $item['type_label'] ?: 'Kontrak' }}
                                             </span>
                                             @if($isLatest)
-                                                <span class="employee-contract-badge employee-contract-badge--success">Terbaru</span>
+                                                <span class="employee-contract-badge employee-contract-badge--success">{{ __('Terbaru') }}</span>
                                             @endif
                                             @if(!empty($item['status_label']))
                                                 <span class="employee-contract-badge employee-contract-badge--soft">{{ $item['status_label'] }}</span>
@@ -139,27 +139,27 @@
                                 <div class="collapse {{ $isLatest ? 'show' : '' }}" id="{{ $detailId }}" data-contract-timeline-collapse>
                                     <div class="employee-contract-timeline__details">
                                         <div>
-                                            <span>Jenis</span>
+                                            <span>{{ __('Jenis') }}</span>
                                             <strong>{{ $item['type_label'] ?: '-' }}</strong>
                                         </div>
                                         <div>
-                                            <span>Urutan</span>
+                                            <span>{{ __('Urutan') }}</span>
                                             <strong>{{ (int) ($item['sequence'] ?? 0) > 0 ? $item['sequence'] : '-' }}</strong>
                                         </div>
                                         <div>
-                                            <span>Durasi</span>
+                                            <span>{{ __('Durasi') }}</span>
                                             <strong>{{ $item['duration_label'] ?: '-' }}</strong>
                                         </div>
                                         <div>
-                                            <span>Sumber Data</span>
+                                            <span>{{ __('Sumber Data') }}</span>
                                             <strong>{{ $sourceLabels ?: '-' }}</strong>
                                         </div>
                                         <div>
-                                            <span>Ditandatangani</span>
+                                            <span>{{ __('Ditandatangani') }}</span>
                                             <strong>{{ $formatDate($item['signed_at'] ?? null, 'd M Y H:i') }}</strong>
                                         </div>
                                         <div>
-                                            <span>Akhir Kontrak</span>
+                                            <span>{{ __('Akhir Kontrak') }}</span>
                                             <strong>{{ $formatDate($item['end_date'] ?? null) }}</strong>
                                         </div>
                                     </div>

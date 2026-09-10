@@ -7,9 +7,9 @@
             <div>
                 <h4 class="fw-bold mb-1">
                     <i class="fas text-primary"></i>
-                    Approval OFF Roster HR
+                    {{ __('Approval OFF Roster HR') }}
                 </h4>
-                <small class="text-muted">Review akhir HR untuk pengajuan hari OFF karyawan roster yang sudah disetujui HOD.</small>
+                <small class="text-muted">{{ __('Review akhir HR untuk pengajuan hari OFF karyawan roster yang sudah disetujui HOD.') }}</small>
             </div>
         </div>
 
@@ -52,7 +52,7 @@
                                         <input type="hidden" name="action" value="1">
                                         <button class="btn btn-success btn-sm">
                                             <i class="fas fa-check me-1"></i>
-                                            Approve
+                                            {{ __('Approve') }}
                                         </button>
                                     </form>
                                     <form action="{{ route('approval.roster-off.hrd.process', $offRequest->id) }}" method="POST">
@@ -60,17 +60,17 @@
                                         <input type="hidden" name="action" value="2">
                                         <button type="button" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
                                             <i class="fas fa-times me-1"></i>
-                                            Reject
+                                            {{ __('Reject') }}
                                         </button>
                                     </form>
                                 </div>
                                 @elseif((int) $offRequest->status_hrd === \App\Models\RosterOffRequest::STATUS_APPROVED)
-                                    <span class="badge bg-success">Disetujui HR</span>
-                                    <small class="d-block text-muted mt-1">Proses selesai</small>
+                                    <span class="badge bg-success">{{ __('Disetujui HR') }}</span>
+                                    <small class="d-block text-muted mt-1">{{ __('Proses selesai') }}</small>
                                 @elseif((int) $offRequest->status_hrd === \App\Models\RosterOffRequest::STATUS_REJECTED)
-                                    <span class="badge bg-danger">Ditolak HR</span>
+                                    <span class="badge bg-danger">{{ __('Ditolak HR') }}</span>
                                 @else
-                                    <span class="badge bg-secondary">Tidak tersedia</span>
+                                    <span class="badge bg-secondary">{{ __('Tidak tersedia') }}</span>
                                 @endif
                             </td>
                         </tr>

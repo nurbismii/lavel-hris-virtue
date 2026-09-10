@@ -1,6 +1,7 @@
 <?php
 
 return [
+    'roster_schedule' => '轮休计划',
     'account_settings' => '账户设置',
     'admin_panel' => '管理面板',
     'annual_leave' => '年假',
@@ -8,9 +9,9 @@ return [
     'approval_hr' => 'HR 审批',
     'approval_delegate' => '委托审批',
     'approval_delegation' => '审批委托',
-    'approval_sla' => 'SLA Approval',
-    'approval_hod_dashboard' => 'HOD Dashboard',
-    'central_monitor' => 'Central Monitor',
+    'approval_sla' => '审批时限监控',
+    'approval_hod_dashboard' => '部门负责人仪表盘',
+    'central_monitor' => '集中监控',
     'area_distribution' => '区域分配',
     'attendance' => '考勤',
     'attendance_correction' => '考勤更正',
@@ -23,8 +24,8 @@ return [
     'contract_monitoring' => '合同监控',
     'contract_renewal' => '合同续签',
     'contract_renewal_workflow' => '合同续签流程',
-    'cv_maker_dashboard' => 'Dashboard CV Maker',
-    'cv_maker_compare' => 'CV Maker Compare',
+    'cv_maker_dashboard' => 'CV Maker 仪表盘',
+    'cv_maker_compare' => 'CV Maker 数据对比',
     'dashboard' => '仪表板',
     'dashboard_employee' => '员工仪表板',
     'day_off_setting' => '休息日设置',

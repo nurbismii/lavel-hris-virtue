@@ -7,9 +7,9 @@
         {{-- HEADER --}}
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="text-primary">Approval Roster</h3>
+                <h3 class="text-primary">{{ __('Approval Roster') }}</h3>
                 <small class="text-muted">
-                    Persetujuan HOD untuk karyawan pengajuan cuti/insentif
+                    {{ __('Persetujuan HOD untuk karyawan pengajuan cuti/insentif') }}
                 </small>
             </div>
         </div>
@@ -51,7 +51,7 @@
 
                                     <a href="{{ route('approval.roster.hod.show', $cuti->id) }}"
                                         class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye me-1"></i> Detail
+                                        <i class="fas fa-eye me-1"></i> {{ __('Detail') }}
                                     </a>
 
                                     @if($hodStatus === 0)
@@ -60,7 +60,7 @@
                                         @csrf
                                         <input type="hidden" name="action" value="1">
                                         <button class="btn btn-success btn-sm">
-                                            <i class="fas fa-check me-1"></i> Approve
+                                            <i class="fas fa-check me-1"></i> {{ __('Approve') }}
                                         </button>
                                     </form>
 
@@ -69,17 +69,17 @@
                                         @csrf
                                         <input type="hidden" name="action" value="2">
                                         <button type="button" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
-                                            <i class="fas fa-times me-1"></i> Reject
+                                            <i class="fas fa-times me-1"></i> {{ __('Reject') }}
                                         </button>
                                     </form>
                                     @elseif($hodStatus === 1 && $hrdStatus === 0)
-                                        <span class="badge bg-info align-self-center">Menunggu HR</span>
+                                        <span class="badge bg-info align-self-center">{{ __('Menunggu HR') }}</span>
                                     @elseif($hodStatus === 1 && $hrdStatus === 1)
-                                        <span class="badge bg-success align-self-center">Disetujui HR</span>
+                                        <span class="badge bg-success align-self-center">{{ __('Disetujui HR') }}</span>
                                     @elseif($hodStatus === 1 && $hrdStatus === 2)
-                                        <span class="badge bg-danger align-self-center">Ditolak HR</span>
+                                        <span class="badge bg-danger align-self-center">{{ __('Ditolak HR') }}</span>
                                     @else
-                                        <span class="badge bg-danger align-self-center">Ditolak HOD</span>
+                                        <span class="badge bg-danger align-self-center">{{ __('Ditolak HOD') }}</span>
                                     @endif
 
                                 </div>

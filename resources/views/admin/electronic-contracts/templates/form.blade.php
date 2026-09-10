@@ -27,10 +27,10 @@
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
                 <h4 class="fw-bold mb-1">{{ $template->exists ? 'Edit Template Kontrak' : 'Tambah Template Kontrak' }}</h4>
-                <small class="text-muted">Gunakan placeholder agar data karyawan dan kontrak otomatis terisi saat generate.</small>
+                <small class="text-muted">{{ __('Gunakan placeholder agar data karyawan dan kontrak otomatis terisi saat generate.') }}</small>
             </div>
             <div class="ms-md-auto">
-                <a href="{{ route('electronic-contracts.templates.index') }}" class="btn btn-light">Kembali</a>
+                <a href="{{ route('electronic-contracts.templates.index') }}" class="btn btn-light">{{ __('Kembali') }}</a>
             </div>
         </div>
 
@@ -46,9 +46,9 @@
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-md-5">
-                                    <label class="form-label">Tipe Kontrak</label>
+                                    <label class="form-label">{{ __('Tipe Kontrak') }}</label>
                                     <select name="contract_type" class="form-select @error('contract_type') is-invalid @enderror">
-                                        <option value="">-- Pilih Tipe --</option>
+                                        <option value="">{{ __('-- Pilih Tipe --') }}</option>
                                         @foreach($typeOptions as $value => $label)
                                             <option value="{{ $value }}" {{ old('contract_type', $template->contract_type) === $value ? 'selected' : '' }}>
                                                 {{ $label }}
@@ -58,24 +58,24 @@
                                     @error('contract_type')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-md-5">
-                                    <label class="form-label">Nama Template</label>
-                                    <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $template->name) }}" placeholder="Contoh: PKWT 1 Bahasa Indonesia">
+                                    <label class="form-label">{{ __('Nama Template') }}</label>
+                                    <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $template->name) }}" placeholder="{{ __('Contoh: PKWT 1 Bahasa Indonesia') }}">
                                     @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-md-2">
-                                    <label class="form-label d-block">Status</label>
+                                    <label class="form-label d-block">{{ __('Status') }}</label>
                                     <div class="form-check form-switch mt-2">
                                         <input class="form-check-input" type="checkbox" name="is_active" value="1" id="isActive" {{ old('is_active', $template->is_active ?? true) ? 'checked' : '' }}>
-                                        <label class="form-check-label" for="isActive">Aktif</label>
+                                        <label class="form-check-label" for="isActive">{{ __('Aktif') }}</label>
                                     </div>
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">KOP / Header Kontrak</label>
+                                    <label class="form-label">{{ __('KOP / Header Kontrak') }}</label>
                                     <textarea name="letterhead_html" rows="6" class="form-control js-contract-editor @error('letterhead_html') is-invalid @enderror">{{ old('letterhead_html', $template->letterhead_html) }}</textarea>
                                     @error('letterhead_html')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
                                 <div class="col-12">
-                                    <label class="form-label">Isi Kontrak</label>
+                                    <label class="form-label">{{ __('Isi Kontrak') }}</label>
                                     <textarea name="body_html" rows="20" class="form-control js-contract-editor @error('body_html') is-invalid @enderror">{{ old('body_html', $template->body_html) }}</textarea>
                                     @error('body_html')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                                 </div>
@@ -85,17 +85,17 @@
 
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary" type="submit">
-                            <i class="fas fa-save me-1"></i> Simpan Template
+                            <i class="fas fa-save me-1"></i> {{ __('Simpan Template') }}
                         </button>
-                        <a href="{{ route('electronic-contracts.templates.index') }}" class="btn btn-outline-secondary">Batal</a>
+                        <a href="{{ route('electronic-contracts.templates.index') }}" class="btn btn-outline-secondary">{{ __('Batal') }}</a>
                     </div>
                 </div>
 
                 <div class="col-lg-4">
                     <div class="card border-0 shadow-sm editor-help">
                         <div class="card-body">
-                            <h5 class="mb-2">Placeholder</h5>
-                            <p class="text-muted small mb-3">Klik chip untuk memasukkan placeholder ke editor yang sedang aktif.</p>
+                            <h5 class="mb-2">{{ __('Placeholder') }}</h5>
+                            <p class="text-muted small mb-3">{{ __('Klik chip untuk memasukkan placeholder ke editor yang sedang aktif.') }}</p>
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach($variables as $key => $label)
                                     @php($placeholder = '{' . '{' . $key . '}' . '}')
@@ -106,9 +106,7 @@
                             </div>
                             <hr>
                             <div class="small text-muted">
-                                Untuk template adendum, letakkan <code>{{ '{' . '{' . 'klausul' . '}' . '}' }}</code> pada posisi klausul. Jika tidak ada, sistem menambahkan klausul di akhir isi kontrak.
-                                Letakkan <code>{{ '{' . '{' . 'tanda_tangan_pihak_kedua' . '}' . '}' }}</code> tepat di atas nama penanda tangan agar gambar tanda tangan masuk ke posisi tersebut setelah kontrak disetujui.
-                                Untuk tanda tangan perusahaan, letakkan <code>{{ '{' . '{' . 'tanda_tangan_pihak_pertama' . '}' . '}' }}</code> tepat di atas nama Pihak Pertama.
+                                {{ __('Untuk template adendum, letakkan') }} <code>{{ '{' . '{' . 'klausul' . '}' . '}' }}</code> {{ __('pada posisi klausul. Jika tidak ada, sistem menambahkan klausul di akhir isi kontrak. Letakkan') }} <code>{{ '{' . '{' . 'tanda_tangan_pihak_kedua' . '}' . '}' }}</code> {{ __('tepat di atas nama penanda tangan agar gambar tanda tangan masuk ke posisi tersebut setelah kontrak disetujui. Untuk tanda tangan perusahaan, letakkan') }} <code>{{ '{' . '{' . 'tanda_tangan_pihak_pertama' . '}' . '}' }}</code> {{ __('tepat di atas nama Pihak Pertama.') }}
                             </div>
                         </div>
                     </div>

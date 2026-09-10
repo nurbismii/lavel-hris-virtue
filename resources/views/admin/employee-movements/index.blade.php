@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Perubahan posisi')
+@section('title', __('Perubahan posisi'))
 
 @section('content')
 @php
@@ -40,13 +40,13 @@ return in_array($movement->status, [
     <div class="page-inner">
         <div class="d-flex align-items-left align-items-md-center flex-column flex-md-row pt-2 pb-4 gap-2">
             <div>
-                <h4 class="fw-bold mb-1">Perubahan posisi</h4>
-                <small class="text-muted">Ajukan promosi, demosi, dan mutasi dengan approval HOD lalu HRD sebelum master karyawan berubah.</small>
+                <h4 class="fw-bold mb-1">{{ __('Perubahan posisi') }}</h4>
+                <small class="text-muted">{{ __('Ajukan promosi, demosi, dan mutasi dengan approval HOD lalu HRD sebelum master karyawan berubah.') }}</small>
             </div>
             @if($canCreateMovement)
             <div class="ms-md-auto">
                 <a href="{{ route('employee-movements.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-1"></i> Buat Pengajuan
+                    <i class="fas fa-plus me-1"></i> {{ __('Buat Pengajuan') }}
                 </a>
             </div>
             @endif
@@ -56,42 +56,42 @@ return in_array($movement->status, [
             <div class="card-body">
                 <form method="GET" action="{{ route('employee-movements.index') }}" class="row g-3 align-items-end">
                     <div class="col-lg-3 col-md-6">
-                        <label class="form-label">Cari</label>
+                        <label class="form-label">{{ __('Cari') }}</label>
                         <input
                             type="text"
                             name="search"
                             class="form-control"
                             value="{{ $filters['search'] ?? '' }}"
-                            placeholder="NIK, nama, atau no referensi">
+                            placeholder="{{ __('NIK, nama, atau no referensi') }}">
                     </div>
                     <div class="col-lg-2 col-md-6">
-                        <label class="form-label">Jenis</label>
+                        <label class="form-label">{{ __('Jenis') }}</label>
                         <select name="movement_type" class="form-select">
-                            <option value="">Semua jenis</option>
+                            <option value="">{{ __('Semua jenis') }}</option>
                             @foreach($typeOptions as $value => $label)
                             <option value="{{ $value }}" {{ ($filters['movement_type'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-6">
-                        <label class="form-label">Status</label>
+                        <label class="form-label">{{ __('Status') }}</label>
                         <select name="status" class="form-select">
-                            <option value="">Semua status</option>
+                            <option value="">{{ __('Semua status') }}</option>
                             @foreach($statusOptions as $value => $label)
                             <option value="{{ $value }}" {{ ($filters['status'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-lg-2 col-md-6">
-                        <label class="form-label">Dari Tanggal</label>
+                        <label class="form-label">{{ __('Dari Tanggal') }}</label>
                         <input type="date" name="date_from" class="form-control" value="{{ $filters['date_from'] ?? '' }}">
                     </div>
                     <div class="col-lg-2 col-md-6">
-                        <label class="form-label">Sampai Tanggal</label>
+                        <label class="form-label">{{ __('Sampai Tanggal') }}</label>
                         <input type="date" name="date_to" class="form-control" value="{{ $filters['date_to'] ?? '' }}">
                     </div>
                     <div class="col-lg-1 col-md-6">
-                        <label class="form-label">Tampil</label>
+                        <label class="form-label">{{ __('Tampil') }}</label>
                         <select name="per_page" class="form-select">
                             @foreach($perPageOptions as $option)
                             <option value="{{ $option }}" {{ (int) ($filters['per_page'] ?? 20) === $option ? 'selected' : '' }}>{{ $option }}</option>
@@ -99,8 +99,8 @@ return in_array($movement->status, [
                         </select>
                     </div>
                     <div class="col-12 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">Filter</button>
-                        <a href="{{ route('employee-movements.index') }}" class="btn btn-light border">Reset</a>
+                        <button type="submit" class="btn btn-primary">{{ __('Filter') }}</button>
+                        <a href="{{ route('employee-movements.index') }}" class="btn btn-light border">{{ __('Reset') }}</a>
                     </div>
                 </form>
             </div>
@@ -112,15 +112,15 @@ return in_array($movement->status, [
                     <table class="table table-bordered table-striped align-middle mb-0">
                         <thead>
                             <tr>
-                                <th style="width: 130px;">Tanggal Efektif</th>
-                                <th style="width: 130px;">Jenis</th>
-                                <th>Karyawan</th>
-                                <th>Perubahan</th>
-                                <th style="width: 160px;">Status</th>
-                                <th style="width: 150px;">Approval HOD</th>
-                                <th style="width: 150px;">Approval HRD</th>
-                                <th style="width: 170px;">Diajukan Oleh</th>
-                                <th style="width: 190px;">Aksi</th>
+                                <th style="width: 130px;">{{ __('Tanggal Efektif') }}</th>
+                                <th style="width: 130px;">{{ __('Jenis') }}</th>
+                                <th>{{ __('Karyawan') }}</th>
+                                <th>{{ __('Perubahan') }}</th>
+                                <th style="width: 160px;">{{ __('Status') }}</th>
+                                <th style="width: 150px;">{{ __('Approval HOD') }}</th>
+                                <th style="width: 150px;">{{ __('Approval HRD') }}</th>
+                                <th style="width: 170px;">{{ __('Diajukan Oleh') }}</th>
+                                <th style="width: 190px;">{{ __('Aksi') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -183,10 +183,10 @@ return in_array($movement->status, [
                                         @csrf
                                         <div class="d-flex gap-2">
                                             <button name="action" value="1" class="btn btn-success btn-sm">
-                                                <i class="fas fa-check me-1"></i> Approve
+                                                <i class="fas fa-check me-1"></i> {{ __('Approve') }}
                                             </button>
                                             <button type="button" name="action" value="2" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
-                                                <i class="fas fa-times me-1"></i> Reject
+                                                <i class="fas fa-times me-1"></i> {{ __('Reject') }}
                                             </button>
                                         </div>
                                     </form>
@@ -195,10 +195,10 @@ return in_array($movement->status, [
                                         @csrf
                                         <div class="d-flex gap-2">
                                             <button name="action" value="1" class="btn btn-success btn-sm">
-                                                <i class="fas fa-check me-1"></i> Approve
+                                                <i class="fas fa-check me-1"></i> {{ __('Approve') }}
                                             </button>
                                             <button type="button" name="action" value="2" class="btn btn-danger btn-sm js-approval-reject" data-bs-toggle="modal" data-bs-target="#approvalRejectReasonModal">
-                                                <i class="fas fa-times me-1"></i> Reject
+                                                <i class="fas fa-times me-1"></i> {{ __('Reject') }}
                                             </button>
                                         </div>
                                     </form>
@@ -209,7 +209,7 @@ return in_array($movement->status, [
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">Belum ada pengajuan Perubahan posisi.</td>
+                                <td colspan="9" class="text-center text-muted py-4">{{ __('Belum ada pengajuan Perubahan posisi.') }}</td>
                             </tr>
                             @endforelse
                         </tbody>

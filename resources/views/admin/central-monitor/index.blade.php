@@ -58,48 +58,48 @@
 
             <form method="GET" class="central-monitor-toolbar" data-loading-text="Memuat monitor...">
                 <div class="ui-field central-monitor-period-field">
-                    <label class="form-label" for="period_month">Periode</label>
+                    <label class="form-label" for="period_month">{{ __('Periode') }}</label>
                     <input type="month" id="period_month" name="period_month" class="form-control form-control-sm" value="{{ $dashboard['period']['month'] }}">
                 </div>
                 <button type="submit" class="btn btn-primary ui-btn-icon" data-loading-text="Memuat monitor...">
                     <i class="fas fa-sync-alt" aria-hidden="true"></i>
-                    <span>Refresh</span>
+                    <span>{{ __('Refresh') }}</span>
                 </button>
             </form>
         </div>
 
         @if($errors->any())
             <div class="alert ui-alert central-monitor-alert central-monitor-alert--danger">
-                <strong>Filter tidak valid.</strong> {{ $errors->first() }}
+                <strong>{{ __('Filter tidak valid.') }}</strong> {{ $errors->first() }}
             </div>
         @endif
 
         @if($inactiveModules->isNotEmpty())
             <div class="alert ui-alert central-monitor-alert central-monitor-alert--warning">
-                <strong>Modul monitor belum lengkap.</strong>
+                <strong>{{ __('Modul monitor belum lengkap.') }}</strong>
                 {{ $inactiveModules->join(', ') }} belum aktif. Jalankan migrasi terkait agar semua indikator tersedia.
             </div>
         @endif
 
-        <section class="central-monitor-health central-monitor-health--{{ $healthMeta['class'] }}" aria-label="Status operasional">
+        <section class="central-monitor-health central-monitor-health--{{ $healthMeta['class'] }}" aria-label="{{ __('Status operasional') }}">
             <div class="central-monitor-health__main">
                 <span class="central-monitor-health__icon" aria-hidden="true">
                     <i class="{{ $healthMeta['icon'] }}"></i>
                 </span>
                 <div>
-                    <div class="central-monitor-label">Status operasional</div>
+                    <div class="central-monitor-label">{{ __('Status operasional') }}</div>
                     <div class="central-monitor-health__title">{{ $health['label'] }}</div>
-                    <div class="central-monitor-health__subtitle">Ringkasan dari approval, presensi, import, queue, dan audit.</div>
+                    <div class="central-monitor-health__subtitle">{{ __('Ringkasan dari approval, presensi, import, queue, dan audit.') }}</div>
                 </div>
             </div>
             <div class="central-monitor-health__stats">
                 <span>
                     <strong>{{ number_format($health['critical_count']) }}</strong>
-                    kritis
+                    {{ __('kritis') }}
                 </span>
                 <span>
                     <strong>{{ number_format($health['warning_count']) }}</strong>
-                    warning
+                    {{ __('warning') }}
                 </span>
             </div>
         </section>
@@ -138,13 +138,13 @@
                         @if(!empty($card['url']))
                             <a href="{{ $card['url'] }}" class="btn btn-sm btn-outline-primary ui-btn-icon" data-loading-text="Membuka...">
                                 <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                                <span>Detail</span>
+                                <span>{{ __('Detail') }}</span>
                             </a>
                         @endif
                         @if(!empty($card['secondary_url']))
                             <a href="{{ $card['secondary_url'] }}" class="btn btn-sm btn-outline-secondary ui-btn-icon" data-loading-text="Membuka...">
                                 <i class="fas fa-lock" aria-hidden="true"></i>
-                                <span>Closing</span>
+                                <span>{{ __('Closing') }}</span>
                             </a>
                         @endif
                     </div>
@@ -155,8 +155,8 @@
         <section class="ui-panel mt-3" aria-labelledby="centralMonitorReadinessTitle">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title" id="centralMonitorReadinessTitle">Kesiapan Modul Monitor</h5>
-                    <p class="ui-panel__meta">Status ketersediaan tabel dan konfigurasi pendukung dashboard.</p>
+                    <h5 class="ui-panel__title" id="centralMonitorReadinessTitle">{{ __('Kesiapan Modul Monitor') }}</h5>
+                    <p class="ui-panel__meta">{{ __('Status ketersediaan tabel dan konfigurasi pendukung dashboard.') }}</p>
                 </div>
             </div>
             <div class="ui-panel__body">
@@ -178,13 +178,13 @@
             <section class="ui-panel" aria-labelledby="recentImportTitle">
                 <div class="ui-panel__header">
                     <div>
-                        <h5 class="ui-panel__title" id="recentImportTitle">Import Terbaru</h5>
-                        <p class="ui-panel__meta">Lima proses import terakhir.</p>
+                        <h5 class="ui-panel__title" id="recentImportTitle">{{ __('Import Terbaru') }}</h5>
+                        <p class="ui-panel__meta">{{ __('Lima proses import terakhir.') }}</p>
                     </div>
                     @if(auth()->user()->hasMenuAccess('import_history'))
                         <a href="{{ route('import-histories.index') }}" class="btn btn-sm btn-outline-primary ui-btn-icon" data-loading-text="Membuka...">
                             <i class="fas fa-history" aria-hidden="true"></i>
-                            <span>History</span>
+                            <span>{{ __('History') }}</span>
                         </a>
                     @endif
                 </div>
@@ -193,9 +193,9 @@
                         <table class="table table-sm align-middle mb-0 ui-table">
                             <thead>
                                 <tr>
-                                    <th>Waktu</th>
-                                    <th>File</th>
-                                    <th>Status</th>
+                                    <th>{{ __('Waktu') }}</th>
+                                    <th>{{ __('File') }}</th>
+                                    <th>{{ __('Status') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -215,7 +215,7 @@
                                         <td colspan="3">
                                             <div class="ui-empty-state">
                                                 <i class="fas fa-file-import" aria-hidden="true"></i>
-                                                <span>Belum ada riwayat import.</span>
+                                                <span>{{ __('Belum ada riwayat import.') }}</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -229,13 +229,13 @@
             <section class="ui-panel" aria-labelledby="recentAuditTitle">
                 <div class="ui-panel__header">
                     <div>
-                        <h5 class="ui-panel__title" id="recentAuditTitle">Audit Terbaru</h5>
-                        <p class="ui-panel__meta">Lima aktivitas sistem terakhir.</p>
+                        <h5 class="ui-panel__title" id="recentAuditTitle">{{ __('Audit Terbaru') }}</h5>
+                        <p class="ui-panel__meta">{{ __('Lima aktivitas sistem terakhir.') }}</p>
                     </div>
                     @if(auth()->user()->hasMenuAccess('audit_trail'))
                         <a href="{{ route('audit-trails.index') }}" class="btn btn-sm btn-outline-primary ui-btn-icon" data-loading-text="Membuka...">
                             <i class="fas fa-clipboard-list" aria-hidden="true"></i>
-                            <span>Audit</span>
+                            <span>{{ __('Audit') }}</span>
                         </a>
                     @endif
                 </div>
@@ -244,9 +244,9 @@
                         <table class="table table-sm align-middle mb-0 ui-table">
                             <thead>
                                 <tr>
-                                    <th>Waktu</th>
-                                    <th>Event</th>
-                                    <th>Actor</th>
+                                    <th>{{ __('Waktu') }}</th>
+                                    <th>{{ __('Event') }}</th>
+                                    <th>{{ __('Actor') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -269,7 +269,7 @@
                                         <td colspan="3">
                                             <div class="ui-empty-state">
                                                 <i class="fas fa-clipboard-list" aria-hidden="true"></i>
-                                                <span>Belum ada audit terbaru.</span>
+                                                <span>{{ __('Belum ada audit terbaru.') }}</span>
                                             </div>
                                         </td>
                                     </tr>

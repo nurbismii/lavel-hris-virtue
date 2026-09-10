@@ -23,7 +23,7 @@
                     {{ __('navigation.approval_sla') }}
                 </h4>
                 <small class="text-muted">
-                    Pantau approval yang mendekati atau melewati SLA tanpa mengubah status approval secara otomatis.
+                    {{ __('Pantau approval yang mendekati atau melewati SLA tanpa mengubah status approval secara otomatis.') }}
                 </small>
             </div>
             <div class="ms-md-auto">
@@ -31,7 +31,7 @@
                     @csrf
                     <button type="submit" class="btn btn-danger btn-sm" {{ !$isTableReady ? 'disabled' : '' }} data-loading-text="Mengirim eskalasi...">
                         <i class="fas fa-bell me-1"></i>
-                        Jalankan Eskalasi
+                        {{ __('Jalankan Eskalasi') }}
                     </button>
                 </form>
             </div>
@@ -39,19 +39,19 @@
 
         @if(!$isTableReady)
             <div class="alert alert-warning">
-                Fitur eskalasi SLA belum aktif karena tabel <code>approval_sla_escalation_logs</code> belum tersedia. Jalankan <code>php artisan migrate</code> terlebih dahulu.
+                {{ __('Fitur eskalasi SLA belum aktif karena tabel') }} <code>approval_sla_escalation_logs</code> {{ __('belum tersedia. Jalankan') }} <code>php artisan migrate</code> {{ __('terlebih dahulu.') }}
             </div>
         @endif
 
         @if(!config('approval_sla.enabled', true))
             <div class="alert alert-secondary">
-                SLA approval sedang nonaktif melalui konfigurasi <code>APPROVAL_SLA_ENABLED</code>.
+                {{ __('SLA approval sedang nonaktif melalui konfigurasi') }} <code>APPROVAL_SLA_ENABLED</code>.
             </div>
         @endif
 
         @if($errors->any())
             <div class="alert alert-danger">
-                <strong>Filter tidak valid.</strong>
+                <strong>{{ __('Filter tidak valid.') }}</strong>
                 <ul class="mb-0 mt-2">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -64,27 +64,27 @@
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label">Modul</label>
+                        <label class="form-label">{{ __('Modul') }}</label>
                         <select name="module" class="form-select form-control">
-                            <option value="all" {{ $filters['module'] === 'all' ? 'selected' : '' }}>Semua modul</option>
+                            <option value="all" {{ $filters['module'] === 'all' ? 'selected' : '' }}>{{ __('Semua modul') }}</option>
                             @foreach($modules as $key => $label)
                                 <option value="{{ $key }}" {{ $filters['module'] === $key ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Tahap</label>
+                        <label class="form-label">{{ __('Tahap') }}</label>
                         <select name="stage" class="form-select form-control">
-                            <option value="all" {{ $filters['stage'] === 'all' ? 'selected' : '' }}>Semua tahap</option>
+                            <option value="all" {{ $filters['stage'] === 'all' ? 'selected' : '' }}>{{ __('Semua tahap') }}</option>
                             @foreach($stages as $key => $label)
                                 <option value="{{ $key }}" {{ $filters['stage'] === $key ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Status SLA</label>
+                        <label class="form-label">{{ __('Status SLA') }}</label>
                         <select name="status" class="form-select form-control">
-                            <option value="all" {{ $filters['status'] === 'all' ? 'selected' : '' }}>Semua status</option>
+                            <option value="all" {{ $filters['status'] === 'all' ? 'selected' : '' }}>{{ __('Semua status') }}</option>
                             @foreach($statuses as $key => $label)
                                 <option value="{{ $key }}" {{ $filters['status'] === $key ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
@@ -93,11 +93,11 @@
                     <div class="col-md-3 d-flex flex-wrap gap-2">
                         <button type="submit" class="btn btn-primary">
                             <i class="fas fa-search me-1"></i>
-                            Tampilkan
+                            {{ __('Tampilkan') }}
                         </button>
                         <a href="{{ route('approval-sla.index') }}" class="btn btn-outline-secondary">
                             <i class="fas fa-undo me-1"></i>
-                            Reset
+                            {{ __('Reset') }}
                         </a>
                     </div>
                 </form>
@@ -119,7 +119,7 @@
             <div class="card-body">
                 <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                     <div>
-                        <h5 class="mb-1">Antrean Approval Berdasarkan SLA</h5>
+                        <h5 class="mb-1">{{ __('Antrean Approval Berdasarkan SLA') }}</h5>
                         <small class="text-muted">Maksimal {{ number_format((int) config('approval_sla.dashboard_limit', 500)) }} data ditampilkan per filter.</small>
                     </div>
                 </div>
@@ -128,16 +128,16 @@
                     <table class="table table-bordered table-striped table-sm align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 150px;">Modul</th>
-                                <th>Karyawan</th>
-                                <th>Organisasi</th>
-                                <th style="width: 170px;">Periode</th>
-                                <th style="width: 95px;">Tahap</th>
-                                <th style="width: 150px;">Mulai SLA</th>
-                                <th style="width: 150px;">Jatuh Tempo</th>
-                                <th style="width: 110px;">Umur</th>
-                                <th style="width: 130px;">Status</th>
-                                <th style="width: 90px;">Aksi</th>
+                                <th style="width: 150px;">{{ __('Modul') }}</th>
+                                <th>{{ __('Karyawan') }}</th>
+                                <th>{{ __('Organisasi') }}</th>
+                                <th style="width: 170px;">{{ __('Periode') }}</th>
+                                <th style="width: 95px;">{{ __('Tahap') }}</th>
+                                <th style="width: 150px;">{{ __('Mulai SLA') }}</th>
+                                <th style="width: 150px;">{{ __('Jatuh Tempo') }}</th>
+                                <th style="width: 110px;">{{ __('Umur') }}</th>
+                                <th style="width: 130px;">{{ __('Status') }}</th>
+                                <th style="width: 90px;">{{ __('Aksi') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -161,7 +161,7 @@
                                         @if($item['remaining_hours'] > 0)
                                             <small class="text-muted">Sisa {{ number_format($item['remaining_hours'], 1) }} jam</small>
                                         @else
-                                            <small class="text-danger">Lewat SLA</small>
+                                            <small class="text-danger">{{ __('Lewat SLA') }}</small>
                                         @endif
                                     </td>
                                     <td>
@@ -169,14 +169,14 @@
                                     </td>
                                     <td>
                                         <a href="{{ $item['approval_url'] }}" class="btn btn-sm btn-outline-primary">
-                                            Buka
+                                            {{ __('Buka') }}
                                         </a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="10" class="text-center text-muted py-4">
-                                        Tidak ada approval pending sesuai filter.
+                                        {{ __('Tidak ada approval pending sesuai filter.') }}
                                     </td>
                                 </tr>
                             @endforelse
@@ -189,19 +189,19 @@
         <div class="card border-0 shadow-sm">
             <div class="card-body">
                 <div class="mb-3">
-                    <h5 class="mb-1">Histori Eskalasi Terbaru</h5>
-                    <small class="text-muted">Log ini mencegah pengiriman eskalasi yang sama berulang kali.</small>
+                    <h5 class="mb-1">{{ __('Histori Eskalasi Terbaru') }}</h5>
+                    <small class="text-muted">{{ __('Log ini mencegah pengiriman eskalasi yang sama berulang kali.') }}</small>
                 </div>
 
                 <div class="table-responsive">
                     <table class="table table-bordered table-striped table-sm align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 150px;">Waktu</th>
-                                <th style="width: 110px;">Level</th>
-                                <th>Pesan</th>
-                                <th style="width: 110px;">Penerima</th>
-                                <th style="width: 160px;">Oleh</th>
+                                <th style="width: 150px;">{{ __('Waktu') }}</th>
+                                <th style="width: 110px;">{{ __('Level') }}</th>
+                                <th>{{ __('Pesan') }}</th>
+                                <th style="width: 110px;">{{ __('Penerima') }}</th>
+                                <th style="width: 160px;">{{ __('Oleh') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -219,7 +219,7 @@
                             @empty
                                 <tr>
                                     <td colspan="5" class="text-center text-muted py-4">
-                                        Belum ada eskalasi SLA approval.
+                                        {{ __('Belum ada eskalasi SLA approval.') }}
                                     </td>
                                 </tr>
                             @endforelse
@@ -248,11 +248,11 @@
         const loadingText = $button.data('loading-text') || 'Memproses...';
 
         window.AppDialog.confirm({
-            title: 'Kirim Eskalasi SLA?',
-            text: 'Kirim eskalasi untuk semua approval yang sudah melewati SLA?',
+            title: @json(__('Kirim Eskalasi SLA?')),
+            text: @json(__('Kirim eskalasi untuk semua approval yang sudah melewati SLA?')),
             icon: 'warning',
-            confirmButtonText: 'Ya, kirim',
-            cancelButtonText: 'Batal'
+            confirmButtonText: @js(__('Ya, kirim')),
+            cancelButtonText: @json(__('Batal'))
         }).then(function (confirmed) {
             if (!confirmed) {
                 return;
