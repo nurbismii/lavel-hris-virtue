@@ -280,6 +280,15 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/cv-maker-compare/export', [CvMakerCompareController::class, 'export'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV', 'throttle:6,1'])
             ->name('cv-maker-compare.export');
+        Route::prefix('cv-maker-compare/pdf-batches')->name('cv-maker-compare.pdf.')
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\CvMakerPdfController::class, 'index'])->name('index');
+                Route::post('/', [\App\Http\Controllers\Admin\CvMakerPdfController::class, 'store'])->middleware('throttle:10,1')->name('store');
+                Route::get('/{batch}', [\App\Http\Controllers\Admin\CvMakerPdfController::class, 'status'])->whereUuid('batch')->name('status');
+                Route::post('/{batch}/download', [\App\Http\Controllers\Admin\CvMakerPdfController::class, 'download'])->whereUuid('batch')->name('download');
+                Route::post('/{batch}/cancel', [\App\Http\Controllers\Admin\CvMakerPdfController::class, 'cancel'])->whereUuid('batch')->name('cancel');
+            });
         Route::get('/cv-maker-compare/{nik}', [CvMakerCompareController::class, 'show'])
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->name('cv-maker-compare.show');

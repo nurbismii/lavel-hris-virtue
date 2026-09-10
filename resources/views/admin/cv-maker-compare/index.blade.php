@@ -8,7 +8,7 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="page-inner ui-page cv-compare-page">
+    <div class="page-inner ui-page cv-compare-page" data-cv-workspace>
         <div class="ui-page-header cv-compare-header">
             <div class="ui-page-heading">
                 <div class="ui-page-icon" aria-hidden="true">
@@ -35,11 +35,13 @@
         </div>
         @endif
 
+        @include('admin.cv-maker-compare.partials.workspace-nav', ['workspaceTabs' => ['employees' => ['users', 'Daftar karyawan', 'Cari dan review data'], 'downloads' => ['file-pdf', 'Unduhan PDF', 'Batch dan riwayat unduhan']]])
+
         <section class="ui-panel cv-compare-panel" aria-labelledby="cvMakerCompareTableTitle">
             <div class="ui-panel__header">
                 <div>
-                    <h5 class="ui-panel__title" id="cvMakerCompareTableTitle">Daftar Compare</h5>
-                    <p class="ui-panel__meta">Klik Detail pada kolom Hasil untuk melihat identitas, organisasi, wilayah, pendidikan, dan opsi update HRIS.</p>
+                    <h5 class="ui-panel__title" id="cvMakerCompareTableTitle">Pencarian & filter</h5>
+                    <p class="ui-panel__meta">Filter berlaku untuk daftar karyawan, export Excel, email reminder, dan batch PDF.</p>
                 </div>
                 <button type="button" class="btn btn-sm btn-light border ui-btn-icon" id="btnResetCvCompareFilter">
                     <i class="fas fa-undo"></i>
@@ -48,7 +50,9 @@
             </div>
 
             <div class="ui-panel__body">
-                <div class="cv-compare-filter-panel">
+                <details class="cv-compare-filter-panel cv-filter-disclosure">
+                    <summary><span><i class="fas fa-sliders-h me-2" aria-hidden="true"></i>Sesuaikan filter <span class="cv-filter-count" data-cv-filter-count></span></span><span class="cv-filter-disclosure__hint">Buka / tutup</span></summary>
+                    <div class="cv-filter-disclosure__body">
                     <div class="row g-3 align-items-end">
                         <div class="col-12">
                             <div class="small fw-semibold text-uppercase text-muted">Filter HRIS</div>
@@ -313,9 +317,25 @@
                                 <option value="completed">Selesai Diperiksa</option>
                             </select>
                         </div>
+                        <div class="col-xl-3 col-md-6 ui-field">
+                            <label class="form-label" for="cv_filter_pdf_status">Status Download PDF</label>
+                            <select id="cv_filter_pdf_status" class="form-select">
+                                <option value="">Semua Status PDF</option>
+                                <option value="not_downloaded">Belum Diunduh (Tidak Dalam Batch)</option>
+                                <option value="processing">Dalam Batch / Siap Diunduh</option>
+                                <option value="downloaded">Sudah Diunduh</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
+                    </div>
+                </details>
 
+            </div>
+        </section>
+
+        <section id="cv-workspace-employees" data-cv-pane="employees" class="ui-panel cv-workspace-panel" aria-labelledby="cv-tab-employees">
+            <div class="ui-panel__header"><div><h5 class="ui-panel__title">Daftar karyawan</h5><p class="ui-panel__meta">Cari karyawan, periksa progres, lalu buka Detail untuk meninjau CV.</p></div></div>
+            <div class="ui-panel__body">
                 <div class="cv-compare-export-toolbar mt-3 mb-3">
                     <button type="button" class="btn btn-outline-primary ui-btn-icon" id="btnCvIncompleteSupervisors">
                         <i class="fas fa-filter"></i> Pengawas ke Atas — Belum Lengkap
@@ -326,6 +346,7 @@
                 </div>
 
                 @if(!auth()->user()->hasRole('Audit CV'))
+                <details class="cv-reminder-disclosure"><summary><i class="fas fa-envelope me-2" aria-hidden="true"></i>Email pengingat <span class="small text-muted">— pilih penerima dari tabel</span></summary>
                 <div class="d-flex flex-wrap gap-2 align-items-center mt-3 mb-2">
                     <button type="button" class="btn btn-sm btn-primary ui-btn-icon" id="btnCvReminderSelected" disabled>
                         <i class="fas fa-envelope"></i>
@@ -338,8 +359,11 @@
                     <span class="small text-muted">Hanya karyawan berstatus Perlu Diingatkan yang akan diproses. Cooldown pengiriman tetap diperiksa oleh server.</span>
                 </div>
 
+                </details>
                 <div class="alert ui-alert d-none mb-3" id="cvReminderBatchStatus" role="status" aria-live="polite"></div>
                 @endif
+
+
 
                 <div class="cv-compare-table-section ui-table-wrap">
                     <table id="cvMakerCompareTable" class="table table-bordered table-striped table-sm small text-sm nowrap align-middle ui-table">
@@ -350,18 +374,25 @@
                                 <th>Karyawan</th>
                                 <th>CV Maker</th>
                                 <th>Hasil</th>
+                                <th>Download PDF</th>
                             </tr>
                         </thead>
                     </table>
                 </div>
             </div>
         </section>
+        @if(\App\Services\CvMaker\CvMakerPdfExportService::canAccess(auth()->user()))
+        <div id="cv-workspace-downloads" data-cv-pane="downloads" aria-labelledby="cv-tab-downloads">
+            @include('admin.cv-maker-compare.partials.pdf-panel')
+        </div>
+        @endif
     </div>
 </div>
 
 @endsection
 
 @push('scripts')
+<script src="{{ versioned_asset('assets/js/admin-cv-maker-workspace.js') }}"></script>
 @include('admin.cv-maker-compare.partials.dialog-scripts')
 <script src="{{ versioned_asset('assets/js/plugin/select2/select2.full.min.js') }}"></script>
 <script>
@@ -576,6 +607,7 @@
                     data.cv_progress_status = $('#cv_filter_progress_status').val();
                     data.cv_progress_step = $('#cv_filter_progress_step').val();
                     data.cv_review_status = $('#cv_filter_review_status').val();
+                    data.pdf_status = $('#cv_filter_pdf_status').val();
                 },
                 error: function(xhr) {
                     showCvCompareAjaxError(xhr, 'Data compare gagal dimuat.');
@@ -586,7 +618,8 @@
                 { data: 'nik', width: '90px' },
                 { data: 'employee', orderable: true },
                 { data: 'cv_status', orderable: false, searchable: false, width: '120px' },
-                { data: 'result', orderable: false, searchable: false, width: '190px' }
+                { data: 'result', orderable: false, searchable: false, width: '190px' },
+                { data: 'pdf', orderable: false, searchable: false, width: '180px' }
             ],
             drawCallback: function() {
                 clearCvReminderSelection();
@@ -637,6 +670,7 @@
             cv_progress_status: $('#cv_filter_progress_status').val(),
             cv_progress_step: $('#cv_filter_progress_step').val() || [],
             cv_review_status: $('#cv_filter_review_status').val(),
+            pdf_status: $('#cv_filter_pdf_status').val(),
             search: cvCompareTable.search()
         };
     }
@@ -884,7 +918,7 @@
         });
     });
 
-    $('#cv_filter_divisi, #cv_filter_posisi, #cv_filter_hris_skill_category, #cv_filter_hris_managerial_category, #cv_filter_skill_category, #cv_filter_managerial_category, #cv_filter_resign, #cv_filter_reminder, #cv_filter_progress_status, #cv_filter_progress_step, #cv_filter_review_status').on('change', function() {
+    $('#cv_filter_pdf_status, #cv_filter_divisi, #cv_filter_posisi, #cv_filter_hris_skill_category, #cv_filter_hris_managerial_category, #cv_filter_skill_category, #cv_filter_managerial_category, #cv_filter_resign, #cv_filter_reminder, #cv_filter_progress_status, #cv_filter_progress_step, #cv_filter_review_status').on('change', function() {
         cvCompareTable.draw();
     });
 
@@ -907,7 +941,10 @@
         $('.cv-progress-step-check').prop('checked', false);
         syncCvProgressStepFilter();
         $('#cv_filter_review_status').val('');
+        $('#cv_filter_pdf_status').val('');
+        $('#cvPdfAllowDownloaded').prop('checked', false);
         cvCompareTable.draw();
     });
 </script>
+<script src="{{ versioned_asset('assets/js/admin-cv-maker-pdf.js') }}"></script>
 @endpush

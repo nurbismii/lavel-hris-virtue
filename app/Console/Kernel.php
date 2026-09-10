@@ -35,6 +35,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('approvals:escalate-sla --limit=500')->hourly()->withoutOverlapping();
         $schedule->command('employee-movements:apply-due --limit=500')->dailyAt('00:20')->withoutOverlapping();
         $schedule->command('cv-maker:sync-progress --limit=500 --chunk=100')->hourly()->withoutOverlapping();
+        $schedule->command('cv-maker:maintain-pdf-exports')->everyMinute()->withoutOverlapping();
     }
 
     /**

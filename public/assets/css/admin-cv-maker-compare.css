@@ -900,3 +900,37 @@
 @media (max-width: 575.98px) {
     .cv-compare-export-toolbar .btn { width: 100%; white-space: normal; }
 }
+
+/* CV workspace: task navigation and progressive disclosure. */
+.cv-compare-page [hidden] { display: none !important; }
+.cv-workspace-nav { display: flex; gap: 8px; padding: 8px; margin-bottom: 20px; border: 1px solid var(--ui-border-soft); border-radius: 16px; background: var(--ui-surface-muted); overflow-x: auto; }
+.cv-workspace-tab { flex: 1; display: flex; align-items: center; gap: 12px; min-width: 175px; padding: 14px 16px; text-align: left; border: 1px solid transparent; border-radius: 12px; background: transparent; color: var(--ui-muted); transition: background .15s, border-color .15s; }
+.cv-workspace-tab strong, .cv-workspace-tab small { display: block; }
+.cv-workspace-tab strong { font-size: .9rem; color: var(--ui-text); }
+.cv-workspace-tab small { margin-top: 3px; font-size: .75rem; }
+.cv-workspace-tab__icon { display: grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 10px; background: var(--ui-surface); }
+.cv-workspace-tab[aria-selected="true"] { background: var(--ui-surface); border-color: #b8cef3; box-shadow: 0 3px 10px rgba(24, 55, 94, .06); color: #245ba6; }
+.cv-workspace-tab[aria-selected="true"] .cv-workspace-tab__icon { background: #eaf2ff; color: #245ba6; }
+.cv-workspace-tab:hover { border-color: #b8cef3; }
+.cv-workspace-tab:focus-visible, .cv-filter-disclosure summary:focus-visible, .cv-reminder-disclosure summary:focus-visible { outline: 3px solid #7ba5e4; outline-offset: 2px; }
+.cv-workspace-panel { margin-top: 20px; }
+.cv-filter-disclosure { margin-bottom: 0; padding: 0; }
+.cv-filter-disclosure > summary, .cv-reminder-disclosure > summary { cursor: pointer; padding: 14px 16px; font-weight: 600; color: var(--ui-text); }
+.cv-filter-disclosure__hint { float: right; font-size: .75rem; font-weight: 400; color: var(--ui-muted); }
+.cv-filter-disclosure__body { padding: 8px 18px 20px; border-top: 1px solid var(--ui-border-soft); }
+.cv-filter-count { display: inline-block; margin-left: 8px; padding: 3px 9px; border-radius: 20px; background: #eaf2ff; color: #245ba6; font-size: .75rem; }
+.cv-reminder-disclosure { margin: 16px 0; border: 1px solid var(--ui-border-soft); border-radius: 12px; background: var(--ui-surface-muted); }
+.cv-reminder-disclosure > div { padding: 0 16px 14px; }
+.cv-compare-page #cvPdfPanel { border: 1px solid var(--ui-border-soft); border-radius: 16px; box-shadow: 0 4px 18px rgba(24, 55, 94, .04); }
+.cv-compare-page #cvPdfPanel > .card-body { padding: 24px; }
+.cv-compare-page #cvPdfPanel .h6 { font-size: 1.05rem; font-weight: 700; }
+.cv-compare-page .cv-filter-disclosure .form-select { min-height: 42px; border-radius: 10px; }
+@media (max-width: 767.98px) {
+    .cv-workspace-tab { min-width: 158px; padding: 10px; gap: 8px; }
+    .cv-workspace-tab small { display: none; }
+    .cv-filter-disclosure__hint { display: none; }
+    .cv-filter-disclosure__body { padding: 8px 12px 16px; }
+    .cv-filter-disclosure .ui-field { width: 100%; }
+    .cv-compare-page #cvPdfPanel > .card-body { padding: 16px; }
+    .cv-compare-export-toolbar .btn { width: 100%; justify-content: center; white-space: normal; }
+}

@@ -44,6 +44,7 @@ class StoreReminderBatchRequest extends FormRequest
             'cv_progress_step.*' => ['integer', 'between:1,8', 'distinct'],
             'cv_review_status' => ['nullable', Rule::in(['unreviewed', 'in_review', 'needs_employee_confirmation', 'completed'])],
             'search' => ['nullable', 'string', 'max:120'],
+            'pdf_status' => ['nullable', Rule::in(['not_downloaded', 'processing', 'downloaded'])],
         ];
     }
 }

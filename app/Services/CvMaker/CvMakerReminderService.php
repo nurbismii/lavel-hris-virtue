@@ -258,6 +258,7 @@ class CvMakerReminderService
             'cv_progress_status' => $request->input('cv_progress_status'),
             'cv_progress_step' => array_values((array) $request->input('cv_progress_step', [])),
             'cv_review_status' => $request->input('cv_review_status'),
+            'pdf_status' => $request->input('pdf_status'),
             'search' => trim((string) $request->input('search', '')),
         ];
     }

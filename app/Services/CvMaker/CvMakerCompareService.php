@@ -54,6 +54,8 @@ class CvMakerCompareService
 
     private $apiRelatedRowsByProfileId = [];
 
+    private $strictPdfRead = false;
+
     private $jobLevelCodesByTitleId;
 
     public function __construct(
@@ -279,9 +281,13 @@ class CvMakerCompareService
 
         $cvProfiles = $this->fetchCvProfilesForEmployees($employees);
         $progressStatuses = $this->fetchProgressStatusesForEmployees($employees);
+        $pdfDownloads = Schema::hasTable('cv_maker_pdf_downloads')
+            ? DB::table('cv_maker_pdf_downloads')->whereIn('employee_nik', $employees->pluck('nik'))->get()->keyBy('employee_nik')
+            : collect();
+        $canDownloadPdf = CvMakerPdfExportService::canAccess($user);
 
         $rows = $employees
-            ->map(function (Employee $employee) use ($cvProfiles, $progressStatuses) {
+            ->map(function (Employee $employee) use ($cvProfiles, $progressStatuses, $pdfDownloads, $canDownloadPdf) {
                 $cvProfile = $cvProfiles[$employee->nik] ?? null;
                 $progressStatus = $progressStatuses[$employee->nik] ?? null;
                 $comparison = $this->compareEmployee($employee, $cvProfile);
@@ -294,6 +300,7 @@ class CvMakerCompareService
                     'employee' => $this->renderEmployeeCell($employee),
                     'cv_status' => $this->renderCvStatus($cvProfile, $progressStatus),
                     'result' => $this->renderResultCell($employee, $comparison, $cvProfile),
+                    'pdf' => $this->renderPdfStatus($employee, $progressStatus, $pdfDownloads->get($employee->nik), $canDownloadPdf),
                 ];
             })
             ->values()
@@ -311,6 +318,24 @@ class CvMakerCompareService
     public function filteredEmployeeQuery(Request $request, User $user): Builder
     {
         return $this->applyFilters($this->employeeBaseQuery($user), $request);
+    }
+
+    private function renderPdfStatus(Employee $employee, $progress, $download, bool $canDownload): string
+    {
+        $active = $download && $download->active_batch_id;
+        $downloaded = $download && $download->downloaded_at;
+        $label = $active ? 'Dalam batch / siap diunduh' : ($downloaded ? 'Sudah diunduh' : 'Belum diunduh');
+        $html = '<span class="badge bg-' . ($active ? 'warning text-dark' : ($downloaded ? 'success' : 'secondary')) . '">' . $label . '</span>';
+        if ($downloaded) {
+            $html .= '<div class="small text-muted mt-1">' . e(Carbon::parse($download->downloaded_at)->format('d/m/Y H:i'))
+                . ' · User #' . e($download->downloaded_by) . '</div>';
+        }
+        if ($canDownload && $progress && $progress->is_complete && $progress->cv_profile_id && !$active) {
+            $html .= '<div class="mt-2"><button type="button" class="btn btn-sm btn-outline-danger js-cv-pdf-single" data-nik="'
+                . e($employee->nik) . '" data-downloaded="' . ($downloaded ? '1' : '0') . '">'
+                . ($downloaded ? 'Buat ulang PDF' : 'Download PDF') . '</button></div>';
+        }
+        return $html;
     }
 
     public function detailForEmployee(Employee $employee): array
@@ -345,6 +370,32 @@ class CvMakerCompareService
             'summary' => $this->renderMismatchSummary($comparison, $cvProfile),
             'can_update' => $this->isConfigured() && $cvProfile && !empty($cvProfile['profile_id']),
         ];
+    }
+
+    public function pdfVitaeForEmployee(Employee $employee): array
+    {
+        $this->strictPdfRead = true;
+        $this->apiRelatedRowsByProfileId = [];
+        try {
+            $profile = $this->cvProfileForEmployee($employee);
+            if (!$profile || empty($profile['profile_id'])) {
+                throw new \RuntimeException('Profil CV Maker tidak tersedia.');
+            }
+            $id = (int) $profile['profile_id'];
+            $related = $this->cvRelatedSections($id);
+            $related['documents'] = $this->fetchCvRelatedRows($id, 'cv_documents', ['type'])
+                ->map(fn($row) => (array) $row)->all();
+            $related['emergency_contacts'] = $this->fetchCvRelatedRows($id, 'cv_emergency_contacts', ['phone', 'name', 'relationship'])
+                ->map(fn($row) => (array) $row)->all();
+            $progress = app(CvMakerProgressSnapshotService::class)->evaluateProgress($profile, $related);
+            if (!$progress['is_complete']) {
+                throw new \RuntimeException('Progres CV Maker saat ini belum lengkap.');
+            }
+            return ['vitae' => $this->buildVitaeView($profile), 'profile_id' => $id];
+        } finally {
+            $this->strictPdfRead = false;
+            $this->apiRelatedRowsByProfileId = [];
+        }
     }
 
     public function compareEmployee(Employee $employee, ?array $cvProfile): array
@@ -999,6 +1050,19 @@ class CvMakerCompareService
 
     private function applyFilters(Builder $query, Request $request): Builder
     {
+        $pdfStatus = $request->input('pdf_status');
+        if (in_array($pdfStatus, ['not_downloaded', 'processing', 'downloaded'], true)) {
+            $pdfQuery = DB::table('cv_maker_pdf_downloads')->select('employee_nik');
+            if ($pdfStatus === 'not_downloaded') {
+                $query->whereNotIn('employees.nik', $pdfQuery->where(function ($q) {
+                    $q->whereNotNull('downloaded_at')->orWhereNotNull('active_batch_id');
+                }));
+            } elseif ($pdfStatus === 'processing') {
+                $query->whereIn('employees.nik', $pdfQuery->whereNotNull('active_batch_id'));
+            } else {
+                $query->whereIn('employees.nik', $pdfQuery->whereNotNull('downloaded_at')->whereNull('active_batch_id'));
+            }
+        }
         $requestedAreaCodes = collect((array) $request->input('area'))
             ->filter(fn($value) => filled($value))
             ->map(fn($value) => trim((string) $value))
@@ -1554,6 +1618,7 @@ class CvMakerCompareService
 
     private function fetchCvRelatedRows(int $profileId, string $table, array $columns, int $limit = 50): Collection
     {
+        $limit = $this->strictPdfRead ? 500 : $limit;
         if ($this->usesApi()) {
             $relatedKey = [
                 'cv_educations' => 'educations',
@@ -1571,6 +1636,13 @@ class CvMakerCompareService
                 return collect();
             }
 
+            if ($this->strictPdfRead && (!array_key_exists($relatedKey, $this->apiRelatedRowsByProfileId[$profileId] ?? [])
+                // The current upstream API caps each relation at 50 rows for one profile.
+                // Refuse the boundary rather than silently exporting a potentially truncated CV.
+                || count($this->apiRelatedRowsByProfileId[$profileId][$relatedKey]) >= 50)) {
+                throw new \RuntimeException('Data bagian CV tidak lengkap atau melebihi batas PDF.');
+            }
+
             return collect($this->apiRelatedRowsByProfileId[$profileId][$relatedKey] ?? [])
                 ->take($limit)
                 ->map(function ($row) {
@@ -1582,6 +1654,9 @@ class CvMakerCompareService
             $columns = $this->filterExistingCvColumns($table, $columns);
 
             if (empty($columns)) {
+                if ($this->strictPdfRead) {
+                    throw new \RuntimeException('Struktur bagian CV tidak tersedia.');
+                }
                 return collect();
             }
 
@@ -1594,11 +1669,18 @@ class CvMakerCompareService
                 $query->orderBy('sort_order');
             }
 
-            return $query
+            $rows = $query
                 ->orderBy('id')
-                ->limit($limit)
+                ->limit($this->strictPdfRead ? $limit + 1 : $limit)
                 ->get();
+            if ($this->strictPdfRead && $rows->count() > $limit) {
+                throw new \RuntimeException('Data bagian CV melebihi batas PDF.');
+            }
+            return $rows;
         } catch (Throwable $exception) {
+            if ($this->strictPdfRead) {
+                throw $exception;
+            }
             Log::warning('CV Maker vitae lookup failed.', [
                 'table' => $table,
                 'profile_id' => $profileId,
@@ -1700,6 +1782,9 @@ class CvMakerCompareService
                 ], $this->cvProfileSelectColumns()))
                 ->get();
         } catch (Throwable $exception) {
+            if ($this->strictPdfRead) {
+                throw $exception;
+            }
             Log::warning('CV Maker compare lookup failed.', [
                 'message' => $exception->getMessage(),
             ]);
@@ -1793,7 +1878,7 @@ class CvMakerCompareService
 
     private function fetchCvProfilesFromApi(array $hashToNik): array
     {
-        $profiles = $this->apiClient()->profiles(array_keys($hashToNik));
+        $profiles = $this->apiClient()->profiles(array_keys($hashToNik), $this->strictPdfRead);
         $result = [];
 
         foreach ($profiles as $hash => $profile) {

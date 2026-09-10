@@ -135,7 +135,7 @@ $completeProfileGroups = [
 @endphp
 
 <div class="container-fluid">
-    <div class="page-inner ui-page cv-compare-page">
+    <div class="page-inner ui-page cv-compare-page" data-cv-workspace>
         <div class="ui-page-header cv-compare-header">
             <div class="ui-page-heading">
                 <div class="ui-page-icon" aria-hidden="true">
@@ -158,6 +158,8 @@ $completeProfileGroups = [
             Koneksi CV Maker belum dikonfigurasi. Set env <code>CV_MAKER_DB_*</code> dan <code>CV_MAKER_NIK_HASH_KEY</code>.
         </div>
         @endif
+
+
 
         <section class="ui-panel cv-detail-summary-panel mb-3">
             <div class="ui-panel__body">
@@ -224,7 +226,9 @@ $completeProfileGroups = [
             </div>
         </section>
 
-        <section class="ui-panel cv-progress-detail-panel mb-3">
+        @include('admin.cv-maker-compare.partials.workspace-nav', ['workspaceTabs' => ['review' => ['tasks', 'Pemeriksaan', 'Progres dan riwayat'], 'preview' => ['address-card', 'Preview CV', 'Tampilan curriculum vitae'], 'profile' => ['folder-open', 'Data pendukung', 'Profil dan dokumen'], 'compare' => ['not-equal', 'Perbandingan', 'Cocokkan dengan HRIS'], 'downloads' => ['file-pdf', 'Unduhan PDF', 'Buat dan unduh CV']]])
+
+        <section id="cv-workspace-review" data-cv-pane="review" aria-labelledby="cv-tab-review" class="ui-panel cv-progress-detail-panel mb-3">
             <div class="ui-panel__header">
                 <div>
                     <h5 class="ui-panel__title">Progress Pengisian CV</h5>
@@ -296,7 +300,7 @@ $completeProfileGroups = [
             </div>
         </section>
 
-        <section class="ui-panel cv-vitae-panel mb-3">
+        <section id="cv-workspace-preview" data-cv-pane="preview" aria-labelledby="cv-tab-preview" class="ui-panel cv-vitae-panel mb-3">
             <div class="ui-panel__header">
                 <div>
                     <h5 class="ui-panel__title">Tampilan CV</h5>
@@ -517,7 +521,7 @@ $completeProfileGroups = [
         </section>
 
         @if($cvProfile && !empty($cvProfile['profile_id']))
-        <section class="ui-panel mb-3">
+        <section id="cv-workspace-profile" data-cv-pane="profile" aria-labelledby="cv-tab-profile" class="ui-panel mb-3">
             <div class="ui-panel__header">
                 <div>
                     <h5 class="ui-panel__title">Seluruh Data Vitae</h5>
@@ -593,7 +597,7 @@ $completeProfileGroups = [
         </section>
         @endif
 
-        <section class="ui-panel cv-detail-compare-panel">
+        <section id="cv-workspace-compare" data-cv-pane="compare" aria-labelledby="cv-tab-compare" class="ui-panel cv-detail-compare-panel">
             <div class="ui-panel__header">
                 <div>
                     <h5 class="ui-panel__title">Perbandingan Field</h5>
@@ -718,6 +722,11 @@ $completeProfileGroups = [
                 @endif
             </div>
         </section>
+        @if(\App\Services\CvMaker\CvMakerPdfExportService::canAccess(auth()->user()))
+        <div id="cv-workspace-downloads" data-cv-pane="downloads" aria-labelledby="cv-tab-downloads">
+            @include('admin.cv-maker-compare.partials.pdf-panel')
+        </div>
+        @endif
     </div>
 </div>
 
@@ -727,6 +736,7 @@ $completeProfileGroups = [
 @endsection
 
 @push('scripts')
+<script src="{{ versioned_asset('assets/js/admin-cv-maker-workspace.js') }}"></script>
 @include('admin.cv-maker-compare.partials.dialog-scripts')
 <script>
     function cvInlineCorrectionError(xhr) {
@@ -956,4 +966,5 @@ $completeProfileGroups = [
     };
 </script>
 @include('admin.cv-maker-compare.partials.update-scripts')
+<script src="{{ versioned_asset('assets/js/admin-cv-maker-pdf.js') }}"></script>
 @endpush
