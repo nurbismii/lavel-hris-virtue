@@ -79,6 +79,12 @@ Pengemasan juga dibatasi tiga percobaan yang dicatat di database agar worker yan
 
 ## Validasi
 
+### Font Mandarin
+
+PDF CV mendukung karakter Mandarin melalui font lokal `storage/fonts/NotoSansSC-Regular.ttf` yang sudah tersedia dalam proyek. Pastikan file ini ikut diunggah ke production dan direktori cache font Dompdf (`storage/fonts` secara default) writable oleh worker. Tidak perlu memasang font pada komputer pengguna atau mengaktifkan akses font lewat internet.
+
+Template menggunakan DejaVu Sans untuk Latin dan Noto Sans SC sebagai fallback Mandarin. Karena font CJK yang tersedia hanya regular, karakter Mandarin pada judul menggunakan bentuk regular yang sama; teks Latin tetap bold. Font subsetting diaktifkan khusus untuk PDF CV agar hanya glyph yang dipakai disematkan. PDF yang sudah dibuat sebelumnya tidak berubah: buat PDF baru setelah deployment, bukan mengunduh ulang berkas lama dari riwayat.
+
 ```bash
 php artisan test --filter=CvMaker
 php artisan route:list --name=cv-maker-compare.pdf
