@@ -372,6 +372,9 @@ Route::middleware(['android.redirect'])->group(function () {
                 Route::post('/import-history', [ContractRenewalController::class, 'importHistory'])
                     ->middleware('role:Super Admin,HR')
                     ->name('import-history');
+                Route::get('/template-import-history', [ContractRenewalController::class, 'downloadHistoryImportTemplate'])
+                    ->middleware('role:Super Admin,HR')
+                    ->name('template-import-history');
                 Route::post('/bulk', [ContractRenewalController::class, 'bulkStore'])->name('bulk-store');
                 Route::post('/', [ContractRenewalController::class, 'store'])->name('store');
                 Route::post('/{renewal}/delegate', [ContractRenewalController::class, 'delegate'])->name('delegate');
@@ -455,6 +458,17 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::resource('/resign', 'App\Http\Controllers\Admin\ResignController')
             ->only(['index', 'store', 'edit', 'update', 'destroy'])
             ->middleware('menu:resign');
+        Route::prefix('/pengajuan-pelanggaran')->name('warning-letter-requests.')->middleware('menu:surat_peringatan')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'index'])->name('index');
+            Route::get('/create', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'create'])->name('create');
+            Route::get('/employees', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'employees'])->name('employees');
+            Route::get('/employee', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'employee'])->name('employee');
+            Route::post('/', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'store'])->name('store');
+            Route::get('/{warningLetter}', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'show'])->name('show');
+            Route::post('/{warningLetter}/review', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'review'])->middleware('role:Super Admin,HR')->name('review');
+            Route::get('/{warningLetter}/download', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'download'])->name('download');
+        });
+
         Route::resource('/surat-peringatan', 'App\Http\Controllers\Admin\SuratPeringatanController')
             ->only(['index', 'store', 'edit', 'update', 'destroy'])
             ->middleware('menu:surat_peringatan');

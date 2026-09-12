@@ -72,6 +72,7 @@ $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($pa
 $canManageSensitiveEmployeeFields = $canManageSensitiveEmployeeFields ?? false;
 $isActiveStatus = old('status_resign', $employee->status_resign) === 'AKTIF';
 $isUnmarriedStatus = old('status_perkawinan', $employee->status_perkawinan) === 'Belum Kawin';
+$showViolationTab = request()->has('pelanggaran_page') && !$errors->any();
 @endphp
 
 <div class="container-fluid employee-edit-shell"
@@ -132,7 +133,7 @@ $isUnmarriedStatus = old('status_perkawinan', $employee->status_perkawinan) === 
                         <div class="ui-panel__body">
                             <ul class="nav nav-pills employee-edit-tabs" id="employeeEditTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="profil-tab" data-bs-toggle="pill" data-bs-target="#profil-pane" type="button" role="tab" aria-controls="profil-pane" aria-selected="true">
+                                    <button class="nav-link {{ $showViolationTab ? '' : 'active' }}" id="profil-tab" data-bs-toggle="pill" data-bs-target="#profil-pane" type="button" role="tab" aria-controls="profil-pane" aria-selected="{{ $showViolationTab ? 'false' : 'true' }}">
                                         <i class="fas fa-id-card"></i>
                                         {{ __('Profil') }}
                                     </button>
@@ -158,10 +159,17 @@ $isUnmarriedStatus = old('status_perkawinan', $employee->status_perkawinan) === 
                                         {{ __('Dokumen') }}
                                     </button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link {{ $showViolationTab ? 'active' : '' }}" id="pelanggaran-tab" data-bs-toggle="pill" data-bs-target="#pelanggaran-pane" type="button" role="tab" aria-controls="pelanggaran-pane" aria-selected="{{ $showViolationTab ? 'true' : 'false' }}">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        {{ __('Riwayat Pelanggaran') }}
+                                        <span class="employee-edit-tabs__count">{{ $violationHistories->total() }}</span>
+                                    </button>
+                                </li>
                             </ul>
 
                             <div class="tab-content">
-                                <div class="tab-pane fade show active" id="profil-pane" role="tabpanel" aria-labelledby="profil-tab">
+                                <div class="tab-pane fade {{ $showViolationTab ? '' : 'show active' }}" id="profil-pane" role="tabpanel" aria-labelledby="profil-tab">
                                     <div class="employee-edit-section">
                                         <div class="employee-edit-section__card">
                                             <div class="employee-edit-section__title">{{ __('Identitas Karyawan') }}</div>
@@ -477,6 +485,10 @@ $isUnmarriedStatus = old('status_perkawinan', $employee->status_perkawinan) === 
                                             </div>
                                         </div>
                                     </div>
+                                </div>
+
+                                <div class="tab-pane fade {{ $showViolationTab ? 'show active' : '' }}" id="pelanggaran-pane" role="tabpanel" aria-labelledby="pelanggaran-tab">
+                                    @include('admin.karyawan.partials.violation-history')
                                 </div>
 
                                 <div class="tab-pane fade" id="kontrak-pane" role="tabpanel" aria-labelledby="kontrak-tab">

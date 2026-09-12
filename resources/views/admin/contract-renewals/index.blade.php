@@ -146,6 +146,9 @@
                         <div class="col-lg-7">
                             <h5 class="fw-semibold mb-1">{{ __('Import History PKWT dan Adendum') }}</h5>
                             <p class="text-muted small mb-0">{{ __('Unggah file Excel berisi history kontrak karyawan.') }}</p>
+                            <a href="{{ route('contract-renewals.template-import-history') }}" class="btn btn-outline-secondary btn-sm mt-2">
+                                <i class="fas fa-download me-1" aria-hidden="true"></i> {{ __('Download Template PKWT & Adendum') }}
+                            </a>
                         </div>
                         <div class="col-lg-5">
                             <form method="POST" action="{{ route('contract-renewals.import-history') }}" enctype="multipart/form-data" class="d-flex gap-2" data-loading-text="Mengunggah...">

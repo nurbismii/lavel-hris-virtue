@@ -763,3 +763,12 @@
         flex: 1 1 120px;
     }
 }
+.employee-violation-card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.employee-violation-card__description {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

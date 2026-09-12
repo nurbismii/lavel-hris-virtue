@@ -15,10 +15,14 @@
                 </small>
             </div>
 
-            <div class="ms-md-auto py-2 py-md-0">
+            <div class="ms-md-auto py-2 py-md-0 d-flex flex-wrap gap-2">
+                <a class="btn btn-sm btn-primary" href="{{ route('warning-letter-requests.create') }}"><i class="fas fa-plus me-1"></i> {{ __('Buat Pelanggaran') }}</a>
+                <a class="btn btn-sm btn-outline-primary" href="{{ route('warning-letter-requests.index') }}">{{ __('Pengajuan & Approval') }}</a>
+                @if(auth()->user()->hasRole(['Super Admin', 'HR']))
                 <a class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalImportSuratPeringatan">
                     {{ __('Bulk Pelanggaran') }}
                 </a>
+                @endif
             </div>
         </div>
 

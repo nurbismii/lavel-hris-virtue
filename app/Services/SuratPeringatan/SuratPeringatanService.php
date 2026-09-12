@@ -10,14 +10,21 @@ class SuratPeringatanService
     // Service methods for Karyawan can be implemented here
     public function getDataSuratPeringatan($request)
     {
-        $query = SuratPeringatan::with('employee')
+        $query = SuratPeringatan::with(['employee', 'issuance:id,sp_report_id'])
             ->select(
                 'id',
                 'nik_karyawan',
+                'no_sp',
                 'level_sp',
                 'tgl_mulai',
                 'tgl_berakhir',
             );
+
+        if (!$request->user()->canAccessAllEmployees()) {
+            $query->whereHas('employee', function ($employees) use ($request) {
+                $request->user()->applyEmployeeScope($employees);
+            });
+        }
 
         if ($request->filled('tgl_mulai') && $request->filled('tgl_berakhir')) {
 
@@ -51,6 +58,9 @@ class SuratPeringatanService
             })
 
             ->addColumn('aksi', function ($r) {
+                if ($r->issuance) {
+                    return '<a class="btn btn-sm btn-outline-primary" href="' . e(route('warning-letter-requests.show', $r->issuance)) . '">Lihat surat</a>';
+                }
                 return '
                 <a href="' . e(route('surat-peringatan.edit', $r->id)) . '" 
                    class="btn btn-sm btn-warning me-1">

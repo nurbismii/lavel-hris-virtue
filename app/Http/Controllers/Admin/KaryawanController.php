@@ -14,6 +14,7 @@ use App\Models\Divisi;
 use App\Models\Employee;
 use App\Models\ImportHistory;
 use App\Models\Perusahaan;
+use App\Models\SuratPeringatan;
 use App\Models\WorkPattern;
 use App\Services\ContractRenewals\ContractRenewalService;
 use App\Services\ImportHistory\ImportHistoryService;
@@ -99,6 +100,14 @@ class KaryawanController extends Controller
                 ->orderBy('name')
                 ->get(),
             'contractTimeline' => $contractTimeline,
+            'violationHistories' => SuratPeringatan::query()
+                ->with('issuance:id,sp_report_id,nik')
+                ->where('nik_karyawan', $employee->nik)
+                ->select('id', 'no_sp', 'level_sp', 'tgl_mulai', 'tgl_berakhir', 'keterangan')
+                ->orderByDesc('tgl_mulai')
+                ->orderByDesc('id')
+                ->paginate(10, ['*'], 'pelanggaran_page')
+                ->fragment('pelanggaran-pane'),
             'canManageSensitiveEmployeeFields' => auth()->user()->canAccessAllEmployees(),
         ]);
     }

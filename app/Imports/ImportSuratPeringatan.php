@@ -8,6 +8,7 @@ use App\Models\SuratPeringatan;
 use App\Models\ImportHistoryItem;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Maatwebsite\Excel\Concerns\RegistersEventListeners;
 use Maatwebsite\Excel\Concerns\RemembersChunkOffset;
@@ -36,7 +37,15 @@ class ImportSuratPeringatan implements
         $this->importHistoryId = $importHistoryId;
     }
 
-    public function collection(Collection $collection)
+    public function collection(Collection $collection): void
+    {
+        DB::transaction(function () use ($collection) {
+            app(\App\Services\SuratPeringatan\WarningLetterNumberService::class)->lock();
+            $this->importChunk($collection);
+        });
+    }
+
+    private function importChunk(Collection $collection): void
     {
         $datas = [];
         $skippedCount = 0;
@@ -71,6 +80,9 @@ class ImportSuratPeringatan implements
                 ->toArray();
         }
 
+        $issuedNumbers = \App\Models\WarningLetterRequest::whereIn('number_sequence', $pairs->pluck('no_sp')->all())
+            ->pluck('number_sequence')->map(function ($number) { return (string) $number; })->all();
+
         $employeeNames = Employee::query()
             ->whereIn('nik', $pairs->pluck('nik_karyawan')->unique()->values()->all())
             ->pluck('nama_karyawan', 'nik')
@@ -82,14 +94,14 @@ class ImportSuratPeringatan implements
 
             $key = $collect['nik'] . '-' . $collect['no_sp'];
 
-            if (in_array($key, $existing, true)) {
+            if (in_array($key, $existing, true) || in_array((string) (int) $collect['no_sp'], $issuedNumbers, true)) {
                 $skippedCount++;
 
                 if (count($failureSamples) < 10) {
                     $failureSamples[] = [
                         'status' => 'skip',
                         'nik' => (string) ($collect['nik'] ?? ''),
-                        'message' => "Pelanggaran {$key} sudah ada.",
+                        'message' => "Pelanggaran {$key} sudah ada atau nomor SP sudah diterbitkan melalui approval.",
                     ];
                 }
 
@@ -98,7 +110,7 @@ class ImportSuratPeringatan implements
                     'row' => (int) (isset($this->chunkOffset) ? $this->chunkOffset : 2) + (int) $index,
                     'nik' => (string) ($collect['nik'] ?? ''),
                     'employee_name' => $employeeNames->get((string) ($collect['nik'] ?? '')),
-                    'message' => "Pelanggaran {$key} sudah ada.",
+                    'message' => "Pelanggaran {$key} sudah ada atau nomor SP sudah diterbitkan melalui approval.",
                     'payload' => method_exists($collect, 'toArray') ? $collect->toArray() : (array) $collect,
                 ];
 
@@ -123,6 +135,12 @@ class ImportSuratPeringatan implements
                 ['nik_karyawan', 'no_sp'], // unique combination
                 ['level_sp', 'tgl_mulai', 'tgl_berakhir', 'keterangan', 'pelapor']
             );
+            // Advance the locked counter too: an approval transaction may have
+            // started its MySQL repeatable-read snapshot before this import.
+            $highestImportedNumber = (int) collect($datas)->max(function ($row) { return (int) $row['no_sp']; });
+            DB::table('warning_letter_sequences')->where('key', 'sp')
+                ->where('last_number', '<', $highestImportedNumber)
+                ->update(['last_number' => $highestImportedNumber]);
         }
 
         $this->recordImportChunk(

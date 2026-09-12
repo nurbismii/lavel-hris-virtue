@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\EmployeeContractHistoryImportTemplateExport;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
 use App\Http\Requests\ContractRenewal\AssessContractRenewalRequest;
@@ -154,6 +155,17 @@ class ContractRenewalController extends Controller
             'contractHistoryMap' => $contractHistoryMap,
             'statusOptions' => EmployeeContractRenewal::statusLabels(),
         ]);
+    }
+
+    public function downloadHistoryImportTemplate(Request $request)
+    {
+        abort_unless(
+            $request->user()->hasRole(['Super Admin', 'HR'])
+                && $request->user()->hasMenuAccess('contract_renewal'),
+            403
+        );
+
+        return Excel::download(new EmployeeContractHistoryImportTemplateExport(), 'template-history-pkwt-adendum.xlsx');
     }
 
     public function importHistory(

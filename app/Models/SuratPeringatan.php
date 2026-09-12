@@ -10,6 +10,11 @@ class SuratPeringatan extends Model
 
     protected $guarded = [];
 
+    public function issuance()
+    {
+        return $this->hasOne(WarningLetterRequest::class, 'sp_report_id');
+    }
+
     public function employee()
     {
         return $this->hasOne(Employee::class, 'nik', 'nik_karyawan')->select('nik', 'nama_karyawan');
