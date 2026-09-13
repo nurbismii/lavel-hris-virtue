@@ -8,7 +8,7 @@ use App\Models\WarningLetterVerificationLog;
 use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\QrCode;
-use Endroid\QrCode\Writer\PngWriter;
+use Endroid\QrCode\Writer\SvgWriter;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
@@ -87,6 +87,9 @@ class WarningLetterVerificationService
     {
         $url = $this->url($letter);
         abort_unless($url, 500, 'Kode verifikasi surat belum tersedia. Hubungi administrator.');
+        if (!class_exists(QrCode::class) || !class_exists(SvgWriter::class)) {
+            throw new \RuntimeException('QR_CODE_PACKAGE_NOT_INSTALLED');
+        }
 
         $qrCode = QrCode::create($url)
             ->setEncoding(new Encoding('UTF-8'))
@@ -94,7 +97,7 @@ class WarningLetterVerificationService
             ->setSize(320)
             ->setMargin(12);
 
-        return (new PngWriter())->write($qrCode)->getDataUri();
+        return (new SvgWriter())->write($qrCode)->getDataUri();
     }
 
     public function find(string $token): ?WarningLetterRequest

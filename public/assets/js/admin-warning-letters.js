@@ -5,7 +5,7 @@
         if (response.status === 403) return 'Anda tidak memiliki akses untuk tindakan ini.';
         if (response.status === 404) return 'NIK tidak ditemukan atau berada di luar cakupan akses Anda.';
         if (response.status === 422 && payload.errors) return Object.values(payload.errors).flat()[0];
-        return response.status >= 500 ? 'Server gagal memproses permintaan. Silakan coba kembali.' : (payload.message || 'Permintaan gagal diproses.');
+        return payload.message || (response.status >= 500 ? 'Server gagal memproses permintaan. Silakan coba kembali.' : 'Permintaan gagal diproses.');
     }
     const form = document.getElementById('warning-create-form');
     if (form) {

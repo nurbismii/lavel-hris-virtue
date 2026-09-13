@@ -124,7 +124,12 @@ class WarningLetterRequestController extends Controller
             throw $exception;
         } catch (Throwable $exception) {
             $reference = app(SafeExceptionLogger::class)->warning('warning_letters.download', $exception);
-            return back()->withErrors(['download' => 'Surat PDF gagal dibuat. Silakan coba lagi atau hubungi administrator. Kode bantuan: ' . $reference]);
+            $message = 'Surat PDF gagal dibuat. Hubungi administrator dengan kode bantuan: ' . $reference;
+            if ($request->expectsJson() || str_contains((string) $request->header('Accept'), 'application/json')) {
+                return response()->json(['success' => false, 'message' => $message], 500);
+            }
+
+            return back()->withErrors(['download' => $message]);
         }
     }
 
