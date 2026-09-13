@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
 class WarningLetterRequestController extends Controller
@@ -121,16 +122,14 @@ class WarningLetterRequestController extends Controller
                 ->download('surat-peringatan-' . $warningLetter->number_sequence . '.pdf')
                 ->header('Cache-Control', 'private, no-store')
                 ->header('X-Warning-Letter-Verification', 'qr');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
-            throw $exception;
-        } catch (Throwable $exception) {
-            $reference = app(SafeExceptionLogger::class)->warning('warning_letters.download', $exception);
-            $message = 'Surat PDF gagal dibuat. Hubungi administrator dengan kode bantuan: ' . $reference;
-            if ($request->expectsJson() || str_contains((string) $request->header('Accept'), 'application/json')) {
-                return response()->json(['success' => false, 'message' => $message], 500);
+        } catch (HttpException $exception) {
+            if ($exception->getStatusCode() < 500) {
+                throw $exception;
             }
 
-            return back()->withErrors(['download' => $message]);
+            return $this->downloadFailureResponse($request, $exception);
+        } catch (Throwable $exception) {
+            return $this->downloadFailureResponse($request, $exception);
         }
     }
 
@@ -169,5 +168,55 @@ class WarningLetterRequestController extends Controller
         toast()->success('SP dihapus', 'Surat dibatalkan, QR dinonaktifkan, dan riwayat audit tetap disimpan.');
 
         return redirect()->route('warning-letter-requests.show', $letter);
+    }
+
+    private function downloadFailureResponse(Request $request, Throwable $exception)
+    {
+        [$failureCode, $instruction] = $this->classifyDownloadFailure($exception);
+        $reference = app(SafeExceptionLogger::class)->warning(
+            'warning_letters.download.' . strtolower($failureCode),
+            $exception
+        );
+        $message = $instruction . ' Kode bantuan: ' . $failureCode . '-' . $reference;
+
+        if ($request->expectsJson() || str_contains((string) $request->header('Accept'), 'application/json')) {
+            return response()->json(['success' => false, 'message' => $message], 500);
+        }
+
+        return back()->withErrors(['download' => $message]);
+    }
+
+    private function classifyDownloadFailure(Throwable $exception): array
+    {
+        $messages = [];
+        $current = $exception;
+        do {
+            $messages[] = strtolower($current->getMessage());
+            $current = $current->getPrevious();
+        } while ($current);
+        $message = implode(' | ', $messages);
+
+        if (str_contains($message, 'qr_code_package_not_installed')
+            || (str_contains($message, 'class') && str_contains($message, 'endroid'))) {
+            return ['QR01', 'Komponen QR belum terpasang di server. Jalankan composer install dari composer.lock.'];
+        }
+        if (str_contains($message, 'unknown column') || str_contains($message, 'base table or view not found')) {
+            return ['DB01', 'Struktur database hosting belum diperbarui. Jalankan migration aplikasi.'];
+        }
+        if (str_contains($message, 'logo surat peringatan') || str_contains($message, 'watermark surat peringatan')) {
+            return ['AST01', 'Aset logo atau watermark surat belum tersedia di hosting. Unggah ulang folder public/assets/img.'];
+        }
+        if (str_contains($message, 'permission denied') || str_contains($message, 'not writable')
+            || str_contains($message, 'failed to open stream') || str_contains($message, 'unable to create')) {
+            return ['FS01', 'Folder storage dan bootstrap/cache harus dapat ditulis oleh PHP hosting.'];
+        }
+        if (str_contains($message, 'mac is invalid') || str_contains($message, 'could not decrypt')) {
+            return ['KEY01', 'Token surat tidak dapat dibaca. Pastikan APP_KEY hosting tidak berubah.'];
+        }
+        if (str_contains($message, 'allowed memory size') || str_contains($message, 'maximum execution time')) {
+            return ['RES01', 'Batas memori atau waktu proses PHP hosting tidak cukup untuk membuat PDF.'];
+        }
+
+        return ['PDF01', 'Server gagal membuat PDF surat. Hubungi administrator untuk pemeriksaan log.'];
     }
 }

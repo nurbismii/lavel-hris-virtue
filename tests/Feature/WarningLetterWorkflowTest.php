@@ -213,6 +213,26 @@ class WarningLetterWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_download_returns_a_traceable_hosting_asset_error(): void
+    {
+        $letter = $this->service->submit($this->payload(), $this->actor());
+        $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
+        $failingService = Mockery::mock(WarningLetterWorkflowService::class);
+        $failingService->shouldReceive('pdf')->once()->andThrow(
+            new \Symfony\Component\HttpKernel\Exception\HttpException(
+                500,
+                'Watermark surat peringatan tidak tersedia. Hubungi administrator.'
+            )
+        );
+        $this->app->instance(WarningLetterWorkflowService::class, $failingService);
+
+        $response = $this->actingAs($this->actor(true))
+            ->withHeader('Accept', 'application/pdf, application/json')
+            ->get(route('warning-letter-requests.download', $letter));
+        $response->assertStatus(500)->assertJsonPath('success', false);
+        $this->assertStringContainsString('AST01-', $response->json('message'));
+    }
+
     public function test_download_before_approval_and_out_of_scope_access_are_blocked(): void
     {
         $letter = $this->service->submit($this->payload(['nik' => '009999999']), $this->actor(true));
