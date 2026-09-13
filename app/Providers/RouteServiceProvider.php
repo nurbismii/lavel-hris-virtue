@@ -61,5 +61,9 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('gps-log', function (Request $request) {
             return Limit::perMinute(30)->by(optional($request->user())->id ?: $request->ip());
         });
+
+        RateLimiter::for('warning-letter-verification', function (Request $request) {
+            return Limit::perMinute(20)->by($request->ip());
+        });
     }
 }

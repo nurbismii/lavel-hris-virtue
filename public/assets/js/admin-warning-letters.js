@@ -159,7 +159,17 @@
             if (target.hasAttribute('data-warning-review') && target.dataset.confirmed !== 'true') {
                 event.preventDefault();
                 window.AppDialog.confirm({ icon: 'question', title: decision.value === 'approve' ? 'Terbitkan surat peringatan?' : 'Tolak pengajuan?',
-                    text: decision.value === 'approve' ? 'Nomor SP akan diberikan dan tanda tangan pihak pertama dicantumkan pada surat.' : 'Alasan penolakan akan dicatat dan ditampilkan kepada pengaju.',
+                    text: decision.value === 'approve' ? 'Nomor SP akan diberikan dan QR verifikasi publik dicantumkan pada surat.' : 'Alasan penolakan akan dicatat dan ditampilkan kepada pengaju.',
+                    confirmButtonText: 'Ya, proses', cancelButtonText: 'Batal' }).then(function (confirmed) {
+                        if (confirmed) { target.dataset.confirmed = 'true'; target.requestSubmit(); }
+                    });
+                return;
+            }
+            if (target.hasAttribute('data-warning-verification') && target.dataset.confirmed !== 'true') {
+                event.preventDefault();
+                const action = target.querySelector('[name="action"]').value;
+                window.AppDialog.confirm({ icon: 'warning', title: action === 'revoke' ? 'Cabut verifikasi publik?' : 'Aktifkan verifikasi publik?',
+                    text: action === 'revoke' ? 'Hasil scan QR akan menampilkan status verifikasi dicabut.' : 'QR akan kembali menampilkan status dokumen sesuai masa berlakunya.',
                     confirmButtonText: 'Ya, proses', cancelButtonText: 'Batal' }).then(function (confirmed) {
                         if (confirmed) { target.dataset.confirmed = 'true'; target.requestSubmit(); }
                     });
@@ -206,7 +216,10 @@
                 download.download = filename ? filename[1] : 'surat-peringatan.pdf';
                 document.body.appendChild(download); download.click(); download.remove();
                 window.setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-                window.AppDialog.alert('PDF siap', 'Surat telah dikirim ke unduhan browser.', 'success');
+                const successMessage = response.headers.get('X-Warning-Letter-Verification') === 'qr'
+                    ? 'Surat dengan QR verifikasi telah dikirim ke unduhan browser.'
+                    : 'Surat telah dikirim ke unduhan browser.';
+                window.AppDialog.alert('PDF siap', successMessage, 'success');
             } catch (error) {
                 window.AppDialog.alert('Unduhan gagal', error instanceof TypeError ? 'Koneksi bermasalah. Periksa jaringan dan coba kembali.' : error.message, 'error');
             } finally {

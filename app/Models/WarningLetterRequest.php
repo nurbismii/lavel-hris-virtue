@@ -12,10 +12,12 @@ class WarningLetterRequest extends Model
     public const VALIDITY_MONTHS = 6;
 
     protected $guarded = [];
-    protected $hidden = ['letter_snapshot', 'submission_token'];
+    protected $hidden = ['letter_snapshot', 'submission_token', 'verification_token', 'verification_token_hash'];
     protected $casts = [
         'employee_snapshot' => 'array',
         'letter_snapshot' => 'array',
+        'verification_token' => 'encrypted',
+        'verification_revoked_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'tgl_mulai' => 'date',
         'tgl_berakhir' => 'date',
@@ -34,5 +36,10 @@ class WarningLetterRequest extends Model
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'nik', 'nik');
+    }
+
+    public function verificationLogs()
+    {
+        return $this->hasMany(WarningLetterVerificationLog::class);
     }
 }

@@ -22,7 +22,23 @@
         <h5 class="fw-semibold">Jejak proses</h5><p class="small text-break">Diajukan oleh <strong>{{ $letter->created_by_name }}</strong><br>{{ $letter->created_at->format('d/m/Y H:i') }}</p>
         @if($letter->reviewed_at)<p class="small text-break">Diperiksa oleh <strong>{{ $letter->reviewed_by_name }}</strong><br>{{ $letter->reviewed_at->format('d/m/Y H:i') }}</p>@endif
         <h6 class="fw-semibold mt-3">Pihak penandatangan</h6><p class="small text-break">{{ $letter->letter_snapshot['signer_name'] ?? optional($signer)->signer_name ?? 'Belum tersedia' }}<br>{{ $letter->letter_snapshot['signer_position'] ?? optional($signer)->signer_position ?? '-' }}</p>
-        @if($letter->status === \App\Models\WarningLetterRequest::APPROVED)<a class="btn btn-primary w-100" href="{{ route('warning-letter-requests.download', $letter) }}" data-warning-download>Download Surat PDF</a><p class="small text-muted mt-2 mb-0">Surat menggunakan salinan data dan tanda tangan saat penerbitan.</p>@endif
+        @if($letter->status === \App\Models\WarningLetterRequest::APPROVED)
+            <a class="btn btn-primary w-100" href="{{ route('warning-letter-requests.download', $letter) }}" data-warning-download>Download Surat PDF</a>
+            <p class="small text-muted mt-2">Tanda tangan visual diganti QR yang mengarah ke halaman verifikasi publik.</p>
+            <hr>
+            <h6 class="fw-semibold">Verifikasi publik</h6>
+            <p class="small mb-2"><span class="badge bg-{{ $letter->verification_revoked_at ? 'danger' : 'success' }}">{{ $letter->verification_revoked_at ? 'Dicabut' : 'Aktif' }}</span><br><span class="text-muted">Telah diakses {{ $verificationAccessCount ?? 0 }} kali.</span></p>
+            @if($verificationUrl ?? null)
+                <a class="btn btn-outline-primary w-100 mb-2" href="{{ $verificationUrl }}" target="_blank" rel="noopener noreferrer">Buka Halaman Verifikasi</a>
+            @endif
+            @can('manageVerification', $letter)
+                <form method="POST" action="{{ route('warning-letter-requests.verification', $letter) }}" data-warning-submit data-warning-verification data-loading-text="Memproses...">
+                    @csrf
+                    <input type="hidden" name="action" value="{{ $letter->verification_revoked_at ? 'activate' : 'revoke' }}">
+                    <button type="submit" class="btn btn-outline-{{ $letter->verification_revoked_at ? 'success' : 'danger' }} w-100">{{ $letter->verification_revoked_at ? 'Aktifkan Verifikasi' : 'Cabut Verifikasi' }}</button>
+                </form>
+            @endcan
+        @endif
     </div></div>
     @if($letter->status === \App\Models\WarningLetterRequest::PENDING)
         @can('review', $letter)

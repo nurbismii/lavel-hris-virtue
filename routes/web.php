@@ -54,6 +54,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/verifikasi-surat-peringatan/{token}', [App\Http\Controllers\WarningLetterVerificationController::class, 'show'])
+    ->where('token', '[A-Fa-f0-9]{64}')
+    ->middleware('throttle:warning-letter-verification')
+    ->name('warning-letters.verify');
+
 Route::get('/mobile-logout', function () {
     return redirect('/login?app=V-PEOPLE');
 });
@@ -466,6 +471,7 @@ Route::middleware(['android.redirect'])->group(function () {
             Route::post('/', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'store'])->name('store');
             Route::get('/{warningLetter}', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'show'])->name('show');
             Route::post('/{warningLetter}/review', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'review'])->middleware('role:Super Admin,HR')->name('review');
+            Route::post('/{warningLetter}/verification', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'verification'])->middleware('role:Super Admin,HR')->name('verification');
             Route::get('/{warningLetter}/download', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'download'])->name('download');
         });
 

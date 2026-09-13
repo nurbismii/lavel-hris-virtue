@@ -20,6 +20,10 @@ use Throwable;
 
 class WarningLetterWorkflowService
 {
+    public function __construct(private WarningLetterVerificationService $verificationService)
+    {
+    }
+
     public function employee(User $user, string $nik): Employee
     {
         return $user->applyEmployeeScope(Employee::query())
@@ -127,21 +131,23 @@ class WarningLetterWorkflowService
                     'pelapor' => $letter->pelapor, 'tgl_mulai' => $letter->tgl_mulai->format('Y-m-d'),
                     'tgl_berakhir' => $letter->tgl_berakhir->format('Y-m-d'),
                 ]);
+                $snapshot = [
+                    'employee' => $letter->employee_snapshot,
+                    'number' => $letterNumber, 'issued_at' => $issuedAt->format('Y-m-d'),
+                    'level' => $letter->level_sp, 'description' => $letter->keterangan,
+                    'start' => $letter->tgl_mulai->format('Y-m-d'), 'end' => $letter->tgl_berakhir->format('Y-m-d'),
+                    'reporter' => $letter->pelapor, 'hod_name' => $letter->hod_name,
+                    'signer_name' => $signer->signer_name, 'signer_position' => $signer->signer_position,
+                    'signature_path' => $signaturePath, 'signature_mime' => $imageInfo['mime'],
+                    'place' => config('warning_letters.place'), 'company' => config('warning_letters.company'),
+                    'footer' => config('warning_letters.footer'),
+                    'template_version' => 3,
+                ];
                 $letter->update($review + [
                     'status' => WarningLetterRequest::APPROVED, 'sp_report_id' => $report->id,
                     'number_sequence' => $number, 'letter_number' => $letterNumber,
-                    'letter_snapshot' => [
-                        'employee' => $letter->employee_snapshot,
-                        'number' => $letterNumber, 'issued_at' => $issuedAt->format('Y-m-d'),
-                        'level' => $letter->level_sp, 'description' => $letter->keterangan,
-                        'start' => $letter->tgl_mulai->format('Y-m-d'), 'end' => $letter->tgl_berakhir->format('Y-m-d'),
-                        'reporter' => $letter->pelapor, 'hod_name' => $letter->hod_name,
-                        'signer_name' => $signer->signer_name, 'signer_position' => $signer->signer_position,
-                        'signature_path' => $signaturePath, 'signature_mime' => $imageInfo['mime'],
-                        'place' => config('warning_letters.place'), 'company' => config('warning_letters.company'),
-                        'template_version' => 1,
-                    ],
-                ]);
+                    'letter_snapshot' => $snapshot,
+                ] + $this->verificationService->credentials($snapshot));
 
                 return $letter;
             });
@@ -166,19 +172,38 @@ class WarningLetterWorkflowService
         return Str::limit($name !== '' ? $name : 'Akun ' . $actor->getKey(), 180, '');
     }
 
-    public function pdf(WarningLetterRequest $letter)
+    public function pdf(WarningLetterRequest $letter, User $viewer)
     {
+        Gate::forUser($viewer)->authorize('view', $letter);
         abort_unless($letter->status === WarningLetterRequest::APPROVED && $letter->letter_snapshot, 409, 'Surat belum disetujui untuk diterbitkan.');
         $snapshot = $letter->letter_snapshot;
-        $path = $snapshot['signature_path'];
-        abort_unless(Str::startsWith($path, 'private/warning-letters/signatures/') && !Str::contains($path, '..')
-            && Storage::disk('local')->exists($path), 409, 'Salinan tanda tangan tidak tersedia. Hubungi administrator.');
-        $signatureSrc = 'data:' . $snapshot['signature_mime'] . ';base64,' . base64_encode(Storage::disk('local')->get($path));
+        $qrCodeSrc = $this->verificationService->qrDataUri($letter);
+        $verificationUrl = $this->verificationService->url($letter);
+        $verificationCode = strtoupper(substr((string) $letter->verification_document_hash, 0, 16));
+
+        $logoMarkSrc = $this->embeddedPngAsset(
+            'assets/img/vdni-letter-logo-mark.png',
+            'Logo surat peringatan tidak tersedia. Hubungi administrator.'
+        );
+        $watermarkRightPath = $this->pngAssetPath(
+            'assets/img/vdni-letter-watermark-right.png',
+            'Watermark surat peringatan tidak tersedia. Hubungi administrator.'
+        );
+        $watermarkLeftPath = $this->pngAssetPath(
+            'assets/img/vdni-letter-watermark-left.png',
+            'Watermark surat peringatan tidak tersedia. Hubungi administrator.'
+        );
 
         $fontCache = storage_path('framework/cache/dompdf-warning-letters');
         File::ensureDirectoryExists($fontCache);
 
-        $pdf = Pdf::loadView('admin.surat-peringatan.letter-pdf', compact('snapshot', 'signatureSrc'))
+        $pdf = Pdf::loadView('admin.surat-peringatan.letter-pdf', compact(
+            'snapshot',
+            'qrCodeSrc',
+            'verificationUrl',
+            'verificationCode',
+            'logoMarkSrc'
+        ))
             ->setOptions([
                 'isRemoteEnabled' => false, 'isPhpEnabled' => false, 'isJavascriptEnabled' => false,
                 'isFontSubsettingEnabled' => true,
@@ -186,8 +211,34 @@ class WarningLetterWorkflowService
                 'fontCache' => str_replace('\\', '/', $fontCache),
                 'allowedProtocols' => ['file://' => ['rules' => []], 'data://' => ['rules' => []]],
             ], true)->setPaper('a4');
-        $pdf->getDomPDF()->getFontMetrics()->loadFontFamilies();
+        $domPdf = $pdf->getDomPDF();
+        $domPdf->setCallbacks([[
+            'event' => 'end_document',
+            'f' => static function ($pageNumber, $pageCount, $canvas) use ($watermarkRightPath, $watermarkLeftPath) {
+                // Positions and dimensions are converted from the OOXML anchors in the Word reference.
+                $canvas->image($watermarkRightPath, 506.25, 373, 86.25, 136.5);
+                $canvas->image($watermarkLeftPath, 2.85, 595, 96.95, 121.25);
+            },
+        ]]);
+        $fontMetrics = $domPdf->getFontMetrics();
+        $fontMetrics->loadFontFamilies();
 
         return $pdf;
     }
+
+    private function embeddedPngAsset(string $relativePath, string $errorMessage): string
+    {
+        $path = $this->pngAssetPath($relativePath, $errorMessage);
+
+        return 'data:image/png;base64,' . base64_encode(file_get_contents($path));
+    }
+
+    private function pngAssetPath(string $relativePath, string $errorMessage): string
+    {
+        $path = public_path($relativePath);
+        abort_unless(is_file($path), 500, $errorMessage);
+
+        return $path;
+    }
+
 }

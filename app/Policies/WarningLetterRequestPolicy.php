@@ -28,4 +28,11 @@ class WarningLetterRequestPolicy
     {
         return $this->view($user, $letter) && $user->hasRole(['Super Admin', 'HR']);
     }
+
+    public function manageVerification(User $user, WarningLetterRequest $letter): bool
+    {
+        return $this->view($user, $letter)
+            && $letter->status === WarningLetterRequest::APPROVED
+            && $user->hasRole(['Super Admin', 'HR']);
+    }
 }

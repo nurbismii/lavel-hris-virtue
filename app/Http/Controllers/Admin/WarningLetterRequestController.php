@@ -7,6 +7,7 @@ use App\Http\Requests\SuratPeringatan\StoreWarningLetterRequest;
 use App\Http\Requests\SuratPeringatan\ReviewWarningLetterRequest;
 use App\Models\WarningLetterRequest;
 use App\Services\SuratPeringatan\WarningLetterWorkflowService;
+use App\Services\SuratPeringatan\WarningLetterVerificationService;
 use App\Support\SafeExceptionLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -75,10 +76,21 @@ class WarningLetterRequestController extends Controller
         return redirect()->route('warning-letter-requests.show', $letter);
     }
 
-    public function show(WarningLetterRequest $warningLetter, WarningLetterWorkflowService $service)
+    public function show(
+        WarningLetterRequest $warningLetter,
+        WarningLetterWorkflowService $service,
+        WarningLetterVerificationService $verificationService
+    )
     {
         Gate::authorize('view', $warningLetter);
-        return view('admin.surat-peringatan.requests.show', ['letter' => $warningLetter, 'signer' => $service->masterSigner()]);
+        return view('admin.surat-peringatan.requests.show', [
+            'letter' => $warningLetter,
+            'signer' => $service->masterSigner(),
+            'verificationUrl' => $warningLetter->status === WarningLetterRequest::APPROVED
+                ? $verificationService->url($warningLetter) : null,
+            'verificationAccessCount' => $warningLetter->status === WarningLetterRequest::APPROVED
+                ? $warningLetter->verificationLogs()->count() : 0,
+        ]);
     }
 
     public function review(ReviewWarningLetterRequest $request, WarningLetterRequest $warningLetter, WarningLetterWorkflowService $service)
@@ -96,17 +108,35 @@ class WarningLetterRequestController extends Controller
         return redirect()->route('warning-letter-requests.show', $letter);
     }
 
-    public function download(WarningLetterRequest $warningLetter, WarningLetterWorkflowService $service)
+    public function download(Request $request, WarningLetterRequest $warningLetter, WarningLetterWorkflowService $service)
     {
         Gate::authorize('view', $warningLetter);
         try {
-            return $service->pdf($warningLetter)->download('surat-peringatan-' . $warningLetter->number_sequence . '.pdf')
-                ->header('Cache-Control', 'private, no-store');
+            return $service->pdf($warningLetter, $request->user())
+                ->download('surat-peringatan-' . $warningLetter->number_sequence . '.pdf')
+                ->header('Cache-Control', 'private, no-store')
+                ->header('X-Warning-Letter-Verification', 'qr');
         } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
             $reference = app(SafeExceptionLogger::class)->warning('warning_letters.download', $exception);
             return back()->withErrors(['download' => 'Surat PDF gagal dibuat. Silakan coba lagi atau hubungi administrator. Kode bantuan: ' . $reference]);
         }
+    }
+
+    public function verification(
+        Request $request,
+        WarningLetterRequest $warningLetter,
+        WarningLetterVerificationService $service
+    ) {
+        Gate::authorize('manageVerification', $warningLetter);
+        $data = $request->validate(['action' => 'required|in:revoke,activate']);
+        $revoked = $data['action'] === 'revoke';
+        $service->setRevoked($warningLetter, $revoked, $request->user());
+        toast()->success('Berhasil', $revoked
+            ? 'Verifikasi publik surat telah dicabut.'
+            : 'Verifikasi publik surat telah diaktifkan kembali.');
+
+        return redirect()->route('warning-letter-requests.show', $warningLetter);
     }
 }

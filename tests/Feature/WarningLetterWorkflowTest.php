@@ -51,6 +51,7 @@ class WarningLetterWorkflowTest extends TestCase
             $table->string('signer_position'); $table->string('signature_path'); $table->timestamps();
         });
         (require database_path('migrations/2026_09_11_120000_create_warning_letter_requests.php'))->up();
+        (require database_path('migrations/2026_09_13_000001_add_public_verification_to_warning_letters.php'))->up();
         DB::table('departemens')->insert([
             ['id' => 1, 'departemen' => 'TRANSPORTASI 储运部'],
             ['id' => 2, 'departemen' => 'PRODUKSI'],
@@ -131,6 +132,9 @@ class WarningLetterWorkflowTest extends TestCase
         $this->assertSame('9604', SuratPeringatan::findOrFail($approved->sp_report_id)->no_sp);
         $this->assertSame('hr-test', $approved->reviewed_by);
         $this->assertSame(WarningLetterRequest::APPROVED, $approved->status);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $approved->verification_token);
+        $this->assertSame(hash('sha256', $approved->verification_token), $approved->verification_token_hash);
+        $this->assertNotSame($approved->verification_token, DB::table('warning_letter_requests')->where('id', $approved->id)->value('verification_token'));
         $path = $approved->letter_snapshot['signature_path'];
         $signature = Storage::get($path);
         Storage::put('master-signature.png', 'changed');
@@ -172,6 +176,19 @@ class WarningLetterWorkflowTest extends TestCase
         $this->assertSame(0, SuratPeringatan::count());
     }
 
+    public function test_missing_issued_signature_still_downloads_qr_verification_version(): void
+    {
+        $letter = $this->service->submit($this->payload(), $this->actor());
+        $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
+        Storage::disk('local')->delete($letter->letter_snapshot['signature_path']);
+
+        $this->actingAs($this->actor(true))
+            ->get(route('warning-letter-requests.download', $letter))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertHeader('X-Warning-Letter-Verification', 'qr');
+    }
+
     public function test_download_before_approval_and_out_of_scope_access_are_blocked(): void
     {
         $letter = $this->service->submit($this->payload(['nik' => '009999999']), $this->actor(true));
@@ -196,17 +213,30 @@ class WarningLetterWorkflowTest extends TestCase
     {
         $letter = $this->service->submit($this->payload(), $this->actor());
         $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
-        $pdf = $this->service->pdf($letter);
+        $pdf = $this->service->pdf($letter, $this->actor(true));
         $bytes = $pdf->output();
         $this->assertStringStartsWith('%PDF-', $bytes);
         $this->assertSame(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
-        $this->assertStringContainsString('/Subtype /Image', $bytes, 'Signature must be embedded in the issued PDF.');
+        $this->assertStringContainsString('/Subtype /Image', $bytes, 'Logo and signature must be embedded in the issued PDF.');
         $font = $pdf->getDomPDF()->getFontMetrics()->getFont('SpNotoSansSC', 'normal');
         $this->assertNotNull($font);
         $this->assertTrue($pdf->getDomPDF()->getCanvas()->font_supports_char($font, '警'));
+        $adminPdf = $this->service->pdf($letter, $this->actor())->output();
+        $this->assertStringStartsWith('%PDF-', $adminPdf);
+        $this->assertGreaterThanOrEqual(
+            3,
+            substr_count($adminPdf, '/Subtype /Image'),
+            'Admin PDF must embed the logo and both watermark images.'
+        );
+        $this->assertSame(
+            substr_count($adminPdf, '/Subtype /Image'),
+            substr_count($bytes, '/Subtype /Image'),
+            'Admin and HR PDFs must use the same QR verification image without exposing a signature.'
+        );
         $directory = storage_path('framework/testing');
         if (!is_dir($directory)) { mkdir($directory, 0755, true); }
         file_put_contents($directory . '/warning-letter-qa.pdf', $bytes);
+        file_put_contents($directory . '/warning-letter-admin-unsigned-qa.pdf', $adminPdf);
     }
 
     public function test_failed_report_write_rolls_back_number_and_signature(): void
@@ -234,7 +264,7 @@ class WarningLetterWorkflowTest extends TestCase
     {
         $letter = $this->service->submit($this->payload(['keterangan' => str_repeat("Keterangan panjang untuk pengujian tata letak surat. 工作记录。\n", 45)]), $this->actor());
         $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
-        $pdf = $this->service->pdf($letter);
+        $pdf = $this->service->pdf($letter, $this->actor(true));
         $bytes = $pdf->output();
         $this->assertGreaterThan(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
         $this->assertStringContainsString('/Subtype /Image', $bytes);
@@ -253,6 +283,61 @@ class WarningLetterWorkflowTest extends TestCase
         $this->travelTo(now()->setDate(2027, 1, 2));
         $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
         $this->assertSame('9701/SP-HRD/I/2027', $letter->letter_number);
+    }
+
+    public function test_public_qr_verification_masks_sensitive_data_and_records_access(): void
+    {
+        $letter = $this->service->submit($this->payload(), $this->actor());
+        $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
+
+        $response = $this->get(route('warning-letters.verify', ['token' => $letter->verification_token]));
+        $response->assertOk()
+            ->assertHeader('Cache-Control', 'must-revalidate, no-cache, no-store, private')
+            ->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive')
+            ->assertSee('Dokumen valid')
+            ->assertSee('00****567')
+            ->assertSee('K******* U**')
+            ->assertDontSee($letter->keterangan)
+            ->assertDontSee($letter->letter_snapshot['signature_path']);
+        $this->assertDatabaseCount('warning_letter_verification_logs', 1);
+    }
+
+    public function test_invalid_qr_is_not_found_and_hr_can_revoke_or_activate_verification(): void
+    {
+        $letter = $this->service->submit($this->payload(), $this->actor());
+        $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
+
+        $this->get(route('warning-letters.verify', ['token' => str_repeat('a', 64)]))
+            ->assertNotFound()->assertSee('Dokumen tidak ditemukan');
+        $this->actingAs($this->actor())
+            ->post(route('warning-letter-requests.verification', $letter), ['action' => 'revoke'])
+            ->assertForbidden();
+        $this->actingAs($this->actor(true))
+            ->post(route('warning-letter-requests.verification', $letter), ['action' => 'revoke'])
+            ->assertRedirect();
+        $this->assertNotNull($letter->fresh()->verification_revoked_at);
+        $this->get(route('warning-letters.verify', ['token' => $letter->verification_token]))
+            ->assertOk()->assertSee('Verifikasi dicabut');
+
+        $this->actingAs($this->actor(true))
+            ->post(route('warning-letter-requests.verification', $letter), ['action' => 'activate'])
+            ->assertRedirect();
+        $this->assertNull($letter->fresh()->verification_revoked_at);
+        $this->assertSame(['revoked', 'scan', 'activated'], DB::table('warning_letter_verification_logs')->orderBy('id')->pluck('event')->all());
+    }
+
+    public function test_public_verification_detects_snapshot_integrity_mismatch(): void
+    {
+        $letter = $this->service->submit($this->payload(), $this->actor());
+        $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
+        $snapshot = $letter->letter_snapshot;
+        $snapshot['employee']['name'] = 'NAMA DIUBAH';
+        DB::table('warning_letter_requests')->where('id', $letter->id)->update([
+            'letter_snapshot' => json_encode($snapshot),
+        ]);
+
+        $this->get(route('warning-letters.verify', ['token' => $letter->verification_token]))
+            ->assertOk()->assertSee('Integritas dokumen tidak valid');
     }
 
     public function test_request_views_render_with_pending_and_approved_states(): void
