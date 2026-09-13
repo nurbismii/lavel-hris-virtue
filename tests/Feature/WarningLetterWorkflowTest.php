@@ -189,6 +189,29 @@ class WarningLetterWorkflowTest extends TestCase
             ->assertHeader('X-Warning-Letter-Verification', 'qr');
     }
 
+    public function test_download_rotates_an_unreadable_verification_token(): void
+    {
+        $hr = $this->actor(true);
+        $letter = $this->service->submit($this->payload(), $this->actor());
+        $letter = $this->service->review($letter, ['decision' => 'approve'], $hr);
+
+        DB::table('warning_letter_requests')->where('id', $letter->id)->update([
+            'verification_token' => 'ciphertext-yang-tidak-valid',
+        ]);
+
+        $response = $this->actingAs($hr)->get(route('warning-letter-requests.download', $letter));
+
+        $response->assertOk()->assertHeader('content-type', 'application/pdf');
+        $letter->refresh();
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $letter->verification_token);
+        $this->assertSame(hash('sha256', $letter->verification_token), $letter->verification_token_hash);
+        $this->assertDatabaseHas('warning_letter_verification_logs', [
+            'warning_letter_request_id' => $letter->id,
+            'event' => 'rotated',
+            'actor_id' => (string) $hr->id,
+        ]);
+    }
+
     public function test_download_before_approval_and_out_of_scope_access_are_blocked(): void
     {
         $letter = $this->service->submit($this->payload(['nik' => '009999999']), $this->actor(true));

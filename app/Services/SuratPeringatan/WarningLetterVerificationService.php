@@ -9,7 +9,9 @@ use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 
 class WarningLetterVerificationService
@@ -41,6 +43,44 @@ class WarningLetterVerificationService
         }
 
         return route('warning-letters.verify', ['token' => $letter->verification_token]);
+    }
+
+    public function ensureCredentials(WarningLetterRequest $letter, User $actor): WarningLetterRequest
+    {
+        return DB::transaction(function () use ($letter, $actor) {
+            $locked = WarningLetterRequest::query()->lockForUpdate()->findOrFail($letter->id);
+            abort_unless($locked->status === WarningLetterRequest::APPROVED, 409, 'Verifikasi hanya tersedia untuk surat yang sudah diterbitkan.');
+
+            try {
+                $token = (string) $locked->verification_token;
+            } catch (DecryptException $exception) {
+                $token = '';
+            }
+
+            $tokenIsValid = preg_match('/^[a-f0-9]{64}$/', $token) === 1
+                && filled($locked->verification_token_hash)
+                && hash_equals((string) $locked->verification_token_hash, hash('sha256', $token));
+
+            if ($tokenIsValid && filled($locked->verification_document_hash)) {
+                return $locked;
+            }
+
+            $credentials = $this->credentials((array) $locked->letter_snapshot);
+            DB::table($locked->getTable())->where('id', $locked->id)->update([
+                'verification_token' => Crypt::encryptString($credentials['verification_token']),
+                'verification_token_hash' => $credentials['verification_token_hash'],
+                'verification_document_hash' => $credentials['verification_document_hash'],
+                'updated_at' => now(),
+            ]);
+            WarningLetterVerificationLog::create([
+                'warning_letter_request_id' => $locked->id,
+                'event' => 'rotated',
+                'actor_id' => (string) $actor->id,
+                'accessed_at' => now(),
+            ]);
+
+            return $locked->refresh();
+        });
     }
 
     public function qrDataUri(WarningLetterRequest $letter): string

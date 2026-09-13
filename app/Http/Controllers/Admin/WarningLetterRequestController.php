@@ -83,6 +83,10 @@ class WarningLetterRequestController extends Controller
     )
     {
         Gate::authorize('view', $warningLetter);
+        if ($warningLetter->status === WarningLetterRequest::APPROVED) {
+            $warningLetter = $verificationService->ensureCredentials($warningLetter, request()->user());
+        }
+
         return view('admin.surat-peringatan.requests.show', [
             'letter' => $warningLetter,
             'signer' => $service->masterSigner(),

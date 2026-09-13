@@ -176,6 +176,7 @@ class WarningLetterWorkflowService
     {
         Gate::forUser($viewer)->authorize('view', $letter);
         abort_unless($letter->status === WarningLetterRequest::APPROVED && $letter->letter_snapshot, 409, 'Surat belum disetujui untuk diterbitkan.');
+        $letter = $this->verificationService->ensureCredentials($letter, $viewer);
         $snapshot = $letter->letter_snapshot;
         $qrCodeSrc = $this->verificationService->qrDataUri($letter);
         $verificationUrl = $this->verificationService->url($letter);
