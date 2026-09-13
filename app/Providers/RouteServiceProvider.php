@@ -45,6 +45,17 @@ class RouteServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting()
     {
+        RateLimiter::for('passkeys', function (Request $request) {
+            $identity = $request->user()
+                ? 'user:' . $request->user()->getAuthIdentifier()
+                : 'session:' . hash('sha256', $request->session()->getId());
+
+            return [
+                Limit::perMinute((int) config('passkeys.requests_per_session', 20))->by($identity),
+                Limit::perMinute((int) config('passkeys.requests_per_ip', 600))->by('ip:' . $request->ip()),
+            ];
+        });
+
         RateLimiter::for('api', function (Request $request) {
             return Limit::perMinute(60);
         });

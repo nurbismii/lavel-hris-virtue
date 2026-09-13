@@ -132,6 +132,23 @@ Route::middleware(['android.redirect'])->group(function () {
         'reset' => false,
     ]);
 
+    Route::prefix('passkeys')->name('passkeys.')
+        ->middleware([App\Http\Middleware\EnsurePasskeysAvailable::class, 'throttle:passkeys'])
+        ->group(function () {
+            Route::middleware('guest')->group(function () {
+                Route::post('/login/options', [App\Http\Controllers\Auth\PasskeyController::class, 'loginOptions'])->name('login.options');
+                Route::post('/login', [App\Http\Controllers\Auth\PasskeyController::class, 'login'])->name('login.store');
+            });
+            Route::middleware(['auth', 'verified'])->group(function () {
+                Route::get('/', [App\Http\Controllers\Auth\PasskeyController::class, 'index'])->name('index');
+                Route::post('/register/options', [App\Http\Controllers\Auth\PasskeyController::class, 'registrationOptions'])
+                    ->middleware('throttle:6,1')->name('register.options');
+                Route::post('/register', [App\Http\Controllers\Auth\PasskeyController::class, 'store'])->name('register.store');
+                Route::delete('/{passkey}', [App\Http\Controllers\Auth\PasskeyController::class, 'destroy'])
+                    ->whereNumber('passkey')->middleware('throttle:6,1')->name('destroy');
+            });
+        });
+
     Route::group(['prefix' => '/', 'middleware' => ['auth', 'verify.email']], function () {
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('menu:dashboard_karyawan')->name('dashboard.karyawan');

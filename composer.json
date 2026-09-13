@@ -15,6 +15,7 @@
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "laravel/ui": "^4.0",
+        "lbuchs/webauthn": "^2.2",
         "maatwebsite/excel": "^4.0",
         "pusher/pusher-php-server": "^7.3",
         "realrashid/sweet-alert": "^7.3.2",

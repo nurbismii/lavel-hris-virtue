@@ -1,0 +1,27 @@
+.passkey-card { background: #fff; border: 1px solid #e3e9f2; border-radius: 16px; box-shadow: 0 4px 18px rgba(31, 52, 81, .04); overflow: hidden; }
+.passkey-card__header { display: flex; gap: 14px; align-items: flex-start; padding: 22px 24px; background: #f6f9fe; border-bottom: 1px solid #e3e9f2; }
+.passkey-card__header h5 { margin: 0 0 5px; font-weight: 700; color: #203553; }
+.passkey-card__header p { margin: 0; font-size: 13px; color: #53647c; }
+.passkey-icon { display: grid; place-items: center; flex: 0 0 40px; height: 40px; background: #e5edff; color: #315dd1; border-radius: 12px; font-size: 21px; }
+.passkey-card__body { padding: 24px; }
+.passkey-note, .passkey-status { font-size: 13px; line-height: 1.65; color: #53647c; overflow-wrap: anywhere; }
+.passkey-status[data-error="true"] { color: #a52c38; }
+.passkey-list { display: grid; gap: 10px; margin-bottom: 16px; }
+.passkey-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid #e3e9f2; border-radius: 12px; }
+.passkey-item__details { min-width: 0; }
+.passkey-item strong { display: block; color: #203553; overflow-wrap: anywhere; }
+.passkey-item small { display: block; color: #53647c; margin-top: 4px; }
+.passkey-card button { border-radius: 8px; min-height: 44px; font-size: 13px; }
+.passkey-item button { flex-shrink: 0; }
+.passkey-empty { padding: 18px; border: 1px dashed #cbd6e5; border-radius: 12px; color: #53647c; font-size: 13px; text-align: center; }
+.passkey-form { border-top: 1px solid #e3e9f2; padding-top: 20px; }
+.passkey-form .form-control { border-radius: 10px; min-height: 44px; border-color: #cbd6e5; }
+.passkey-button { min-height: 46px; border-radius: 10px; font-weight: 600; }
+.passkey-button:focus-visible, .passkey-card button:focus-visible { outline: 3px solid #9ab7ff; outline-offset: 3px; }
+.passkey-divider { display: flex; align-items: center; gap: 12px; color: #67778d; font-size: 12px; margin: 20px 0 14px; }
+.passkey-divider::before, .passkey-divider::after { content: ''; height: 1px; background: #e1e7ef; flex: 1; }
+@media (max-width: 575.98px) {
+    .passkey-card__header, .passkey-card__body { padding: 18px; }
+    .passkey-item { align-items: flex-start; flex-direction: column; gap: 10px; }
+    .passkey-item button, .passkey-form .passkey-button { width: 100%; }
+}

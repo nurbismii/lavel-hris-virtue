@@ -62,6 +62,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'authorized_departemen_ids' => 'array',
     ];
 
+    public function passkeys()
+    {
+        return $this->hasMany(UserPasskey::class);
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'nik_karyawan', 'nik')->select([
