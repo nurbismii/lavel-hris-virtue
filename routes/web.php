@@ -472,6 +472,7 @@ Route::middleware(['android.redirect'])->group(function () {
             Route::get('/{warningLetter}', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'show'])->name('show');
             Route::post('/{warningLetter}/review', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'review'])->middleware('role:Super Admin,HR')->name('review');
             Route::post('/{warningLetter}/verification', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'verification'])->middleware('role:Super Admin,HR')->name('verification');
+            Route::delete('/{warningLetter}', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'destroy'])->middleware('role:Super Admin,HR')->name('destroy');
             Route::get('/{warningLetter}/download', [App\Http\Controllers\Admin\WarningLetterRequestController::class, 'download'])->name('download');
         });
 

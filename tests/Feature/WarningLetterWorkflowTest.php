@@ -52,6 +52,7 @@ class WarningLetterWorkflowTest extends TestCase
         });
         (require database_path('migrations/2026_09_11_120000_create_warning_letter_requests.php'))->up();
         (require database_path('migrations/2026_09_13_000001_add_public_verification_to_warning_letters.php'))->up();
+        (require database_path('migrations/2026_09_13_000002_add_cancellation_to_warning_letters.php'))->up();
         DB::table('departemens')->insert([
             ['id' => 1, 'departemen' => 'TRANSPORTASI 储运部'],
             ['id' => 2, 'departemen' => 'PRODUKSI'],
@@ -349,6 +350,50 @@ class WarningLetterWorkflowTest extends TestCase
         $this->assertSame(['revoked', 'scan', 'activated'], DB::table('warning_letter_verification_logs')->orderBy('id')->pluck('event')->all());
     }
 
+    public function test_only_hr_can_cancel_an_issued_letter_with_an_audited_reason(): void
+    {
+        $letter = $this->service->submit($this->payload(), $this->actor());
+        $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
+        $token = $letter->verification_token;
+
+        $this->actingAs($this->actor())
+            ->delete(route('warning-letter-requests.destroy', $letter), ['reason' => 'Data penerbitan perlu dibatalkan.'])
+            ->assertForbidden();
+
+        $this->actingAs($this->actor(true))
+            ->delete(route('warning-letter-requests.destroy', $letter), ['reason' => 'Data penerbitan perlu dibatalkan.'])
+            ->assertRedirect(route('warning-letter-requests.show', $letter));
+
+        $cancelled = $letter->fresh();
+        $this->assertSame(WarningLetterRequest::CANCELLED, $cancelled->status);
+        $this->assertSame('Data penerbitan perlu dibatalkan.', $cancelled->cancellation_reason);
+        $this->assertNotNull($cancelled->cancelled_at);
+        $this->assertNotNull($cancelled->verification_revoked_at);
+        $this->assertNull(SuratPeringatan::find($letter->sp_report_id));
+        $this->assertNotNull(SuratPeringatan::withTrashed()->find($letter->sp_report_id));
+        $this->get(route('warning-letters.verify', ['token' => $token]))->assertNotFound();
+        $this->actingAs($this->actor(true))
+            ->getJson(route('warning-letter-requests.download', $letter))
+            ->assertStatus(409);
+        $this->assertDatabaseHas('warning_letter_verification_logs', [
+            'warning_letter_request_id' => $letter->id,
+            'event' => 'cancelled',
+            'actor_id' => 'hr-test',
+        ]);
+    }
+
+    public function test_cancellation_requires_a_meaningful_reason(): void
+    {
+        $letter = $this->service->submit($this->payload(), $this->actor());
+        $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
+
+        $this->actingAs($this->actor(true))
+            ->delete(route('warning-letter-requests.destroy', $letter), ['reason' => 'singkat'])
+            ->assertSessionHasErrors('reason');
+        $this->assertSame(WarningLetterRequest::APPROVED, $letter->fresh()->status);
+        $this->assertNotNull(SuratPeringatan::find($letter->sp_report_id));
+    }
+
     public function test_public_verification_detects_snapshot_integrity_mismatch(): void
     {
         $letter = $this->service->submit($this->payload(), $this->actor());
@@ -385,6 +430,7 @@ class WarningLetterWorkflowTest extends TestCase
         $letter = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
         $approved = view('admin.surat-peringatan.requests.show', compact('letter', 'signer'))->render();
         $this->assertStringContainsString('data-warning-download', $approved);
+        $this->assertStringContainsString('data-warning-cancel', $approved);
         $this->assertStringNotContainsString('Simpan keputusan', $approved);
         file_put_contents($directory . '/approved.html', $approved);
         $letters = WarningLetterRequest::paginate(20);

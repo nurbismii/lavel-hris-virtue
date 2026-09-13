@@ -35,4 +35,11 @@ class WarningLetterRequestPolicy
             && $letter->status === WarningLetterRequest::APPROVED
             && $user->hasRole(['Super Admin', 'HR']);
     }
+
+    public function delete(User $user, WarningLetterRequest $letter): bool
+    {
+        return $this->view($user, $letter)
+            && $letter->status === WarningLetterRequest::APPROVED
+            && $user->hasRole(['Super Admin', 'HR']);
+    }
 }

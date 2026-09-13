@@ -9,6 +9,7 @@ class WarningLetterRequest extends Model
     public const PENDING = 'pending';
     public const APPROVED = 'approved';
     public const REJECTED = 'rejected';
+    public const CANCELLED = 'cancelled';
     public const VALIDITY_MONTHS = 6;
 
     protected $guarded = [];
@@ -18,6 +19,7 @@ class WarningLetterRequest extends Model
         'letter_snapshot' => 'array',
         'verification_token' => 'encrypted',
         'verification_revoked_at' => 'datetime',
+        'cancelled_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'tgl_mulai' => 'date',
         'tgl_berakhir' => 'date',
@@ -30,7 +32,8 @@ class WarningLetterRequest extends Model
 
     public static function statuses(): array
     {
-        return [self::PENDING => 'Menunggu approval', self::APPROVED => 'Disetujui / Terbit', self::REJECTED => 'Ditolak'];
+        return [self::PENDING => 'Menunggu approval', self::APPROVED => 'Disetujui / Terbit',
+            self::REJECTED => 'Ditolak', self::CANCELLED => 'Dihapus / Dibatalkan'];
     }
 
     public function employee()

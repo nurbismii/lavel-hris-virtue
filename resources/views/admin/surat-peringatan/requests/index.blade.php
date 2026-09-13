@@ -19,7 +19,7 @@
         <div class="row g-3">
         @forelse($letters as $letter)
             <div class="col-md-6 col-xl-4"><article class="border rounded p-3 h-100 d-flex flex-column gap-2">
-                <div class="d-flex flex-wrap gap-2 justify-content-between"><span class="badge bg-{{ ['pending' => 'warning text-dark', 'approved' => 'success', 'rejected' => 'danger'][$letter->status] }}">{{ \App\Models\WarningLetterRequest::statuses()[$letter->status] }}</span><small class="text-muted">#{{ $letter->id }}</small></div>
+                <div class="d-flex flex-wrap gap-2 justify-content-between"><span class="badge bg-{{ ['pending' => 'warning text-dark', 'approved' => 'success', 'rejected' => 'danger', 'cancelled' => 'secondary'][$letter->status] }}">{{ \App\Models\WarningLetterRequest::statuses()[$letter->status] }}</span><small class="text-muted">#{{ $letter->id }}</small></div>
                 <h5 class="mb-0 text-break">{{ $letter->employee_snapshot['name'] }}</h5><div class="text-muted small">{{ $letter->nik }} · {{ $letter->level_sp }}</div>
                 <div class="small text-break">{{ $letter->letter_number ?: 'Nomor diberikan setelah approval' }}</div>
                 <div class="small text-muted text-break">Diajukan {{ $letter->created_at->format('d/m/Y H:i') }} oleh {{ $letter->created_by_name }}</div>

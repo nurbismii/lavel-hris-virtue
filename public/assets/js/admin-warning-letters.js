@@ -175,6 +175,15 @@
                     });
                 return;
             }
+            if (target.hasAttribute('data-warning-cancel') && target.dataset.confirmed !== 'true') {
+                event.preventDefault();
+                window.AppDialog.confirm({ icon: 'warning', title: 'Hapus SP yang sudah diterbitkan?',
+                    text: 'SP akan dibatalkan, hilang dari daftar pelanggaran aktif, dan QR tidak dapat digunakan lagi. Tindakan ini tercatat dalam audit.',
+                    confirmButtonText: 'Ya, hapus SP', cancelButtonText: 'Batal' }).then(function (confirmed) {
+                        if (confirmed) { target.dataset.confirmed = 'true'; target.requestSubmit(); }
+                    });
+                return;
+            }
             target.dataset.submitting = 'true';
             target.querySelectorAll('button[type="submit"]').forEach(function (button) {
                 button.dataset.originalText = button.textContent;

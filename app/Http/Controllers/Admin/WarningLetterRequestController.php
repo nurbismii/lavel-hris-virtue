@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SuratPeringatan\StoreWarningLetterRequest;
 use App\Http\Requests\SuratPeringatan\ReviewWarningLetterRequest;
+use App\Http\Requests\SuratPeringatan\CancelWarningLetterRequest;
 use App\Models\WarningLetterRequest;
 use App\Services\SuratPeringatan\WarningLetterWorkflowService;
 use App\Services\SuratPeringatan\WarningLetterVerificationService;
@@ -20,7 +21,7 @@ class WarningLetterRequestController extends Controller
     public function index(Request $request)
     {
         Gate::authorize('viewAny', WarningLetterRequest::class);
-        $filters = $request->validate(['status' => 'nullable|in:pending,approved,rejected', 'nik' => 'nullable|string|max:32']);
+        $filters = $request->validate(['status' => 'nullable|in:pending,approved,rejected,cancelled', 'nik' => 'nullable|string|max:32']);
         $query = WarningLetterRequest::query()->select('id', 'nik', 'status', 'level_sp', 'employee_snapshot', 'created_by_name', 'letter_number', 'created_at');
         if (!$request->user()->canAccessAllEmployees()) {
             $query->whereHas('employee', function ($employees) use ($request) { $request->user()->applyEmployeeScope($employees); });
@@ -147,5 +148,26 @@ class WarningLetterRequestController extends Controller
             : 'Verifikasi publik surat telah diaktifkan kembali.');
 
         return redirect()->route('warning-letter-requests.show', $warningLetter);
+    }
+
+    public function destroy(
+        CancelWarningLetterRequest $request,
+        WarningLetterRequest $warningLetter,
+        WarningLetterWorkflowService $service
+    ) {
+        try {
+            $letter = $service->cancel($warningLetter, $request->validated('reason'), $request->user());
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            $reference = app(SafeExceptionLogger::class)->warning('warning_letters.cancel', $exception);
+            return back()->withErrors([
+                'cancellation' => 'SP gagal dihapus. Status belum berubah. Kode bantuan: ' . $reference,
+            ]);
+        }
+
+        toast()->success('SP dihapus', 'Surat dibatalkan, QR dinonaktifkan, dan riwayat audit tetap disimpan.');
+
+        return redirect()->route('warning-letter-requests.show', $letter);
     }
 }

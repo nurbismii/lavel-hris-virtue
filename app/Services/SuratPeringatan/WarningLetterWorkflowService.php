@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\SuratPeringatan;
 use App\Models\User;
 use App\Models\WarningLetterRequest;
+use App\Models\WarningLetterVerificationLog;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -157,6 +158,41 @@ class WarningLetterWorkflowService
             }
             throw $exception;
         }
+    }
+
+    public function cancel(WarningLetterRequest $letter, string $reason, User $actor): WarningLetterRequest
+    {
+        Gate::forUser($actor)->authorize('delete', $letter);
+
+        return DB::transaction(function () use ($letter, $reason, $actor) {
+            $locked = WarningLetterRequest::query()->lockForUpdate()->findOrFail($letter->id);
+            if ($locked->status !== WarningLetterRequest::APPROVED) {
+                throw ValidationException::withMessages([
+                    'cancellation' => 'SP sudah dibatalkan atau tidak lagi berstatus terbit.',
+                ]);
+            }
+
+            $report = SuratPeringatan::query()->lockForUpdate()->findOrFail($locked->sp_report_id);
+            $cancelledAt = now();
+            $locked->update([
+                'status' => WarningLetterRequest::CANCELLED,
+                'cancelled_by' => (string) $actor->id,
+                'cancelled_by_name' => $this->actorName($actor),
+                'cancelled_at' => $cancelledAt,
+                'cancellation_reason' => trim($reason),
+                'verification_revoked_at' => $cancelledAt,
+                'verification_revoked_by' => (string) $actor->id,
+            ]);
+            $report->delete();
+            WarningLetterVerificationLog::create([
+                'warning_letter_request_id' => $locked->id,
+                'event' => 'cancelled',
+                'actor_id' => (string) $actor->id,
+                'accessed_at' => $cancelledAt,
+            ]);
+
+            return $locked->refresh();
+        });
     }
 
     private function actorName(User $actor): string
