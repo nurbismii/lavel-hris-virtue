@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Auth;
 
 class PasskeyController extends Controller
 {
-    public function __construct(private PasskeyService $passkeys)
-    {
-    }
+    public function __construct(private PasskeyService $passkeys) {}
 
     public function index(Request $request)
     {
@@ -24,8 +22,10 @@ class PasskeyController extends Controller
 
     public function registrationOptions(PasskeyRequest $request)
     {
-        return $this->success('Konfirmasi pembuatan passkey pada perangkat Anda.',
-            $this->passkeys->registrationOptions($request->user(), $request->session()->getId(), $request->validated('name')));
+        return $this->success(
+            'Konfirmasi pembuatan passkey pada perangkat Anda.',
+            $this->passkeys->registrationOptions($request->user(), $request->session()->getId(), $request->validated('name'))
+        );
     }
 
     public function store(PasskeyRequest $request)
@@ -36,9 +36,14 @@ class PasskeyController extends Controller
 
     public function loginOptions(PasskeyRequest $request)
     {
-        return $this->success('Pilih passkey dan konfirmasi pada perangkat Anda.',
-            $this->passkeys->loginOptions($request->session()->getId(), $request->boolean('remember'),
-                EmailUrl::safeRedirectPath($request->input('redirect'))));
+        return $this->success(
+            'Pilih passkey dan konfirmasi pada perangkat Anda.',
+            $this->passkeys->loginOptions(
+                $request->session()->getId(),
+                $request->boolean('remember'),
+                EmailUrl::safeRedirectPath($request->input('redirect'))
+            )
+        );
     }
 
     public function login(PasskeyRequest $request)
@@ -51,9 +56,7 @@ class PasskeyController extends Controller
         $redirect = $result['redirect']
             ?: EmailUrl::safeRedirectPath($request->session()->pull('url.intended'));
 
-        return $this->success('Login berhasil. Mengalihkan ke halaman Anda.', [
-            'redirect' => $redirect ?: route($user->preferredHomeRouteName(), [], false),
-        ]);
+        return redirect()->to($redirect ?: route($user->preferredHomeRouteName(), [], false));
     }
 
     public function destroy(PasskeyRequest $request, string $passkey)

@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', __('self_service.account.my_account_title'))
+@section('title', __('self_service.account.profile_title'))
 
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('assets/css/user-account.css') }}">
@@ -11,164 +11,112 @@
     $currentUser = auth()->user();
     $employee = $currentUser->employee;
     $employeePhotoUrl = optional($employee)->document_photo_url;
-    $employeeInitials = $currentUser->avatar_initials;
+    $employeeName = $employee->nama_karyawan ?? $currentUser->name ?? __('self_service.common.user_fallback');
+    $employeeFields = [
+        ['NIK', $employee->nik ?? '-'],
+        [__('tables.employee'), $employee->nama_karyawan ?? '-'],
+        [__('tables.division'), $employee->divisi->nama_divisi ?? '-'],
+        [__('tables.department'), $employee->divisi->departemen->departemen ?? '-'],
+        [__('tables.position'), $employee->posisi ?? '-'],
+        [__('self_service.account.department_head'), $employee->divisi->departemen->kepala_dept ?? '-'],
+    ];
 @endphp
-<div class="container-fluid">
-    <div class="page-inner">
-
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h4 class="fw-bold mb-1">
-                    <i class="fas fa-file-signature text-primary me-2"></i>
-                    {{ __('self_service.account.profile_title') }}
-                </h4>
-                <small class="text-muted">
-                    {{ __('self_service.account.subtitle') }}
-                </small>
-            </div>
-            <a href="{{ route('dashboard.karyawan') }}" class="btn btn-sm btn-light">
-                <i class="fas fa-arrow-left me-1"></i> {{ __('self_service.common.back_to_dashboard') }}
-            </a>
+<div class="page-inner profile-page">
+    <header class="profile-page__heading">
+        <div>
+            <span class="profile-page__eyebrow">V-People</span>
+            <h1>{{ __('self_service.account.profile_title') }}</h1>
+            <p>{{ __('self_service.account.subtitle') }}</p>
         </div>
+        <a href="{{ route($currentUser->preferredHomeRouteName()) }}" class="btn btn-light profile-page__back">
+            <i class="fas fa-arrow-left me-2" aria-hidden="true"></i>{{ __('self_service.common.back_to_dashboard') }}
+        </a>
+    </header>
 
-        <div class="row justify-content-center">
-
-            <div class="col-lg-4 mb-4">
-                <!-- Profile Card -->
-                <div class="card shadow-sm border-0">
-                    <div class="card-body text-center">
-
-                        <div class="mb-3">
-                            <div class="avatar-circle bg-primary text-white mx-auto">
-                                @if($employeePhotoUrl)
-                                    <img src="{{ $employeePhotoUrl }}" alt="{{ $employee->nama_karyawan ?? $currentUser->name ?? __('self_service.common.user_fallback') }}">
-                                @else
-                                    {{ $employeeInitials }}
-                                @endif
-                            </div>
-                        </div>
-
-                        <h5 class="mb-1">
-                            {{ $employee->nama_karyawan ?? '-' }}
-                        </h5>
-
-                        <p class="text-muted mb-2">
-                            {{ $employee->divisi->nama_divisi ?? '-' }}
-                        </p>
-
-                        <span class="badge bg-success">
-                            {{ ucfirst($currentUser->status) }}
-                        </span>
-
+    <div class="profile-page__layout">
+        <aside class="profile-page__identity">
+            <section class="card profile-card profile-card--identity">
+                <div class="profile-card__cover" aria-hidden="true"></div>
+                <div class="card-body">
+                    <div class="avatar-circle profile-page__avatar">
+                        @if($employeePhotoUrl)
+                            <img src="{{ $employeePhotoUrl }}" alt="{{ $employeeName }}">
+                        @else
+                            {{ $currentUser->avatar_initials }}
+                        @endif
                     </div>
+                    <h2 class="profile-page__name">{{ $employeeName }}</h2>
+                    <p class="profile-page__position">{{ $employee->posisi ?? '-' }}</p>
+                    <span class="profile-page__status">{{ ucfirst($currentUser->status ?? '-') }}</span>
+                    <div class="profile-page__division">
+                        <i class="fas fa-building" aria-hidden="true"></i>
+                        <span>{{ $employee->divisi->nama_divisi ?? '-' }}</span>
+                    </div>
+                    <a href="{{ route('update.akun') }}" class="btn btn-primary profile-page__settings">
+                        <i class="fas fa-cog me-2" aria-hidden="true"></i>{{ __('navigation.account_settings') }}
+                    </a>
                 </div>
-            </div>
-
-            <div class="col-lg-8">
-                <!-- Account Information -->
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-white fw-bold">
-                        {{ __('self_service.account.account_information') }}
-                    </div>
-                    <div class="card-body">
-
-                <div class="row mb-3">
-                    <div class="col-md-4 fw-semibold">{{ __('User ID') }}</div>
-                    <div class="col-md-8">{{ $currentUser->id }}</div>
+            </section>
+            <section class="profile-page__leave">
+                <span class="profile-page__leave-icon"><i class="fas fa-calendar-check" aria-hidden="true"></i></span>
+                <div>
+                    <span class="profile-page__leave-label">{{ __('self_service.account.available_leave') }}</span>
+                    <div><strong>{{ $employee->sisa_cuti ?? 0 }}</strong> {{ __('self_service.common.day') }}</div>
                 </div>
+            </section>
+        </aside>
 
-                        <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">{{ __('Email') }}</div>
-                            <div class="col-md-8">
-                                {{ $currentUser->email }}
-                                @if($currentUser->email_verified_at)
-                                <span class="badge bg-success ms-2">{{ __('self_service.account.verified') }}</span>
-                                @else
-                                <span class="badge bg-danger ms-2">{{ __('self_service.account.not_verified') }}</span>
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">{{ __('self_service.account.last_login') }}</div>
-                            <div class="col-md-8">
-                                {{ $currentUser->terakhir_login ?? '-' }}
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">{{ __('self_service.account.created_date') }}</div>
-                            <div class="col-md-8">
-                                {{ formatDateIndonesia($currentUser->created_at) }}
-                            </div>
-                        </div>
-
-                    </div>
+        <div class="profile-page__details">
+            <section class="card profile-card" aria-labelledby="profile-account-heading">
+                <div class="card-header">
+                    <span class="profile-card__icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
+                    <h2 id="profile-account-heading">{{ __('self_service.account.account_information') }}</h2>
                 </div>
-
-                <!-- Employee Information -->
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white fw-bold">
-                        {{ __('self_service.account.employee_information') }}
-                    </div>
-                    <div class="card-body">
-
-                        <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">NIK</div>
-                            <div class="col-md-8">
-                                {{ $employee->nik ?? '-' }}
-                            </div>
+                <div class="card-body">
+                    <dl class="profile-page__fields">
+                        <div class="profile-page__field">
+                            <dt>{{ __('User ID') }}</dt>
+                            <dd>{{ $currentUser->id }}</dd>
                         </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">{{ __('tables.employee') }}</div>
-                            <div class="col-md-8">
-                                {{ $employee->nama_karyawan ?? '-' }}
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">{{ __('tables.division') }}</div>
-                            <div class="col-md-8">
-                                {{ $employee->divisi->nama_divisi ?? '-' }}
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">{{ __('tables.department') }}</div>
-                            <div class="col-md-8">
-                                {{ $employee->divisi->departemen->departemen ?? '-' }}
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">{{ __('tables.position') }}</div>
-                            <div class="col-md-8">
-                                {{ $employee->posisi ?? '-' }}
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">{{ __('self_service.account.department_head') }}</div>
-                            <div class="col-md-8">
-                                {{ $employee->divisi->departemen->kepala_dept ?? '-' }}
-                            </div>
-                        </div>
-
-                        <div class="row mb-3">
-                            <div class="col-md-4 fw-semibold">{{ __('self_service.account.available_leave') }}</div>
-                            <div class="col-md-8">
-                                <span class="badge bg-info text-dark">
-                                    {{ $employee->sisa_cuti ?? 0 }} {{ __('self_service.common.day') }}
+                        <div class="profile-page__field">
+                            <dt>{{ __('Email') }}</dt>
+                            <dd>
+                                <span>{{ $currentUser->email }}</span>
+                                <span class="profile-page__verification {{ $currentUser->email_verified_at ? 'is-verified' : 'is-pending' }}">
+                                    <i class="fas {{ $currentUser->email_verified_at ? 'fa-check-circle' : 'fa-clock' }}" aria-hidden="true"></i>
+                                    {{ __($currentUser->email_verified_at ? 'self_service.account.verified' : 'self_service.account.not_verified') }}
                                 </span>
-                            </div>
+                            </dd>
                         </div>
-
-                    </div>
+                        <div class="profile-page__field">
+                            <dt>{{ __('self_service.account.last_login') }}</dt>
+                            <dd>{{ $currentUser->terakhir_login ?? '-' }}</dd>
+                        </div>
+                        <div class="profile-page__field">
+                            <dt>{{ __('self_service.account.created_date') }}</dt>
+                            <dd>{{ formatDateIndonesia($currentUser->created_at) }}</dd>
+                        </div>
+                    </dl>
                 </div>
-            </div>
+            </section>
+
+            <section class="card profile-card" aria-labelledby="profile-employee-heading">
+                <div class="card-header">
+                    <span class="profile-card__icon"><i class="fas fa-id-card" aria-hidden="true"></i></span>
+                    <h2 id="profile-employee-heading">{{ __('self_service.account.employee_information') }}</h2>
+                </div>
+                <div class="card-body">
+                    <dl class="profile-page__fields">
+                        @foreach($employeeFields as $field)
+                            <div class="profile-page__field">
+                                <dt>{{ $field[0] }}</dt>
+                                <dd>{{ $field[1] }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
+                </div>
+            </section>
         </div>
     </div>
 </div>
 @endsection
-

@@ -66,6 +66,11 @@
             'popup_class' => 'mobile-bottom-nav__popup--end',
             'children' => [
                 [
+                    'label' => __('navigation.my_profile'),
+                    'route' => route('pengaturan-akun.index'),
+                    'icon' => 'fas fa-id-card',
+                ],
+                [
                     'label' => __('navigation.account_settings'),
                     'route' => route('update.akun'),
                     'icon' => 'fas fa-cog',
