@@ -26,8 +26,7 @@ class CvMakerPdfExportService
 
     public static function canAccess(User $user): bool
     {
-        return !$user->hasRole('Audit CV')
-            && $user->hasRole(['Super Admin', 'HR', 'HOD', 'Manager', 'Supervisor', 'Admin Divisi'])
+        return $user->hasRole(['Super Admin', 'HR', 'HOD', 'Manager', 'Supervisor', 'Admin Divisi', 'Audit CV'])
             && $user->hasMenuAccess('cv_maker_compare');
     }
 

@@ -255,6 +255,7 @@ class CvMakerPdfExportTest extends TestCase
         $this->assertSame('failed', $batch->status);
         $this->assertNull(DB::table('cv_maker_pdf_downloads')->value('active_batch_id'));
         $next = $this->service->create($this->input(), $this->actor);
+        DB::table('roles')->where('id', 2)->update(['menu_permissions' => '[]']);
         DB::table('users')->where('id', $this->actor->id)->update(['role_id' => 2]);
         $this->service->processNext($next->id);
         $this->assertSame('failed', $next->fresh()->status);
@@ -293,13 +294,35 @@ class CvMakerPdfExportTest extends TestCase
             $route = app('router')->getRoutes()->getByName('cv-maker-compare.pdf.' . $suffix);
             $this->assertContains('auth', $route->gatherMiddleware());
             $this->assertContains('menu:cv_maker_compare', $route->gatherMiddleware());
-            $this->assertContains('role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi', $route->gatherMiddleware());
+            $this->assertContains('role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV', $route->gatherMiddleware());
         }
-        $this->assertFalse(CvMakerPdfExportService::canAccess($this->actor(2)));
+        $this->assertTrue(CvMakerPdfExportService::canAccess($this->actor(2)));
         $rules = (new StorePdfBatchRequest())->rules();
         $this->assertTrue(Validator::make($this->input(), $rules)->passes());
         $this->assertFalse(Validator::make($this->input(['mode' => 'single']), $rules)->passes());
         $this->assertFalse(Validator::make($this->input(['allow_downloaded' => 'yes']), $rules)->passes());
+    }
+
+    public function test_audit_cv_can_download_own_pdf_but_not_another_users_batch(): void
+    {
+        $audit = $this->actor(2);
+        $this->employee('0001');
+        $this->fakeRenderer();
+        $batch = $this->service->create($this->input(['mode' => 'single', 'employee_nik' => '0001']), $audit);
+        $this->finish($batch);
+
+        $this->forbidden(fn() => $this->service->download($batch, $this->actor(2)));
+        $response = $this->service->download($batch, $audit);
+        $this->assertStringEndsWith('.pdf', $response->getFile()->getPathname());
+        $this->assertSame($audit->id, DB::table('cv_maker_pdf_downloads')->value('downloaded_by'));
+    }
+
+    public function test_audit_cv_without_menu_access_cannot_create_pdf_batch(): void
+    {
+        DB::table('roles')->where('id', 2)->update(['menu_permissions' => '[]']);
+        $audit = $this->actor(2);
+        $this->assertFalse(CvMakerPdfExportService::canAccess($audit));
+        $this->forbidden(fn() => $this->service->create($this->input(), $audit));
     }
 
     public function test_repeated_packaging_timeouts_eventually_fail_and_release_claims(): void

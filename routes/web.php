@@ -303,7 +303,7 @@ Route::middleware(['android.redirect'])->group(function () {
             ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV', 'throttle:6,1'])
             ->name('cv-maker-compare.export');
         Route::prefix('cv-maker-compare/pdf-batches')->name('cv-maker-compare.pdf.')
-            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi'])
+            ->middleware(['menu:cv_maker_compare', 'role:Super Admin,HR,HOD,Manager,Supervisor,Admin Divisi,Audit CV'])
             ->group(function () {
                 Route::get('/', [\App\Http\Controllers\Admin\CvMakerPdfController::class, 'index'])->name('index');
                 Route::post('/', [\App\Http\Controllers\Admin\CvMakerPdfController::class, 'store'])->middleware('throttle:10,1')->name('store');
