@@ -188,6 +188,9 @@
                             <button type="button" class="btn btn-outline-primary w-100 passkey-button" data-passkey-login>
                                 <i class="fas fa-fingerprint me-2" aria-hidden="true"></i>Masuk dengan passkey
                             </button>
+                            <p class="passkey-status mt-2 mb-0" data-passkey-status role="status" aria-live="polite">
+                                Gunakan passkey yang sudah terdaftar pada akun Anda.
+                            </p>
                         </div>
                         @endif
                     </div>

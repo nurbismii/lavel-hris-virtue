@@ -103,12 +103,14 @@
         if (root.dataset.passkeys === 'login') {
             const button = root.querySelector('[data-passkey-login]');
             button.addEventListener('click', () => run(button, async () => {
+                setStatus('Menyiapkan login passkey...');
                 const options = await request(root.dataset.optionsUrl, {
                     remember: !!document.querySelector('#remember:checked'),
                     redirect: document.querySelector('input[name="redirect"]')?.value || null
                 });
                 setStatus(options.message);
                 const credential = await navigator.credentials.get(prepare(options.data));
+                setStatus('Memverifikasi passkey...');
                 const result = await request(root.dataset.verifyUrl, serialize(credential, options.data.challenge_id));
                 await feedback(result.message);
                 window.location.assign(result.data.redirect);

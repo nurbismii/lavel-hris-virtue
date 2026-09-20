@@ -56,7 +56,9 @@ class PasskeyController extends Controller
         $redirect = $result['redirect']
             ?: EmailUrl::safeRedirectPath($request->session()->pull('url.intended'));
 
-        return redirect()->to($redirect ?: route($user->preferredHomeRouteName(), [], false));
+        return $this->success('Login dengan passkey berhasil.', [
+            'redirect' => $redirect ?: route($user->preferredHomeRouteName(), [], false),
+        ]);
     }
 
     public function destroy(PasskeyRequest $request, string $passkey)
