@@ -6,7 +6,16 @@
         .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
     document.querySelectorAll('[data-passkeys]').forEach(root => {
-        const status = root.querySelector('[data-passkey-status]');
+        let status = root.querySelector('[data-passkey-status]');
+        // Older cached views may not include the status element yet.
+        if (!status) {
+            status = document.createElement('p');
+            status.className = 'passkey-status mt-2 mb-0';
+            status.setAttribute('data-passkey-status', '');
+            status.setAttribute('role', 'status');
+            status.setAttribute('aria-live', 'polite');
+            root.appendChild(status);
+        }
         let busy = false;
         const supported = window.isSecureContext && !!window.PublicKeyCredential
             && !!navigator.credentials && typeof navigator.credentials.get === 'function';
