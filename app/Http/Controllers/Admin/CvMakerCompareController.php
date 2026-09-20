@@ -274,7 +274,6 @@ class CvMakerCompareController extends Controller
     public function photo(Request $request, string $nik, int $profile, CvMakerCompareService $service, CvMakerApiClient $client)
     {
         $this->authorizeAccess($request->user());
-        abort_if($request->user()->hasRole('Audit CV'), 403);
         $employee = $this->scopedEmployee($request, $nik);
         $detail = $service->detailForEmployee($employee);
         abort_unless(

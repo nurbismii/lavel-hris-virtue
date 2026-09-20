@@ -527,8 +527,11 @@ class KaryawanController extends Controller
 
         $documentConfig = self::DOCUMENT_DOWNLOAD_TYPES[$type];
         $column = $documentConfig['column'];
-        $employee = $request->user()
-            ->applyEmployeeScope(Employee::query())
+        $user = $request->user();
+        $query = $type === 'photo' && $user->hasRole('Audit CV') && $user->hasMenuAccess('cv_maker_compare')
+            ? $user->applyCvMakerEmployeeScope(Employee::query())
+            : $user->applyEmployeeScope(Employee::query());
+        $employee = $query
             ->select('nik', 'nama_karyawan', $column)
             ->where('nik', $nik)
             ->firstOrFail();

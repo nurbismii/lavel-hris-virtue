@@ -42,7 +42,11 @@ $cvInitials = collect(explode(' ', trim((string) $cvName)))
     ->map(fn($part) => mb_substr($part, 0, 1))
     ->implode('');
 $profile = $vitae['profile'] ?? [];
-$employeePhotoUrl = ($canViewPhotos ?? false) ? $employee->document_photo_url : null;
+$employeePhotoUrl = $employee->document_photo_url;
+$cvMakerPhotoUrl = !empty($profile['photo_available']) && !empty($cvProfile['profile_id'])
+    ? route('cv-maker-compare.profiles.photo', ['nik' => $employee->nik, 'profile' => $cvProfile['profile_id']])
+    : null;
+$previewPhotoUrl = $employeePhotoUrl ?: $cvMakerPhotoUrl;
 $hasCvValue = function ($value): bool {
     return filled($value) && trim((string) $value) !== '-';
 };
@@ -368,11 +372,12 @@ $completeProfileGroups = [
                         </div>
 
                         <div class="cv-vitae-photo" aria-label="{{ __('Foto karyawan') }}">
-                            @if($employeePhotoUrl)
-                            <img src="{{ $employeePhotoUrl }}" alt="Foto {{ $cvText($profile['name'] ?? $employee->nama_karyawan) }}">
-                            @else
-                            <span>{{ $cvInitials ?: 'CV' }}</span>
+                            @if($previewPhotoUrl)
+                            <img src="{{ $previewPhotoUrl }}" data-fallback-src="{{ $employeePhotoUrl ? $cvMakerPhotoUrl : '' }}"
+                                alt="Foto {{ $cvText($profile['name'] ?? $employee->nama_karyawan) }}"
+                                onerror="if (this.dataset.fallbackSrc) { const fallback = this.dataset.fallbackSrc; delete this.dataset.fallbackSrc; this.src = fallback; } else { this.classList.add('d-none'); this.nextElementSibling.classList.remove('d-none'); }">
                             @endif
+                            <span @class(['d-none' => (bool) $previewPhotoUrl])>{{ $cvInitials ?: 'CV' }}</span>
                         </div>
                     </header>
 
