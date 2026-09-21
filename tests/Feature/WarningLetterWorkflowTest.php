@@ -115,6 +115,87 @@ class WarningLetterWorkflowTest extends TestCase
         $this->service->submit($this->payload(['nik' => '009999999']), $this->actor());
     }
 
+    private function activeReport(array $overrides = []): SuratPeringatan
+    {
+        return SuratPeringatan::create(array_merge([
+            'nik_karyawan' => '001234567', 'no_sp' => '100', 'level_sp' => 'SP1',
+            'tgl_mulai' => '2026-03-11', 'tgl_berakhir' => '2026-09-11',
+            'keterangan' => 'SP sebelumnya',
+        ], $overrides));
+    }
+
+    public function test_active_sp_escalates_including_last_valid_day_and_preserves_higher_choice(): void
+    {
+        $this->activeReport();
+        $letter = $this->service->submit($this->payload(['level_sp' => 'SP1']), $this->actor());
+        $this->assertSame('SP2', $letter->level_sp);
+        $higher = $this->service->submit($this->payload(['level_sp' => 'SP3']), $this->actor());
+        $this->assertSame('SP3', $higher->level_sp);
+    }
+
+    public function test_highest_active_sp_is_used_even_when_another_lower_sp_is_newer(): void
+    {
+        $this->activeReport(['level_sp' => 'SP2', 'tgl_mulai' => '2026-09-11']);
+        $this->activeReport();
+        $letter = $this->service->submit($this->payload(['level_sp' => 'SP1']), $this->actor());
+        $this->assertSame('SP3', $letter->level_sp);
+    }
+
+    public function test_expired_future_deleted_and_other_employee_sp_do_not_escalate(): void
+    {
+        $this->activeReport(['level_sp' => 'SP3', 'tgl_berakhir' => '2026-09-10']);
+        $this->activeReport(['level_sp' => 'SP3', 'tgl_mulai' => '2026-09-12', 'tgl_berakhir' => '2027-03-12']);
+        $this->activeReport(['level_sp' => 'SP3'])->delete();
+        $this->activeReport(['level_sp' => 'SP3', 'nik_karyawan' => '001234568']);
+        $letter = $this->service->submit($this->payload(['level_sp' => 'SP1']), $this->actor());
+        $this->assertSame('SP1', $letter->level_sp);
+    }
+
+    public function test_active_sp3_returns_validation_error_without_creating_request(): void
+    {
+        $this->activeReport(['level_sp' => 'SP3']);
+        $this->actingAs($this->actor())->post(route('warning-letter-requests.store'), $this->payload())
+            ->assertSessionHasErrors('level_sp');
+        $this->assertSame(0, WarningLetterRequest::count());
+    }
+
+    public function test_approval_rechecks_sp_issued_while_pending_and_keeps_snapshot_consistent(): void
+    {
+        $payload = $this->payload(['level_sp' => 'SP1']);
+        $first = $this->service->submit($payload, $this->actor());
+        $second = $this->service->submit($this->payload(['level_sp' => 'SP1']), $this->actor());
+        $this->service->review($first, ['decision' => 'approve'], $this->actor(true));
+        $approved = $this->service->review($second, ['decision' => 'approve'], $this->actor(true));
+        $this->assertSame('SP2', $approved->fresh()->level_sp);
+        $this->assertSame('SP2', $approved->letter_snapshot['level']);
+        $this->assertSame('SP2', SuratPeringatan::findOrFail($approved->sp_report_id)->level_sp);
+        $this->activeReport(['level_sp' => 'SP3']);
+        $this->assertSame($first->id, $this->service->submit($payload, $this->actor())->id);
+    }
+
+    public function test_approval_does_not_escalate_twice_against_same_active_sp(): void
+    {
+        $this->activeReport();
+        $letter = $this->service->submit($this->payload(['level_sp' => 'SP1']), $this->actor());
+        $approved = $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
+        $this->assertSame('SP2', $approved->fresh()->level_sp);
+    }
+
+    public function test_sp3_issued_while_pending_blocks_approval_without_issuing_report(): void
+    {
+        $letter = $this->service->submit($this->payload(), $this->actor());
+        $this->activeReport(['level_sp' => 'SP3']);
+        try {
+            $this->service->review($letter, ['decision' => 'approve'], $this->actor(true));
+            $this->fail('Active SP3 must block approval.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('level_sp', $exception->errors());
+        }
+        $this->assertSame(WarningLetterRequest::PENDING, $letter->fresh()->status);
+        $this->assertSame(1, SuratPeringatan::count());
+        $this->assertCount(0, Storage::allFiles('private/warning-letters/signatures'));
+    }
+
     public function test_admin_cannot_approve_even_if_they_can_view(): void
     {
         $letter = $this->service->submit($this->payload(), $this->actor());

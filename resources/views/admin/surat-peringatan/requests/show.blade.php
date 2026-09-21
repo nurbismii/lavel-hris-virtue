@@ -53,6 +53,7 @@
         @endif
     </div></div>
     @if($letter->status === \App\Models\WarningLetterRequest::PENDING)
+        <p class="small text-muted">Saat approval, level diperiksa kembali berdasarkan SP yang berlaku pada tanggal mulai pengajuan. Level dapat naik jika SP lain telah terbit selama menunggu. SP3 aktif memerlukan tindak lanjut HR.</p>
         @can('review', $letter)
         <div class="card"><div class="card-body"><h5 class="fw-semibold">Approval HR / Super Admin</h5><p class="small text-muted">Periksa data sebelum menerbitkan. Surat yang telah terbit tidak dapat diubah melalui menu edit pelanggaran.</p>
             <form method="POST" action="{{ route('warning-letter-requests.review', $letter) }}" data-warning-submit data-warning-review data-loading-text="Memproses...">@csrf

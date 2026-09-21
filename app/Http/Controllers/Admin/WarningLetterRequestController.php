@@ -68,13 +68,15 @@ class WarningLetterRequestController extends Controller
     {
         try {
             $letter = $service->submit($request->validated(), $request->user());
+        } catch (ValidationException $exception) {
+            throw $exception;
         } catch (\Illuminate\Auth\Access\AuthorizationException | \Symfony\Component\HttpKernel\Exception\HttpException | \Illuminate\Database\Eloquent\ModelNotFoundException $exception) {
             throw $exception;
         } catch (Throwable $exception) {
             $reference = app(SafeExceptionLogger::class)->warning('warning_letters.submit', $exception);
             return back()->withInput()->withErrors(['submission' => 'Pengajuan gagal disimpan. Silakan coba lagi. Kode bantuan: ' . $reference]);
         }
-        toast()->success('Pengajuan tersimpan', 'Pelanggaran menunggu approval HR/Super Admin. Surat belum diterbitkan.');
+        toast()->success('Pengajuan tersimpan', 'Level pengajuan: ' . $letter->level_sp . '. Pelanggaran menunggu approval HR/Super Admin. Surat belum diterbitkan.');
         return redirect()->route('warning-letter-requests.show', $letter);
     }
 
@@ -110,7 +112,7 @@ class WarningLetterRequestController extends Controller
             return back()->withErrors(['approval' => 'Approval gagal diproses. Status belum berubah. Silakan coba kembali. Kode bantuan: ' . $reference]);
         }
         toast()->success('Berhasil', $letter->status === WarningLetterRequest::APPROVED
-            ? 'SP telah diterbitkan. Surat PDF tersedia untuk diunduh.' : 'Pengajuan ditolak dengan alasan yang tercatat.');
+            ? $letter->level_sp . ' telah diterbitkan. Surat PDF tersedia untuk diunduh.' : 'Pengajuan ditolak dengan alasan yang tercatat.');
         return redirect()->route('warning-letter-requests.show', $letter);
     }
 

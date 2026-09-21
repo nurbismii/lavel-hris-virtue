@@ -77,10 +77,15 @@ class WarningLetterWorkflowService
     {
         Gate::forUser($actor)->authorize('create', WarningLetterRequest::class);
         $employee = $this->employee($actor, $data['nik']);
+        $existing = WarningLetterRequest::where('submission_token', $data['submission_token'])->first();
+        if ($existing) {
+            abort_unless((string) $existing->created_by === (string) $actor->id, 403);
+            return $existing;
+        }
         $letter = WarningLetterRequest::firstOrCreate(['submission_token' => $data['submission_token']], [
             'nik' => $employee->nik,
             'status' => WarningLetterRequest::PENDING,
-            'level_sp' => $data['level_sp'], 'keterangan' => $data['keterangan'],
+            'level_sp' => $this->resolveLevel($employee->nik, $data['tgl_mulai'], $data['level_sp']), 'keterangan' => $data['keterangan'],
             'pelapor' => $data['pelapor'], 'hod_name' => $data['hod_name'],
             'tgl_mulai' => $data['tgl_mulai'],
             'tgl_berakhir' => Carbon::parse($data['tgl_mulai'])
@@ -108,6 +113,12 @@ class WarningLetterWorkflowService
                     $letter->update($review + ['status' => WarningLetterRequest::REJECTED, 'rejection_reason' => $data['reason']]);
                     return $letter;
                 }
+
+                // Serialize approvals for the same employee before checking existing SP.
+                Employee::where('nik', $letter->nik)->lockForUpdate()->firstOrFail();
+                $letter->level_sp = $this->resolveLevel(
+                    $letter->nik, $letter->tgl_mulai->format('Y-m-d'), $letter->level_sp
+                );
 
                 $signer = $this->masterSigner();
                 if (!$signer || !$signer->signer_name || !$signer->signer_position || !$signer->signature_path
@@ -193,6 +204,30 @@ class WarningLetterWorkflowService
 
             return $locked->refresh();
         });
+    }
+
+    private function resolveLevel(string $nik, string $startDate, string $requestedLevel): string
+    {
+        $levels = array_keys(WarningLetterRequest::levels());
+        $activeLevel = SuratPeringatan::where('nik_karyawan', $nik)
+            ->where('tgl_mulai', '<=', $startDate)
+            ->where('tgl_berakhir', '>=', $startDate)
+            ->whereIn('level_sp', $levels)
+            ->orderByDesc('level_sp')
+            ->value('level_sp');
+
+        if ($activeLevel === null) {
+            return $requestedLevel;
+        }
+
+        $nextIndex = array_search($activeLevel, $levels, true) + 1;
+        if (!isset($levels[$nextIndex])) {
+            throw ValidationException::withMessages([
+                'level_sp' => 'Karyawan memiliki SP3 yang masih berlaku pada tanggal mulai tersebut. Hubungi HR untuk tindak lanjut; pengajuan tidak dapat dinaikkan otomatis.',
+            ]);
+        }
+
+        return $levels[max($nextIndex, array_search($requestedLevel, $levels, true))];
     }
 
     private function actorName(User $actor): string

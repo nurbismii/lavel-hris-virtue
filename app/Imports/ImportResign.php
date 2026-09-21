@@ -36,7 +36,7 @@ class ImportResign implements
         $this->importHistoryId = $importHistoryId;
     }
 
-    public function collection(Collection $collection)
+    public function collection(Collection $collection): void
     {
         $datas = [];
         $skippedCount = 0;
