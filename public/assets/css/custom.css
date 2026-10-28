@@ -278,6 +278,92 @@
     background: var(--ui-danger-soft);
 }
 
+.ui-status-pill--warning { color: #8a570f; background: #fff8e6; }
+.ui-status-pill--info { color: var(--ui-primary-dark); background: var(--ui-primary-soft); }
+.ui-status-pill--neutral { color: var(--ui-muted); background: var(--ui-surface-muted); }
+
+.app-shell .main-panel { background: var(--ui-bg); }
+.app-shell .page-inner { color: var(--ui-text); }
+.app-shell .card {
+    border: 1px solid var(--ui-border-soft);
+    border-radius: var(--ui-radius);
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+}
+.app-shell .card-header {
+    padding: 16px 20px;
+    border-bottom-color: var(--ui-border-soft);
+}
+.app-shell .card-body { padding: 20px; }
+.app-shell .page-header { flex-wrap: wrap; gap: 12px; }
+.app-shell .page-header h3,
+.app-shell .page-header h4 { margin-bottom: 0; font-size: 1.35rem; color: var(--ui-text); }
+.app-shell .form-label { color: #344054; font-weight: 600; }
+.app-shell .form-control:not(.form-control-sm),
+.app-shell .form-select:not(.form-select-sm) { min-height: 42px; border-radius: var(--ui-radius); }
+.app-shell textarea.form-control { min-height: 110px; }
+.app-shell .btn-primary { background: var(--ui-primary) !important; border-color: var(--ui-primary) !important; }
+.app-shell .btn-primary:hover,
+.app-shell .btn-primary:focus { background: var(--ui-primary-dark) !important; border-color: var(--ui-primary-dark) !important; }
+.app-shell .btn-outline-primary { color: var(--ui-primary); border-color: var(--ui-primary); }
+.app-shell .btn-outline-primary:hover { color: #fff; background-color: var(--ui-primary); }
+.app-shell .btn { border-radius: var(--ui-radius); font-weight: 600; }
+.app-shell a:focus-visible,
+.app-shell button:focus-visible,
+.app-shell input:focus-visible,
+.app-shell select:focus-visible,
+.app-shell textarea:focus-visible { outline: 3px solid #65a8c6; outline-offset: 3px; }
+.app-shell .table thead th {
+    background: var(--ui-surface-muted);
+    color: #344054;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    border-bottom-color: var(--ui-border);
+}
+.app-shell .table tbody td { vertical-align: middle; }
+.app-shell .dataTables_wrapper .dataTables_length select,
+.app-shell .dataTables_wrapper .dataTables_filter input {
+    min-height: 38px;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius);
+    background: var(--ui-surface);
+    color: var(--ui-text);
+}
+.app-shell .dataTables_wrapper .dataTables_info,
+.app-shell .dataTables_wrapper .dataTables_length,
+.app-shell .dataTables_wrapper .dataTables_filter { color: var(--ui-muted); font-size: 0.8125rem; }
+.approval-list-filter { margin-bottom: 16px; }
+.approval-list-filter .ui-field { flex: 1 1 260px; }
+.approval-list-filter .form-text { margin-bottom: 0; }
+.approval-table { min-width: 840px; }
+.approval-table td:last-child { min-width: 160px; }
+.approval-list-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-top: 16px; }
+.approval-list-footer p { margin: 0; color: var(--ui-muted); font-size: 0.8125rem; }
+.izin-choice { position: relative; min-height: 44px; margin-bottom: 4px; }
+.izin-choice .form-check-label { display: block; padding: 10px 0; cursor: pointer; }
+.izin-choice .form-check-input { margin-top: 14px; }
+
+@media (max-width: 575.98px) {
+    .app-shell .card-body { padding: 16px; }
+    .app-shell .card-header { padding: 14px 16px; }
+    .app-shell .ui-page-actions .btn,
+    .app-shell .ui-actions .btn,
+    .app-shell .table .btn,
+    .app-shell .pagination .page-link { min-height: 42px; }
+    .app-shell .ui-page-actions .btn { flex: 1 1 auto; }
+    .approval-list-footer { align-items: flex-start; flex-direction: column; }
+    .approval-list-filter .ui-field { flex: 0 1 auto; width: 100%; }
+    .approval-list-footer nav { max-width: 100%; overflow-x: auto; }
+    .app-shell .dataTables_wrapper .dataTables_filter input { max-width: calc(100vw - 150px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-shell *, .app-shell *::before, .app-shell *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 .ui-section-divider {
     height: 1px;
     margin: 1rem 0;
@@ -416,4 +502,10 @@
         width: 100%;
         align-items: flex-start;
     }
+}
+.app-shell form[data-submit-lock] .btn {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }

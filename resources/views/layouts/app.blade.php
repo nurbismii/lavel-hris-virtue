@@ -3,7 +3,7 @@
 
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>PT VDNI | V-People</title>
+    <title>@hasSection('title')@yield('title') | @endif V-People · PT VDNI</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="app-fonts-url" content="{{ versioned_asset('assets/css/fonts.min.css') }}">
@@ -26,7 +26,7 @@
     @stack('styles')
 </head>
 
-<body>
+<body class="app-shell">
     @php
     $appHomeUrl = auth()->check()
     ? route(auth()->user()->preferredHomeRouteName())
@@ -35,6 +35,7 @@
     <div class="wrapper">
         <!-- Sidebar -->
         @include('partials.sidebar')
+        <button type="button" class="app-sidebar-backdrop" data-app-menu-toggle aria-label="{{ __('Tutup menu navigasi') }}" tabindex="-1"></button>
         <!-- End Sidebar -->
         @include('sweetalert::alert')
         <div class="main-panel">
@@ -47,10 +48,10 @@
                             <span class="app-brand__text">V-People</span>
                         </a>
                         <div class="nav-toggle">
-                            <button class="btn btn-toggle toggle-sidebar">
+                            <button type="button" class="btn btn-toggle toggle-sidebar" aria-label="{{ __('Ringkas menu navigasi') }}">
                                 <i class="gg-menu-right"></i>
                             </button>
-                            <button class="btn btn-toggle sidenav-toggler">
+                            <button type="button" class="btn btn-toggle app-menu-toggle" data-app-menu-toggle aria-controls="appSidebar" aria-expanded="false" aria-label="{{ __('Buka menu navigasi') }}">
                                 <i class="gg-menu-left"></i>
                             </button>
                         </div>

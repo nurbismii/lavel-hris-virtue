@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Approval;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
+use App\Http\Requests\Approval\FilterApprovalRequest;
+use App\Services\Approvals\ApprovalListService;
 use App\Models\Cuti;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
@@ -16,7 +18,7 @@ use Throwable;
 
 class IzinApprovalController extends Controller
 {
-    public function hodIndex()
+    public function hodIndex(FilterApprovalRequest $request)
     {
         $delegationService = app(ApprovalDelegationService::class);
         $query = $delegationService->restrictReadyForHod(
@@ -28,10 +30,10 @@ class IzinApprovalController extends Controller
             'cuti_izin'
         );
 
-        $cutis = auth()->user()->applyEmployeeScope(
+        $cutis = app(ApprovalListService::class)->paginate(auth()->user()->applyEmployeeScope(
             $query,
             'employees'
-        )->paginate(100)->withQueryString();
+        ), $request->validated());
 
         return view('approval.hod.izin.index', compact('cutis'));
     }
@@ -146,15 +148,15 @@ class IzinApprovalController extends Controller
         return $this->approvalSuccessResponse('Izin telah ' . strtolower($result['approval_status']) . ' oleh HOD.');
     }
 
-    public function hrdIndex()
+    public function hrdIndex(FilterApprovalRequest $request)
     {
-        $cutis = auth()->user()->applyEmployeeRelationScope(
+        $cutis = app(ApprovalListService::class)->paginate(auth()->user()->applyEmployeeRelationScope(
             Cuti::query()->with('employee')
                 ->where('status_hod', 1)
                 ->whereIn('tipe', ['PAID', 'UNPAID'])
                 ->orderByRaw("FIELD(tipe, 'UNPAID', 'PAID')")
                 ->orderBy('tanggal', 'desc')
-        )->paginate(100)->withQueryString();
+        ), $request->validated());
 
         return view('approval.hr.izin.index', compact('cutis'));
     }

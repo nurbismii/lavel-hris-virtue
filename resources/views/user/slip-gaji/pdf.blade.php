@@ -6,7 +6,8 @@
     <title>PT VDNI - E-Payslip</title>
 
     <link rel="icon" href="{{ asset('/assets/img/kaiadmin/favicon.ico') }}" type="image/x-icon" />
-    <link rel="stylesheet" href="file:///{{ str_replace('\\', '/', public_path('assets/css/user-slip-gaji-pdf.css')) }}">
+    <link rel="stylesheet" href="{{ 'file://' . str_replace('\\', '/', public_path('assets/css/user-slip-gaji-pdf.css')) }}">
+    @include('partials.pdf-fonts')
 </head>
 
 <body>

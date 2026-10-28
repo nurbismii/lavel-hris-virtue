@@ -14,11 +14,24 @@ use Illuminate\Validation\Rule;
 
 class SettingRoleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $filters = $request->validate(['search' => ['nullable', 'string', 'max:100']]);
+        $search = trim((string) ($filters['search'] ?? ''));
         $users = User::with('employee', 'role', 'additionalRoles')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($match) use ($search) {
+                    $like = '%' . $search . '%';
+                    $match->where('nik_karyawan', 'like', $like)
+                        ->orWhere('name', 'like', $like)
+                        ->orWhere('email', 'like', $like)
+                        ->orWhereHas('employee', function ($employee) use ($like) { $employee->where('nama_karyawan', 'like', $like); })
+                        ->orWhereHas('role', function ($role) use ($like) { $role->where('permission_role', 'like', $like); })
+                        ->orWhereHas('additionalRoles', function ($role) use ($like) { $role->where('permission_role', 'like', $like); });
+                });
+            })
+            ->orderByDesc('created_at')->orderByDesc('id')
+            ->paginate(25)->withQueryString();
 
         return view('admin.setting-role.index', compact('users'));
     }

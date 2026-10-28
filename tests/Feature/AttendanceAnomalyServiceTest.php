@@ -74,6 +74,17 @@ class AttendanceAnomalyServiceTest extends TestCase
         $this->assertStringContainsString('Verifikasi wajah ditolak', $payload['data'][0]['anomaly_labels']);
     }
 
+    public function test_monitor_summary_keeps_scope_and_counts_without_unused_types(): void
+    {
+        $service = app(AttendanceAnomalyService::class);
+        $filters = $service->normalizeFilters(['date_from' => '2026-05-01', 'date_to' => '2026-05-05', 'anomaly' => 'all']);
+        $user = $this->makeUser('HOD', 'HOD001');
+        $full = $service->summary($user, $filters);
+        $monitor = $service->summary($user, $filters, ['suspicious_score']);
+
+        $this->assertSame(['total' => $full['total'], 'suspicious_score' => $full['suspicious_score']], $monitor);
+    }
+
     private function createSchema(): void
     {
         Schema::create('perusahaan', function (Blueprint $table) {

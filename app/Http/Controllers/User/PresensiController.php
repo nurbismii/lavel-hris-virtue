@@ -248,7 +248,7 @@ class PresensiController extends Controller
         }
 
         $selfieAudit = $securityService->validateSelfieImage($selfieFile, $user, $karyawan->face_reference_path);
-        $livenessEvidencePaths = $this->storeLivenessEvidenceFrames($request, (string) $user->nik_karyawan, $type);
+        $livenessEvidencePaths = $this->storeLivenessEvidenceFrames($request, (string) $user->nik_karyawan, $type, $challenge);
         $serverVerification = [
             'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
             'passed' => false,
@@ -458,7 +458,7 @@ class PresensiController extends Controller
             )->onQueue((string) config('services.presensi_face.queue', 'default'));
         }
 
-        Alert::success('Berhasil', 'Presensi berhasil disimpan.')->autoClose(3000);    
+        Alert::success('Presensi dicatat', 'Presensi dicatat dan sedang menunggu verifikasi wajah. Hasilnya dapat dilihat pada riwayat presensi.')->autoClose(5000);
 
         return back();
     }
@@ -789,11 +789,11 @@ class PresensiController extends Controller
         return $relativeDirectory . '/' . $filename;
     }
 
-    private function storeLivenessEvidenceFrames(Request $request, string $nik, string $type): array
+    private function storeLivenessEvidenceFrames(Request $request, string $nik, string $type, array $challenge): array
     {
         $evidence = json_decode((string) $request->input('face_liveness_evidence'), true);
         $frames = collect($evidence['frames'] ?? [])->keyBy(fn($frame) => (string) ($frame['label'] ?? ''));
-        $requiredLabels = ['center', 'turn_left', 'turn_right'];
+        $requiredLabels = app(AttendanceSecurityService::class)->requiredLivenessFrames((string) ($challenge['liveness_action'] ?? 'turn_left_right'));
         $datePath = now()->format('Y/m/d');
         $storedPaths = [];
 
@@ -808,13 +808,24 @@ class PresensiController extends Controller
 
             $binary = base64_decode($matches[1], true);
 
-            if ($binary === false || strlen($binary) > 700000) {
+            $imageInfo = $binary === false ? false : @getimagesizefromstring($binary);
+            if ($binary === false || strlen($binary) > 700000 || !$imageInfo || ($imageInfo['mime'] ?? '') !== 'image/jpeg'
+                || max($imageInfo[0], $imageInfo[1]) > 2000 || min($imageInfo[0], $imageInfo[1]) < 160) {
                 $this->deleteStoredLivenessEvidence($storedPaths);
                 $this->failPresensiValidation('Ukuran bukti liveness tidak valid. Ulangi verifikasi kamera.');
             }
 
             $path = 'presensi-liveness/' . $nik . '/' . $datePath . '/' . $type . '_' . $label . '_' . Str::lower(Str::random(12)) . '.jpg';
-            Storage::disk('local')->put($path, $binary);
+            try {
+                $stored = Storage::disk('local')->put($path, $binary);
+            } catch (\Throwable $exception) {
+                report($exception);
+                $stored = false;
+            }
+            if (!$stored) {
+                $this->deleteStoredLivenessEvidence($storedPaths);
+                $this->failPresensiValidation('Bukti kamera gagal disimpan. Silakan ulangi presensi.');
+            }
             $storedPaths[$label] = $path;
         }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Organization\StoreDivisionRequest;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
@@ -14,18 +15,15 @@ class DivisiController extends Controller
 {
     public function create($perusahaan_id)
     {
-        $perusahaan = Perusahaan::where('id', $perusahaan_id)->first();
+        $perusahaan = Perusahaan::findOrFail($perusahaan_id);
         $departemens = Departemen::with('perusahaan')->orderBy('departemen')->get();
 
         return view('admin.divisi.create', compact('perusahaan', 'departemens'));
     }
 
-    public function store(Request $request)
+    public function store(StoreDivisionRequest $request)
     {
-        Divisi::create([
-            'departemen_id' => $request->departemen_id,
-            'nama_divisi' => $request->nama_divisi,
-        ]);
+        Divisi::create($request->validated());
 
         toast()->success('Success', 'Divisi created successfully');
         return back();

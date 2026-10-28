@@ -194,7 +194,9 @@ class ServerSideFaceVerificationService
         array $livenessEvidenceParts,
         array $context = []
     ): ?array {
-        $endpoint = trim((string) config('services.presensi_face.endpoint'));
+        $livenessAction = (string) ($challenge['liveness_action'] ?? 'turn_left_right');
+        $endpoint = trim((string) config($livenessAction === AttendanceSecurityService::LIVENESS_ACTION_PASSIVE
+            ? 'services.presensi_face.passive_endpoint' : 'services.presensi_face.endpoint'));
 
         if ($endpoint === '') {
             return null;
@@ -236,7 +238,6 @@ class ServerSideFaceVerificationService
                 ->whereDate('tanggal', $attendanceDate)
                 ->value('id');
             $providerScreenSpoofScore = $this->normalizeScreenSpoofScore((float) ($context['screen_spoof_score'] ?? 0));
-            $livenessAction = (string) ($challenge['liveness_action'] ?? 'turn_left_right');
 
             \Log::info('FACE PROVIDER REQUEST', [
                 'endpoint' => $endpoint,
@@ -289,6 +290,14 @@ class ServerSideFaceVerificationService
                 [
                     'name' => 'liveness_action',
                     'contents' => $livenessAction,
+                ],
+                [
+                    'name' => 'liveness_mode',
+                    'contents' => $livenessAction === AttendanceSecurityService::LIVENESS_ACTION_PASSIVE ? 'passive' : 'active',
+                ],
+                [
+                    'name' => 'verification_contract',
+                    'contents' => $livenessAction === AttendanceSecurityService::LIVENESS_ACTION_PASSIVE ? 'passive-v1' : 'active-v1',
                 ],
                 [
                     'name' => 'screen_spoof_score',
@@ -364,7 +373,7 @@ class ServerSideFaceVerificationService
                 'error' => Str::limit((string) data_get($payload, 'extra.error', ''), 300),
             ]);
 
-            return $this->normalizeProviderPayload($payload, $response->getStatusCode());
+            return $this->normalizeProviderPayload($payload, $response->getStatusCode(), $livenessAction, (string) ($challenge['id'] ?? ''));
         } catch (GuzzleException $exception) {
             \Log::error('FACE PROVIDER GUZZLE ERROR', [
                 'message' => $exception->getMessage(),
@@ -382,8 +391,16 @@ class ServerSideFaceVerificationService
         }
     }
 
-    private function normalizeProviderPayload(array $payload, int $httpStatus): array
+    private function normalizeProviderPayload(array $payload, int $httpStatus, string $action = 'turn_left_right', string $challengeId = ''): ?array
     {
+        if (in_array($httpStatus, [401, 403, 429], true) || $httpStatus >= 500) {
+            return null;
+        }
+
+        if ($action === AttendanceSecurityService::LIVENESS_ACTION_PASSIVE) {
+            return $this->normalizePassiveProviderPayload($payload, $httpStatus, $challengeId);
+        }
+
         $status = $payload['status'] ?? null;
         $requireActiveLiveness = (bool) config('services.presensi_face.require_active_liveness', true);
         $minConfidence = (float) config('services.presensi_face.min_confidence', 0.78);
@@ -460,6 +477,60 @@ class ServerSideFaceVerificationService
         return null;
     }
 
+    private function normalizePassiveProviderPayload(array $payload, int $httpStatus, string $challengeId): array
+    {
+        $complete = ($payload['verification_contract'] ?? null) === 'passive-v1'
+            && ($payload['liveness_mode'] ?? null) === 'passive'
+            && $challengeId !== ''
+            && is_string($payload['presensi_challenge_id'] ?? null)
+            && hash_equals($challengeId, $payload['presensi_challenge_id']);
+
+        foreach (['passive_liveness_passed', 'face_matched', 'screen_attack_detected'] as $key) {
+            $complete = $complete && is_bool($payload[$key] ?? null);
+        }
+        foreach (['confidence', 'liveness_score'] as $key) {
+            $value = $payload[$key] ?? null;
+            $complete = $complete && (is_int($value) || is_float($value)) && is_finite((float) $value) && $value >= 0 && $value <= 1;
+        }
+        if (!$complete) {
+            return [
+                'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
+                'liveness_passed' => false,
+                'face_matched' => false,
+                'message' => 'API belum memberikan hasil passive liveness yang lengkap dan sesuai sesi. Perlu review HR.',
+                'http_status' => $httpStatus,
+            ];
+        }
+
+        $successful = $httpStatus >= 200 && $httpStatus < 300;
+        return [
+            'status' => ($payload['status'] ?? null) === Presensi::STATUS_ABSEN_PENDING_REVIEW ? Presensi::STATUS_ABSEN_PENDING_REVIEW : null,
+            'http_status' => $httpStatus,
+            'verification_contract' => 'passive-v1',
+            'liveness_mode' => 'passive',
+            'liveness_passed' => $successful && $payload['passive_liveness_passed'] && !$payload['screen_attack_detected']
+                && $payload['liveness_score'] >= (float) config('services.presensi_face.min_liveness_score', 0.78),
+            'face_matched' => $successful && $payload['face_matched']
+                && $payload['confidence'] >= (float) config('services.presensi_face.min_confidence', 0.78),
+            'confidence' => $payload['confidence'],
+            'liveness_score' => $payload['liveness_score'],
+            'screen_attack_detected' => $payload['screen_attack_detected'],
+            'message' => 'Passive liveness atau kecocokan wajah belum memenuhi syarat. Silakan periksa hasil verifikasi atau hubungi HR.',
+        ];
+    }
+
+    private function livenessEvidenceFieldNames(): array
+    {
+        return [
+            'center' => 'liveness_center_image',
+            'turn_left' => 'liveness_turn_left_image',
+            'turn_right' => 'liveness_turn_right_image',
+            'passive_start' => 'liveness_passive_start_image',
+            'passive_middle' => 'liveness_passive_middle_image',
+            'passive_end' => 'liveness_passive_end_image',
+        ];
+    }
+
     private function extractLivenessEvidence(Request $request): array
     {
         $evidence = json_decode((string) $request->input('face_liveness_evidence'), true);
@@ -491,11 +562,7 @@ class ServerSideFaceVerificationService
     private function buildLivenessEvidenceParts(array $evidence, string $nikKaryawan): array
     {
         $parts = [];
-        $fieldNames = [
-            'center' => 'liveness_center_image',
-            'turn_left' => 'liveness_turn_left_image',
-            'turn_right' => 'liveness_turn_right_image',
-        ];
+        $fieldNames = $this->livenessEvidenceFieldNames();
 
         foreach (($evidence['frames'] ?? []) as $frame) {
             $label = (string) ($frame['label'] ?? '');
@@ -526,11 +593,7 @@ class ServerSideFaceVerificationService
     private function buildStoredLivenessEvidenceParts(array $paths, string $nikKaryawan): array
     {
         $parts = [];
-        $fieldNames = [
-            'center' => 'liveness_center_image',
-            'turn_left' => 'liveness_turn_left_image',
-            'turn_right' => 'liveness_turn_right_image',
-        ];
+        $fieldNames = $this->livenessEvidenceFieldNames();
 
         foreach ($fieldNames as $label => $fieldName) {
             $path = $this->resolveStoredLivenessPath((string) ($paths[$label] ?? ''));
@@ -556,7 +619,7 @@ class ServerSideFaceVerificationService
     {
         $frames = [];
 
-        foreach (['center', 'turn_left', 'turn_right'] as $label) {
+        foreach (array_intersect(array_keys($paths), array_keys($this->livenessEvidenceFieldNames())) as $label) {
             $path = $this->resolveStoredLivenessPath((string) ($paths[$label] ?? ''));
 
             $frames[] = [

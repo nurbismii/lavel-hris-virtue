@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>{{ $contract->display_number }}</title>
+    @include('partials.pdf-fonts')
     <style>
         @page {
             margin: 28px 36px;
@@ -10,7 +11,7 @@
 
         body {
             color: #111827;
-            font-family: DejaVu Sans, sans-serif;
+            font-family: 'DejaVu Sans', 'CvNotoSansSC', sans-serif;
             font-size: 12px;
             line-height: 1.5;
         }
@@ -19,10 +20,17 @@
             margin-bottom: 18px;
         }
 
+        .contract-body h1,
+        .contract-body h2,
+        .contract-body h3 {
+            page-break-after: avoid;
+        }
+
         .contract-body table,
         .contract-letterhead table {
             border-collapse: collapse;
             width: 100%;
+            table-layout: fixed;
         }
 
         .contract-body td,
@@ -32,6 +40,7 @@
             border: 1px solid #d1d5db;
             padding: 6px;
             vertical-align: top;
+            word-wrap: break-word;
         }
 
         .contract-body img,

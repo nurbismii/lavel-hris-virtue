@@ -1,3 +1,33 @@
+.dashboard-home-page .dashboard-hero {
+    padding: 20px;
+    border: 1px solid var(--ui-border-soft);
+    border-radius: var(--ui-radius);
+    color: var(--ui-text);
+    background: var(--ui-surface);
+    box-shadow: none;
+}
+.dashboard-home-page .dashboard-hero::before,
+.dashboard-home-page .dashboard-hero::after { display: none; }
+.dashboard-home-page .dashboard-title { margin: 12px 0 8px; font-size: 24px; color: var(--ui-text); }
+.dashboard-home-page .dashboard-subtitle { color: var(--ui-muted); font-size: 14px; line-height: 1.5; }
+.dashboard-home-page .dashboard-badge,
+.dashboard-home-page .dashboard-period { background: var(--ui-surface-muted); color: var(--ui-primary-dark); border-radius: 8px; }
+.dashboard-home-page .dashboard-hero-icon { width: 64px; height: 64px; border-radius: 12px; background: var(--ui-primary-soft); color: var(--ui-primary); }
+.dashboard-home-page .dashboard-hero-icon i { font-size: 28px; }
+.dashboard-home-page .dashboard-card { border-radius: var(--ui-radius); }
+.dashboard-home-page .summary-card { min-height: 100px; padding: 16px; border: 1px solid var(--ui-border-soft); border-radius: var(--ui-radius); background: white; color: var(--ui-text); box-shadow: none; }
+.dashboard-home-page .summary-card p { color: var(--ui-muted); font-size: 13px; }
+.dashboard-home-page .summary-card h4 { color: var(--ui-text); font-size: 26px; }
+.dashboard-home-page .summary-icon { background: var(--ui-primary-soft); color: var(--ui-primary); width: 42px; height: 42px; font-size: 20px; }
+.dashboard-home-page .btn-dashboard-primary { background: var(--ui-primary); border-radius: var(--ui-radius); }
+.dashboard-home-page .input-modern .form-control { border-radius: var(--ui-radius); }
+@media (max-width: 575.98px) {
+    .dashboard-home-page .dashboard-hero { padding: 16px; }
+    .dashboard-home-page .dashboard-title { font-size: 21px; }
+    .dashboard-home-page .summary-card { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .dashboard-home-page .dashboard-period { flex-wrap: wrap; font-size: 12px; }
+}
+
 .upload-progress-card {
     border: 1px solid #e2e8f0;
     border-radius: 14px;

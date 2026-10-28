@@ -248,6 +248,18 @@ thead .sticky-col {
     white-space: nowrap;
 }
 
+@media (max-width: 767.98px) {
+    .app-shell .shift-settings-page { --sticky-name-width: 148px; --shift-cell-width: 104px; }
+    .shift-matrix-table .sticky-no { display: none; }
+    .shift-matrix-table .sticky-pattern { position: static; }
+    .shift-matrix-table .sticky-name { left: 0; }
+    .shift-settings-page .employee-cell strong,
+    .shift-settings-page .employee-cell span,
+    .shift-settings-page .employee-cell small,
+    .shift-settings-page .shift-cell-label { font-size: 12px; white-space: normal; }
+    .shift-settings-page .shift-assignment-select { min-height: 44px; height: 44px; font-size: 13px; }
+}
+
 .shift-cell-label {
     display: block;
     max-width: 86px;

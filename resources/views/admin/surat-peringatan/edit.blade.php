@@ -5,7 +5,7 @@
     <div class="page-inner">
 
         <div class="page-header">
-            <h3 class="fw-bold mb-3">{{ __('Edit Data Resign') }}</h3>
+            <h3 class="fw-bold mb-3">{{ __('Edit Surat Peringatan') }}</h3>
         </div>
 
         <div class="card">

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Approval;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
+use App\Http\Requests\Approval\FilterApprovalRequest;
+use App\Services\Approvals\ApprovalListService;
 use App\Models\Roster;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
@@ -17,7 +19,7 @@ use Illuminate\Support\Facades\File;
 
 class RosterApprovalController extends Controller
 {
-    public function hodIndex()
+    public function hodIndex(FilterApprovalRequest $request)
     {
         $delegationService = app(ApprovalDelegationService::class);
         $query = $delegationService->restrictReadyForHod(
@@ -28,10 +30,10 @@ class RosterApprovalController extends Controller
             'cuti_roster'
         );
 
-        $cutis = auth()->user()->applyEmployeeScope(
+        $cutis = app(ApprovalListService::class)->paginate(auth()->user()->applyEmployeeScope(
             $query,
             'employees'
-        )->paginate(100)->withQueryString();
+        ), $request->validated());
 
         return view('approval.hod.roster.index', compact('cutis'));
     }
@@ -149,13 +151,13 @@ class RosterApprovalController extends Controller
         return $this->serveRosterAttachment($roster);
     }
 
-    public function hrdIndex()
+    public function hrdIndex(FilterApprovalRequest $request)
     {
-        $cutis = auth()->user()->applyEmployeeRelationScope(
+        $cutis = app(ApprovalListService::class)->paginate(auth()->user()->applyEmployeeRelationScope(
             Roster::query()->with('employee', 'periodeKerjaRoster')
                 ->where('status_pengajuan', 1)
                 ->orderBy('status_pengajuan', 'asc')
-        )->paginate(100)->withQueryString();
+        ), $request->validated());
 
         return view('approval.hr.roster.index', compact('cutis'));
     }

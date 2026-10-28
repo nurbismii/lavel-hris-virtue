@@ -81,6 +81,13 @@
             </div>
         @endif
 
+        @if($dashboard['has_errors'])
+        <div class="alert alert-warning" role="alert">
+            <strong>{{ __('Ringkasan monitor belum tersedia.') }}</strong>
+            {{ __('Sebagian data gagal dimuat. Silakan tekan Refresh atau coba kembali beberapa saat lagi.') }}
+        </div>
+        @else
+        <p class="text-muted small">{{ __('Ringkasan approval dan closing diperbarui paling lama setiap 60 detik.') }}</p>
         <section class="central-monitor-health central-monitor-health--{{ $healthMeta['class'] }}" aria-label="{{ __('Status operasional') }}">
             <div class="central-monitor-health__main">
                 <span class="central-monitor-health__icon" aria-hidden="true">
@@ -280,6 +287,7 @@
                 </div>
             </section>
         </div>
+        @endif
     </div>
 </div>
 @endsection

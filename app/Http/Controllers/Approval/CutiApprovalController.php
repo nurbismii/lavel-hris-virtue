@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Approval;
 use App\Exceptions\LeaveBalanceException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
+use App\Http\Requests\Approval\FilterApprovalRequest;
+use App\Services\Approvals\ApprovalListService;
 use App\Models\Cuti;
 use App\Models\Employee;
 use App\Notifications\StatusPengajuanNotification;
@@ -18,7 +20,7 @@ use Illuminate\Support\Facades\DB;
 
 class CutiApprovalController extends Controller
 {
-    public function hodIndex()
+    public function hodIndex(FilterApprovalRequest $request)
     {
         $delegationService = app(ApprovalDelegationService::class);
         $query = $delegationService->restrictReadyForHod(
@@ -30,10 +32,10 @@ class CutiApprovalController extends Controller
             'cuti_izin'
         );
 
-        $cutis = auth()->user()->applyEmployeeScope(
+        $cutis = app(ApprovalListService::class)->paginate(auth()->user()->applyEmployeeScope(
             $query,
             'employees'
-        )->paginate(100)->withQueryString();
+        ), $request->validated());
 
         return view('approval.hod.cuti.index', compact('cutis'));
     }
@@ -128,13 +130,13 @@ class CutiApprovalController extends Controller
         return back()->with('success', 'Berhasil diproses');
     }
 
-    public function hrdIndex()
+    public function hrdIndex(FilterApprovalRequest $request)
     {
-        $cutis = auth()->user()->applyEmployeeRelationScope(
+        $cutis = app(ApprovalListService::class)->paginate(auth()->user()->applyEmployeeRelationScope(
             Cuti::query()->with('employee')
                 ->where('status_hod', 1)
                 ->where('tipe', 'CUTI')
-        )->paginate(100)->withQueryString();
+        ), $request->validated());
 
         return view('approval.hr.cuti.index', compact('cutis'));
     }

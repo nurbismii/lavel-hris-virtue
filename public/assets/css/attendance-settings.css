@@ -260,6 +260,20 @@ thead .sticky-col {
     cursor: pointer;
 }
 
+.attendance-choice { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; margin: 0; cursor: pointer; }
+
+@media (max-width: 767.98px) {
+    .app-shell .attendance-settings-page { --sticky-name-width: 148px; }
+    .attendance-matrix-table .sticky-no { display: none; }
+    .attendance-matrix-table .sticky-pattern { position: static; }
+    .attendance-matrix-table .sticky-name { left: 0; }
+    .attendance-settings-page .employee-cell strong,
+    .attendance-settings-page .employee-cell span,
+    .attendance-settings-page .employee-cell small,
+    .attendance-settings-page .schedule-cell__meta { font-size: 12px; white-space: normal; }
+    .attendance-choice { min-height: 44px; min-width: 44px; }
+}
+
 .schedule-cell--auto-off {
     background: #f1f5f9 !important;
 }

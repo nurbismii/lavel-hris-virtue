@@ -93,6 +93,57 @@
             </div>
         </div>
 
+        {{-- SUMMARY --}}
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3">
+                <div class="summary-card summary-primary">
+                    <div class="summary-icon">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div>
+                        <p>{{ __('Total Karyawan Aktif') }}</p>
+                        <h4>{{ $totalAktif }}</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-xl-3">
+                <div class="summary-card summary-success">
+                    <div class="summary-icon">
+                        <i class="fas fa-user-plus"></i>
+                    </div>
+                    <div>
+                        <p>{{ __('Karyawan Masuk') }}</p>
+                        <h4>{{ $masuk }}</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-xl-3">
+                <div class="summary-card summary-danger">
+                    <div class="summary-icon">
+                        <i class="fas fa-user-minus"></i>
+                    </div>
+                    <div>
+                        <p>{{ __('Karyawan Keluar') }}</p>
+                        <h4>{{ $keluar }}</h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-6 col-xl-3">
+                <div class="summary-card summary-warning">
+                    <div class="summary-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                    <div>
+                        <p>{{ __('Turnover') }}</p>
+                        <h4>{{ $turnover }}%</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- UPLOAD PROGRESS --}}
         <div class="card dashboard-card upload-card mb-4">
             <div class="card-body">
@@ -125,57 +176,6 @@
                     'items' => $uploadProgressStatuses,
                     'emptyMessage' => 'Belum ada progress upload yang berjalan atau baru selesai.'
                     ])
-                </div>
-            </div>
-        </div>
-
-        {{-- SUMMARY --}}
-        <div class="row g-3 mb-4">
-            <div class="col-md-6 col-xl-3">
-                <div class="summary-card summary-primary">
-                    <div class="summary-icon">
-                        <i class="fas fa-user-check"></i>
-                    </div>
-                    <div>
-                        <p>{{ __('Total Karyawan Aktif') }}</p>
-                        <h4>{{ $totalAktif }}</h4>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-xl-3">
-                <div class="summary-card summary-success">
-                    <div class="summary-icon">
-                        <i class="fas fa-user-plus"></i>
-                    </div>
-                    <div>
-                        <p>{{ __('Karyawan Masuk') }}</p>
-                        <h4>{{ $masuk }}</h4>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-xl-3">
-                <div class="summary-card summary-danger">
-                    <div class="summary-icon">
-                        <i class="fas fa-user-minus"></i>
-                    </div>
-                    <div>
-                        <p>{{ __('Karyawan Keluar') }}</p>
-                        <h4>{{ $keluar }}</h4>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6 col-xl-3">
-                <div class="summary-card summary-warning">
-                    <div class="summary-icon">
-                        <i class="fas fa-percentage"></i>
-                    </div>
-                    <div>
-                        <p>{{ __('Turnover') }}</p>
-                        <h4>{{ $turnover }}%</h4>
-                    </div>
                 </div>
             </div>
         </div>

@@ -34,6 +34,15 @@ class AttendanceSecurityService
     private const MAX_GPS_ACCURACY_METERS = 200;
     private const MAX_SCREEN_SPOOF_SCORE = 45;
     private const LIVENESS_ACTION_TURN_LEFT_RIGHT = 'turn_left_right';
+    public const LIVENESS_ACTION_PASSIVE = 'passive';
+    private const PASSIVE_CAPTURE_DURATION_MS = 2000;
+
+    public function requiredLivenessFrames(string $action): array
+    {
+        return $action === self::LIVENESS_ACTION_PASSIVE
+            ? ['passive_start', 'passive_middle', 'passive_end']
+            : ['center', 'turn_left', 'turn_right'];
+    }
 
     public function issueChallenge(User $user, Request $request, string $attendanceDate, ?string $type = null): array
     {
@@ -50,9 +59,14 @@ class AttendanceSecurityService
             'issued_at' => $issuedAt->toIso8601String(),
             'expires_at' => $issuedAt->copy()->addSeconds($this->challengeTtlSeconds())->toIso8601String(),
             'min_capture_delay_ms' => $this->minCaptureDelayMs(),
-            'liveness_action' => self::LIVENESS_ACTION_TURN_LEFT_RIGHT,
-            'liveness_label' => 'Hadap tengah, hadap kiri, lalu hadap kanan',
+            'liveness_action' => config('services.presensi_face.liveness_mode') === 'passive'
+                ? self::LIVENESS_ACTION_PASSIVE : self::LIVENESS_ACTION_TURN_LEFT_RIGHT,
         ];
+        $payload['liveness_label'] = $payload['liveness_action'] === self::LIVENESS_ACTION_PASSIVE
+            ? 'Hadap lurus dan tahan wajah tetap di dalam frame' : 'Hadap tengah, hadap kiri, lalu hadap kanan';
+        $payload['liveness_required_frames'] = $this->requiredLivenessFrames($payload['liveness_action']);
+        $payload['capture_duration_ms'] = $payload['liveness_action'] === self::LIVENESS_ACTION_PASSIVE
+            ? self::PASSIVE_CAPTURE_DURATION_MS : 0;
 
         Cache::put($this->challengeCacheKey($token), $payload, $this->challengeTtlSeconds());
 
@@ -64,7 +78,8 @@ class AttendanceSecurityService
             'min_capture_delay_ms' => $payload['min_capture_delay_ms'],
             'liveness_action' => $payload['liveness_action'],
             'liveness_label' => $payload['liveness_label'],
-            'liveness_required_frames' => ['center', 'turn_left', 'turn_right'],
+            'liveness_required_frames' => $payload['liveness_required_frames'],
+            'capture_duration_ms' => $payload['capture_duration_ms'],
         ];
     }
 
@@ -180,13 +195,14 @@ class AttendanceSecurityService
     {
         $challengeId = (string) ($challenge['id'] ?? '');
         $expectedAction = (string) ($challenge['liveness_action'] ?? self::LIVENESS_ACTION_TURN_LEFT_RIGHT);
+        $isPassive = $expectedAction === self::LIVENESS_ACTION_PASSIVE;
         $client = is_array($meta['client_liveness'] ?? null) ? $meta['client_liveness'] : [];
         $passed = filter_var($request->input('face_liveness_passed'), FILTER_VALIDATE_BOOLEAN);
         $score = (float) $request->input('face_liveness_score');
         $screenSpoofScore = (float) $request->input('screen_spoof_score');
         $evidence = json_decode((string) $request->input('face_liveness_evidence'), true);
 
-        if (!$passed || !($client['passed'] ?? false)) {
+        if ($isPassive ? (($client['capture_ready'] ?? false) !== true) : (!$passed || !($client['passed'] ?? false))) {
             $this->fail('Liveness belum valid. Ikuti instruksi hadap wajah langsung di depan kamera.');
         }
 
@@ -217,8 +233,11 @@ class AttendanceSecurityService
             $this->fail('Bukti liveness tidak lengkap. Ulangi verifikasi kamera.');
         }
 
+        $requiredFrames = $this->requiredLivenessFrames($expectedAction);
+        if (count($evidence['frames']) !== count($requiredFrames) || collect($evidence['frames'])->contains(fn($frame) => !is_array($frame))) {
+            $this->fail('Jumlah bukti liveness tidak valid. Ulangi verifikasi kamera.');
+        }
         $frames = collect($evidence['frames'])->keyBy(fn($frame) => (string) ($frame['label'] ?? ''));
-        $requiredFrames = ['center', 'turn_left', 'turn_right'];
 
         foreach ($requiredFrames as $frameLabel) {
             $frame = $frames->get($frameLabel);
@@ -232,17 +251,25 @@ class AttendanceSecurityService
             }
         }
 
-        $centerAt = $this->livenessFrameTimestamp($frames->get('center'));
-        $turnLeftAt = $this->livenessFrameTimestamp($frames->get('turn_left'));
-        $turnRightAt = $this->livenessFrameTimestamp($frames->get('turn_right'));
+        $centerAt = $this->livenessFrameTimestamp($frames->get($requiredFrames[0]));
+        $turnLeftAt = $this->livenessFrameTimestamp($frames->get($requiredFrames[1]));
+        $turnRightAt = $this->livenessFrameTimestamp($frames->get($requiredFrames[2]));
 
         if ($centerAt <= 0 || $turnLeftAt <= $centerAt || $turnRightAt <= $turnLeftAt || ($turnRightAt - $centerAt) > 15000) {
             $this->fail('Urutan liveness tidak valid. Ulangi verifikasi kamera.');
         }
 
+        // Allow small rounding differences between browser clock sources.
+        if ($isPassive && (($turnRightAt - $centerAt) < self::PASSIVE_CAPTURE_DURATION_MS - 50
+            || $turnLeftAt - $centerAt < self::PASSIVE_CAPTURE_DURATION_MS / 4 - 50
+            || $turnRightAt - $turnLeftAt < self::PASSIVE_CAPTURE_DURATION_MS / 4 - 50)) {
+            $this->fail('Durasi bukti passive liveness belum cukup. Hadap kamera lalu ulangi pengambilan.');
+        }
+
         return [
             'type' => $expectedAction,
-            'passed' => true,
+            'passed' => !$isPassive,
+            'capture_ready' => true,
             'score' => $score,
             'screen_spoof_score' => $screenSpoofScore,
             'message' => (string) $request->input('face_liveness_message'),

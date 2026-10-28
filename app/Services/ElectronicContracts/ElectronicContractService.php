@@ -199,7 +199,7 @@ class ElectronicContractService
             'contract' => $contract,
             'html' => $this->renderContractHtmlForPdf($contract, $signature),
             'signature' => $signature,
-        ])->setPaper('A4', 'portrait');
+        ])->setPaper('A4', 'portrait')->setOption('isFontSubsettingEnabled', true);
 
         $path = sprintf(
             'employee-contracts/%s/%s/signed-%s.pdf',

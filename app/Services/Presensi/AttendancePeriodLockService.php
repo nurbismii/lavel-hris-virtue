@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Schema;
 class AttendancePeriodLockService
 {
     private const ATTENDANCE_COMPANY_CODES = ['VDNI', 'VDNIP'];
+    private $summaryTables = [];
+    private $delegationColumns = [];
 
     public function periodForMonth(?string $periodMonth = null): array
     {
@@ -224,6 +226,8 @@ class AttendancePeriodLockService
 
     public function buildSummary($startDate, $endDate): array
     {
+        $this->summaryTables = [];
+        $this->delegationColumns = [];
         $start = Carbon::parse($startDate)->toDateString();
         $end = Carbon::parse($endDate)->toDateString();
 
@@ -348,14 +352,10 @@ class AttendancePeriodLockService
 
     private function activeEmployeeCount(): int
     {
-        if (!Schema::hasTable('employees')) {
-            return 0;
-        }
-
-        return DB::table('employees')
-            ->where('status_resign', 'AKTIF')
-            ->whereIn('area_kerja', self::ATTENDANCE_COMPANY_CODES)
-            ->count();
+        return $this->countRows('employees', function ($query) {
+            $query->where('status_resign', 'AKTIF')
+                ->whereIn('area_kerja', self::ATTENDANCE_COMPANY_CODES);
+        });
     }
 
     private function pendingCutiCount(string $start, string $end, array $types, string $stage): int
@@ -440,7 +440,10 @@ class AttendancePeriodLockService
 
     private function excludeRejectedDelegation($query, string $table): void
     {
-        if (!Schema::hasColumn($table, 'delegate_status')) {
+        if (!array_key_exists($table, $this->delegationColumns)) {
+            $this->delegationColumns[$table] = Schema::hasColumn($table, 'delegate_status');
+        }
+        if (!$this->delegationColumns[$table]) {
             return;
         }
 
@@ -452,7 +455,10 @@ class AttendancePeriodLockService
 
     private function countRows(string $table, callable $callback): int
     {
-        if (!Schema::hasTable($table)) {
+        if (!array_key_exists($table, $this->summaryTables)) {
+            $this->summaryTables[$table] = Schema::hasTable($table);
+        }
+        if (!$this->summaryTables[$table]) {
             return 0;
         }
 

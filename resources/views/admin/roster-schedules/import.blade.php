@@ -6,7 +6,7 @@
 <div class="container-fluid" id="roster-import-page"
     @if(isset($history))
         data-status-url="{{ route('roster-schedules.import.status', $history) }}"
-        data-terminal="{{ in_array($history->status, ['completed', 'failed', 'validation_failed', 'expired'], true) ? '1' : '0' }}"
+        data-terminal="{{ in_array($history->status, ['completed', 'completed_with_errors', 'failed', 'validation_failed', 'expired'], true) ? '1' : '0' }}"
     @endif>
     <div class="page-inner">
         <div class="d-flex justify-content-between align-items-center pt-2 pb-4">
@@ -20,12 +20,17 @@
                 <label class="form-label" for="roster-file">{{ __('File roster (.xlsx)') }}</label>
                 <input class="form-control @error('file') is-invalid @enderror" id="roster-file" name="file" type="file" accept=".xlsx" required>
                 @error('file')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                <p class="form-text">{{ __('Format XLSX. Maksimal :size MB. Periksa pratinjau sebelum mengonfirmasi import.', ['size' => (int) config('roster.import.max_kb', 10240) / 1024]) }}</p>
                 <button class="btn btn-primary mt-3" type="submit">{{ __('Unggah dan Validasi') }}</button>
             </form>
         </div></div>
         @else
         <div class="card border-0 shadow-sm mb-3"><div class="card-body">
-            <div class="d-flex justify-content-between"><strong>{{ __('Status') }}</strong><span class="badge bg-secondary" data-import-status>{{ $history->status_label }}</span></div>
+            <div class="d-flex justify-content-between"><strong>{{ __('Status') }}</strong><span class="badge bg-{{ $history->status_badge_class }}" role="status" aria-live="polite" data-import-status>{{ $history->status_label }}</span></div>
+            <div class="alert alert-info d-none mt-3" data-polling-notice>
+                <span data-polling-message></span>
+                <a class="btn btn-sm btn-outline-primary ms-2" href="{{ url()->current() }}">{{ __('Refresh Status') }}</a>
+            </div>
             <div class="row g-3 mt-1">
                 @foreach(['total_rows' => 'Baris', 'blocker_count' => 'Blocker', 'warning_count' => 'Peringatan'] as $key => $label)
                 <div class="col-md-4"><div class="border rounded p-3"><small class="text-muted">{{ $label }}</small><div class="fs-4" data-summary="{{ $key }}">{{ $history->summary[$key] ?? 0 }}</div></div></div>
@@ -69,5 +74,5 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('assets/js/roster-schedule-import.js') }}"></script>
+<script src="{{ versioned_asset('assets/js/roster-schedule-import.js') }}"></script>
 @endpush

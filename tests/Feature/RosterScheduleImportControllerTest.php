@@ -75,7 +75,9 @@ class RosterScheduleImportControllerTest extends TestCase
         $this->assertStringContainsString("button.prop('disabled')", $script);
         $this->assertStringContainsString("button.data('label', original).prop('disabled', true)", $script);
         $this->assertStringContainsString("title: 'Konfirmasi import?'", $script);
-        $this->assertStringContainsString('window.setTimeout(poll, 0)', $script);
+        $this->assertStringContainsString('window.AppDialog.confirm', $script);
+        $this->assertStringContainsString('window.AppDialog.alert', $script);
+        $this->assertStringContainsString('schedulePoll(0)', $script);
         $this->assertStringContainsString('Date.now() - started > 720000', $script);
         $this->assertStringContainsString('xhr.status === 419', $script);
     }
@@ -235,7 +237,9 @@ class RosterScheduleImportControllerTest extends TestCase
         Storage::disk('local')->put('private/' . $history->failure_file_path, 'failure content');
 
         $json = $this->actingAs($hr)->getJson(route('roster-schedules.import.status', $history))
-            ->assertOk()->assertJsonPath('data.terminal', true)->getContent();
+            ->assertOk()->assertJsonPath('data.terminal', true)
+            ->assertJsonPath('data.status_label', 'Validasi gagal')
+            ->assertJsonPath('data.status_class', 'danger')->getContent();
         $this->assertStringNotContainsString($ktp, $json);
         $this->assertStringNotContainsString($history->file_path, $json);
         $this->assertStringNotContainsString($history->failure_file_path, $json);

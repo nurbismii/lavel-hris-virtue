@@ -21,9 +21,9 @@ class AttendanceAnomalyService
     private const GPS_SPEED_WARNING_MPS = 40;
     private const SECURITY_SCORE_WARNING = 80;
 
-    private $attendanceColumns = [];
-    private $logColumns = [];
-    private $verificationColumns = [];
+    private $tableColumns = [];
+    private $logTableExists;
+    private $verificationTableExists;
 
     public function anomalyTypes(): array
     {
@@ -140,7 +140,7 @@ class AttendanceAnomalyService
         ];
     }
 
-    public function summary(User $user, array $filters): array
+    public function summary(User $user, array $filters, ?array $types = null): array
     {
         $summary = [
             'total' => 0,
@@ -150,7 +150,7 @@ class AttendanceAnomalyService
         $this->applyAnomalyFilter($totalQuery, $filters['anomaly'] ?? 'all');
         $summary['total'] = $this->countRows($totalQuery);
 
-        foreach (array_keys($this->anomalyTypes()) as $type) {
+        foreach ($types === null ? array_keys($this->anomalyTypes()) : array_intersect($types, array_keys($this->anomalyTypes())) as $type) {
             $query = $this->baseQuery($user, $filters);
             $this->applyAnomalyFilter($query, $type);
             $summary[$type] = $this->countRows($query);
@@ -774,16 +774,12 @@ class AttendanceAnomalyService
 
     private function hasAttendanceColumn(string $column): bool
     {
-        if (!array_key_exists($column, $this->attendanceColumns)) {
-            $this->attendanceColumns[$column] = Schema::hasColumn('absensis', $column);
-        }
-
-        return $this->attendanceColumns[$column];
+        return $this->hasColumn('absensis', $column);
     }
 
     private function hasLogTable(): bool
     {
-        return Schema::hasTable('log_presensi');
+        return $this->logTableExists ?? ($this->logTableExists = Schema::hasTable('log_presensi'));
     }
 
     private function hasLogColumn(string $column): bool
@@ -792,16 +788,12 @@ class AttendanceAnomalyService
             return false;
         }
 
-        if (!array_key_exists($column, $this->logColumns)) {
-            $this->logColumns[$column] = Schema::hasColumn('log_presensi', $column);
-        }
-
-        return $this->logColumns[$column];
+        return $this->hasColumn('log_presensi', $column);
     }
 
     private function hasVerificationTable(): bool
     {
-        return Schema::hasTable('presensi_verifications');
+        return $this->verificationTableExists ?? ($this->verificationTableExists = Schema::hasTable('presensi_verifications'));
     }
 
     private function hasVerificationColumn(string $column): bool
@@ -810,10 +802,15 @@ class AttendanceAnomalyService
             return false;
         }
 
-        if (!array_key_exists($column, $this->verificationColumns)) {
-            $this->verificationColumns[$column] = Schema::hasColumn('presensi_verifications', $column);
+        return $this->hasColumn('presensi_verifications', $column);
+    }
+
+    private function hasColumn(string $table, string $column): bool
+    {
+        if (!array_key_exists($table, $this->tableColumns)) {
+            $this->tableColumns[$table] = array_fill_keys(Schema::getColumnListing($table), true);
         }
 
-        return $this->verificationColumns[$column];
+        return isset($this->tableColumns[$table][$column]);
     }
 }

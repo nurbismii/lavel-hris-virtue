@@ -2,22 +2,25 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="page-inner">
+    <div class="page-inner ui-page">
 
         {{-- HEADER --}}
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="text-primary">{{ __('Approval Cuti Tahunan') }}</h3>
+                <h3 class="ui-page-title ">{{ __('Approval Cuti Tahunan') }}</h3>
                 <small class="text-muted">
                     {{ __('Persetujuan HOD untuk karyawan pengajuan cuti tahunan') }}
                 </small>
             </div>
         </div>
 
+        @include('approval.partials.list-filter')
+
         <div class="card">
             <div class="card-body">
 
-                <table id="table-approval-cuti" class="table table-bordered">
+                <div class="ui-table-wrap {{ $cutis->isEmpty() ? 'd-none' : '' }}" role="region" tabindex="0" aria-label="{{ __('Daftar pengajuan') }}">
+                <table id="table-approval-cuti" class="approval-table table table-bordered">
                     <thead>
                         <tr>
                             <th>{{ __('tables.name') }}</th>
@@ -31,7 +34,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($cutis as $cuti)
+                        @forelse($cutis as $cuti)
                         @php
                             $hodStatus = (int) $cuti->status_hod;
                             $hrdStatus = (int) $cuti->status_hrd;
@@ -68,28 +71,17 @@
                                 @endif
                             </td>
                         </tr>
-                        @endforeach
+                        @empty
+                        <tr><td colspan="8"><div class="ui-empty-state"><i class="fas fa-inbox" aria-hidden="true"></i><span>{{ __('Tidak ada pengajuan yang sesuai dengan pencarian.') }}</span></div></td></tr>
+                        @endforelse
                     </tbody>
                 </table>
-                @if(method_exists($cutis, 'links'))
-                <div class="mt-3">
-                    {{ $cutis->links() }}
                 </div>
-                @endif
+                @include('approval.partials.list-footer', ['items' => $cutis])
             </div>
         </div>
     </div>
 </div>
 
-@push('scripts')
-<script>
-    $(document).ready(function() {
-        $("#table-approval-cuti").DataTable({
-            order: [
-                [1, 'desc']
-            ] // kolom index 1, urut terbaru dulu
-        });
-    });
-</script>
-@endpush
+
 @endsection

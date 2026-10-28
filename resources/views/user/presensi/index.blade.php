@@ -14,6 +14,7 @@
 @php
 $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
 $faceReferenceUrl = $faceReferencePath ? route('presensi.face-reference') : null;
+$isPassiveCapture = ($attendanceChallenge['liveness_action'] ?? '') === 'passive';
 $formatPresensiClock = function ($value, $attendanceDate = null, $empty = '--:--') {
 if (!$value) {
 return $empty;
@@ -98,6 +99,13 @@ $locationIssueMessage = $locationIssueMessage ?? (
         @if (!$faceReferencePath)
         <div class="alert alert-warning">
             {{ __('Foto referensi wajah belum didaftarkan oleh admin. Presensi dikunci sampai foto referensi tersedia.') }}
+        </div>
+        @endif
+
+        @if($isPassiveCapture)
+        <div class="alert alert-info" role="status">
+            <strong>{{ __('Passive liveness + GPS') }}</strong><br>
+            {{ __('Hadap lurus ke kamera tanpa menoleh. Bukti wajah diambil otomatis dan lokasi diperiksa saat presensi dikirim. Hasil verifikasi server dapat dilihat pada riwayat presensi.') }}
         </div>
         @endif
 
@@ -334,7 +342,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
                             @if ($requiresFaceStep)
                             <div id="attendanceStepHint" class="attendance-stage__hint">
                                 <i class="fas fa-sync-alt"></i>
-                                {{ __('GPS live dan liveness wajah diproses bersamaan. Tombol presensi aktif saat keduanya valid.') }}
+                                {{ $isPassiveCapture
+                                    ? __('Bukti kamera dan GPS dipersiapkan bersamaan. Tombol presensi aktif setelah bukti siap; verifikasi wajah dilanjutkan oleh server.')
+                                    : __('GPS live dan liveness wajah diproses bersamaan. Tombol presensi aktif saat keduanya valid.') }}
                             </div>
                             @endif
 
@@ -556,6 +566,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 @endsection
 
 @push('scripts')
+<script src="{{ versioned_asset('assets/js/passive-face-capture.js') }}"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
@@ -572,6 +583,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
     let currentDistance = 0;
     let stableStartTime = null;
     let gpsReady = false;
+    let lastLat = null;
+    let lastLong = null;
+    let lastTime = null;
+    let speed = null;
     let faceApiReady = false;
     let faceVerificationPassed = false;
     let referenceFaceDescriptor = null;
@@ -600,7 +615,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
     const gpsValidationDelayMs = 2500;
     const gpsEvidenceRetryDelayMs = 5000;
     const gpsEvidenceReuseMs = 60000;
-    const cameraValidationDelayMs = 900;
     const liveDetectionIntervalMs = 320;
     const faceDistanceThreshold = 0.5;
     const selfieMaxCaptureWidth = 720;
@@ -611,6 +625,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
     const faceReferencePath = @json($faceReferenceUrl);
     const attendanceChallenge = @json($attendanceChallenge);
     const livenessAction = attendanceChallenge && attendanceChallenge.liveness_action ? attendanceChallenge.liveness_action : 'turn_left_right';
+    const isPassiveLiveness = livenessAction === 'passive';
+    const livenessRequiredFrames = attendanceChallenge?.liveness_required_frames || ['center', 'turn_left', 'turn_right'];
+    const passiveCapture = new PassiveFaceCapture(attendanceChallenge?.capture_duration_ms || 2000);
+    const passiveCaptureText = @json(__('Hadap lurus dan tahan wajah di dalam frame. Bukti kamera sedang diambil.'));
+    const passiveReadyText = @json(__('Bukti wajah siap dikirim. Hasil liveness akan ditentukan oleh verifikasi server.'));
     const manualSelfieEnabled = false;
     const attendanceSubmitBaseUrl = @json(url('/absen'));
     const gpsLogUrl = @json(url('/api/gps-log'));
@@ -639,6 +658,14 @@ $locationIssueMessage = $locationIssueMessage ?? (
     function resetFaceMatchedReady() {
         faceMatchedReady = false;
         latestFaceMatchCapturePayload = null;
+    }
+
+    function resetPassiveCapture() {
+        if (!isPassiveLiveness) { return; }
+        passiveCapture.reset();
+        resetFaceMatchedReady();
+        resetLivenessEvidence();
+        setBlinkResult(false, null, passiveCaptureText);
     }
 
     function resetLivenessEvidence() {
@@ -1119,6 +1146,24 @@ $locationIssueMessage = $locationIssueMessage ?? (
         updateDistanceInfo('text-warning', distance, 'Lokasi siap - ' + blockReason);
     }
 
+    function handleGpsError(error) {
+        gpsReady = false;
+        gpsEvidenceReady = false;
+        stableStartTime = null;
+        positionHistory = [];
+        lastLat = null;
+        lastLong = null;
+        lastTime = null;
+        const messages = {
+            1: 'Izin lokasi ditolak. Aktifkan izin lokasi untuk situs ini lalu muat ulang halaman.',
+            2: 'Lokasi belum tersedia. Aktifkan GPS dan tunggu di area dengan sinyal yang baik.',
+            3: 'Pembacaan GPS melewati batas waktu. Sistem akan mencoba kembali; pastikan GPS tetap aktif.'
+        };
+        document.getElementById('distanceInfo').textContent = 'Gagal mengambil lokasi';
+        updateFaceLiveLocation('danger', 'Gagal mengambil lokasi', messages[error && error.code] || 'Periksa GPS dan izin lokasi, lalu coba kembali.');
+        updateAttendanceButtonState();
+    }
+
     async function loadFaceModels() {
         if (!faceReferencePath) {
             updateFaceStatus('Foto referensi wajah belum tersedia.', 'warning');
@@ -1468,7 +1513,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
             frame_state: payload.frameState ?? null,
             client_liveness: {
                 type: livenessAction,
-                passed: blinkLivenessPassed,
+                passed: !isPassiveLiveness && blinkLivenessPassed,
+                capture_ready: blinkLivenessPassed,
                 score: blinkLivenessScore,
                 message: blinkLivenessMessage,
                 challenge_id: attendanceChallenge ? attendanceChallenge.id : null,
@@ -1595,7 +1641,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             frameState: 'green'
         });
 
-        setBlinkResult(true, blinkLivenessScore ?? 1, blinkLivenessMessage || 'Liveness berhasil. Gerakan wajah terdeteksi.');
+        setBlinkResult(true, isPassiveLiveness ? null : (blinkLivenessScore ?? 1), blinkLivenessMessage || 'Liveness berhasil. Gerakan wajah terdeteksi.');
         faceVerificationPassed = true;
         cameraVerificationLocked = true;
         setSelfieSurfaceMode('preview');
@@ -1713,6 +1759,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         updateAttendanceButtonState();
 
         if (detections.length === 0) {
+            resetPassiveCapture();
             cameraValidationStartedAt = null;
             document.getElementById('face_distance').value = '';
             drawLiveCameraOverlay({
@@ -1723,6 +1770,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
 
         if (detections.length > 1) {
+            resetPassiveCapture();
             cameraValidationStartedAt = null;
             document.getElementById('face_distance').value = '';
             drawLiveCameraOverlay({
@@ -1762,6 +1810,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         });
 
         if (!insideGuide) {
+            resetPassiveCapture();
             cameraValidationStartedAt = null;
             drawLiveCameraOverlay({
                 state: 'red',
@@ -1772,6 +1821,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
 
         if (detectionScore < 0.78 || faceHeightRatio < 0.32 || faceHeightRatio > 0.76 || rollAngle > 12) {
+            resetPassiveCapture();
             cameraValidationStartedAt = null;
             drawLiveCameraOverlay({
                 state: 'yellow',
@@ -1782,6 +1832,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
 
         if (distance > faceDistanceThreshold) {
+            resetPassiveCapture();
             cameraValidationStartedAt = null;
             drawLiveCameraOverlay({
                 state: 'red',
@@ -1791,12 +1842,32 @@ $locationIssueMessage = $locationIssueMessage ?? (
             return;
         }
 
+        const passivePose = isPassiveLiveness ? calculateHeadTurnMetric(detection.landmarks) : null;
+        if (isPassiveLiveness && (!passivePose || passivePose.absYaw > TURN_CENTER_MAX_YAW)) {
+            resetPassiveCapture();
+            drawLiveCameraOverlay({ state: 'yellow', boxes: [faceBox] });
+            updateLiveFrameFeedback('yellow', passiveCaptureText, 0);
+            return;
+        }
+
         faceMatchedReady = true;
         latestFaceMatchCapturePayload = {
             distance,
             detectionScore,
             rollAngle
         };
+
+        if (isPassiveLiveness) {
+            const capture = passiveCapture.observe(true, Date.now());
+            if (capture.frameIndex !== null) {
+                if (capture.frameIndex === 0) { resetLivenessEvidence(); }
+                captureLivenessEvidenceFrame(livenessRequiredFrames[capture.frameIndex], video);
+            }
+            drawLiveCameraOverlay({ state: 'validating', boxes: [faceBox] });
+            updateLiveFrameFeedback('validating', passiveCaptureText, capture.progress);
+            if (capture.complete) { await captureSelfieFromTurn(null, passiveReadyText); }
+            return;
+        }
 
         cameraValidationStartedAt = null;
 
@@ -1811,41 +1882,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
             0
         );
 
-        return;
-
-        if (!cameraValidationStartedAt) {
-            cameraValidationStartedAt = Date.now();
-        }
-
-        const cameraValidationProgress = Math.min((Date.now() - cameraValidationStartedAt) / cameraValidationDelayMs, 1);
-
-        if (cameraValidationProgress < 1) {
-            drawLiveCameraOverlay({
-                state: 'validating',
-                boxes: [faceBox]
-            });
-            updateLiveFrameFeedback('validating', 'Wajah cocok. Memastikan frame tetap stabil...', cameraValidationProgress);
-            return;
-        }
-
-        drawLiveCameraOverlay({
-            state: 'green',
-            boxes: [faceBox]
-        });
-        cameraVerificationLocked = true;
-        cameraValidationStartedAt = null;
-        updateLiveFrameFeedback('green', 'Wajah cocok. Selfie sedang disimpan.', 1);
-
-        try {
-            await captureLiveSelfie({
-                distance,
-                detectionScore,
-                rollAngle
-            });
-        } catch (error) {
-            cameraVerificationLocked = false;
-            throw error;
-        }
     }
 
     function beginLiveCameraVerification() {
@@ -1863,6 +1899,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             try {
                 await evaluateLiveCameraFrame();
             } catch (error) {
+                resetPassiveCapture();
                 updateLiveFrameFeedback('red', error.message || 'Analisis kamera gagal dijalankan.', 0);
             } finally {
                 cameraIsProcessing = false;
@@ -1925,7 +1962,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             await video.play();
 
             setSelfieSurfaceMode('live');
-            startTurnLiveness(video);
+            if (isPassiveLiveness) { resetPassiveCapture(); } else { startTurnLiveness(video); }
 
             syncLiveCameraOverlaySize();
             drawLiveCameraOverlay({
@@ -1933,12 +1970,12 @@ $locationIssueMessage = $locationIssueMessage ?? (
             });
             updateLiveFrameFeedback(
                 'neutral',
-                'Kamera aktif. Hadap lurus ke kamera. Setelah wajah cocok, ikuti instruksi hadap wajah.',
+                isPassiveLiveness ? passiveCaptureText : 'Kamera aktif. Hadap lurus ke kamera. Setelah wajah cocok, ikuti instruksi hadap wajah.',
                 0
             );
             beginLiveCameraVerification();
         } catch (error) {
-            setSelfieSurfaceMode('placeholder');
+            stopLiveCamera();
             emphasizeManualCameraFallback(true);
             updateLiveFrameFeedback('red', describeCameraAccessError(error), 0);
         }
@@ -2002,10 +2039,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
             return;
         }
 
-        let lastLat = null;
-        let lastLong = null;
-        let lastTime = null;
-        let speed = null;
         const selfieInput = document.getElementById('selfie_capture');
         const retryCameraButton = document.getElementById('retryCameraButton');
         const manualSelfieButton = document.getElementById('manualSelfieButton');
@@ -2448,11 +2481,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     });
                 }
             }
-        }, function() {
-            document.getElementById("distanceInfo").innerHTML =
-                "<span class='text-danger'>Gagal mengambil lokasi</span>";
-            updateFaceLiveLocation('danger', 'Gagal mengambil lokasi', 'Periksa izin lokasi di browser.');
-        }, {
+        }, handleGpsError, {
             enableHighAccuracy: true,
             timeout: 20000,
             maximumAge: 0
@@ -2669,7 +2698,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             return frame.label;
         });
 
-        return ['center', 'turn_left', 'turn_right'].every(function(label) {
+        return livenessRequiredFrames.every(function(label) {
             return labels.includes(label);
         });
     }
@@ -2731,7 +2760,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         updateLiveFrameFeedback(
             'green',
-            'Gerakan wajah terdeteksi. Selfie sedang diambil otomatis.',
+            isPassiveLiveness ? passiveReadyText : 'Gerakan wajah terdeteksi. Selfie sedang diambil otomatis.',
             1
         );
 
@@ -2740,6 +2769,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         } catch (error) {
             cameraVerificationLocked = false;
             livenessCaptureInProgress = false;
+            resetPassiveCapture();
             updateLiveFrameFeedback(
                 'red',
                 error.message || 'Gagal mengambil selfie dari liveness.',

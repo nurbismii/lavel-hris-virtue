@@ -1,4 +1,84 @@
 (function() {
+    function resetSubmitLocks() {
+        document.querySelectorAll('form[data-submit-lock]').forEach(function(form) {
+            delete form.dataset.submitting;
+            form.removeAttribute('aria-busy');
+            form.querySelectorAll('[data-submit-original]').forEach(function(button) {
+                button.disabled = false;
+                button.innerHTML = button.dataset.submitOriginal;
+                delete button.dataset.submitOriginal;
+            });
+        });
+    }
+
+    window.addEventListener('pageshow', resetSubmitLocks);
+    document.addEventListener('submit', function(event) {
+        const form = event.target;
+        if (!form.matches('form[data-submit-lock]') || event.defaultPrevented) { return; }
+        if (form.dataset.submitting) { event.preventDefault(); return; }
+        form.dataset.submitting = 'true';
+        form.setAttribute('aria-busy', 'true');
+        form.querySelectorAll('button[type="submit"]').forEach(function(button) {
+            button.dataset.submitOriginal = button.innerHTML;
+            button.disabled = true;
+            button.textContent = button.dataset.loadingText || 'Menyimpan...';
+        });
+    });
+
+    const sidebar = document.getElementById('appSidebar');
+    const pageHeading = document.querySelector('.main-panel > .container .ui-page-title, .main-panel > .container .page-header h3, .main-panel > .container .page-header h4, .page-inner > .d-flex h3, .page-inner > .d-flex h4, .dashboard-home-page .dashboard-title');
+    if (pageHeading && document.title.trim() === 'V-People · PT VDNI') {
+        document.title = pageHeading.textContent.trim() + ' | V-People · PT VDNI';
+    }
+    const mobile = window.matchMedia('(max-width: 991.98px)');
+    let menuTrigger = null;
+
+    function setMenuOpen(open) {
+        document.documentElement.classList.toggle('app-menu-open', open);
+        document.querySelector('.main-panel').inert = open;
+        sidebar.setAttribute('role', open ? 'dialog' : 'navigation');
+        if (open) { sidebar.setAttribute('aria-modal', 'true'); } else { sidebar.removeAttribute('aria-modal'); }
+        document.querySelectorAll('[data-app-menu-toggle][aria-expanded]').forEach(function(button) {
+            button.setAttribute('aria-expanded', String(open));
+        });
+        if (open) {
+            window.requestAnimationFrame(function() { sidebar.querySelector('[data-app-menu-toggle]').focus(); });
+        } else if (menuTrigger) {
+            menuTrigger.focus();
+        }
+    }
+
+    document.addEventListener('click', function(event) {
+        const toggle = event.target.closest('[data-app-menu-toggle]');
+        if (toggle && sidebar && mobile.matches) {
+            const open = !document.documentElement.classList.contains('app-menu-open');
+            if (open) { menuTrigger = toggle; }
+            setMenuOpen(open);
+        } else if (sidebar && sidebar.contains(event.target) && event.target.closest('a[href]:not([data-bs-toggle])')) {
+            setMenuOpen(false);
+        }
+    });
+
+    document.addEventListener('keydown', function(event) {
+        if (!sidebar || !document.documentElement.classList.contains('app-menu-open')) { return; }
+        if (event.key === 'Escape') { setMenuOpen(false); }
+        if (event.key === 'Tab') {
+            const controls = Array.from(sidebar.querySelectorAll('a[href],button:not([disabled])')).filter(function(element) {
+                return element.getClientRects().length > 0;
+            });
+            if (controls.length && (!sidebar.contains(document.activeElement) || document.activeElement === (event.shiftKey ? controls[0] : controls[controls.length - 1]))) {
+                event.preventDefault();
+                (event.shiftKey ? controls[controls.length - 1] : controls[0]).focus();
+            }
+        }
+    });
+
+    window.addEventListener('resize', function() {
+        if (!mobile.matches && document.documentElement.classList.contains('app-menu-open')) { setMenuOpen(false); }
+    });
+})();
+
+(function() {
     const IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const TARGET_BYTES = Math.round(1.8 * 1024 * 1024);
     const MAX_DIMENSION = 2400;

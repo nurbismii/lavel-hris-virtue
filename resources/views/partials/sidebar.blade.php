@@ -24,7 +24,7 @@ $cvMakerCompareActive = request()->routeIs('cv-maker-compare.*');
 $organizationStructureActive = request()->routeIs('organization-structure.*');
 @endphp
 
-<div class="sidebar" data-background-color="white">
+<div class="sidebar" id="appSidebar" role="navigation" aria-label="{{ __('Menu utama') }}" data-background-color="white">
     <div class="sidebar-logo">
         <div class="logo-header" data-background-color="white">
             <a href="{{ $homeUrl }}" class="logo app-brand app-brand--sidebar text-decoration-none" aria-label="V-People">
@@ -32,10 +32,10 @@ $organizationStructureActive = request()->routeIs('organization-structure.*');
                 <span class="app-brand__text">V-People</span>
             </a>
             <div class="nav-toggle">
-                <button class="btn btn-toggle toggle-sidebar">
+                <button type="button" class="btn btn-toggle toggle-sidebar" aria-label="{{ __('Ringkas menu navigasi') }}">
                     <i class="gg-menu-right"></i>
                 </button>
-                <button class="btn btn-toggle sidenav-toggler">
+                <button type="button" class="btn btn-toggle app-menu-toggle" data-app-menu-toggle aria-controls="appSidebar" aria-expanded="false" aria-label="{{ __('Menu navigasi') }}">
                     <i class="gg-menu-left"></i>
                 </button>
             </div>

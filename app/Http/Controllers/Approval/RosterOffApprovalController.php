@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Approval;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Approval\ProcessApprovalRequest;
+use App\Http\Requests\Approval\FilterApprovalRequest;
+use App\Services\Approvals\ApprovalListService;
 use App\Models\RosterOffRequest;
 use App\Notifications\StatusPengajuanNotification;
 use App\Services\Approvals\ApprovalAuditService;
@@ -15,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 
 class RosterOffApprovalController extends Controller
 {
-    public function hodIndex()
+    public function hodIndex(FilterApprovalRequest $request)
     {
         $delegationService = app(ApprovalDelegationService::class);
         $query = $delegationService->restrictReadyForHod(
@@ -26,9 +28,9 @@ class RosterOffApprovalController extends Controller
             'roster_off_requests'
         );
 
-        $offRequests = auth()->user()->applyEmployeeRelationScope(
+        $offRequests = app(ApprovalListService::class)->paginate(auth()->user()->applyEmployeeRelationScope(
             $query
-        )->paginate(100)->withQueryString();
+        ), $request->validated());
 
         return view('approval.hod.roster-off.index', compact('offRequests'));
     }
@@ -122,15 +124,15 @@ class RosterOffApprovalController extends Controller
         return back();
     }
 
-    public function hrdIndex()
+    public function hrdIndex(FilterApprovalRequest $request)
     {
-        $offRequests = auth()->user()->applyEmployeeRelationScope(
+        $offRequests = app(ApprovalListService::class)->paginate(auth()->user()->applyEmployeeRelationScope(
             RosterOffRequest::query()
                 ->with('employee.divisi.departemen')
                 ->where('status_hod', RosterOffRequest::STATUS_APPROVED)
                 ->orderByRaw('CASE WHEN status_hrd = 0 THEN 0 WHEN status_hrd = 1 THEN 1 ELSE 2 END')
                 ->latest('tanggal_off')
-        )->paginate(100)->withQueryString();
+        ), $request->validated());
 
         return view('approval.hr.roster-off.index', compact('offRequests'));
     }

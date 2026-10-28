@@ -2,10 +2,10 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="page-inner">
+    <div class="page-inner ui-page">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
             <div>
-                <h4 class="fw-bold mb-1">
+                <h4 class="ui-page-title fw-bold mb-1">
                     <i class="fas text-primary"></i>
                     {{ __('Approval OFF Roster HR') }}
                 </h4>
@@ -13,9 +13,12 @@
             </div>
         </div>
 
+        @include('approval.partials.list-filter')
+
         <div class="card border-0" style="border-radius:16px; box-shadow:0 12px 30px rgba(15,23,42,.06);">
-            <div class="card-body table-responsive">
-                <table id="table-approval-roster-off" class="table table-bordered table-sm align-middle mb-0">
+            <div class="card-body">
+                <div class="ui-table-wrap {{ $offRequests->isEmpty() ? 'd-none' : '' }}" role="region" tabindex="0" aria-label="{{ __('Daftar pengajuan') }}">
+                <table id="table-approval-roster-off" class="approval-table table table-bordered table-sm align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>{{ __('tables.nik') }}</th>
@@ -29,7 +32,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($offRequests as $offRequest)
+                        @forelse($offRequests as $offRequest)
                         @php
                             $employee = $offRequest->employee;
                             $department = optional(optional(optional($employee)->divisi)->departemen)->departemen;
@@ -74,27 +77,17 @@
                                 @endif
                             </td>
                         </tr>
-                        @endforeach
+                        @empty
+                        <tr><td colspan="8"><div class="ui-empty-state"><i class="fas fa-inbox" aria-hidden="true"></i><span>{{ __('Tidak ada pengajuan yang sesuai dengan pencarian.') }}</span></div></td></tr>
+                        @endforelse
                     </tbody>
                 </table>
-                @if(method_exists($offRequests, 'links'))
-                <div class="mt-3">
-                    {{ $offRequests->links() }}
                 </div>
-                @endif
+                @include('approval.partials.list-footer', ['items' => $offRequests])
             </div>
         </div>
     </div>
 </div>
 
-@push('scripts')
-<script>
-    $(document).ready(function() {
-        $("#table-approval-roster-off").DataTable({
-            responsive: true,
-            order: [[3, 'desc']]
-        });
-    });
-</script>
-@endpush
+
 @endsection

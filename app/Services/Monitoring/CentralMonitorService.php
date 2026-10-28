@@ -9,6 +9,7 @@ use App\Services\Approvals\ApprovalSlaService;
 use App\Services\Presensi\AttendanceAnomalyService;
 use App\Services\Presensi\AttendancePeriodLockService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Throwable;
@@ -18,9 +19,13 @@ class CentralMonitorService
     public const STATUS_OK = 'ok';
     public const STATUS_WARNING = 'warning';
     public const STATUS_CRITICAL = 'critical';
+    private $hasErrors = false;
+    private $tableExists = [];
 
     public function dashboard(User $user, array $filters = []): array
     {
+        $this->hasErrors = false;
+        $this->tableExists = [];
         $periodMonth = $this->normalizePeriodMonth($filters['period_month'] ?? null);
         $periodService = app(AttendancePeriodLockService::class);
         $period = $periodService->periodForMonth($periodMonth);
@@ -47,20 +52,21 @@ class CentralMonitorService
                 'start_date' => $period['start_date']->toDateString(),
                 'end_date' => $period['end_date']->toDateString(),
             ],
+            'has_errors' => $this->hasErrors,
             'health' => $this->health($sections),
             'sections' => $sections,
             'cards' => $this->cards($sections),
             'recent_imports' => $imports['recent'],
             'recent_audits' => $audit['recent'],
             'readiness' => [
-                'attendance_period_locks' => Schema::hasTable('attendance_period_locks'),
+                'attendance_period_locks' => $this->hasTable('attendance_period_locks'),
                 'approval_sla' => config('approval_sla.enabled', true),
-                'approval_sla_logs' => Schema::hasTable('approval_sla_escalation_logs'),
+                'approval_sla_logs' => $this->hasTable('approval_sla_escalation_logs'),
                 'attendance_anomaly' => $this->attendanceAnomalyReady(),
-                'import_histories' => Schema::hasTable('import_histories'),
-                'audit_trails' => Schema::hasTable('audit_trails'),
-                'jobs' => Schema::hasTable('jobs'),
-                'failed_jobs' => Schema::hasTable('failed_jobs'),
+                'import_histories' => $this->hasTable('import_histories'),
+                'audit_trails' => $this->hasTable('audit_trails'),
+                'jobs' => $this->hasTable('jobs'),
+                'failed_jobs' => $this->hasTable('failed_jobs'),
             ],
         ];
     }
@@ -68,10 +74,12 @@ class CentralMonitorService
     private function periodSummary(AttendancePeriodLockService $periodService, array $period): array
     {
         return $this->safeArray(function () use ($periodService, $period) {
-            return $periodService->buildSummary(
-                $period['start_date']->toDateString(),
-                $period['end_date']->toDateString()
-            );
+            return Cache::remember('central-monitor:period-summary:' . $period['period_key'], 60, function () use ($periodService, $period) {
+                return $periodService->buildSummary(
+                    $period['start_date']->toDateString(),
+                    $period['end_date']->toDateString()
+                );
+            });
         });
     }
 
@@ -89,7 +97,9 @@ class CentralMonitorService
         }
 
         return $this->safeArray(function () {
-            $summary = app(ApprovalSlaService::class)->summary();
+            $summary = Cache::remember('central-monitor:sla-summary', 60, function () {
+                return app(ApprovalSlaService::class)->summary();
+            });
 
             return [
                 'enabled' => true,
@@ -123,7 +133,7 @@ class CentralMonitorService
             $anomalySummary = $this->safeArray(function () use ($user, $filters) {
                 $service = app(AttendanceAnomalyService::class);
 
-                return $service->summary($user, $service->normalizeFilters($filters));
+                return $service->summary($user, $service->normalizeFilters($filters), ['suspicious_score']);
             });
         }
 
@@ -141,7 +151,7 @@ class CentralMonitorService
     {
         $currentLock = null;
 
-        if (Schema::hasTable('attendance_period_locks')) {
+        if ($this->hasTable('attendance_period_locks')) {
             $currentLock = AttendancePeriodLock::query()
                 ->where('period_key', $period['period_key'])
                 ->latest('id')
@@ -166,7 +176,7 @@ class CentralMonitorService
         ])->sum(fn(string $key) => (int) ($periodSummary[$key] ?? 0));
 
         return [
-            'is_table_ready' => Schema::hasTable('attendance_period_locks'),
+            'is_table_ready' => $this->hasTable('attendance_period_locks'),
             'is_locked' => $currentLock ? $currentLock->is_locked : false,
             'status_label' => $currentLock ? $currentLock->status_label : 'Belum dikunci',
             'locked_at' => $currentLock && $currentLock->closed_at ? $currentLock->closed_at->format('d M Y H:i') : null,
@@ -176,7 +186,7 @@ class CentralMonitorService
 
     private function importSummary(): array
     {
-        if (!Schema::hasTable('import_histories')) {
+        if (!$this->hasTable('import_histories')) {
             return [
                 'active' => 0,
                 'failed_7d' => 0,
@@ -222,7 +232,7 @@ class CentralMonitorService
 
     private function auditSummary(): array
     {
-        if (!Schema::hasTable('audit_trails')) {
+        if (!$this->hasTable('audit_trails')) {
             return [
                 'last_24h' => 0,
                 'approval_last_24h' => 0,
@@ -387,13 +397,22 @@ class CentralMonitorService
 
     private function attendanceAnomalyReady(): bool
     {
-        return Schema::hasTable('employees')
-            && Schema::hasTable('absensis');
+        return $this->hasTable('employees')
+            && $this->hasTable('absensis');
+    }
+
+    private function hasTable(string $table): bool
+    {
+        if (!array_key_exists($table, $this->tableExists)) {
+            $this->tableExists[$table] = Schema::hasTable($table);
+        }
+
+        return $this->tableExists[$table];
     }
 
     private function countRows(string $table, ?callable $callback = null): int
     {
-        if (!Schema::hasTable($table)) {
+        if (!$this->hasTable($table)) {
             return 0;
         }
 
@@ -444,6 +463,7 @@ class CentralMonitorService
         try {
             return $callback();
         } catch (Throwable $exception) {
+            $this->hasErrors = true;
             report($exception);
 
             return $fallback;

@@ -3,29 +3,23 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Organization\StoreDepartmentRequest;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Perusahaan;
-use Illuminate\Http\Request;
 
 class DepartemenController extends Controller
 {
     public function create($perusahaan_id)
     {
-        $perusahaan = Perusahaan::where('id', $perusahaan_id)->first();
+        $perusahaan = Perusahaan::findOrFail($perusahaan_id);
 
         return view('admin.departemen.create', compact('perusahaan'));
     }
 
-    public function store(Request $request)
+    public function store(StoreDepartmentRequest $request)
     {
-        Departemen::create([
-            'perusahaan_id' => $request->perusahaan_id,
-            'departemen' => $request->departemen,
-            'kepala_dept' => $request->kepala_dept,
-            'no_telp_departemen' => $request->no_telp_departemen,
-            'status_pengeluaran' => $request->status_pengeluaran
-        ]);
+        Departemen::create($request->validated());
 
         toast()->success('Success', 'Departemen created successfully');
         return back();

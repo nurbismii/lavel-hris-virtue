@@ -132,7 +132,8 @@
 
         <div class="card border-0 shift-card">
             <div class="card-body p-0">
-                <div class="shift-table-wrap">
+                <p class="d-md-none small text-muted px-3 pt-3">{{ __('Geser tabel ke samping untuk memilih tanggal. Nama karyawan tetap terlihat.') }}</p>
+                <div class="shift-table-wrap" role="region" tabindex="0" aria-label="{{ __('Pengaturan shift per karyawan dan tanggal') }}">
                     <table class="table table-bordered table-sm align-middle mb-0 shift-matrix-table">
                         <thead>
                             <tr>
@@ -198,6 +199,7 @@
                                             title="{{ $isNationalHoliday ? $nationalHoliday->holiday_name : ($isSunday ? 'Minggu' : '') }}">
                                             <select
                                                 class="form-select form-select-sm shift-assignment-select"
+                                                aria-label="{{ __('Shift :name, :date', ['name' => $employee->nama_karyawan, 'date' => $date->format('d M Y')]) }}"
                                                 data-employee="{{ $employee->nik }}"
                                                 data-date="{{ $dateString }}"
                                                 data-shift-id="{{ $assignment['shift_id'] ?? '' }}"

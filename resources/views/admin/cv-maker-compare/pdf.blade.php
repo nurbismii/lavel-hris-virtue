@@ -3,20 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Curriculum Vitae</title>
+    @include('partials.pdf-fonts')
     <style>
-        @font-face {
-            font-family: 'CvNotoSansSC';
-            font-style: normal;
-            font-weight: normal;
-            src: url("{{ 'file://' . str_replace('\\', '/', storage_path('fonts/NotoSansSC-Regular.ttf')) }}") format('truetype');
-        }
-        /* Use the available regular CJK face for bold runs as well, so headings retain Chinese glyphs. */
-        @font-face {
-            font-family: 'CvNotoSansSC';
-            font-style: normal;
-            font-weight: bold;
-            src: url("{{ 'file://' . str_replace('\\', '/', storage_path('fonts/NotoSansSC-Regular.ttf')) }}") format('truetype');
-        }
         @page { margin: 34px 40px 44px; }
         body { font-family: 'DejaVu Sans', 'CvNotoSansSC', sans-serif; font-size: 9px; line-height: 1.6; color: #263449; }
         h1 { font-size: 24px; line-height: 1.25; margin: 4px 0 7px; color: #142c48; }

@@ -5,9 +5,10 @@
     <meta charset="utf-8">
     <title>PT VDNI - E-Payslip</title>
     <link rel="icon" href="{{ asset('/assets/img/kaiadmin/favicon.ico') }}" type="image/x-icon" />
+    @include('partials.pdf-fonts')
     <style>
         body {
-            font-family: 'NotoSansSC', DejaVu Sans, sans-serif;
+            font-family: 'DejaVu Sans', 'CvNotoSansSC', sans-serif;
             font-size: 10px;
             color: #333;
         }
@@ -31,12 +32,14 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 15px;
+            table-layout: fixed;
         }
 
         th,
         td {
             padding: 6px 8px;
             border: 1px solid #ddd;
+            word-wrap: break-word;
         }
 
         th {
@@ -59,12 +62,6 @@
             background: #e6ffe6;
         }
 
-        @font-face {
-            font-family: 'NotoSansSC';
-            src: url('{{ storage_path(' fonts/NotoSansSC-Regular.ttf') }}')format('truetype');
-            font-weight: normal;
-            font-style: normal;
-        }
     </style>
 </head>
 

@@ -42,7 +42,8 @@ class SlipGajiController extends Controller
         $slip = KomponenGaji::with('karyawan')->findOrFail($id);
 
         $pdf = Pdf::loadView('admin.slip-gaji.pdf', compact('slip'))
-            ->setPaper('A4', 'portrait');
+            ->setPaper('A4', 'portrait')
+            ->setOption('isFontSubsettingEnabled', true);
 
         return $pdf->stream(
             'Slip-Gaji-' . ($slip->karyawan->nik ?? 'karyawan') . '-' . $slip->periode . '.pdf'

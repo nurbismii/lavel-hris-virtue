@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Schema;
 
 class ApprovalSlaService
 {
+    private $tableColumns = [];
+
     public const STATUS_ON_TRACK = 'on_track';
     public const STATUS_WARNING = 'warning';
     public const STATUS_BREACHED = 'breached';
@@ -368,13 +370,13 @@ class ApprovalSlaService
         ];
 
         foreach ($definition['date_columns'] as $column) {
-            $columns[] = Schema::hasColumn($table, $column)
+            $columns[] = $this->hasColumn($table, $column)
                 ? $table . '.' . $column . ' as ' . $column
                 : DB::raw('NULL as ' . $column);
         }
 
         foreach (['delegate_processed_at', 'hod_processed_at'] as $column) {
-            $columns[] = Schema::hasColumn($table, $column)
+            $columns[] = $this->hasColumn($table, $column)
                 ? $table . '.' . $column . ' as ' . $column
                 : DB::raw('NULL as ' . $column);
         }
@@ -398,7 +400,7 @@ class ApprovalSlaService
                 : $table . '.created_at';
         }
 
-        if (Schema::hasColumn($table, 'hod_processed_at')) {
+        if ($this->hasColumn($table, 'hod_processed_at')) {
             return 'COALESCE(' . $table . '.hod_processed_at, ' . $table . '.updated_at, ' . $table . '.created_at)';
         }
 
@@ -511,19 +513,28 @@ class ApprovalSlaService
         return max(1, (int) config('approval_sla.stages.' . $stage . '.hours', 24));
     }
 
+    private function hasColumn(string $table, string $column): bool
+    {
+        if (!array_key_exists($table, $this->tableColumns)) {
+            $this->tableColumns[$table] = Schema::getColumnListing($table);
+        }
+
+        return in_array($column, $this->tableColumns[$table], true);
+    }
+
     private function stageSupported(array $definition, string $stage): bool
     {
         if ($stage === 'delegate') {
             return $this->hasDelegateColumns($definition['table']);
         }
 
-        return Schema::hasColumn($definition['table'], $definition[$stage === 'hod' ? 'hod_status' : 'hrd_status']);
+        return $this->hasColumn($definition['table'], $definition[$stage === 'hod' ? 'hod_status' : 'hrd_status']);
     }
 
     private function hasDelegateColumns(string $table): bool
     {
-        return Schema::hasColumn($table, 'delegate_status')
-            && Schema::hasColumn($table, 'delegate_processed_at');
+        return $this->hasColumn($table, 'delegate_status')
+            && $this->hasColumn($table, 'delegate_processed_at');
     }
 
     private function escalationLogCount(): int

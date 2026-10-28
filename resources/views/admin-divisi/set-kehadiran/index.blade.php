@@ -131,7 +131,8 @@
 
         <div class="card border-0 attendance-card">
             <div class="card-body p-0">
-                <div class="attendance-table-wrap">
+                <p class="d-md-none small text-muted px-3 pt-3">{{ __('Geser tabel ke samping untuk memilih tanggal. Nama karyawan tetap terlihat.') }}</p>
+                <div class="attendance-table-wrap" role="region" tabindex="0" aria-label="{{ __('Pengaturan hari off per karyawan dan tanggal') }}">
                     <table id="table-set-kehadiran" class="table table-bordered table-sm align-middle mb-0 attendance-matrix-table">
                         <thead>
                             <tr>
@@ -213,6 +214,8 @@
                                 <td
                                     class="attendance-cell {{ $cellClass }} {{ $isSunday ? 'is-sunday' : '' }} {{ $isNationalHoliday ? 'is-national-holiday' : '' }}"
                                     title="{{ $isNationalHoliday ? $holiday->holiday_name : ($isSunday ? 'Minggu' : '') }}">
+                                    <label class="attendance-choice">
+                                    <span class="visually-hidden">{{ __('OFF :name, :date', ['name' => $employee->nama_karyawan, 'date' => $date->format('d M Y')]) }}</span>
                                     <input
                                         type="checkbox"
                                         class="attendance-checkbox"
@@ -222,6 +225,7 @@
                                         data-manual-status="{{ $schedule['manual_status'] }}"
                                         data-status="{{ $schedule['final_status'] }}"
                                         {{ $checked }}>
+                                    </label>
                                     @if($metaLabel)
                                         <span class="schedule-cell__meta {{ $schedule['is_manual'] ? 'schedule-cell__meta--manual' : 'schedule-cell__meta--auto' }}">
                                             {{ $metaLabel }}

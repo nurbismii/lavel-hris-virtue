@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Reset Password V-People</title>
 </head>
 
@@ -12,7 +13,7 @@
         <tr>
             <td align="center">
 
-                <table width="500" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:8px; overflow:hidden;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="width:100%; max-width:500px; table-layout:fixed; background:#ffffff; border-radius:8px; overflow:hidden; word-wrap:break-word; overflow-wrap:anywhere;">
 
                     {{-- Header --}}
                     <tr>

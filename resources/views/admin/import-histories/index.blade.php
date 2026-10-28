@@ -102,7 +102,7 @@
                     <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                         <div>
                             <h5 class="mb-1">{{ __('Riwayat Import') }}</h5>
-                            <small class="text-muted">{{ __('Menampilkan 50 import per halaman, terbaru terlebih dahulu.') }}</small>
+                            <small class="text-muted">{{ __('Menampilkan :count import per halaman, terbaru terlebih dahulu.', ['count' => $importHistories->perPage()]) }}</small>
                         </div>
                         <div class="text-muted small">
                             Total: {{ number_format($importHistories->total()) }} import

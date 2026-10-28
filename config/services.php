@@ -68,6 +68,8 @@ return [
     ],
 
     'presensi_face' => [
+        'liveness_mode' => env('PRESENSI_LIVENESS_MODE', 'active'),
+        'passive_endpoint' => env('PRESENSI_PASSIVE_VERIFICATION_URL'),
         'endpoint' => env('PRESENSI_FACE_VERIFICATION_URL'),
         'token' => env('PRESENSI_FACE_VERIFICATION_TOKEN'),
         'timeout' => env('PRESENSI_FACE_VERIFICATION_TIMEOUT', 120),

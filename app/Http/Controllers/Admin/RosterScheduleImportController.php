@@ -133,9 +133,12 @@ final class RosterScheduleImportController extends Controller
             'message' => ImportHistory::statusLabels()[$status] ?? $status,
             'data' => [
                 'status' => $status,
+                'status_label' => ImportHistory::statusLabels()[$status] ?? $status,
+                'status_class' => ImportHistory::statusBadgeClasses()[$status] ?? 'secondary',
                 'summary' => $this->safeSummary($history->summary ?: []),
                 'terminal' => in_array($status, [
                     ImportHistory::STATUS_COMPLETED,
+                    ImportHistory::STATUS_COMPLETED_WITH_ERRORS,
                     ImportHistory::STATUS_FAILED,
                     ImportHistory::STATUS_VALIDATION_FAILED,
                     ImportHistory::STATUS_EXPIRED,
