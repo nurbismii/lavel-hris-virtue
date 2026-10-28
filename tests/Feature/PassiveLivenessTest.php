@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Http\Controllers\User\PresensiController;
+use App\Http\Requests\Presensi\PresensiRequest;
 use App\Services\Presensi\AttendanceSecurityService;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
@@ -17,6 +19,12 @@ class PassiveLivenessTest extends TestCase
     {
         parent::setUp();
         config()->set('cache.default', 'array');
+        config()->set('database.default', 'sqlite');
+        config()->set('database.connections.sqlite.database', ':memory:');
+        Route::post('/_test/presensi-capture', function (PresensiRequest $request, AttendanceSecurityService $security) {
+            $challenge = $security->consumeChallenge($request, $request->user(), now()->toDateString(), 'masuk');
+            return response()->json($security->validateFacePayload($request, $challenge)['liveness']);
+        });
     }
 
     private function challenge(string $mode): array
@@ -46,6 +54,57 @@ class PassiveLivenessTest extends TestCase
                 return ['label' => $label, 'captured_at_ms' => 1 + $index * 1000, 'image' => 'data:image/jpeg;base64,AA=='];
             }, $challenge['liveness_required_frames'], array_keys($challenge['liveness_required_frames']))]),
         ];
+    }
+
+    private function submission(array $challenge): array
+    {
+        return array_merge($this->payload($challenge), [
+            'lat_user' => -3.9, 'long_user' => 122.5, 'accuracy' => 10,
+            'device_info' => 'Test camera', 'selfie_capture' => UploadedFile::fake()->image('selfie.jpg', 480, 640),
+            'attendance_challenge_token' => $challenge['token'], 'attendance_challenge_id' => $challenge['id'],
+        ]);
+    }
+
+    public function test_passive_http_submission_accepts_an_empty_or_missing_browser_liveness_score(): void
+    {
+        $this->actingAs(new User(['id' => 'passive-test-user', 'nik_karyawan' => 'TEST-001']));
+        foreach ([null, '', 'missing'] as $score) {
+            $payload = $this->submission($this->challenge('passive'));
+            $payload['face_liveness_score'] = $score;
+            if ($score === 'missing') {
+                unset($payload['face_liveness_score']);
+            }
+            $this->postJson('/_test/presensi-capture', $payload)->assertOk()
+                ->assertJson(['type' => 'passive', 'passed' => false, 'capture_ready' => true]);
+        }
+    }
+
+    public function test_active_http_submission_keeps_the_required_numeric_bounded_liveness_score(): void
+    {
+        $this->actingAs(new User(['id' => 'passive-test-user', 'nik_karyawan' => 'TEST-001']));
+        foreach ([null, '', 'invalid', -0.1, 2.1] as $score) {
+            $payload = $this->submission($this->challenge('active'));
+            $payload['face_liveness_score'] = $score;
+            $this->postJson('/_test/presensi-capture', $payload)->assertStatus(422)
+                ->assertJsonValidationErrors('face_liveness_score');
+        }
+        $this->postJson('/_test/presensi-capture', $this->submission($this->challenge('active')))
+            ->assertOk()->assertJson(['type' => 'turn_left_right', 'passed' => true]);
+    }
+
+    public function test_http_submission_rejects_unknown_actions_and_forged_passive_mode(): void
+    {
+        $this->actingAs(new User(['id' => 'passive-test-user', 'nik_karyawan' => 'TEST-001']));
+        foreach (['presensi_challenge_action', 'face_liveness_type'] as $field) {
+            $payload = $this->submission($this->challenge('passive'));
+            $payload[$field] = 'unknown';
+            $this->postJson('/_test/presensi-capture', $payload)->assertStatus(422)->assertJsonValidationErrors($field);
+        }
+        $challenge = $this->challenge('active');
+        $challenge['liveness_action'] = 'passive';
+        $challenge['liveness_required_frames'] = ['passive_start', 'passive_middle', 'passive_end'];
+        $this->postJson('/_test/presensi-capture', $this->submission($challenge))
+            ->assertStatus(422)->assertJsonValidationErrors('presensi_security');
     }
 
     public function test_passive_capture_needs_no_turn_frames_and_is_not_a_server_liveness_success(): void
