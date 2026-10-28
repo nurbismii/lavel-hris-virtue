@@ -139,10 +139,17 @@ def analyze_uploads(files, cv2, np, engine):
                 message="Verifikasi selesai." if status == "verified" else "Hasil verifikasi membutuhkan pemeriksaan.")
 
 
-def unavailable(exc):
-    current_app.logger.error("Passive verifier unavailable: %s", type(exc).__name__)
-    return jsonify(status="pending_review", verified=False,
-                   message="Verifier belum siap atau gagal memproses. Perlu review HR."), 503
+def unavailable(exc, diagnostics=False):
+    dependency = exc.name.split(".", 1)[0] if isinstance(exc, ModuleNotFoundError) and isinstance(exc.name, str) else None
+    if not dependency or not dependency.isascii() or not dependency.isidentifier():
+        dependency = None
+    current_app.logger.error("Passive verifier unavailable: %s; missing_dependency=%s", type(exc).__name__, dependency)
+    payload = dict(status="pending_review", verified=False,
+                   message="Verifier belum siap atau gagal memproses. Perlu review HR.")
+    if diagnostics and dependency:
+        payload.update(error_code="missing_dependency", missing_dependency=dependency,
+                       message=f"Dependensi Python belum tersedia: {dependency}. Pasang pada virtualenv aplikasi API.")
+    return jsonify(payload), 503
 
 
 @passive_blueprint.route("/health/passive", methods=["GET"])
@@ -164,7 +171,7 @@ def passive_ready():
         load_engines()
         return jsonify(status="ok", verification_contract=CONTRACT, runtime_ready=True)
     except Exception as exc:
-        return unavailable(exc)
+        return unavailable(exc, diagnostics=True)
     finally:
         _inference_lock.release()
 

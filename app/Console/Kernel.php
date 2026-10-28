@@ -36,6 +36,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('employee-movements:apply-due --limit=500')->dailyAt('00:20')->withoutOverlapping();
         $schedule->command('cv-maker:sync-progress --limit=500 --chunk=100')->hourly()->withoutOverlapping();
         $schedule->command('cv-maker:maintain-pdf-exports')->everyMinute()->withoutOverlapping();
+        $schedule->command('queue:work database --queue=production --stop-when-empty --tries=1 --timeout=300 --max-time=600 --memory=256 --sleep=1')
+            ->everyFifteenMinutes()
+            ->withoutOverlapping(60)
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/queue-cron.log'));
     }
 
     /**

@@ -36,6 +36,36 @@ Endpoint baru:
 
 Jika dependensi/model tidak tersedia atau hasilnya tidak lengkap, API mengembalikan status perlu review dengan HTTP 503; tidak mengubah pemeriksaan kualitas gambar menjadi hasil liveness yang lolos.
 
+### Preflight gagal dengan ModuleNotFoundError
+
+Error ini berarti modul Python belum tersedia pada virtualenv yang menjalankan API. Baris CUDA/TensorRT tidak cukup untuk menentukan modul yang hilang; endpoint `/warmup` yang berhasil juga hanya membuktikan DeepFace dapat diimpor, bukan bahwa model anti-spoofing siap.
+
+Versi terbaru `passive_verifier.py` menyertakan nama dependensi pada respons `/ready/passive` yang sudah diautentikasi. Unggah ulang file tersebut, restart aplikasi cPanel, lalu ulangi preflight. Contoh jika yang hilang adalah PyTorch:
+
+```json
+{"status":"pending_review","verified":false,"error_code":"missing_dependency","missing_dependency":"torch"}
+```
+
+Nama dependensi juga dicatat dalam log tanpa pesan exception, token, atau stack trace. Endpoint presensi tetap mengembalikan pesan umum. Jika respons tidak memiliki `missing_dependency`, periksa jenis error terbaru pada log; jangan menganggap semua kegagalan berasal dari PyTorch.
+
+**Hanya jika `missing_dependency` bernilai `torch`**, aktifkan virtualenv aplikasi yang ditampilkan cPanel dan pasang paket CPU sesuai [petunjuk PyTorch](https://pytorch.org/get-started/locally/):
+
+```sh
+python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+python -c "import torch; print(torch.__version__)"
+```
+
+Jika menggunakan panel cPanel tanpa Terminal, pakai **Configuration files → Run Pip Install**:
+
+1. Unggah `requirements-passive-cpu.txt` ke folder yang sama dengan `app.py`.
+2. Masukkan nama file tersebut pada **Configuration files**, klik **Add**, lalu **Save**.
+3. Klik **Run Pip Install** dan pilih file CPU tersebut jika diminta. Jalankan instalasi khusus file itu; opsi index berlaku untuk seluruh pemanggilan pip, sehingga menggabungkannya dengan requirements lain dapat menyebabkan paket lain tidak ditemukan.
+4. Setelah instalasi berhasil, restart aplikasi dan ulangi preflight bertoken.
+
+Kolom **Execute python script** menerima path file Python; memasukkan `python` di sana membuat panel mencoba membuka file bernama `python`. Alur konfigurasi ini mengikuti [dokumentasi CloudLinux](https://docs.cloudlinux.com/cloudlinuxos/lve_manager/#edit-application). File requirements aplikasi yang sudah ada tetap dipertahankan.
+
+Gunakan salinan lingkungan uji seperti petunjuk instalasi di atas. Ketersediaan wheel mengikuti versi Python dan sistem hosting. Jika instalasi ditolak, tidak ada wheel yang sesuai, atau batas RAM/disk tidak mencukupi, simpan error instalasinya untuk menentukan versi/layanan yang kompatibel. Setelah paket berhasil dipasang, restart dan jalankan preflight lagi sampai `runtime_ready: true`. Jangan melewati pemeriksaan anti-spoofing untuk mengatasi kegagalan dependensi.
+
 ## 2. Kontrak request/response
 
 Multipart request:

@@ -102,13 +102,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
         </div>
         @endif
 
-        @if($isPassiveCapture)
-        <div class="alert alert-info" role="status">
-            <strong>{{ __('Passive liveness + GPS') }}</strong><br>
-            {{ __('Hadap lurus ke kamera tanpa menoleh. Bukti wajah diambil otomatis dan lokasi diperiksa saat presensi dikirim. Hasil verifikasi server dapat dilihat pada riwayat presensi.') }}
-        </div>
-        @endif
-
         @if ($errors->any())
         <div class="alert alert-danger">
             <strong>{{ __('Presensi belum berhasil dikirim.') }}</strong>
