@@ -184,16 +184,13 @@ test('a selfie encoded after the camera session ends cannot publish stale eviden
 
 test('missing map library produces readable fallback instead of aborting page initialization', () => {
     const mainMap = {};
-    const faceMap = {};
     const { context } = cameraContext({
-        document: { getElementById: id => id === 'map' ? mainMap : faceMap },
+        document: { getElementById: () => mainMap },
         mapUnavailableText: 'GPS still works',
     });
-    load(context, 'initMap', 'initFaceLiveMap');
+    load(context, 'initMap');
     context.initMap([{ lat: -4, long: 122 }]);
-    context.initFaceLiveMap([{ lat: -4, long: 122 }]);
     assert.equal(mainMap.textContent, 'GPS still works');
-    assert.equal(faceMap.textContent, 'GPS still works');
 });
 
 test('pausing a live camera stops its tracks and invalidates capture readiness', () => {
@@ -249,4 +246,27 @@ test('placeholder and live surfaces expose their mode without hiding the active 
     assert.equal(stage.dataset.cameraMode, 'live');
     assert.equal(nodes.selfiePlaceholder.hidden, true);
     assert.equal(nodes.selfieCamera.hidden, false);
+});
+
+test('camera panel shows live GPS distance, accuracy and attendance position without a mini map', () => {
+    assert.equal(/faceLiveMap|initFaceLiveMap|\bfaceMap\b/.test(source), false);
+    const status = {};
+    const meta = {};
+    const panel = { dataset: {} };
+    const { context } = cameraContext({
+        attendancePositionLabel: 'Posisi presensi', gpsLocationPrompt: 'Allow GPS',
+        document: {
+            querySelector: () => panel,
+            getElementById: id => id === 'faceLiveLocationStatus' ? status : meta,
+        },
+    });
+    load(context, 'faceLiveLocationMeta', 'updateFaceLiveLocation');
+    context.updateFaceLiveLocation('success', 'GPS live tersimpan', context.faceLiveLocationMeta(12.34, 8.7, 'Gerbang Utama'));
+    assert.equal(status.textContent, 'GPS live tersimpan');
+    assert.equal(meta.textContent, 'Jarak 12.3m | Akurasi 9m | Posisi presensi: Gerbang Utama');
+    assert.equal(panel.dataset.locationState, 'success');
+    context.updateFaceLiveLocation('danger', 'Gagal mengambil lokasi', 'Izin lokasi ditolak');
+    assert.equal(meta.textContent, 'Izin lokasi ditolak');
+    assert.equal(panel.dataset.locationState, 'danger');
+    assert.equal(context.faceLiveLocationMeta(NaN, NaN, ''), '');
 });

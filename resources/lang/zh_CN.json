@@ -1850,5 +1850,8 @@
     "Hadap lurus dan tahan wajah di dalam frame. Bukti kamera sedang diambil.": "请正对摄像头并将面部保持在框内，正在采集相机证据。",
     "Bukti wajah siap dikirim. Hasil liveness akan ditentukan oleh verifikasi server.": "面部证据已准备提交，活体检测结果将由服务器验证确定。",
     "Kamera dijeda. Aktifkan ulang kamera untuk melanjutkan presensi.": "摄像头已暂停。请重新启用摄像头以继续考勤。",
-    "Peta belum tersedia. Pembacaan GPS tetap berjalan.": "地图暂不可用，GPS 定位仍在运行。"
+    "Peta belum tersedia. Pembacaan GPS tetap berjalan.": "地图暂不可用，GPS 定位仍在运行。",
+    "GPS Live": "实时 GPS",
+    "Posisi presensi": "考勤位置",
+    "Izinkan lokasi untuk membaca jarak, akurasi, dan posisi presensi.": "请允许定位以读取距离、精度和考勤位置。"
 }

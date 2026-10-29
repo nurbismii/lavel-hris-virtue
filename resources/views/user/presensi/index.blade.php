@@ -244,17 +244,16 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                         </div>
 
                                         <div class="camera-live-location-panel" aria-live="polite">
-                                            <div id="faceLiveMap" class="camera-live-location-panel__map"></div>
                                             <div class="camera-live-location-panel__content">
                                                 <span class="camera-live-location-panel__eyebrow">
                                                     <i class="fas fa-location-arrow"></i>
-                                                    {{ __('Lokasi Live') }}
+                                                    {{ __('GPS Live') }}
                                                 </span>
                                                 <strong id="faceLiveLocationStatus" class="camera-live-location-panel__status">
                                                     {{ __('Menunggu GPS...') }}
                                                 </strong>
                                                 <span id="faceLiveLocationMeta" class="camera-live-location-panel__meta">
-                                                    {{ __('Izinkan lokasi agar titik live muncul.') }}
+                                                    {{ __('Izinkan lokasi untuk membaca jarak, akurasi, dan posisi presensi.') }}
                                                 </span>
                                             </div>
                                         </div>
@@ -563,13 +562,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
 @if ($isLocationReady)
 <script>
     let map;
-    let faceMap;
     let markerUser;
-    let faceMarkerUser;
     let markerOffice = [];
-    let faceMarkerOffice = [];
     let circleOffice = [];
-    let faceCircleOffice = [];
     let currentDistance = 0;
     let stableStartTime = null;
     let gpsReady = false;
@@ -624,6 +619,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
     const passiveReadyText = @json(__('Bukti wajah siap dikirim. Hasil liveness akan ditentukan oleh verifikasi server.'));
     const cameraPausedText = @json(__('Kamera dijeda. Aktifkan ulang kamera untuk melanjutkan presensi.'));
     const mapUnavailableText = @json(__('Peta belum tersedia. Pembacaan GPS tetap berjalan.'));
+    const attendancePositionLabel = @json(__('Posisi presensi'));
+    const gpsLocationPrompt = @json(__('Izinkan lokasi untuk membaca jarak, akurasi, dan posisi presensi.'));
     const manualSelfieEnabled = false;
     const attendanceSubmitBaseUrl = @json(url('/absen'));
     const gpsLogUrl = @json(url('/api/gps-log'));
@@ -828,56 +825,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
     }
 
-    function initFaceLiveMap(locations) {
-        const mapElement = document.getElementById('faceLiveMap');
-
-        if (!mapElement || !window.L || !locations.length) {
-            if (mapElement) { mapElement.textContent = mapUnavailableText; }
-            return;
-        }
-
-        const firstPosition = locationPosition(locations[0]);
-
-        faceMap = L.map(mapElement, {
-            zoomControl: false,
-            attributionControl: false,
-            dragging: false,
-            scrollWheelZoom: false,
-            doubleClickZoom: false,
-            boxZoom: false,
-            keyboard: false,
-            tap: false,
-            touchZoom: false,
-        }).setView(firstPosition, 18);
-
-        L.tileLayer(freeMapTileUrl, {
-            maxZoom: 19,
-            attribution: freeMapAttribution
-        }).addTo(faceMap);
-
-        locations.forEach(function(location) {
-            const officePosition = locationPosition(location);
-
-            faceMarkerOffice.push(L.marker(officePosition, {
-                title: location.name || 'Lokasi presensi',
-                icon: createMapPinIcon('red')
-            }).addTo(faceMap));
-
-            faceCircleOffice.push(L.circle(officePosition, {
-                color: '#fd0d0d',
-                opacity: 0.8,
-                weight: 1,
-                fillColor: '#fd0d0d',
-                fillOpacity: 0.10,
-                radius: Number(location.radius)
-            }).addTo(faceMap));
-        });
-
-        window.setTimeout(function() {
-            faceMap.invalidateSize();
-        }, 250);
-    }
-
     function syncUserMapMarker(latUser, longUser) {
         const userPosition = [latUser, longUser];
 
@@ -890,21 +837,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     icon: createMapPinIcon('blue')
                 }).addTo(map);
             }
-        }
-
-        if (faceMap) {
-            if (faceMarkerUser) {
-                faceMarkerUser.setLatLng(userPosition);
-            } else {
-                faceMarkerUser = L.marker(userPosition, {
-                    title: @json(__('Posisi kamu')),
-                    icon: createMapPinIcon('blue')
-                }).addTo(faceMap);
-            }
-
-            faceMap.setView(userPosition, Math.max(faceMap.getZoom() || 18, 18), {
-                animate: false,
-            });
         }
     }
 
@@ -922,11 +854,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
 
         if (metaElement) {
-            metaElement.textContent = meta || 'Izinkan lokasi agar titik live muncul.';
+            metaElement.textContent = meta || gpsLocationPrompt;
         }
     }
 
-    function faceLiveLocationMeta(distance, accuracy, suffix) {
+    function faceLiveLocationMeta(distance, accuracy, locationName) {
         const parts = [];
 
         if (Number.isFinite(distance)) {
@@ -937,8 +869,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
             parts.push('Akurasi ' + Math.round(Number(accuracy)) + 'm');
         }
 
-        if (suffix) {
-            parts.push(suffix);
+        if (locationName) {
+            parts.push(attendancePositionLabel + ': ' + locationName);
         }
 
         return parts.join(' | ');
@@ -2101,14 +2033,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
             map.invalidateSize();
 
-            if (faceMap) {
-                faceMap.invalidateSize();
-
-                if (faceMarkerUser) {
-                    faceMap.panTo(faceMarkerUser.getLatLng());
-                }
-            }
-
             if (markerUser) {
                 map.panTo(markerUser.getLatLng());
                 return;
@@ -2169,7 +2093,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
         window.setAttendanceWizardStep = setWizardStep;
 
         initMap(attendanceLocations);
-        initFaceLiveMap(attendanceLocations);
         updateFaceLiveLocation('neutral', 'Menunggu GPS...', 'Sistem akan menyimpan bukti lokasi saat titik sudah stabil.');
         updateAttendanceButtonState();
         setSelfieSurfaceMode(wizardStepFace ? 'placeholder' : 'preview');
@@ -2254,7 +2177,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             updateFaceLiveLocation(
                 'warning',
                 'Membaca lokasi live...',
-                faceLiveLocationMeta(liveDistance, accuracy, locationName + ' | Menunggu titik stabil')
+                faceLiveLocationMeta(liveDistance, accuracy, locationName)
             );
 
             if (accuracy > maxGpsAccuracy) {
@@ -2265,7 +2188,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 updateFaceLiveLocation(
                     'danger',
                     'Akurasi GPS belum valid',
-                    faceLiveLocationMeta(liveDistance, accuracy, locationName + ' | Batas ' + Math.round(maxGpsAccuracy) + 'm')
+                    faceLiveLocationMeta(liveDistance, accuracy, locationName)
                 );
 
                 document.getElementById("distanceInfo").innerHTML =
@@ -2289,7 +2212,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     updateFaceLiveLocation(
                         'danger',
                         'Pergerakan tidak wajar',
-                        faceLiveLocationMeta(liveDistance, accuracy, locationName + ' | Kecepatan GPS terlalu tinggi')
+                        faceLiveLocationMeta(liveDistance, accuracy, locationName)
                     );
 
                     document.getElementById("distanceInfo").innerHTML =
@@ -2326,7 +2249,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 updateFaceLiveLocation(
                     'danger',
                     'Di luar radius presensi',
-                    faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Radius ' + Math.round(Number(nearestLocation ? nearestLocation.radius : 0)) + 'm')
+                    faceLiveLocationMeta(currentDistance, accuracy, locationName)
                 );
                 return;
             }
@@ -2341,7 +2264,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 updateFaceLiveLocation(
                     'danger',
                     naturalCheck.reason,
-                    faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Validasi gerak GPS gagal')
+                    faceLiveLocationMeta(currentDistance, accuracy, locationName)
                 );
 
                 document.getElementById("distanceInfo").innerHTML =
@@ -2358,7 +2281,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 updateFaceLiveLocation(
                     'danger',
                     'Mock location terdeteksi',
-                    faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Presensi diblokir')
+                    faceLiveLocationMeta(currentDistance, accuracy, locationName)
                 );
 
                 document.getElementById("distanceInfo").innerHTML =
@@ -2378,7 +2301,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 updateFaceLiveLocation(
                     'warning',
                     'Memvalidasi lokasi...',
-                    faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Tahan posisi sebentar')
+                    faceLiveLocationMeta(currentDistance, accuracy, locationName)
                 );
 
                 document.getElementById("distanceInfo").innerHTML =
@@ -2425,28 +2348,28 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     updateFaceLiveLocation(
                         'success',
                         'GPS live tersimpan',
-                        faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Siap bersama liveness')
+                        faceLiveLocationMeta(currentDistance, accuracy, locationName)
                     );
                     updateGpsReadyInfo(currentDistance);
                 } else if (gpsLogInFlight || shouldSendGpsEvidence) {
                     updateFaceLiveLocation(
                         'warning',
                         'Menyimpan bukti GPS live...',
-                        faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Jangan berpindah lokasi')
+                        faceLiveLocationMeta(currentDistance, accuracy, locationName)
                     );
                     updateDistanceInfo('text-warning', currentDistance, 'Dalam Radius - menyimpan bukti GPS live...');
                 } else if (!gpsEvidenceReady) {
                     updateFaceLiveLocation(
                         'warning',
                         'Menunggu kirim ulang GPS',
-                        faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Dalam radius')
+                        faceLiveLocationMeta(currentDistance, accuracy, locationName)
                     );
                     updateDistanceInfo('text-warning', currentDistance, 'Dalam Radius - menunggu kirim ulang bukti GPS');
                 } else {
                     updateFaceLiveLocation(
                         'success',
                         'Lokasi dalam radius',
-                        faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Siap menyimpan bukti')
+                        faceLiveLocationMeta(currentDistance, accuracy, locationName)
                     );
                     updateDistanceInfo('text-success', currentDistance, 'Dalam Radius');
                 }
@@ -2484,7 +2407,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                             updateFaceLiveLocation(
                                 'success',
                                 'GPS live tersimpan',
-                                faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Lanjutkan liveness wajah')
+                                faceLiveLocationMeta(currentDistance, accuracy, locationName)
                             );
                             updateGpsReadyInfo(currentDistance);
                         } else {
@@ -2504,7 +2427,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                             updateFaceLiveLocation(
                                 'danger',
                                 message,
-                                faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Coba ulang otomatis')
+                                faceLiveLocationMeta(currentDistance, accuracy, locationName)
                             );
                         }
 
@@ -2515,7 +2438,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                         updateFaceLiveLocation(
                             'danger',
                             'Bukti GPS live gagal tersimpan',
-                            faceLiveLocationMeta(currentDistance, accuracy, locationName + ' | Periksa koneksi lalu tunggu ulang')
+                            faceLiveLocationMeta(currentDistance, accuracy, locationName)
                         );
                         updateAttendanceButtonState();
                         console.log("GPS Log Error:", err);
