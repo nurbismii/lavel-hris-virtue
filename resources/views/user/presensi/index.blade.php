@@ -1,11 +1,7 @@
 @extends('layouts.app')
 
 @push('styles')
-<link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin="">
+<link rel="stylesheet" href="{{ versioned_asset('vendor/leaflet/leaflet.css') }}">
 <link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css') }}">
 @endpush
 
@@ -227,6 +223,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                 id="selfieCameraStage"
                                 class="face-preview-frame"
                                 data-frame-state="neutral"
+                                data-camera-mode="placeholder"
                                 aria-live="polite">
                                 <div class="camera-stage">
                                     <div class="camera-stage__header">
@@ -560,7 +557,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
 @push('scripts')
 <script src="{{ versioned_asset('assets/js/passive-face-capture.js') }}"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{{ versioned_asset('vendor/leaflet/leaflet.js') }}"></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
 @if ($isLocationReady)
@@ -588,7 +585,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
     let gpsLogInFlight = false;
     let gpsEvidenceLastAttemptAt = 0;
     let cameraStream = null;
-    let cameraDetectionIntervalId = null;
+    let cameraDetectionTimerId = null;
+    let cameraSessionId = 0;
+    let cameraIsStarting = false;
     let cameraValidationStartedAt = null;
     let cameraPreviewUrl = null;
     let cameraIsProcessing = false;
@@ -623,6 +622,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
     const passiveCapture = new PassiveFaceCapture(attendanceChallenge?.capture_duration_ms || 2000);
     const passiveCaptureText = @json(__('Hadap lurus dan tahan wajah di dalam frame. Bukti kamera sedang diambil.'));
     const passiveReadyText = @json(__('Bukti wajah siap dikirim. Hasil liveness akan ditentukan oleh verifikasi server.'));
+    const cameraPausedText = @json(__('Kamera dijeda. Aktifkan ulang kamera untuk melanjutkan presensi.'));
+    const mapUnavailableText = @json(__('Peta belum tersedia. Pembacaan GPS tetap berjalan.'));
     const manualSelfieEnabled = false;
     const attendanceSubmitBaseUrl = @json(url('/absen'));
     const gpsLogUrl = @json(url('/api/gps-log'));
@@ -779,6 +780,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     function initMap(locations) {
+        const mapElement = document.getElementById('map');
+        if (!mapElement || !window.L || !locations.length) {
+            if (mapElement) { mapElement.textContent = mapUnavailableText; }
+            return;
+        }
         const firstLocation = locations[0];
         const firstPosition = locationPosition(firstLocation);
 
@@ -826,6 +832,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         const mapElement = document.getElementById('faceLiveMap');
 
         if (!mapElement || !window.L || !locations.length) {
+            if (mapElement) { mapElement.textContent = mapUnavailableText; }
             return;
         }
 
@@ -896,10 +903,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
             }
 
             faceMap.setView(userPosition, Math.max(faceMap.getZoom() || 18, 18), {
-                animate: true,
-                duration: 0.35,
+                animate: false,
             });
-            faceMap.invalidateSize();
         }
     }
 
@@ -1242,10 +1247,13 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     function setSelfieSurfaceMode(mode) {
+        const stage = document.getElementById('selfieCameraStage');
         const video = document.getElementById('selfieCamera');
         const overlay = document.getElementById('selfieOverlay');
         const preview = document.getElementById('selfiePreview');
         const placeholder = document.getElementById('selfiePlaceholder');
+
+        if (stage) { stage.dataset.cameraMode = mode; }
 
         if (mode !== 'live' && blinkInterval) {
             clearInterval(blinkInterval);
@@ -1529,14 +1537,14 @@ $locationIssueMessage = $locationIssueMessage ?? (
     function stopLiveCamera(options = {}) {
         const preservePreview = options.preservePreview === true;
         const video = document.getElementById('selfieCamera');
+        cameraSessionId++;
 
-        if (cameraDetectionIntervalId) {
-            window.clearInterval(cameraDetectionIntervalId);
-            cameraDetectionIntervalId = null;
+        if (cameraDetectionTimerId !== null) {
+            window.clearTimeout(cameraDetectionTimerId);
+            cameraDetectionTimerId = null;
         }
 
         cameraValidationStartedAt = null;
-        cameraIsProcessing = false;
 
         if (cameraStream) {
             cameraStream.getTracks().forEach(function(track) {
@@ -1557,6 +1565,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     async function captureLiveSelfie(metadata) {
+        const sessionId = cameraSessionId;
         const video = document.getElementById('selfieCamera');
         const selfieInput = document.getElementById('selfie_capture');
         const captureDataInput = document.getElementById('selfie_capture_data');
@@ -1587,6 +1596,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
         const captureBlob = await new Promise(function(resolve) {
             captureCanvas.toBlob(resolve, 'image/jpeg', selfieJpegQuality);
         });
+
+        if (sessionId !== cameraSessionId) { return; }
 
         if (!captureBlob) {
             throw new Error('Selfie tidak berhasil disimpan dari kamera.');
@@ -1722,6 +1733,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     async function evaluateLiveCameraFrame() {
+        const sessionId = cameraSessionId;
         const video = document.getElementById('selfieCamera');
 
         if (!video || video.readyState < 2 || cameraVerificationLocked) {
@@ -1743,7 +1755,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
 
         const referenceDescriptor = await ensureReferenceFaceDescriptor();
+        if (sessionId !== cameraSessionId) { return; }
         const detections = await detectFaceDescriptors(video);
+        if (sessionId !== cameraSessionId) { return; }
         const resizedDetections = faceapi.resizeResults(detections, displaySize);
 
         document.getElementById('face_detection_count').value = String(detections.length);
@@ -1878,12 +1892,15 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     function beginLiveCameraVerification() {
-        if (cameraDetectionIntervalId) {
-            window.clearInterval(cameraDetectionIntervalId);
+        if (cameraDetectionTimerId !== null) {
+            window.clearTimeout(cameraDetectionTimerId);
         }
+        const sessionId = cameraSessionId;
 
-        cameraDetectionIntervalId = window.setInterval(async function() {
-            if (cameraIsProcessing || cameraVerificationLocked) {
+        const analyzeNextFrame = async function() {
+            if (sessionId !== cameraSessionId || cameraVerificationLocked) { return; }
+            if (cameraIsProcessing) {
+                cameraDetectionTimerId = window.setTimeout(analyzeNextFrame, liveDetectionIntervalMs);
                 return;
             }
 
@@ -1892,19 +1909,25 @@ $locationIssueMessage = $locationIssueMessage ?? (
             try {
                 await evaluateLiveCameraFrame();
             } catch (error) {
-                resetPassiveCapture();
-                updateLiveFrameFeedback('red', error.message || 'Analisis kamera gagal dijalankan.', 0);
+                if (sessionId === cameraSessionId) {
+                    resetPassiveCapture();
+                    updateLiveFrameFeedback('red', error.message || 'Analisis kamera gagal dijalankan.', 0);
+                }
             } finally {
                 cameraIsProcessing = false;
             }
-        }, liveDetectionIntervalMs);
+            if (sessionId === cameraSessionId && !cameraVerificationLocked) {
+                cameraDetectionTimerId = window.setTimeout(analyzeNextFrame, liveDetectionIntervalMs);
+            }
+        };
+        cameraDetectionTimerId = window.setTimeout(analyzeNextFrame, liveDetectionIntervalMs);
     }
 
     async function startLiveCamera() {
         const video = document.getElementById('selfieCamera');
         const isWebView = isLikelyAndroidWebView();
 
-        if (!video || !faceReferencePath) {
+        if (!video || !faceReferencePath || cameraIsStarting || document.hidden) {
             return;
         }
 
@@ -1930,13 +1953,17 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
 
         stopLiveCamera();
+        const sessionId = cameraSessionId;
+        const retryButton = document.getElementById('retryCameraButton');
+        cameraIsStarting = true;
+        if (retryButton) { retryButton.disabled = true; }
         cameraVerificationLocked = false;
         cameraValidationStartedAt = null;
         emphasizeManualCameraFallback(false);
         updateLiveFrameFeedback('neutral', 'Meminta akses kamera depan...', 0);
 
         try {
-            cameraStream = await navigator.mediaDevices.getUserMedia({
+            const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: {
                         ideal: 'user'
@@ -1946,13 +1973,20 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     },
                     height: {
                         ideal: 960
-                    }
+                    },
+                    frameRate: { ideal: 15 }
                 },
                 audio: false
             });
 
-            video.srcObject = cameraStream;
+            if (sessionId !== cameraSessionId || document.hidden) {
+                stream.getTracks().forEach(function(track) { track.stop(); });
+                return;
+            }
+            cameraStream = stream;
+            video.srcObject = stream;
             await video.play();
+            if (sessionId !== cameraSessionId) { return; }
 
             setSelfieSurfaceMode('live');
             if (isPassiveLiveness) { resetPassiveCapture(); } else { startTurnLiveness(video); }
@@ -1968,10 +2002,22 @@ $locationIssueMessage = $locationIssueMessage ?? (
             );
             beginLiveCameraVerification();
         } catch (error) {
-            stopLiveCamera();
-            emphasizeManualCameraFallback(true);
-            updateLiveFrameFeedback('red', describeCameraAccessError(error), 0);
+            if (sessionId === cameraSessionId) {
+                stopLiveCamera();
+                emphasizeManualCameraFallback(true);
+                updateLiveFrameFeedback('red', describeCameraAccessError(error), 0);
+            }
+        } finally {
+            cameraIsStarting = false;
+            if (retryButton) { retryButton.disabled = false; }
         }
+    }
+
+    function pauseLiveCamera() {
+        if (!cameraStream && !cameraIsStarting) { return; }
+        stopLiveCamera();
+        resetFaceVerificationState();
+        updateLiveFrameFeedback('neutral', cameraPausedText, 0);
     }
 
     function validateNaturalMovement() {
@@ -2181,6 +2227,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         window.addEventListener('beforeunload', function() {
             stopLiveCamera();
+        });
+        window.addEventListener('pagehide', pauseLiveCamera);
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) { pauseLiveCamera(); }
         });
 
         if (!navigator.geolocation) {
@@ -2727,6 +2777,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     async function captureSelfieFromTurn(score, message) {
+        const sessionId = cameraSessionId;
         if (livenessCaptureInProgress || cameraVerificationLocked) {
             return;
         }
@@ -2760,6 +2811,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         try {
             await captureLiveSelfie(latestFaceMatchCapturePayload);
         } catch (error) {
+            if (sessionId !== cameraSessionId) { return; }
             cameraVerificationLocked = false;
             livenessCaptureInProgress = false;
             resetPassiveCapture();
@@ -2772,6 +2824,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     async function startTurnLiveness(videoElement) {
+        const sessionId = cameraSessionId;
         if (blinkInterval) {
             clearInterval(blinkInterval);
         }
@@ -2784,8 +2837,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
         setBlinkResult(false, null, 'Hadap lurus ke kamera sampai frame tengah tersimpan.');
 
         blinkInterval = setInterval(async () => {
-            
-            if (blinkIsProcessing) {
+
+            if (blinkIsProcessing || sessionId !== cameraSessionId || cameraVerificationLocked) {
                 return;
             }
 
@@ -2806,6 +2859,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
                         })
                     )
                     .withFaceLandmarks(true);
+
+                if (sessionId !== cameraSessionId) { return; }
 
                 if (!detection) {
                     setBlinkResult(false, null, 'Wajah belum terdeteksi.');
@@ -2918,7 +2973,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     return;
                 }
             } catch (error) {
-                setBlinkResult(false, null, 'Gagal membaca gerakan wajah.');
+                if (sessionId === cameraSessionId) { setBlinkResult(false, null, 'Gagal membaca gerakan wajah.'); }
             } finally {
                 blinkIsProcessing = false;
             }

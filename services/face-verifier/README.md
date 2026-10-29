@@ -66,6 +66,27 @@ Kolom **Execute python script** menerima path file Python; memasukkan `python` d
 
 Gunakan salinan lingkungan uji seperti petunjuk instalasi di atas. Ketersediaan wheel mengikuti versi Python dan sistem hosting. Jika instalasi ditolak, tidak ada wheel yang sesuai, atau batas RAM/disk tidak mencukupi, simpan error instalasinya untuk menentukan versi/layanan yang kompatibel. Setelah paket berhasil dipasang, restart dan jalankan preflight lagi sampai `runtime_ready: true`. Jangan melewati pemeriksaan anti-spoofing untuk mengatasi kegagalan dependensi.
 
+### Preflight berhasil tetapi verifikasi foto gagal
+
+`runtime_ready: true` menunjukkan impor dan pembuatan model berhasil pada proses yang menjawab. Preflight belum menjalankan deteksi wajah, inferensi anti-spoofing, atau perbandingan foto. Error `RuntimeError; missing_dependency=None` saat verifikasi belum menunjukkan bagian mana yang gagal.
+
+Untuk membaca versi paket tanpa memuat engine AI, unggah `check_runtime.py` sejajar dengan `app.py`. Pada panel **Execute python script**, masukkan `check_runtime.py`, lalu klik **Run Script**. Script hanya menampilkan versi Python, DeepFace, PyTorch, TensorFlow, dan NumPy; paket yang tidak terpasang bernilai `null`. Cocokkan hasilnya dengan versi target di `requirements.txt` dan baris error Python sebelum mengubah dependensi. DeepFace yang belum menghasilkan field `confidence` tidak memenuhi kontrak verifier ini; jangan membuat skor pengganti untuk meloloskan hasil.
+
+### Pembaruan terbatas untuk DeepFace 0.0.93 / TensorFlow 2.15
+
+Pada lingkungan Python 3.10 dengan DeepFace 0.0.93, TensorFlow 2.15.1, dan NumPy 1.26.4, terdapat ketidakcocokan yang dapat direproduksi: hasil `verify()` tidak memiliki `confidence`, sehingga pemeriksaan kontrak verifier menghasilkan `RuntimeError`. DeepFace 0.0.95 menyediakan field tersebut tanpa migrasi ke keluarga dependensi baru versi 0.0.103. DeepFace 0.0.94 dihindari karena metadatanya membatasi Flask/Werkzeug ke versi lama.
+
+Gunakan `requirements-passive-legacy-tf.txt` khusus lingkungan ini. File membatasi DeepFace ke 0.0.95, mempertahankan TensorFlow/NumPy, serta membatasi Keras/OpenCV/RetinaFace agar resolver tidak berpindah ke dependensi yang tidak cocok. PyTorch CPU yang sudah terpasang tidak diminta ulang. File `requirements.txt` tetap merupakan target untuk instalasi baru; kedua file ini adalah pilihan lingkungan yang berbeda, bukan daftar yang dipasang bersamaan.
+
+1. Simpan lingkungan aplikasi saat ini dan uji file baru pada salinannya sebelum mengganti layanan aktif.
+2. Unggah `requirements-passive-legacy-tf.txt` sejajar dengan `app.py`. Pada **Configuration files**, tambahkan file tersebut dan jalankan **Run Pip Install** khusus file itu; gunakan index PyPI yang tercantum di dalamnya. File CPU dan script `.py` tidak dipilih sebagai input instalasi ini.
+3. Jalankan kembali `check_runtime.py` melalui **Execute python script → Run Script**. DeepFace harus menjadi `0.0.95`; TensorFlow/NumPy tetap `2.15.1` / `1.26.4`.
+4. Restart aplikasi, jalankan preflight bertoken, lalu uji satu pengajuan presensi baru dan endpoint lama jika masih dipakai. Lulus resolusi dependensi/preflight belum membuktikan hasil inferensi nyata atau kapasitas hosting.
+
+Jika tersedia Terminal pada virtualenv aplikasi, jalankan `python -m pip check` setelah instalasi. Jika resolver melaporkan konflik, simpan output tersebut untuk diperiksa; jangan melewati pemeriksaan dependensi dengan `--no-deps`. Pengajuan lama yang sudah masuk review tidak otomatis diproses ulang: job existing membersihkan bukti frame setelah pemrosesan, sehingga tetap perlu ditangani melalui alur HR.
+
+Rujukan: [keluaran DeepFace 0.0.93](https://raw.githubusercontent.com/serengil/deepface/v0.0.93/deepface/modules/verification.py), [keluaran DeepFace 0.0.95](https://raw.githubusercontent.com/serengil/deepface/v0.0.95/deepface/modules/verification.py), [metadata 0.0.95](https://pypi.org/pypi/deepface/0.0.95/json).
+
 ## 2. Kontrak request/response
 
 Multipart request:
@@ -134,6 +155,16 @@ Waktu tunggu bisa lebih dari 15 menit saat antrean menumpuk. Lima job per ekseku
 
 Contoh lima job setiap 15 menit hanya menghasilkan 20 pemeriksaan per jam. Kapasitas ini tidak memadai untuk jam masuk ribuan karyawan. Jika kuota hosting tidak dapat memenuhi laju pengajuan, pisahkan proses verifier/worker ke server yang memiliki kapasitas cukup sambil mempertahankan HRIS pada hosting saat ini.
 
+## Batas koneksi database pada shared hosting
+
+Error MySQL 1226 dengan `max_user_connections` bernilai 5 menunjukkan kuota koneksi bersamaan akun database telah tercapai. Kuota digunakan bersama oleh request web, worker, scheduler, dan aplikasi lain yang memakai akun yang sama. Query yang gagal membuka koneksi belum membuktikan query tersebut penyebab kehabisan slot.
+
+HRIS melepas koneksi MySQL/MariaDB yang sedang tidak berada dalam transaksi tepat sebelum menunggu HTTP verifier. Semua lookup yang diperlukan sudah selesai pada batas ini; transaksi penyimpanan hasil membuka koneksi kembali melalui Laravel. Koneksi dalam transaksi serta SQLite in-memory tetap dipertahankan. Scheduler resign tetap berjalan setiap menit dengan mutex agar eksekusinya tidak bertumpuk; mutex kedaluwarsa setelah 30 menit jika proses berhenti tanpa pembersihan normal.
+
+Deploy perubahan `app/Services/Presensi/ServerSideFaceVerificationService.php` dan `app/Console/Kernel.php`. Worker memakai kode baru pada proses berikutnya. Gunakan satu cron `schedule:run` setiap menit, dengan cache persisten yang dapat ditulis. Pengecekan lokal mencakup pelepasan PDO, penulisan hasil setelah reconnect, rollback transaksi aktif, dan keberlangsungan SQLite in-memory; 16 tes Laravel terkait lolos dengan 132 assertion.
+
+Pelepasan koneksi selama menunggu AI mengurangi okupansi slot, tetapi kuota 5 masih dapat tercapai saat akses bersamaan. Minta penyedia hosting memeriksa proses pemegang koneksi serta menyesuaikan kuota berdasarkan beban nyata. Batas tersebut dikendalikan oleh server database; mengubah timeout API atau memori worker tidak menambah kuota koneksi. Pengujian MySQL produksi dan inventaris koneksi aplikasi lain belum dilakukan.
+
 ## Uji penerimaan
 
 1. Foto frontal milik akun, GPS di dalam radius, cahaya merata: tercatat, kemudian hasil terverifikasi jika API lolos.
@@ -150,7 +181,7 @@ Rollback: kembalikan `PRESENSI_LIVENESS_MODE=active` dan perbarui cache konfigur
 
 - 95 tes Laravel / 3.948 assertion lolos dalam dua kelompok proses (33 + 62 tes).
 - 9 tes JavaScript lolos, termasuk simulasi pengambilan frame frontal dan reset ketika wajah hilang.
-- 10 tes Python dengan Flask/OpenCV nyata dan DeepFace simulasi lolos. Tidak memasang atau menjalankan model DeepFace/PyTorch pada komputer pengguna selama uji ini.
+- 15 tes Python dengan Flask/OpenCV nyata dan DeepFace simulasi lolos, termasuk reproduksi keluaran legacy tanpa `confidence`. Tidak memasang atau menjalankan model DeepFace/PyTorch pada komputer pengguna selama uji ini.
 - Blade berhasil dikompilasi; tujuh script inline dari hasil render halaman dan script capture eksternal lolos pemeriksaan syntax.
 - Pratinjau statis dari Blade dengan data fiktif diperiksa pada lebar 390 px tanpa overflow horizontal. Script kamera/GPS sengaja tidak dijalankan pada pratinjau; ini bukan uji perangkat nyata.
 - Satu rangkaian tes gabungan mencapai batas memori CLI 128 MB saat membuat fixture Excel. Seluruh kelompok terkait lolos saat dipisah; limit produksi tidak diubah.

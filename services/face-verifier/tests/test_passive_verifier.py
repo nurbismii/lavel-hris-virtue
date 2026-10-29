@@ -135,6 +135,15 @@ class PassiveVerifierTest(unittest.TestCase):
         self.assertEqual(503, response.status_code)
         self.assertFalse(response.json["verified"])
 
+    def test_legacy_deepface_result_without_confidence_requires_review(self):
+        legacy_result = dict(verified=True, distance=0.1, threshold=0.593)
+        with self.engines(), patch.object(self.engine, "verify", return_value=legacy_result), self.assertLogs(self.app.logger, level="ERROR"):
+            response = self.post()
+        self.assertEqual(503, response.status_code)
+        self.assertEqual("pending_review", response.json["status"])
+        self.assertFalse(response.json["verified"])
+        self.assertNotIn("confidence", response.json)
+
     def test_invalid_and_oversized_images_are_rejected(self):
         with self.engines():
             data = self.payload()

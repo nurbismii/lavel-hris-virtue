@@ -23,7 +23,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // $schedule->command('inspire')->hourly();
-        $schedule->command('update.resign:cron')->everyMinute();
+        $schedule->command('update.resign:cron')->everyMinute()->withoutOverlapping(30);
         $schedule->command('vhire:retry-failed-syncs --limit=50')->everyFiveMinutes()->withoutOverlapping();
         $schedule->command('contracts:notify-renewal-due --days=30 --limit=200')->dailyAt('07:00')->withoutOverlapping();
         $schedule->command('contracts:notify-signature-reminders --days=14,7,3 --limit=500')->dailyAt('07:20')->withoutOverlapping();

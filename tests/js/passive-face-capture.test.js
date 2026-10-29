@@ -45,7 +45,7 @@ test('the camera workflow captures frontal evidence once and resets when the fac
     const detection = { detection: { score: 0.99, box: { x: 100, y: 80, width: 120, height: 200 } }, descriptor: [], landmarks: {} };
     const context = vm.createContext({
         document: { getElementById: (id) => id === 'selfieCamera' ? { readyState: 2 } : {} },
-        cameraVerificationLocked: false, cameraValidationStartedAt: null, faceVerificationPassed: false,
+        cameraSessionId: 0, cameraVerificationLocked: false, cameraValidationStartedAt: null, faceVerificationPassed: false,
         faceApiReady: true, faceMatchedReady: false, latestFaceMatchCapturePayload: null,
         isPassiveLiveness: true, passiveCapture: new PassiveFaceCapture(2000),
         livenessRequiredFrames: ['passive_start', 'passive_middle', 'passive_end'],

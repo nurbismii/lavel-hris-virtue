@@ -1848,5 +1848,7 @@
     "Hadap lurus ke kamera tanpa menoleh. Bukti wajah diambil otomatis dan lokasi diperiksa saat presensi dikirim. Hasil verifikasi server dapat dilihat pada riwayat presensi.": "请正对摄像头，无需转头。系统自动采集面部证据，并在提交考勤时检查位置。服务器验证结果可在考勤记录中查看。",
     "Bukti kamera dan GPS dipersiapkan bersamaan. Tombol presensi aktif setelah bukti siap; verifikasi wajah dilanjutkan oleh server.": "相机和 GPS 证据同时准备。证据准备完成后可提交考勤，面部验证由服务器继续处理。",
     "Hadap lurus dan tahan wajah di dalam frame. Bukti kamera sedang diambil.": "请正对摄像头并将面部保持在框内，正在采集相机证据。",
-    "Bukti wajah siap dikirim. Hasil liveness akan ditentukan oleh verifikasi server.": "面部证据已准备提交，活体检测结果将由服务器验证确定。"
+    "Bukti wajah siap dikirim. Hasil liveness akan ditentukan oleh verifikasi server.": "面部证据已准备提交，活体检测结果将由服务器验证确定。",
+    "Kamera dijeda. Aktifkan ulang kamera untuk melanjutkan presensi.": "摄像头已暂停。请重新启用摄像头以继续考勤。",
+    "Peta belum tersedia. Pembacaan GPS tetap berjalan.": "地图暂不可用，GPS 定位仍在运行。"
 }

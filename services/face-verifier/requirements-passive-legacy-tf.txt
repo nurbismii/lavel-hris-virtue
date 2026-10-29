@@ -1,0 +1,7 @@
+--index-url https://pypi.org/simple
+deepface==0.0.95
+numpy==1.26.4
+tensorflow==2.15.1
+keras==2.15.0
+opencv-python>=4.5.5.64,<4.12
+retina-face>=0.0.14,<0.0.19

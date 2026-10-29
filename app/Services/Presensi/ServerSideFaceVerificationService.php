@@ -9,6 +9,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 
@@ -336,6 +337,8 @@ class ServerSideFaceVerificationService
                 $multipart[] = $part;
             }
 
+            $this->disconnectIdleDatabase();
+
             $response = (new Client([
                 'timeout' => (float) config('services.presensi_face.timeout', 8),
                 'connect_timeout' => (float) config('services.presensi_face.connect_timeout', 2),
@@ -388,6 +391,16 @@ class ServerSideFaceVerificationService
             if (is_resource($referenceHandle)) {
                 fclose($referenceHandle);
             }
+        }
+    }
+
+    private function disconnectIdleDatabase(): void
+    {
+        $connection = DB::connection();
+
+        // Free the idle MySQL slot while waiting for the external verifier.
+        if (in_array($connection->getDriverName(), ['mysql', 'mariadb'], true) && $connection->transactionLevel() === 0) {
+            $connection->disconnect();
         }
     }
 
