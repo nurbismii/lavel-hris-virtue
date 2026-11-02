@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container-fluid">
-    <div class="page-inner">
+    <div class="page-inner salary-page">
         <div class="d-flex justify-content-between align-items-center pt-2 pb-4">
             <div>
                 <h4 class="fw-bold mb-1">{{ __('Detail Perintah Lembur') }}</h4>
@@ -12,6 +12,20 @@
             </div>
             <a href="{{ route('overtime-orders.index') }}" class="btn btn-light">{{ __('Kembali') }}</a>
         </div>
+
+        @if(!empty($overtimePayEstimate) || !empty($salaryReviewMessage))
+        <section class="salary-card"><div class="salary-card-header"><div><h2>Estimasi upah perintah lembur</h2><p>Informasi upah khusus HR / Super Admin.</p></div></div><div class="salary-card-body">
+            @if(!empty($overtimePayEstimate))
+            <strong class="fs-4">Rp {{ number_format($overtimePayEstimate['amount'], 0, ',', '.') }}</strong>
+            <p class="salary-note mt-2">{{ $overtimePayEstimate['overtime_hours'] }} jam sesuai perintah · Dasar upah Rp {{ number_format($overtimePayEstimate['monthly_wage'], 0, ',', '.') }} · Versi upah #{{ $overtimePayEstimate['salary_history_id'] }}.</p>
+            <p class="salary-note">{{ $overtimePayEstimate['day_type_label'] }}. Estimasi mengikuti durasi perintah. Realisasi jam kerja, istirahat, dan persetujuan pembayaran tetap harus diperiksa HR. Kategori hari kerja terpendek dibaca dari jadwal hari keenam jika tersedia.</p>
+            @foreach($overtimePayEstimate['warnings'] as $warning)<p class="text-warning mb-1">{{ $warning }}</p>@endforeach
+            @else
+            <p class="salary-note">{{ $salaryReviewMessage }}</p>
+            @endif
+            <a class="btn btn-light mt-3" href="{{ route('employee-salaries.index') }}">Riwayat upah</a>
+        </div></section>
+        @endif
 
         <div class="row g-4">
             <div class="col-lg-8">

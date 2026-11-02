@@ -525,6 +525,17 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/master-lembur', [OvertimeMasterController::class, 'index'])
             ->middleware(['menu:lembur', 'role:Super Admin,HR'])
             ->name('overtime-masters.index');
+        Route::prefix('pembaruan-gaji')->name('employee-salaries.')
+            ->middleware(['menu:slip_gaji_admin', 'role:Super Admin,HR'])->group(function () {
+                $controller = \App\Http\Controllers\Admin\EmployeeSalaryController::class;
+                Route::get('/', [$controller, 'index'])->name('index');
+                Route::post('/', [$controller, 'store'])->name('store');
+                Route::get('/template', [$controller, 'template'])->name('template');
+                Route::get('/{history}', [$controller, 'show'])->name('show');
+                Route::get('/{history}/status', [$controller, 'status'])->name('status');
+                Route::get('/{history}/failures', [$controller, 'failures'])->name('failures');
+                Route::post('/{history}/confirm', [$controller, 'confirm'])->name('confirm');
+            });
         Route::get('/master-lembur/create', [OvertimeMasterController::class, 'create'])
             ->middleware(['menu:lembur', 'role:Super Admin,HR'])
             ->name('overtime-masters.create');

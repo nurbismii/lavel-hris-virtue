@@ -509,3 +509,178 @@
     align-items: center;
     justify-content: center;
 }
+
+/* Keep navigation groups readable without adding another submenu level. */
+#appSidebar .app-navigation {
+    margin-top: 8px;
+    padding: 8px 12px 24px;
+}
+
+#appSidebar .app-navigation > .nav-item {
+    width: 100%;
+    margin-top: 4px;
+}
+
+#appSidebar .app-navigation > .nav-item > a,
+#appSidebar .app-nav-group-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    margin: 0;
+    padding: 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: #334155;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+#appSidebar .app-navigation > .nav-item > a > i,
+#appSidebar .app-nav-group-toggle > i:first-child {
+    width: 20px;
+    min-width: 20px;
+    margin: 0;
+    font-size: 18px;
+    color: #64748b;
+    text-align: center;
+}
+
+#appSidebar .app-navigation p,
+#appSidebar .app-nav-label {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+#appSidebar .app-nav-caret {
+    flex-shrink: 0;
+    font-size: 10px;
+    transition: transform 180ms ease;
+}
+
+#appSidebar .app-nav-group-toggle[aria-expanded="true"] .app-nav-caret {
+    transform: rotate(180deg);
+}
+
+#appSidebar .app-nav-group-toggle:hover,
+#appSidebar .app-nav-group-toggle[aria-expanded="true"] {
+    background: #f1f5f9;
+    color: #1e40af;
+}
+
+#appSidebar .app-navigation a:focus-visible,
+#appSidebar .app-nav-group-toggle:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: -2px;
+}
+
+#appSidebar .app-nav-children {
+    width: calc(100% - 24px);
+    margin: 4px 0 8px 24px;
+    padding: 0 0 0 12px;
+    border-left: 1px solid #e2e8f0;
+}
+
+#appSidebar .app-nav-children > li {
+    width: 100%;
+}
+
+#appSidebar .app-nav-children > li > a {
+    gap: 8px;
+    min-height: 44px;
+    margin: 2px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: #475569;
+}
+
+#appSidebar .app-navigation a[aria-current="page"] {
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 700;
+}
+
+#appSidebar .app-nav-subheading {
+    padding: 16px 12px 4px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#appSidebar .app-navigation .badge {
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+@media (min-width: 992px) {
+    .sidebar_minimize:not(.sidebar_minimize_hover) #appSidebar .app-nav-group-toggle > :not(:first-child),
+    .sidebar_minimize:not(.sidebar_minimize_hover) #appSidebar .app-nav-group > .collapse {
+        display: none;
+    }
+
+    .sidebar_minimize:not(.sidebar_minimize_hover) #appSidebar .app-nav-group-toggle {
+        justify-content: center;
+        padding: 12px 0;
+    }
+}
+
+@media (max-width: 991.98px) {
+    #appSidebar .app-nav-children {
+        margin-left: 16px;
+        width: calc(100% - 16px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #appSidebar .app-nav-caret {
+        transition: none;
+    }
+}
+
+/* Salary administration keeps reviews readable on desktop and narrow screens. */
+.salary-page { --salary-muted: #63738a; }
+.salary-header, .salary-card-header, .salary-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.salary-header { margin-bottom: 24px; align-items: flex-start; }
+.salary-header h1 { font-size: 1.7rem; font-weight: 750; margin: 4px 0 8px; }
+.salary-header p, .salary-card-header p, .salary-note { color: var(--salary-muted); line-height: 1.6; margin-bottom: 0; }
+.salary-eyebrow { color: #3460af; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.salary-card { background: #fff; border: 1px solid #e3e9f2; border-radius: 16px; box-shadow: 0 5px 20px #223c6507; margin-bottom: 24px; overflow: hidden; }
+.salary-card-header { padding: 20px 24px; border-bottom: 1px solid #edf1f6; }
+.salary-card-header h2 { font-size: 1.05rem; font-weight: 700; margin: 0 0 5px; }
+.salary-card-body { padding: 24px; }
+.salary-guidance { background: #f1f6ff; color: #36547e; padding: 16px; border-radius: 12px; margin-bottom: 20px; line-height: 1.7; }
+.salary-upload-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 20px; }
+.salary-page .form-control, .salary-page .form-select { min-height: 44px; border-radius: 10px; }
+.salary-page .btn { min-height: 42px; border-radius: 10px; white-space: normal; }
+.salary-filter { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.salary-page .form-check { display: flex; align-items: flex-start; gap: 12px; padding-left: 0; }
+.salary-page .form-check-label { white-space: normal; overflow-wrap: anywhere; line-height: 1.6; }
+.salary-page .form-check-input { position: static; float: none; flex: 0 0 18px; width: 18px; height: 18px; margin: 3px 0 0; }
+.salary-upload-form small, .salary-table small { display: block; color: var(--salary-muted); margin-top: 5px; }
+.salary-table th { padding: 14px 24px; background: #f7f9fc; color: #56677f; font-size: .78rem; }
+.salary-table td { padding: 16px 24px; vertical-align: middle; overflow-wrap: anywhere; }
+.salary-empty { text-align: center; padding: 36px !important; color: var(--salary-muted); }
+.overtime-calculator-page .card { border: 1px solid #e3e9f2; border-radius: 16px; box-shadow: 0 5px 20px #223c6507; }
+.overtime-calculator-page .card-body { padding: 24px; }
+.overtime-calculator-page .form-label { font-weight: 600; }
+@media (max-width: 767.98px) {
+    .salary-header, .salary-card-header { align-items: stretch; flex-direction: column; }
+    .salary-actions { flex-wrap: wrap; justify-content: flex-start; }
+    .salary-upload-form { grid-template-columns: 1fr; }
+    .salary-card-body, .salary-card-header { padding: 18px; }
+    .salary-table thead { display: none; }
+    .salary-table tbody, .salary-table tr, .salary-table td { display: block; width: 100%; }
+    .salary-table tr { padding: 10px 0; border-bottom: 1px solid #dce5f0; }
+    .salary-table td { border: 0; padding: 8px 18px; }
+    .salary-table td[data-label]::before { content: attr(data-label); display: block; color: var(--salary-muted); font-size: .75rem; margin-bottom: 3px; }
+    .salary-page .salary-filter > div { width: 100%; }
+}

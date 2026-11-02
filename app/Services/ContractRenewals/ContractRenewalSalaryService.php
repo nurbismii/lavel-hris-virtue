@@ -9,11 +9,21 @@ use App\Models\Epayslip\KomponenGaji;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Throwable;
+use App\Services\Salary\EmployeeSalaryService;
+use Illuminate\Support\Facades\Schema;
 
 class ContractRenewalSalaryService
 {
     public function resolveSalary(EmployeeContractRenewal $renewal): float
     {
+        if (Schema::hasTable('employee_salary_histories')) {
+            $date = $renewal->current_contract_end_date
+                ? Carbon::parse($renewal->current_contract_end_date)->addDay() : today();
+            $approved = app(EmployeeSalaryService::class)->forDate((string) $renewal->employee_nik, $date);
+            if ($approved) {
+                return (float) $approved->basic_salary;
+            }
+        }
         $previousSalary = $this->previousContractSalary($renewal);
         $latestBasicSalary = $this->latestBasicSalaryFromPayslip((string) $renewal->employee_nik);
 

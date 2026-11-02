@@ -96,23 +96,33 @@ class OvertimePayCalculatorService
 
     public function calculateForOrder(
         OvertimeOrder $order,
-        float $monthlyWage,
+        ?float $monthlyWage = null,
         ?WorkPattern $workPattern = null,
         bool $isShortestWorkdayHoliday = false
     ): array {
-        $scheduleType = $this->resolveScheduleTypeFromWorkPattern($workPattern ?: optional($order->employee)->workPattern);
+        $workPattern = $workPattern ?: optional($order->employee)->workPattern;
+        $scheduleType = $this->resolveScheduleTypeFromWorkPattern($workPattern);
         $dayType = $this->resolveDayTypeFromOvertimeType(
             (string) $order->overtime_type,
             $scheduleType,
-            $isShortestWorkdayHoliday
+            $isShortestWorkdayHoliday || $this->isShortestWorkday($workPattern, $order->overtime_date)
         );
 
-        return $this->calculate(
+        $salary = null;
+        if ($monthlyWage === null) {
+            $salaryService = app(\App\Services\Salary\EmployeeSalaryService::class);
+            $salary = $salaryService->requireForDate((string) $order->nik_karyawan, $order->overtime_date);
+            $monthlyWage = $salaryService->overtimeBasis($salary);
+        }
+        $result = $this->calculate(
             $scheduleType,
             $dayType,
             (int) $order->required_minutes,
             $monthlyWage
         );
+        $result['salary_history_id'] = $salary ? $salary->id : null;
+
+        return $result;
     }
 
     public function resolveScheduleTypeFromWorkPattern(?WorkPattern $workPattern): string
@@ -147,11 +157,18 @@ class OvertimePayCalculatorService
             return OvertimePayRule::DAY_WORKDAY;
         }
 
-        if ($scheduleType === OvertimePayRule::SCHEDULE_SIX_ONE && $isShortestWorkdayHoliday) {
+        if ($overtimeType === OvertimeOrder::TYPE_HOLIDAY && $scheduleType === OvertimePayRule::SCHEDULE_SIX_ONE && $isShortestWorkdayHoliday) {
             return OvertimePayRule::DAY_SHORTEST_WORKDAY_HOLIDAY;
         }
 
         return OvertimePayRule::DAY_OFF_OR_HOLIDAY;
+    }
+
+    public function isShortestWorkday(?WorkPattern $pattern, $date): bool
+    {
+        return $pattern && $date && $pattern->isSixthWeeklyWorkday($date)
+            && $pattern->sixth_day_expected_work_minutes !== null && $pattern->expected_work_minutes !== null
+            && $pattern->sixth_day_expected_work_minutes < $pattern->expected_work_minutes;
     }
 
     public function rulesFor(string $scheduleType, string $dayType): array
@@ -178,16 +195,51 @@ class OvertimePayCalculatorService
                 ->map(fn(OvertimePayRule $rule) => $this->ruleToArray($rule))
                 ->all();
 
-            if (!empty($rules)) {
-                return $rules;
-            }
+        } else {
+            $rules = [];
         }
 
-        return array_values(array_filter(
+        $legalRules = array_values(array_filter(
             $this->defaultRules(),
             fn(array $rule) => $rule['day_type'] === $dayType
                 && in_array($rule['schedule_type'], [$scheduleType, OvertimePayRule::SCHEDULE_ANY], true)
         ));
+
+        return $this->protectStatutoryRates($legalRules, $rules);
+    }
+
+    private function protectStatutoryRates(array $legalRules, array $companyRules): array
+    {
+        $result = [];
+        foreach ($legalRules as $legal) {
+            $end = $legal['hour_to'] === null ? 25 : $legal['hour_to'];
+            for ($hour = $legal['hour_from']; $hour <= $end; $hour++) {
+                $multiplier = (float) $legal['multiplier'];
+                foreach ($companyRules as $company) {
+                    if ($company['hour_from'] <= $hour && ($company['hour_to'] === null || $company['hour_to'] >= $hour)) {
+                        $multiplier = max($multiplier, (float) $company['multiplier']);
+                    }
+                }
+                $line = $legal;
+                $line['hour_from'] = $hour;
+                $line['hour_to'] = $legal['hour_to'] === null && $hour === 25 ? null : $hour;
+                $line['multiplier'] = $multiplier;
+                if ($multiplier > (float) $legal['multiplier']) {
+                    $line['name'] .= ' (ketentuan perusahaan lebih baik)';
+                    $line['legal_basis'] .= '; Pasal 34';
+                }
+                $last = count($result) - 1;
+                // Overlapping master rows never double-count hours or reduce statutory pay.
+                if ($last >= 0 && $result[$last]['hour_to'] === $hour - 1
+                    && $result[$last]['multiplier'] === $multiplier && $result[$last]['legal_basis'] === $line['legal_basis']) {
+                    $result[$last]['hour_to'] = $line['hour_to'];
+                } else {
+                    $result[] = $line;
+                }
+            }
+        }
+
+        return $result;
     }
 
     public function defaultRules(): array

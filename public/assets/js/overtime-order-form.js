@@ -34,6 +34,14 @@
                             }
                         };
                     },
+                    error: function (xhr, status) {
+                        if (status === 'abort') { return; }
+                        let message = 'Pencarian karyawan gagal. Silakan coba lagi.';
+                        if (xhr.status === 401 || xhr.status === 419) { message = 'Sesi login berakhir. Silakan login ulang.'; }
+                        if (xhr.status === 403) { message = 'Anda tidak memiliki akses pencarian karyawan.'; }
+                        if (xhr.status === 0) { message = 'Koneksi bermasalah. Periksa jaringan dan coba lagi.'; }
+                        window.AppDialog.alert('Pencarian belum berhasil', message, 'error');
+                    },
                     cache: true
                 },
                 language: {

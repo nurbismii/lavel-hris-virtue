@@ -30,6 +30,7 @@ class ImportHistory extends Model
     public const TYPE_PKWT_ONE_CONTRACT = 'pkwt_one_contract';
     public const TYPE_CONTRACT_HISTORY = 'contract_history';
     public const TYPE_ROSTER_SCHEDULE = 'roster_schedule';
+    public const TYPE_EMPLOYEE_SALARY = 'employee_salary';
 
     protected $guarded = [];
 
@@ -137,6 +138,7 @@ class ImportHistory extends Model
             self::TYPE_PKWT_ONE_CONTRACT => 'Import PKWT 1 V-Hire',
             self::TYPE_CONTRACT_HISTORY => 'Import History Kontrak',
             self::TYPE_ROSTER_SCHEDULE => 'Import Jadwal Roster',
+            self::TYPE_EMPLOYEE_SALARY => 'Pembaruan Gaji Karyawan',
         ];
     }
 

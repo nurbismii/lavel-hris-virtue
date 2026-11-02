@@ -160,10 +160,22 @@ class OvertimeOrderController extends Controller
             ->whereDate('tanggal', $overtimeOrder->overtime_date)
             ->first();
 
+        $overtimePayEstimate = null;
+        $salaryReviewMessage = null;
+        if ($request->user()->hasRole(['Super Admin', 'HR']) && $request->user()->hasMenuAccess('slip_gaji_admin')) {
+            try {
+                $overtimePayEstimate = app(\App\Services\Overtime\OvertimePayCalculatorService::class)->calculateForOrder($overtimeOrder);
+            } catch (ValidationException $exception) {
+                $salaryReviewMessage = 'Belum ada upah yang disetujui untuk tanggal lembur ini. Upload upah awal atau perubahan gaji terlebih dahulu.';
+            }
+        }
+
         return view('admin.overtime-orders.show', [
             'overtimeOrder' => $overtimeOrder,
             'attendanceRecord' => $attendanceRecord,
             'attendanceOutcome' => app(OvertimeOrderService::class)->evaluateAttendance($overtimeOrder, $attendanceRecord),
+            'overtimePayEstimate' => $overtimePayEstimate,
+            'salaryReviewMessage' => $salaryReviewMessage,
         ]);
     }
 

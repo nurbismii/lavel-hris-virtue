@@ -246,12 +246,12 @@ class AttendanceHrSummaryExportService
             }
 
             if (isset($holidayDates[$dateString])) {
-                if (!$isSmelterFiveTwo) {
-                    $summary['overtime_holiday'] += $this->calculateOffOrHolidayOvertimeUnits(
-                        $scheduleType,
-                        (int) $actual['gross_minutes']
-                    );
-                }
+                $dayType = $scheduleType === OvertimePayRule::SCHEDULE_SIX_ONE
+                    && $this->overtimeCalculator->isShortestWorkday($employee->workPattern, $date)
+                    ? OvertimePayRule::DAY_SHORTEST_WORKDAY_HOLIDAY : OvertimePayRule::DAY_OFF_OR_HOLIDAY;
+                $units = $this->calculateOffOrHolidayOvertimeUnits($scheduleType, (int) $actual['gross_minutes'], $dayType);
+                // Preserve the existing Smelter benefit while paying hours above its 16-unit floor.
+                $summary['overtime_holiday'] += $isSmelterFiveTwo ? max(0, $units - self::SMELTER_HOLIDAY_UNITS) : $units;
 
                 continue;
             }
@@ -721,7 +721,7 @@ class AttendanceHrSummaryExportService
         }
     }
 
-    private function calculateOffOrHolidayOvertimeUnits(string $scheduleType, int $minutes): float
+    private function calculateOffOrHolidayOvertimeUnits(string $scheduleType, int $minutes, string $dayType = OvertimePayRule::DAY_OFF_OR_HOLIDAY): float
     {
         if ($minutes <= 0) {
             return 0.0;
@@ -729,7 +729,7 @@ class AttendanceHrSummaryExportService
 
         $result = $this->overtimeCalculator->calculate(
             $scheduleType,
-            OvertimePayRule::DAY_OFF_OR_HOLIDAY,
+            $dayType,
             $minutes,
             0
         );
