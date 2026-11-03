@@ -2,7 +2,7 @@
 
 ## Status hasil
 
-- Android: proyek native Java, package `com.vdni.vpeople`, versi 1.0.7 (kode 7), Android 9/API 28 ke atas. Presensi GPS memerlukan hardware key attestation yang lolos verifikasi. APK release bertanda tangan tersedia di `public/downloads/vpeople-android.apk`.
+- Android: proyek native Java, package `com.vdni.vpeople`, versi 1.0.10 (kode 10), Android 9/API 28 ke atas. Presensi GPS memerlukan hardware key attestation yang lolos verifikasi. APK release bertanda tangan tersedia di `public/downloads/vpeople-android.apk` dan berkas versi `public/downloads/vpeople-android-1.0.10.apk`.
 - iOS: proyek UIKit/WKWebView di `mobile/ios/VPeople.xcodeproj`, iOS 15 ke atas, iPhone/iPad. Source disiapkan; **belum dikompilasi, ditandatangani, atau diterbitkan**. Memerlukan Mac, Xcode, akun Apple Developer, bundle ID yang tersedia, dan distribusi TestFlight/App Store. Tidak ada tautan iOS palsu.
 - Aplikasi menggunakan fitur HRIS yang sudah ada melalui WebView. Memerlukan internet; tidak menyimpan salinan offline data karyawan.
 - Domain awal `https://hris.vdnisite.com` mengikuti konfigurasi aplikasi V-People sebelumnya. Pastikan domain ini benar untuk lingkungan tujuan sebelum membagikan APK.
@@ -27,8 +27,8 @@ MOBILE_APP_IOS_REQUIRED=false
 MOBILE_APP_ANDROID_DOWNLOAD_URL=
 MOBILE_APP_IOS_DOWNLOAD_URL=
 MOBILE_APP_MINIMUM_VERSION_CODE=2
-MOBILE_APP_LATEST_VERSION_CODE=7
-MOBILE_APP_LATEST_VERSION_NAME=1.0.7
+MOBILE_APP_LATEST_VERSION_CODE=10
+MOBILE_APP_LATEST_VERSION_NAME=1.0.10
 MOBILE_APP_GPS_SIGNER_SHA256=006b134a51a3f84db456c3a3ff4b9411c143055f4de9a33a5978f643992af576
 MOBILE_APP_IOS_MINIMUM_VERSION_CODE=1
 MOBILE_APP_IOS_LATEST_VERSION_CODE=1
@@ -66,7 +66,7 @@ Kunci release lokal yang digunakan untuk APK awal:
 
 APK publik diabaikan Git karena merupakan build artifact. Saat deploy manual, salin APK terverifikasi secara terpisah ke `public/downloads/vpeople-android.apk`; jangan mengunggah folder source/build/signing.
 
-Jika runtime Windows memiliki temp path terlalu panjang dan Java gagal dengan `Unable to establish loopback connection`, jalankan build dengan properti JVM `-Djdk.net.unixdomain.tmpdir=<folder-temp-pendek>`. Gunakan folder yang memang dimiliki untuk pekerjaan ini, tanpa mengubah konfigurasi Java global.
+Jika runtime Windows memiliki temp path terlalu panjang dan Java gagal dengan `Unable to establish loopback connection`, set `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=<folder-temp-pendek>` hanya pada shell build agar properti berlaku juga pada daemon/compiler Java. Gunakan folder yang memang dimiliki untuk pekerjaan ini, tanpa mengubah konfigurasi Java global.
 
 ## Build iOS
 
@@ -96,14 +96,14 @@ iOS tidak dapat dipasang pengguna umum dengan sekadar mengunggah file IPA tanpa 
 - Unduhan iOS memakai WKDownload dan menu Simpan ke File/Bagikan. Berkas sementara dibersihkan setelah selesai/batal atau saat peluncuran berikutnya.
 - Backup cloud dan transfer data Android dibatasi agar sesi/dokumen aplikasi tidak ikut backup.
 - Aplikasi menggunakan satu header dengan identitas V-People, bahasa, dan lonceng notifikasi. Lonceng menampilkan lima notifikasi terbaru, jumlah belum dibaca, Refresh, serta tautan kotak masuk. Clear menghapus seluruh notifikasi milik akun tersebut (termasuk yang belum dibaca) setelah konfirmasi. Panel diperbarui saat dibuka, melalui polling 60 detik, dan melalui realtime bila broadcasting dikonfigurasi. Ini adalah notifikasi di dalam aplikasi; push Android saat aplikasi tertutup belum tersedia.
-- Tab Layanan di bawah membuka daftar fitur sesuai hak akses. Ruang bawah konten mengikuti tinggi tab, termasuk perubahan ukuran teks dan safe area. Tombol kembali sistem Android dan gestur geser iOS mengikuti riwayat halaman. Tombol Coba lagi tampil ketika diperlukan.
+- Tab Layanan di bawah membuka daftar fitur sesuai hak akses. Ruang bawah konten mengikuti tinggi tab, termasuk perubahan ukuran teks dan safe area. Tombol kembali Android pada 1.0.10 langsung menuju Beranda; dua tekanan dalam dua detik di Beranda menutup aplikasi. Gestur geser iOS tetap mengikuti riwayat halaman. Tombol Coba lagi tampil ketika diperlukan.
 - Login password adalah alur yang didukung sebagai dasar. Passkey dalam WebView belum diverifikasi dan dapat memerlukan integrasi platform tambahan; jangan menjanjikan Face ID/Windows Hello di aplikasi hanya karena web mendukung passkey.
 
 ## Deploy cPanel
 
 1. Upload perubahan Laravel/Blade/aset. Document root tetap folder `public`. Perapian UI/notifikasi memerlukan `public/assets/css/native-app.css`, `public/assets/js/app-layout.js`, hasil bundle `public/js/app.js` beserta map/license, terjemahan, controller notifikasi, dan Blade terbaru. Perubahan ini tampil pada APK 1.0.7 setelah aset web diperbarui; tidak memerlukan APK baru.
 2. Upload APK rilis ke `public/downloads`, termasuk `.htaccess` untuk MIME/attachment. Jangan upload signing material atau folder `mobile`.
-3. Atur variabel di atas dan pastikan domain memakai HTTPS serta `APP_DEBUG=false`. Jika `.env` menetapkan `ASSET_VERSION`, naikkan misalnya ke `20261103-gps-1` agar browser memuat aset terbaru. Deploy route, view, aset, `resources/security`, vendor, dan APK bersama. Pengguna 1.0.5/1.0.6 dapat memasang APK sebagai pembaruan memakai sertifikat yang sama.
+3. Atur variabel di atas dan pastikan domain memakai HTTPS serta `APP_DEBUG=false`. Jika `.env` menetapkan `ASSET_VERSION`, naikkan misalnya ke `20261103-ui-2` agar browser memuat aset terbaru. Deploy route, view, aset, `resources/security`, vendor, dan APK bersama. Pengguna 1.0.5–1.0.9 dapat memasang APK 1.0.10 sebagai pembaruan memakai sertifikat yang sama. Atur `MOBILE_APP_LATEST_VERSION_CODE=10` dan `MOBILE_APP_LATEST_VERSION_NAME=1.0.10` pada `.env` hosting; minimum versi tidak perlu dinaikkan untuk perubahan navigasi ini.
 4. Jalankan sesuai PHP production:
 
    ```sh
@@ -141,6 +141,38 @@ Uji perangkat fisik/staging **masih diperlukan**:
 - Jika APK lama dan baru terpasang bersamaan, pastikan pengguna memilih aplikasi baru.
 
 Tidak ada deployment ke hosting, pemasangan pada perangkat fisik, atau publikasi store yang dilakukan otomatis.
+
+## Tombol kembali Android pada 1.0.10
+
+Alur: Slip Gaji/menu lain → tombol kembali → Beranda → kembali sekali (petunjuk muncul) → kembali lagi dalam dua detik → aplikasi ditutup. Tekanan untuk menuju Beranda tidak dihitung sebagai tekanan pertama untuk keluar. Berpindah halaman, berpindah aplikasi, atau melewati dua detik membatalkan hitungan. Tombol dan gestur Back memakai penanganan yang sama, termasuk callback Android 13+. Tidak menelusuri riwayat WebView, tidak logout, dan tidak mematikan proses secara paksa.
+
+Deploy APK dan `resources/views/layouts/app.blade.php`, lalu jalankan `php artisan view:clear` di hosting. Layout memasok URL Beranda sesuai `preferredHomeRouteName()` melalui metadata `vpeople-home-url`; aplikasi hanya menerima tujuan HTTPS dari origin HRIS. Ini mendukung Beranda karyawan, admin, dan fallback akun tanpa akses dashboard. Pada hosting lama tanpa metadata, aplikasi memakai dashboard yang sudah dikunjungi atau `/login` yang mengarahkan akun aktif ke halaman awalnya. Halaman login dan pemeriksaan versi juga dapat ditutup dengan dua tekanan.
+
+Unit test `BackNavigationTest` mencakup navigasi menu, tujuan sesuai peran, batas dua detik, reset, pergantian akun, metadata dari origin lain, dan kompatibilitas hosting lama. Uji manual: kunjungi beberapa menu sebelum menekan Back; pastikan langsung Beranda. Uji dua tekanan cepat, tekanan kedua setelah lebih dari dua detik, berpindah aplikasi setelah tekanan pertama, sesi berakhir, dan Back saat keyboard terbuka. Android 13+ memerlukan verifikasi gestur pada perangkat yang mendukungnya.
+
+Verifikasi lokal 1.0.10: sembilan unit test Android dan 12 tes Laravel (150 assertion) lolos; lint release tidak memiliki error; APK release bertanda tangan resmi yang sama terverifikasi. Instrumentation Android 9/API 28 memeriksa bahwa tekanan pertama tidak menutup Activity dan tekanan kedua menutup task, sekaligus mempertahankan pemeriksaan insets. Navigasi menu/peran diuji pada unit/fitur dengan URL sintetis, bukan akun karyawan produksi. Belum ada pengujian langsung pada HP atau runtime gestur Android 13+.
+
+## Ikon aplikasi pada 1.0.9
+
+Logo asli dari pengguna disimpan tanpa perubahan di `mobile/branding/vpeople-logo.png`. Android memakai ikon adaptif berlatar putih dan foreground 108 dp untuk seluruh perangkat yang didukung (Android 9+). Seluruh logo, termasuk tulisan PEOPLE, ditempatkan di area aman agar tidak terpotong ketika launcher memakai mask bulat atau persegi membulat; lihat [panduan ikon adaptif Android](https://developer.android.com/develop/ui/compose/system/icon_design_adaptive). Manifest memakai ikon yang sama untuk `icon` dan `roundIcon`. Alpha logo yang sama dipakai untuk varian bertema pada launcher yang mendukungnya.
+
+Aset iOS `AppIcon.png` juga diperbarui menjadi PNG 1024 x 1024 RGB berlatar putih. Source iOS belum dibangun dengan Xcode. Perubahan ikon launcher memerlukan pemasangan APK 1.0.9 sebagai pembaruan aplikasi, terpisah dari pembaruan aset web di hosting.
+
+## Status bar dan jarak layar Android pada 1.0.8
+
+Versi ini memerlukan pembaruan APK. Pengaturan jendela membuat konten memenuhi layar, lalu root layout menambahkan ruang untuk bar sistem, cutout, dan keyboard satu kali. Insets yang sudah ditangani dikirim sebagai nol ke WebView, sehingga `safe-area-inset-bottom` pada CSS tidak menambahkan ruang yang sama lagi. Saat keyboard ditutup, WebView tetap menerima pembaruan ukuran nol agar tidak menyisakan ruang kosong. Ikon jam/sinyal/baterai dan navigasi sistem menggunakan warna gelap di atas latar putih; status bar tetap terlihat.
+
+Implementasi mengikuti [panduan Android untuk insets WebView](https://developer.android.com/develop/ui/views/layout/webapps/understand-window-insets) dan [pengaturan edge-to-edge](https://developer.android.com/develop/ui/views/layout/edge-to-edge-manually). Android 9/10 memakai API inset legacy; Android 11+ memakai API bertipe, termasuk resize keyboard. Tidak menambahkan dependensi runtime.
+
+Tes regresi di perangkat/emulator uji yang terisolasi:
+
+```powershell
+.\gradlew.bat :app:connectedDebugAndroidTest
+```
+
+`WindowInsetsCheck` memeriksa warna ikon, status bar tidak fullscreen, root layout tidak diberi offset kedua, insets tombol/gestur, pembukaan/penutupan keyboard, insets sisi pada landscape, dan cutout pada Android 11+. Tes tidak memerlukan akun karyawan. Uji ulang pada Samsung dengan navigasi tiga tombol dan gestur, keyboard terbuka/tertutup, portrait/landscape, serta ukuran teks diperbesar sebelum rollout.
+
+Verifikasi rilis lokal 1.0.8: dua unit test Android, lint release tanpa error, APK release, tanda tangan v2 dengan sertifikat resmi yang sama, 21 tes Laravel (137 assertion), dan instrumentation pada emulator Android 9/API 28 lolos. Instrumentation memvariasikan ukuran inset secara sintetis. Jalur Android 11+ belum diuji runtime: image API 34 yang tersedia adalah Android XR dan gagal boot dengan renderer emulator yang tersedia. Pengujian langsung pada HP Samsung dan Android 15 masih diperlukan; tidak ada deployment hosting pada perbaikan ini.
 
 ## Perlindungan Fake GPS pada 1.0.7
 

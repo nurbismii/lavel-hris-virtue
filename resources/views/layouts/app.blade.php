@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 @php
     $nativeApp = \App\Support\MobileApp::isNative(request()) && auth()->check();
+    $appHomeUrl = auth()->check()
+        ? route(auth()->user()->preferredHomeRouteName())
+        : url('/');
 @endphp
 <html lang="{{ app(\App\Services\Localization\LocaleService::class)->htmlLang() }}">
 
@@ -10,6 +13,9 @@
     <title>@hasSection('title')@yield('title') | @endif V-People · PT VDNI</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @if($nativeApp)
+        <meta name="vpeople-home-url" content="{{ $appHomeUrl }}">
+    @endif
     <meta name="app-fonts-url" content="{{ versioned_asset('assets/css/fonts.min.css') }}">
     <link rel="icon" href="{{ versioned_asset('assets/img/kaiadmin/icon-2.png') }}" type="image/x-icon" />
 
@@ -34,11 +40,6 @@
 </head>
 
 <body class="app-shell{{ $nativeApp ? ' native-app' : '' }}">
-    @php
-    $appHomeUrl = auth()->check()
-    ? route(auth()->user()->preferredHomeRouteName())
-    : url('/');
-    @endphp
     <div class="wrapper">
         @unless($nativeApp)
         @include('partials.sidebar')

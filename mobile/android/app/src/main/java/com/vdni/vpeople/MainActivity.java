@@ -7,9 +7,14 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.SystemClock;
+import android.view.DisplayCutout;
 import android.view.View;
+import android.view.WindowInsets;
 import android.webkit.*;
 import android.widget.*;
 import org.json.JSONObject;
@@ -23,6 +28,7 @@ import javax.net.ssl.HttpsURLConnection;
 public class MainActivity extends Activity {
     private static final int CAMERA = 10, LOCATION = 11, PICK_FILE = 12, SAVE_FILE = 13;
     private final OriginPolicy policy = new OriginPolicy(BuildConfig.HRIS_URL);
+    private final BackNavigation backNavigation = new BackNavigation(BuildConfig.HRIS_URL);
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private WebView web;
     private GpsProof gpsProof;
@@ -35,16 +41,38 @@ public class MainActivity extends Activity {
     private String locationOrigin;
     private File pendingDownload;
     private boolean busyDownload;
+    private Toast exitToast;
+    private android.window.OnBackInvokedCallback backCallback;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        if (Build.VERSION.SDK_INT >= 30) {
+            getWindow().setDecorFitsSystemWindows(false);
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        }
+        if (Build.VERSION.SDK_INT >= 29) getWindow().setNavigationBarContrastEnforced(false);
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.WHITE);
         root.setOnApplyWindowInsetsListener((view, insets) -> {
-            view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
-                insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
-            return insets;
+            // Native layout owns the safe area and keyboard; zero handled insets before WebView sees them.
+            if (Build.VERSION.SDK_INT >= 30) {
+                int bars = WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout();
+                int handled = bars | WindowInsets.Type.ime();
+                Insets padding = insets.getInsets(handled);
+                view.setPadding(padding.left, padding.top, padding.right, padding.bottom);
+                return new WindowInsets.Builder(insets).setInsets(handled, Insets.NONE)
+                    .setInsetsIgnoringVisibility(bars, Insets.NONE).setDisplayCutout(null).build();
+            }
+            DisplayCutout cutout = insets.getDisplayCutout();
+            view.setPadding(Math.max(insets.getSystemWindowInsetLeft(), cutout == null ? 0 : cutout.getSafeInsetLeft()),
+                Math.max(insets.getSystemWindowInsetTop(), cutout == null ? 0 : cutout.getSafeInsetTop()),
+                Math.max(insets.getSystemWindowInsetRight(), cutout == null ? 0 : cutout.getSafeInsetRight()),
+                Math.max(insets.getSystemWindowInsetBottom(), cutout == null ? 0 : cutout.getSafeInsetBottom()));
+            return insets.replaceSystemWindowInsets(0, 0, 0, 0).consumeStableInsets().consumeDisplayCutout();
         });
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setVisibility(View.GONE);
@@ -70,6 +98,11 @@ public class MainActivity extends Activity {
         web.setWebViewClient(new Browser());
         web.setWebChromeClient(new Chrome());
         web.setDownloadListener((url, agent, disposition, mime, length) -> download(url, disposition, mime));
+        if (Build.VERSION.SDK_INT >= 33) {
+            backCallback = this::handleBack;
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, backCallback);
+        }
         File[] stale = getCacheDir().listFiles((dir, name) -> name.startsWith("vpeople-download-"));
         if (stale != null) for (File file : stale) file.delete();
         checkVersion();
@@ -148,19 +181,6 @@ public class MainActivity extends Activity {
     }
 
     private class Browser extends WebViewClient {
-        private android.window.OnBackInvokedCallback backCallback;
-
-        @Override public void doUpdateVisitedHistory(WebView view, String url, boolean reload) {
-            if (android.os.Build.VERSION.SDK_INT < 33) return;
-            if (view.canGoBack() && backCallback == null) {
-                backCallback = view::goBack;
-                getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
-                    android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, backCallback);
-            } else if (!view.canGoBack() && backCallback != null) {
-                getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);
-                backCallback = null;
-            }
-        }
         @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
             Uri target = request.getUrl();
             if ("vpeople".equals(target.getScheme()) && "gps-proof".equals(target.getHost())) {
@@ -172,12 +192,22 @@ public class MainActivity extends Activity {
             openExternal(request.getUrl()); return true;
         }
         @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+            resetBackPress();
             gpsProof.cancel();
             status("Memuat halaman…", true);
         }
         @Override public void onPageFinished(WebView view, String url) {
             if (retry.getVisibility() != View.VISIBLE && !busyDownload) status("", false);
             CookieManager.getInstance().flush();
+            if (!policy.allows(url) || !url.equals(view.getUrl())) return;
+            backNavigation.updateHome(url, null);
+            view.evaluateJavascript("(function(){var home=document.querySelector('meta[name=\"vpeople-home-url\"]');return home?home.content:null;})()", result -> {
+                if (isDestroyed() || result == null || !url.equals(view.getUrl())) return;
+                try {
+                    Object home = new org.json.JSONTokener(result).nextValue();
+                    if (home instanceof String) backNavigation.updateHome(url, (String) home);
+                } catch (org.json.JSONException invalid) { /* Keep the existing home when metadata is absent. */ }
+            });
         }
         @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
             if (request.isForMainFrame()) failure("Halaman tidak dapat dimuat. Periksa koneksi dan coba lagi.");
@@ -337,10 +367,31 @@ public class MainActivity extends Activity {
         }
     }
 
-    @Override public void onBackPressed() { if (web.canGoBack()) web.goBack(); else super.onBackPressed(); }
-    @Override protected void onPause() { super.onPause(); gpsProof.cancel(); web.onPause(); CookieManager.getInstance().flush(); }
+    private void resetBackPress() {
+        backNavigation.reset();
+        if (exitToast != null) { exitToast.cancel(); exitToast = null; }
+    }
+
+    private void handleBack() {
+        BackNavigation.Action action = backNavigation.press(web.getVisibility() == View.VISIBLE ? web.getUrl() : null, SystemClock.elapsedRealtime());
+        if (action == BackNavigation.Action.RETURN_HOME) {
+            web.stopLoading();
+            web.loadUrl(backNavigation.homeUrl());
+        } else if (action == BackNavigation.Action.EXIT) {
+            resetBackPress();
+            finishAndRemoveTask();
+        } else {
+            if (exitToast != null) exitToast.cancel();
+            exitToast = Toast.makeText(this, R.string.back_again_to_exit, Toast.LENGTH_SHORT);
+            exitToast.show();
+        }
+    }
+
+    @Override public void onBackPressed() { handleBack(); }
+    @Override protected void onPause() { resetBackPress(); super.onPause(); gpsProof.cancel(); web.onPause(); CookieManager.getInstance().flush(); }
     @Override protected void onResume() { super.onResume(); if (web != null) web.onResume(); }
     @Override protected void onDestroy() {
+        if (Build.VERSION.SDK_INT >= 33 && backCallback != null) getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(backCallback);
         if (fileCallback != null) fileCallback.onReceiveValue(null);
         if (cameraRequest != null) cameraRequest.deny();
         if (locationCallback != null) locationCallback.invoke(locationOrigin, false, false);

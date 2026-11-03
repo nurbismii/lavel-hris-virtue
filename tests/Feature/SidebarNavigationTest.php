@@ -136,6 +136,15 @@ class SidebarNavigationTest extends TestCase
         $this->withHeader('User-Agent', 'Windows NT 10.0')->get('/mobile/layanan')->assertRedirect(route('home'));
     }
 
+    public function test_native_back_destination_matches_the_users_permitted_home(): void
+    {
+        foreach (['Staff' => 'dashboard.karyawan', 'HR' => 'home', 'Custom' => 'update.akun'] as $role => $home) {
+            $this->signInAsRole($role);
+            $this->withHeader('User-Agent', 'Android VPEOPLE_APP/1.0.10')->get('/mobile/layanan')->assertOk()
+                ->assertSee('name="vpeople-home-url" content="' . route($home) . '"', false);
+        }
+    }
+
     private function signInAsRole(string $roleName, ?array $menus = null, ?array $counts = null): void
     {
         $role = new Role();

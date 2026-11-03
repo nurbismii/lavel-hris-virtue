@@ -48,8 +48,8 @@ return [
         'ios_latest_version_code' => (int) env('MOBILE_APP_IOS_LATEST_VERSION_CODE', 1),
         'ios_latest_version_name' => env('MOBILE_APP_IOS_LATEST_VERSION_NAME', '1.0.0'),
         'minimum_version_code' => (int) env('MOBILE_APP_MINIMUM_VERSION_CODE', 2),
-        'latest_version_code' => (int) env('MOBILE_APP_LATEST_VERSION_CODE', 7),
-        'latest_version_name' => env('MOBILE_APP_LATEST_VERSION_NAME', '1.0.7'),
+        'latest_version_code' => (int) env('MOBILE_APP_LATEST_VERSION_CODE', 10),
+        'latest_version_name' => env('MOBILE_APP_LATEST_VERSION_NAME', '1.0.10'),
         'download_url' => env('MOBILE_APP_DOWNLOAD_URL'),
         'rate_limit_per_minute' => (int) env('MOBILE_APP_VERSION_RATE_LIMIT_PER_MINUTE', 600),
         'force_update_message' => env(

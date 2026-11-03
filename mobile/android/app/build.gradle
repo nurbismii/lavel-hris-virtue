@@ -16,8 +16,9 @@ android {
         applicationId 'com.vdni.vpeople'
         minSdk 28
         targetSdk 35
-        versionCode 7
-        versionName '1.0.7'
+        versionCode 10
+        versionName '1.0.10'
+        testInstrumentationRunner 'com.vdni.vpeople.WindowInsetsCheck'
         buildConfigField 'String', 'HRIS_URL', '"' + hrisUrl.replaceAll('/$', '') + '"'
     }
     buildFeatures { buildConfig true }
