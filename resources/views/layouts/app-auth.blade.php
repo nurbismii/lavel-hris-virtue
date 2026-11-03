@@ -2,6 +2,7 @@
 <html lang="{{ app(\App\Services\Localization\LocaleService::class)->htmlLang() }}">
 
 <head>
+    @include('partials.mobile-app-guard')
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>PT VDNI | V-People</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />

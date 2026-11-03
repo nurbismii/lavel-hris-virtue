@@ -4,35 +4,25 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Support\MobileApp;
 
 class RedirectAndroidToApp
 {
     public function handle(Request $request, Closure $next)
     {
-        if (app()->environment('local')) {
+        if (!MobileApp::requiresApp($request)) {
             return $next($request);
         }
 
-        $userAgent = $request->header('User-Agent') ?? '';
-
-        $isAndroid = stripos($userAgent, 'Android') !== false;
-        $isApp = stripos($userAgent, 'VPEOPLE_APP') !== false;
-
-        // Route yang dikecualikan
-        if ($request->routeIs([
-            'login',
-            'register',
-            'password.*'
-        ]) || $request->is('download-app')) {
-            return $next($request);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'code' => 'mobile_app_required',
+                'message' => 'Silakan gunakan aplikasi V-People untuk masuk dari ponsel atau tablet.',
+                'data' => ['download_url' => route('mobile.download')],
+            ], 403)->header('Cache-Control', 'no-store, private');
         }
 
-        if ($isAndroid && !$isApp) {
-            Auth::logout();
-            return redirect('/download-app');
-        }
-
-        return $next($request);
+        return redirect()->route('mobile.download')->header('Cache-Control', 'no-store, private');
     }
 }

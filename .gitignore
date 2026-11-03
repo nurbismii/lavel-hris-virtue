@@ -1,5 +1,6 @@
 /node_modules
 /public/hot
+/public/downloads/*.apk
 /public/foto-karyawan
 /public/storage
 /public/face-reference

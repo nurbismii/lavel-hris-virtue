@@ -69,7 +69,8 @@ class PresensiController extends Controller
         $nextAttendanceType = $this->resolveNextAttendanceType($absensiHariIni, $statusPresensiHariIni);
         $attendanceChallenge = null;
 
-        if ($isLocationReady && filled($karyawan->face_reference_path) && $nextAttendanceType) {
+        $supportsNativeGps = \App\Services\Presensi\NativeGpsProof::supported(request());
+        if ($supportsNativeGps && $isLocationReady && filled($karyawan->face_reference_path) && $nextAttendanceType) {
             $attendanceChallenge = app(AttendanceSecurityService::class)
                 ->issueChallenge($user, request(), $activeAttendanceDateString, $nextAttendanceType);
         }
@@ -163,6 +164,7 @@ class PresensiController extends Controller
             'currentScheduleData' => $currentScheduleData,
             'nextAttendanceType' => $nextAttendanceType,
             'attendanceChallenge' => $attendanceChallenge,
+            'supportsNativeGps' => $supportsNativeGps,
         ]);
     }
 

@@ -1,7 +1,11 @@
 <!DOCTYPE html>
+@php
+    $nativeApp = \App\Support\MobileApp::isNative(request()) && auth()->check();
+@endphp
 <html lang="{{ app(\App\Services\Localization\LocaleService::class)->htmlLang() }}">
 
 <head>
+    @include('partials.mobile-app-guard')
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>@hasSection('title')@yield('title') | @endif V-People · PT VDNI</title>
     <meta content="width=device-width, initial-scale=1.0, shrink-to-fit=no" name="viewport" />
@@ -22,23 +26,29 @@
     <link rel="stylesheet" href="{{ versioned_asset('assets/css/kaiadmin.min.css') }}" />
     <link rel="stylesheet" href="{{ versioned_asset('assets/css/app-layout.css') }}" />
     <link rel="stylesheet" href="{{ versioned_asset('assets/css/custom.css') }}" />
+    @if($nativeApp)
+        <link rel="stylesheet" href="{{ versioned_asset('assets/css/native-app.css?ui=notifications-2') }}" />
+    @endif
 
     @stack('styles')
 </head>
 
-<body class="app-shell">
+<body class="app-shell{{ $nativeApp ? ' native-app' : '' }}">
     @php
     $appHomeUrl = auth()->check()
     ? route(auth()->user()->preferredHomeRouteName())
     : url('/');
     @endphp
     <div class="wrapper">
-        <!-- Sidebar -->
+        @unless($nativeApp)
         @include('partials.sidebar')
         <button type="button" class="app-sidebar-backdrop" data-app-menu-toggle aria-label="{{ __('Tutup menu navigasi') }}" tabindex="-1"></button>
-        <!-- End Sidebar -->
+        @endunless
         @include('sweetalert::alert')
         <div class="main-panel">
+            @if($nativeApp)
+                @include('mobile.header')
+            @else
             <div class="main-header">
                 <div class="main-header-logo">
                     <!-- Logo Header -->
@@ -68,11 +78,15 @@
                 @include('partials.navbar')
                 <!-- End Navbar -->
             </div>
+            @endif
 
             <div class="container">
                 @yield('content')
             </div>
 
+            @if($nativeApp)
+                @include('mobile.tabs')
+            @else
             <footer class="footer">
                 <div class="container-fluid d-flex justify-content-between">
                     <nav class="pull-left">
@@ -93,6 +107,7 @@
             </footer>
 
             @include('partials.mobile-bottom-nav')
+            @endif
         </div>
     </div>
 
@@ -302,7 +317,7 @@
 
     <!-- DataTables Responsive JS -->
     <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
-    <script src="{{ versioned_asset('assets/js/app-layout.js') }}"></script>
+    <script src="{{ versioned_asset($nativeApp ? 'assets/js/app-layout.js?ui=notifications-2' : 'assets/js/app-layout.js') }}"></script>
     <script>
         (function() {
             const modalElement = document.getElementById('approvalRejectReasonModal');
@@ -540,10 +555,11 @@
             inboxUrl: @json(route('kotak-masuk.index')),
             desktopIconUrl: @json(url(versioned_asset('assets/img/kaiadmin/icon-2.png'))),
             desktopBadgeUrl: @json(url(versioned_asset('assets/img/kaiadmin/icon-2.png'))),
+            labels: @json(trans('notifications')),
         };
     </script>
     @endauth
-    <script src="{{ versioned_asset('js/app.js') }}"></script>
+    <script src="{{ versioned_asset($nativeApp ? 'js/app.js?ui=notifications-2' : 'js/app.js') }}"></script>
 
     @stack('scripts')
 

@@ -78,7 +78,7 @@ Route::post('forgot-password', [ForgotPasswordController::class, 'sendResetLinkE
 Route::get('reset-password/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('reset-password', [ResetPasswordController::class, 'reset'])->name('password.update');
 
-Route::view('/download-app', 'download-app');
+Route::get('/download-app', [App\Http\Controllers\MobileAppController::class, 'download'])->name('mobile.download');
 
 Route::middleware(['android.redirect'])->group(function () {
 
@@ -150,6 +150,7 @@ Route::middleware(['android.redirect'])->group(function () {
         });
 
     Route::group(['prefix' => '/', 'middleware' => ['auth', 'verify.email']], function () {
+        Route::get('/mobile/layanan', [App\Http\Controllers\MobileAppController::class, 'services'])->name('mobile.services');
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('menu:dashboard_karyawan')->name('dashboard.karyawan');
         Route::resource('/cuti', 'App\Http\Controllers\User\CutiController')->middleware('menu:cuti');
@@ -162,7 +163,11 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::resource('/attendance-corrections', AttendanceCorrectionController::class)
             ->only(['index', 'create', 'store'])
             ->middleware('menu:attendance_correction');
-        Route::post('/absen/{type}', [PresensiController::class, 'store'])->middleware(['auth', 'menu:presensi', 'throttle:presensi']);
+        Route::post('/presensi/gps-challenge', [App\Http\Controllers\MobileAppController::class, 'gpsChallenge'])
+            ->middleware(['menu:presensi', 'throttle:gps-log'])->name('presensi.gps-challenge');
+        Route::post('/absen/{type}', [PresensiController::class, 'store'])
+            ->whereIn('type', ['masuk', 'istirahat', 'kembali', 'pulang'])
+            ->middleware(['auth', 'menu:presensi', 'throttle:presensi', App\Http\Middleware\RequireNativeGpsProof::class]);
         Route::get('/izin/{izin}/bukti', [App\Http\Controllers\User\IzinController::class, 'proof'])
             ->middleware('menu:izin')
             ->name('izin.proof');
@@ -714,5 +719,6 @@ Route::group(['prefix' => 'wilayah', 'middleware' => ['auth']], function () {
 
 Route::group(['prefix' => 'api/'], function () {
     route::get('/airports', [ApiController::class, 'getAirport']);
-    Route::post('/gps-log', [PresensiController::class, 'logGps'])->middleware(['auth', 'menu:presensi', 'throttle:gps-log']);
+    Route::post('/gps-log', [PresensiController::class, 'logGps'])
+        ->middleware(['auth', 'menu:presensi', 'throttle:gps-log', App\Http\Middleware\RequireNativeGpsProof::class]);
 });

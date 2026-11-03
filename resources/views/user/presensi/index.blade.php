@@ -98,6 +98,18 @@ $locationIssueMessage = $locationIssueMessage ?? (
         </div>
         @endif
 
+        @if (!$supportsNativeGps && $nextAttendanceType)
+        <div class="alert alert-info" role="status">
+            Untuk mencatat presensi, gunakan V-People Android 1.0.7 atau lebih baru pada perangkat yang mendukung verifikasi keamanan.
+            <a href="{{ route('mobile.download') }}">Unduh aplikasi</a>. Jika perangkat tidak didukung, hubungi HR.
+        </div>
+        @endif
+
+        <div id="nativeGpsFailure" class="alert alert-danger" role="alert" hidden>
+            <strong>Presensi belum dapat dikirim.</strong> <span></span>
+            <a href="{{ route('presensi.index') }}" class="alert-link">Ulangi pemeriksaan</a>
+        </div>
+
         @if ($errors->any())
         <div class="alert alert-danger">
             <strong>{{ __('Presensi belum berhasil dikirim.') }}</strong>
@@ -426,6 +438,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     <input type="hidden" name="lat_user" id="lat_user">
                     <input type="hidden" name="long_user" id="long_user">
                     <input type="hidden" name="accuracy" id="accuracy_user">
+                    <input type="hidden" name="gps_proof" id="gps_proof">
                     <input type="hidden" name="speed" id="speed_user">
                     <input type="hidden" name="device_info" id="device_info">
                     <input type="hidden" name="face_verified" id="face_verified" value="0">
@@ -555,6 +568,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 @endsection
 
 @push('scripts')
+<script src="{{ versioned_asset('assets/js/presensi-native-gps.js') }}"></script>
 <script src="{{ versioned_asset('assets/js/passive-face-capture.js') }}"></script>
 <script src="{{ versioned_asset('vendor/leaflet/leaflet.js') }}"></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
@@ -577,6 +591,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
     let referenceFaceDescriptor = null;
     let positionHistory = [];
     let gpsEvidenceReady = false;
+    let gpsWatchId = null;
+    let gpsVerificationStopped = false;
     let gpsLogInFlight = false;
     let gpsEvidenceLastAttemptAt = 0;
     let cameraStream = null;
@@ -624,6 +640,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
     const manualSelfieEnabled = false;
     const attendanceSubmitBaseUrl = @json(url('/absen'));
     const gpsLogUrl = @json(url('/api/gps-log'));
+    const gpsChallengeUrl = @json(route('presensi.gps-challenge'));
     const attendanceLocations = @json($attendanceLocationItems);
     const freeMapTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
     const freeMapAttribution = 'Lokasi presensi';
@@ -1022,6 +1039,18 @@ $locationIssueMessage = $locationIssueMessage ?? (
         distanceInfo.appendChild(status);
     }
 
+    function stopGpsVerification(message) {
+        gpsVerificationStopped = true;
+        gpsReady = false;
+        gpsEvidenceReady = false;
+        if (gpsWatchId !== null) navigator.geolocation.clearWatch(gpsWatchId);
+        const notice = document.getElementById('nativeGpsFailure');
+        notice.querySelector('span').textContent = message;
+        notice.hidden = false;
+        updateFaceLiveLocation('danger', message, 'Setelah masalah diperbaiki, ulangi pemeriksaan.');
+        updateAttendanceButtonState();
+    }
+
     function getAttendanceButtonBlockReason() {
         const livenessPassedInput = document.getElementById('face_liveness_passed');
         const livenessEvidenceInput = document.getElementById('face_liveness_evidence');
@@ -1057,7 +1086,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         const blockReason = getAttendanceButtonBlockReason();
 
         document.querySelectorAll(".btn-absen").forEach(button => {
-            button.disabled = Boolean(blockReason);
+            button.disabled = Boolean(blockReason) || button.dataset.submitting === '1' || gpsLogInFlight;
             button.title = blockReason ? 'Belum bisa presensi: ' + blockReason : '';
             button.setAttribute('aria-disabled', blockReason ? 'true' : 'false');
         });
@@ -2003,6 +2032,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     document.addEventListener("DOMContentLoaded", function() {
+        if (!@json($supportsNativeGps) || !attendanceChallenge) {
+            updateAttendanceButtonState();
+            return;
+        }
         const initialLocation = firstAttendanceLocation();
 
         if (!initialLocation) {
@@ -2163,7 +2196,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
             return;
         }
 
-        navigator.geolocation.watchPosition(function(position) {
+        gpsWatchId = navigator.geolocation.watchPosition(function(position) {
+            if (gpsVerificationStopped) return;
             let latUser = position.coords.latitude;
             let longUser = position.coords.longitude;
             let accuracy = position.coords.accuracy;
@@ -2274,19 +2308,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             }
 
             if (position.coords.mocked === true) {
-                gpsReady = false;
-                gpsEvidenceReady = false;
-                stableStartTime = null;
-                updateAttendanceButtonState();
-                updateFaceLiveLocation(
-                    'danger',
-                    'Mock location terdeteksi',
-                    faceLiveLocationMeta(currentDistance, accuracy, locationName)
-                );
-
-                document.getElementById("distanceInfo").innerHTML =
-                    "<span class='text-danger'>Mock location terdeteksi</span>";
-
+                stopGpsVerification('Lokasi simulasi terdeteksi. Matikan Fake GPS sebelum mencoba lagi.');
                 return;
             }
 
@@ -2384,19 +2406,23 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     gpsLogInFlight = true;
                     gpsEvidenceLastAttemptAt = currentTime;
 
-                    fetch(gpsLogUrl, {
+                    window.requestPresensiGps(gpsChallengeUrl, attendanceChallenge.id, 'log').then(proof => fetch(gpsLogUrl, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
+                            "Accept": "application/json",
                             "X-CSRF-TOKEN": document.querySelector('meta[name=\"csrf-token\"]').content
                         },
                         body: JSON.stringify({
+                            attendance_challenge_id: attendanceChallenge.id,
+                            gps_proof: proof,
                             lat: latUser,
                             long: longUser,
                             accuracy: accuracy,
                             speed: speed ?? 0,
                         })
-                    }).then(async function(response) {
+                    })).then(async function(response) {
+                        if (gpsVerificationStopped) return;
                         gpsEvidenceReady = response.ok;
 
                         if (response.ok) {
@@ -2424,26 +2450,19 @@ $locationIssueMessage = $locationIssueMessage ?? (
                             }
 
                             updateDistanceInfo('text-danger', currentDistance, message);
-                            updateFaceLiveLocation(
-                                'danger',
-                                message,
-                                faceLiveLocationMeta(currentDistance, accuracy, locationName)
-                            );
+                            stopGpsVerification(message);
                         }
 
                         updateAttendanceButtonState();
                     }).catch(function(err) {
                         gpsEvidenceReady = false;
-                        updateDistanceInfo('text-danger', currentDistance, 'Bukti GPS live gagal tersimpan');
-                        updateFaceLiveLocation(
-                            'danger',
-                            'Bukti GPS live gagal tersimpan',
-                            faceLiveLocationMeta(currentDistance, accuracy, locationName)
-                        );
+                        const message = err instanceof TypeError ? 'Periksa koneksi lalu coba lagi.' : err.message;
+                        updateDistanceInfo('text-danger', currentDistance, message);
+                        stopGpsVerification(message);
                         updateAttendanceButtonState();
-                        console.log("GPS Log Error:", err);
                     }).finally(function() {
                         gpsLogInFlight = false;
+                        updateAttendanceButtonState();
                     });
                 }
             }
@@ -2454,7 +2473,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         });
 
         document.querySelectorAll(".btn-absen").forEach(button => {
-            button.addEventListener("click", function() {
+            button.addEventListener("click", async function() {
                 if (!gpsReady) {
                     Swal.fire({
                         icon: 'warning',
@@ -2515,15 +2534,27 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 });
 
                 Swal.fire({
-                    title: @json(__('Menyimpan presensi...')),
-                    text: @js(__('Mohon tunggu, data presensi sedang dicatat.')),
+                    title: 'Memeriksa lokasi perangkat…',
+                    text: 'Tunggu pemeriksaan GPS selesai sebelum presensi dikirim.',
                     allowOutsideClick: false,
                     allowEscapeKey: false,
                     didOpen: () => Swal.showLoading()
                 });
 
                 form.action = `${attendanceSubmitBaseUrl}/${type}`;
-                window.setTimeout(() => form.submit(), 50);
+                try {
+                    const proof = await window.requestPresensiGps(gpsChallengeUrl, attendanceChallenge.id, type);
+                    if (!gpsReady || !gpsEvidenceReady || !isAttendanceChallengeReady()) {
+                        throw new Error('Lokasi atau sesi presensi berubah. Periksa kembali lalu coba lagi.');
+                    }
+                    document.getElementById('gps_proof').value = JSON.stringify(proof);
+                    Swal.update({title: 'Menyimpan presensi…', text: 'Mohon tunggu sebentar.'});
+                    form.submit();
+                } catch (error) {
+                    this.dataset.submitting = '';
+                    stopGpsVerification(error.message);
+                    Swal.fire({icon: 'error', title: 'Presensi belum dikirim', text: error.message});
+                }
             });
         });
     });

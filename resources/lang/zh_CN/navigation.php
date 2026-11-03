@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'services' => '服务',
+    'services_hint' => '请选择您要使用的服务。',
     'roster_schedule' => '轮休计划',
     'account_settings' => '账户设置',
     'admin_panel' => '管理面板',

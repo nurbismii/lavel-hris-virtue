@@ -217,6 +217,8 @@ class PasskeyAuthenticationTest extends TestCase
 
     public function test_http_login_regenerates_session_and_updates_last_login(): void
     {
+        config(['hris.mobile_app.ios_required' => false]);
+        $this->withHeader('User-Agent', 'iPhone');
         $this->register();
         // No business role tables are required to exercise the existing home-route helper.
         Schema::create('roles', function (Blueprint $table) { $table->id(); $table->string('name'); });

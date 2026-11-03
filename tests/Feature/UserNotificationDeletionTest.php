@@ -98,6 +98,27 @@ class UserNotificationDeletionTest extends TestCase
         $this->assertDatabaseHas('notifications', ['id' => $otherNotificationId]);
     }
 
+    public function test_latest_notifications_are_limited_private_and_owned_by_the_user(): void
+    {
+        $ownIds = [];
+        for ($index = 0; $index < 7; $index++) {
+            $ownIds[] = $this->createNotification('user-1', $index === 0 ? now() : null);
+        }
+        $otherId = $this->createNotification('user-2');
+
+        $response = app(NotificationController::class)->latest($this->jsonRequest($this->makeUser('user-1')));
+        $data = $response->getData(true);
+
+        $this->assertSame(6, $data['unread_count']);
+        $this->assertCount(5, $data['items']);
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        foreach ($data['items'] as $item) {
+            $this->assertContains($item['id'], $ownIds);
+            $this->assertNotSame($otherId, $item['id']);
+            $this->assertSame(route('notif.baca', $item['id']), $item['read_url']);
+        }
+    }
+
     private function makeUser(string $id): User
     {
         $user = new User();

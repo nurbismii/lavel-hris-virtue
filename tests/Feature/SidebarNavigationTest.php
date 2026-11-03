@@ -110,14 +110,7 @@ class SidebarNavigationTest extends TestCase
 
     private function navigation(string $roleName, string $route = 'home', ?array $menus = null, ?array $counts = null): DOMXPath
     {
-        $role = new Role();
-        $role->forceFill(['id' => 1, 'permission_role' => $roleName, 'menu_permissions' => $menus]);
-        $user = Mockery::mock(User::class)->makePartial();
-        $user->shouldReceive('assignedRoles')->andReturn(collect([$role]));
-        $this->actingAs($user);
-        $this->instance(ApprovalSidebarCountService::class, Mockery::mock(ApprovalSidebarCountService::class, function ($mock) use ($counts) {
-            $mock->shouldReceive('countsFor')->andReturn($counts ?? (new ApprovalSidebarCountService())->defaultCounts());
-        }));
+        $this->signInAsRole($roleName, $menus, $counts);
         $currentRoute = app('router')->getRoutes()->getByName($route);
         $this->assertNotNull($currentRoute, $route);
         request()->setRouteResolver(function () use ($currentRoute) { return $currentRoute; });
@@ -126,5 +119,34 @@ class SidebarNavigationTest extends TestCase
         $document->loadHTML('<?xml encoding="utf-8" ?>' . view('partials.sidebar')->render(), LIBXML_NOERROR | LIBXML_NOWARNING);
 
         return new DOMXPath($document);
+    }
+
+    public function test_app_uses_bottom_tabs_and_preserves_role_scoped_destinations_without_sidebar_controls(): void
+    {
+        $this->signInAsRole('HR');
+        foreach (['Android VPEOPLE_APP/1.0.6', 'iPhone VPEOPLE_APP/1.0.0'] as $agent) {
+            $this->withHeader('User-Agent', $agent)->get('/mobile/layanan')->assertOk()
+                ->assertSee('class="native-tabs"', false)->assertSee('aria-current="page"', false)
+                ->assertSee('id="notifList"', false)->assertSee('data-notification-clear', false)
+                ->assertSee(route('notif.destroyAll'))
+                ->assertDontSee('id="appSidebar"', false)->assertDontSee('data-app-menu-toggle', false)
+                ->assertSee(route('approval.cuti.hrd'))->assertDontSee(route('presensi.index'))
+                ->assertSee(route('kotak-masuk.index'))->assertSee(route('update.akun'))->assertSee(route('logout'));
+        }
+        $this->withHeader('User-Agent', 'Windows NT 10.0')->get('/mobile/layanan')->assertRedirect(route('home'));
+    }
+
+    private function signInAsRole(string $roleName, ?array $menus = null, ?array $counts = null): void
+    {
+        $role = new Role();
+        $role->forceFill(['id' => 1, 'permission_role' => $roleName, 'menu_permissions' => $menus]);
+        $user = Mockery::mock(User::class)->makePartial();
+        $user->forceFill(['id' => 'menu-test', 'email_verified_at' => now()]);
+        $user->shouldReceive('unreadNotifications->count')->andReturn(0);
+        $user->shouldReceive('assignedRoles')->andReturn(collect([$role]));
+        $this->actingAs($user);
+        $this->instance(ApprovalSidebarCountService::class, Mockery::mock(ApprovalSidebarCountService::class, function ($mock) use ($counts) {
+            $mock->shouldReceive('countsFor')->andReturn($counts ?? (new ApprovalSidebarCountService())->defaultCounts());
+        }));
     }
 }

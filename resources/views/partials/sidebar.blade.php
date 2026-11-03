@@ -23,6 +23,9 @@ $approvalPendingCount = ($can('approval_hod') ? ($approvalHodCounts['total'] ?? 
     + ($canUseDelegateApproval ? ($approvalDelegateCounts['total'] ?? 0) : 0);
 @endphp
 
+@if($serviceDirectory ?? false)
+<nav class="native-service-list" aria-label="{{ __('navigation.services') }}">
+@else
 <div class="sidebar" id="appSidebar" role="navigation" aria-label="{{ __('Menu utama') }}" data-background-color="white">
     <div class="sidebar-logo">
         <div class="logo-header" data-background-color="white">
@@ -45,6 +48,7 @@ $approvalPendingCount = ($can('approval_hod') ? ($approvalHodCounts['total'] ?? 
     </div>
     <div class="sidebar-wrapper scrollbar scrollbar-inner">
         <div class="sidebar-content">
+@endif
             <ul class="nav nav-secondary app-navigation" id="appNavigation">
 
                 @if($can('dashboard_admin'))
@@ -608,6 +612,10 @@ $approvalPendingCount = ($can('approval_hod') ? ($approvalHodCounts['total'] ?? 
                 @endcomponent
 
             </ul>
+@if($serviceDirectory ?? false)
+</nav>
+@else
         </div>
     </div>
 </div>
+@endif

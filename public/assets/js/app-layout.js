@@ -1,4 +1,14 @@
 (function() {
+    const tabs = document.querySelector('.native-tabs');
+    if (tabs) {
+        const fitTabs = function() {
+            document.body.style.setProperty('--native-tabs-space', tabs.getBoundingClientRect().height + 'px');
+        };
+        fitTabs();
+        if (window.ResizeObserver) new ResizeObserver(fitTabs).observe(tabs);
+        window.addEventListener('resize', fitTabs);
+    }
+
     function resetSubmitLocks() {
         document.querySelectorAll('form[data-submit-lock]').forEach(function(form) {
             delete form.dataset.submitting;

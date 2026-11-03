@@ -1,6 +1,8 @@
 <?php
 
 return [
+    'services' => 'Layanan',
+    'services_hint' => 'Pilih layanan yang ingin Anda buka.',
     'account_settings' => 'Pengaturan Akun',
     'admin_panel' => 'Pengaturan',
     'annual_leave' => 'Cuti Tahunan',

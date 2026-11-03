@@ -1,0 +1,2 @@
+# Native sources and local signing material must never be served by Apache.
+Require all denied

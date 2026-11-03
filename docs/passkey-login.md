@@ -71,7 +71,7 @@ Implementasi ini memakai `lbuchs/webauthn` v2.2.0 pada Laravel 13 / PHP >=8.3 ya
 
 Passkey memerlukan browser/platform WebAuthn. Verifikasi perangkat bisa berupa sidik jari, wajah, atau PIN; aplikasi tidak menjanjikan biometrik sebagai satu-satunya cara.
 
-Kebijakan `RedirectAndroidToApp` proyek tetap dipertahankan: browser Android di production diarahkan ke aplikasi untuk area selain pengecualian yang sudah ada. Fitur ini tidak mengubah kebijakan tersebut. Android WebView V-PEOPLE belum dapat dianggap mendukung passkey tanpa pengujian aplikasi native dan integrasi Credential Manager/WebAuthn yang sesuai. Gunakan password sebagai fallback. Pengujian Windows Hello, iPhone/Safari, serta aplikasi Android perlu dilakukan pada perangkat sasaran.
+Kebijakan `RedirectAndroidToApp` mewajibkan aplikasi untuk browser Android, termasuk endpoint login password, passkey, registrasi, dan area setelah login ketika `MOBILE_APP_REQUIRED=true`. Browser iPhone/iPad sementara dapat login dengan `MOBILE_APP_IOS_REQUIRED=false`. Laptop/komputer dapat login melalui web. Lihat [aplikasi mobile](mobile-app.md) untuk distribusi dan pengaturan rollout. Passkey dalam Android WebView V-People masih memerlukan pengujian serta integrasi platform yang sesuai. Gunakan password sebagai fallback. Pengujian Windows Hello serta browser/perangkat Android/iOS perlu dilakukan pada perangkat sasaran.
 
 ## Validasi
 

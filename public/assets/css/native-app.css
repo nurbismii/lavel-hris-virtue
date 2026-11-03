@@ -1,0 +1,172 @@
+.native-app {
+    --native-ink: #172f31;
+    --native-muted: #536b70;
+    --native-accent: #116660;
+    --native-line: #dce7e6;
+    --native-tabs-height: 64px;
+    --native-tabs-space: calc(var(--native-tabs-height) + env(safe-area-inset-bottom));
+    background: #f5f8f8;
+}
+.native-app .wrapper { height: auto; min-height: 100vh; min-height: 100dvh; }
+.native-app .main-panel {
+    float: none;
+    width: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding-bottom: 0;
+}
+.native-app .main-panel > .container {
+    flex: 1;
+    min-height: 0;
+    margin-top: 0 !important;
+    padding-bottom: var(--native-tabs-space) !important;
+}
+.native-app .employee-dashboard { min-height: 0; padding-bottom: 12px; }
+.native-header, .native-tabs {
+    background: #fff;
+    color: var(--native-ink);
+}
+.native-header {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 56px;
+    padding: 4px 16px;
+    border-bottom: 1px solid var(--native-line);
+}
+.native-brand, .native-header-actions { display: flex; align-items: center; gap: 8px; }
+.native-brand { font-size: 18px; font-weight: 700; }
+.native-brand img { object-fit: contain; }
+.native-header .language-switcher__toggle, .native-inbox { min-height: 44px; }
+.native-inbox {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    color: var(--native-ink);
+    font-size: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+}
+.native-badge {
+    position: absolute;
+    top: 2px;
+    right: 0;
+    padding: 1px 4px;
+    border-radius: 10px;
+    background: #ad303c;
+    color: #fff;
+    font: 600 11px/15px system-ui, sans-serif;
+}
+.native-tabs {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 1020;
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    min-height: calc(var(--native-tabs-height) + env(safe-area-inset-bottom));
+    padding: 5px 8px calc(5px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--native-line);
+}
+.native-tabs a {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 136px;
+    min-height: 52px;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 4px;
+    border-radius: 12px;
+    color: var(--native-muted);
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 600;
+    text-align: center;
+    overflow-wrap: anywhere;
+    text-decoration: none;
+}
+.native-tabs i { font-size: 18px; }
+.native-tabs a[aria-current] { background: #e5f3ef; color: var(--native-accent); }
+.native-services { max-width: 760px; margin: 0 auto; padding: 24px 16px; }
+.native-services h1 { margin: 0; color: var(--native-ink); font-size: 26px; font-weight: 700; }
+.native-services > p { margin: 6px 0 20px; color: var(--native-muted); }
+.native-service-list, .native-account {
+    padding: 4px 12px;
+    border: 1px solid var(--native-line);
+    border-radius: 16px;
+    background: #fff;
+}
+.native-service-list:not(:has(.app-navigation > li)) { display: none; }
+.native-service-list ul { display: block; margin: 0; padding: 0; }
+.native-service-list .nav-item + .nav-item, .native-account form { border-top: 1px solid var(--native-line); }
+.native-services a, .native-services button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 50px;
+    padding: 8px 4px;
+    border: 0;
+    background: transparent;
+    color: var(--native-ink);
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+    text-decoration: none;
+}
+.native-services .app-nav-label, .native-services .app-navigation p { flex: 1; margin: 0; }
+.native-services .app-nav-group-toggle > i:first-child, .native-services .nav-item > a > i, .native-account i {
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: #edf5f3;
+    color: var(--native-accent);
+}
+.native-service-list .app-nav-caret { font-size: 12px; }
+.native-service-list button[aria-expanded="true"] .app-nav-caret { transform: rotate(180deg); }
+.native-service-list .app-nav-children { padding: 0 0 8px 16px; }
+.native-service-list .app-nav-children a { min-height: 44px; font-size: 14px; font-weight: 500; }
+.native-service-list .app-nav-subheading { padding: 10px 4px 0; color: var(--native-muted); font-weight: 600; }
+.native-account { margin-top: 16px; }
+.native-account button, .native-account button i { color: #9b3341; }
+.native-app :is(.native-header, .native-tabs, .native-services) :focus-visible { outline: 2px solid var(--native-accent); outline-offset: -2px; }
+.native-notification-menu {
+    width: min(360px, calc(100vw - 48px));
+    padding: 0;
+    border: 1px solid var(--native-line);
+    border-radius: 16px;
+    box-shadow: 0 12px 36px #172f3126;
+    overflow: hidden;
+}
+.native-notification-heading, .native-notification-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+}
+.native-notification-heading { border-bottom: 1px solid var(--native-line); }
+.native-notification-heading h2 { margin: 0; font-size: 16px; font-weight: 700; }
+.native-notification-actions { border-top: 1px solid var(--native-line); }
+.native-notification-actions a { color: var(--native-accent); font-size: 14px; font-weight: 600; }
+.native-notification-button { min-height: 44px; padding: 8px 12px; border: 0; border-radius: 10px; font-size: 13px; font-weight: 600; }
+.native-notification-refresh { background: #edf5f3; color: var(--native-accent); }
+.native-notification-clear { background: #fff0f0; color: #9b3341; }
+.native-notification-button:disabled { opacity: .55; cursor: default; }
+.native-notification-list { max-height: 360px; max-height: min(360px, calc(100dvh - 240px)); overflow-y: auto; }
+.native-notification-list .realtime-notif-item { white-space: normal; gap: 8px; }
+.native-notification-list .bg-light { background: #edf7f4 !important; }
+.native-notification-status { margin: 0; padding: 10px 14px; color: #9b3341; font-size: 13px; }

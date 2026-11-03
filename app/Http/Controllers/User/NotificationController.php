@@ -32,7 +32,7 @@ class NotificationController extends Controller
         return response()->json([
             'unread_count' => $user->unreadNotifications()->count(),
             'items' => $notifications,
-        ]);
+        ])->header('Cache-Control', 'no-store, private');
     }
 
     public function readAll(Request $request)

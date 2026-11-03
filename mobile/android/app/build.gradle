@@ -1,0 +1,42 @@
+plugins { id 'com.android.application' }
+
+def signingFile = rootProject.file('keystore.properties')
+def signingValues = new Properties()
+if (signingFile.exists()) signingFile.withInputStream { signingValues.load(it) }
+def hrisUrl = providers.gradleProperty('hrisUrl').getOrElse('https://hris.vdnisite.com')
+def parsedUrl = new URI(hrisUrl)
+if (parsedUrl.scheme != 'https' || !parsedUrl.host || parsedUrl.rawUserInfo || parsedUrl.rawQuery || parsedUrl.rawFragment || (parsedUrl.path && parsedUrl.path != '/')) {
+    throw new GradleException('hrisUrl must be an HTTPS origin without credentials, path, query, or fragment.')
+}
+
+android {
+    namespace 'com.vdni.vpeople'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.vdni.vpeople'
+        minSdk 28
+        targetSdk 35
+        versionCode 7
+        versionName '1.0.7'
+        buildConfigField 'String', 'HRIS_URL', '"' + hrisUrl.replaceAll('/$', '') + '"'
+    }
+    buildFeatures { buildConfig true }
+    signingConfigs {
+        if (signingFile.exists()) {
+            release {
+                storeFile rootProject.file(signingValues['storeFile'])
+                storePassword signingValues['storePassword']
+                keyAlias signingValues['keyAlias']
+                keyPassword signingValues['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (signingFile.exists()) signingConfig signingConfigs.release
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
+}
+dependencies { testImplementation 'junit:junit:4.13.2' }

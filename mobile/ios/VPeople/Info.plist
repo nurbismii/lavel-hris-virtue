@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>CFBundleDevelopmentRegion</key><string>id</string>
+    <key>CFBundleDisplayName</key><string>V-People</string>
+    <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key><string>APPL</string>
+    <key>CFBundleShortVersionString</key><string>1.0.0</string>
+    <key>CFBundleVersion</key><string>1</string>
+    <key>HRISBaseURL</key><string>https://hris.vdnisite.com</string>
+    <key>LSRequiresIPhoneOS</key><true/>
+    <key>UILaunchScreen</key><dict/>
+    <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
+    <key>NSCameraUsageDescription</key><string>Kamera digunakan untuk foto presensi dan unggah dokumen karyawan.</string>
+    <key>NSLocationWhenInUseUsageDescription</key><string>Lokasi digunakan untuk memeriksa area presensi Anda.</string>
+    <key>NSPhotoLibraryUsageDescription</key><string>Pilih foto atau dokumen untuk diunggah ke HRIS.</string>
+    <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>com.vdni.vpeople</string><key>CFBundleURLSchemes</key><array><string>vpeople</string></array></dict></array>
+</dict></plist>
