@@ -16,8 +16,8 @@ class PresensiRequest extends FormRequest
         return [
             'lat_user' => ['required', 'numeric', 'between:-90,90'],
             'long_user' => ['required', 'numeric', 'between:-180,180'],
-            'accuracy' => ['required', 'numeric', 'min:0', 'max:200'],
-            'speed' => ['nullable', 'numeric', 'min:0', 'max:80'],
+            'accuracy' => ['required', 'numeric', 'gt:0', 'max:200'],
+            'speed' => ['nullable', 'numeric', 'min:0', 'max:50'],
             'device_info' => ['required', 'string', 'max:2500'],
             'selfie_capture' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'selfie_capture_data' => ['nullable', 'string', 'max:7000000', 'required_without:selfie_capture'],
@@ -44,8 +44,12 @@ class PresensiRequest extends FormRequest
         return [
             'lat_user.required' => 'Lokasi GPS belum terbaca. Aktifkan lokasi lalu coba lagi.',
             'long_user.required' => 'Lokasi GPS belum terbaca. Aktifkan lokasi lalu coba lagi.',
+            'lat_user.between' => 'Koordinat GPS tidak valid. Aktifkan lokasi lalu coba lagi.',
+            'long_user.between' => 'Koordinat GPS tidak valid. Aktifkan lokasi lalu coba lagi.',
             'accuracy.required' => 'Akurasi GPS belum terbaca. Tunggu sampai indikator GPS valid.',
+            'accuracy.gt' => 'Akurasi GPS belum valid. Tunggu sampai indikator GPS valid.',
             'accuracy.max' => 'Akurasi GPS belum cukup stabil. Tunggu sampai indikator GPS valid.',
+            'speed.max' => 'Pergerakan tidak wajar. Tunggu lokasi stabil lalu coba lagi.',
             'device_info.required' => 'Informasi perangkat tidak terbaca. Muat ulang halaman lalu coba lagi.',
             'selfie_capture.image' => 'File selfie harus berupa gambar.',
             'selfie_capture.max' => 'Ukuran selfie terlalu besar. Ambil ulang selfie lalu coba lagi.',

@@ -98,7 +98,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
         </div>
         @endif
 
-        @if (!$supportsNativeGps && $nextAttendanceType)
+        @if ($supportsIosBrowserGps && $nextAttendanceType)
+        <div class="alert alert-info" role="status">
+            Presensi iPhone/iPad melalui browser tersedia sementara. Izinkan akses lokasi dan kamera untuk melanjutkan.
+        </div>
+        @elseif (!$supportsNativeGps && $nextAttendanceType)
         <div class="alert alert-info" role="status">
             Untuk mencatat presensi, gunakan V-People Android 1.0.7 atau lebih baru pada perangkat yang mendukung verifikasi keamanan.
             <a href="{{ route('mobile.download') }}">Unduh aplikasi</a>. Jika perangkat tidak didukung, hubungi HR.
@@ -439,6 +443,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     <input type="hidden" name="long_user" id="long_user">
                     <input type="hidden" name="accuracy" id="accuracy_user">
                     <input type="hidden" name="gps_proof" id="gps_proof">
+                    @if ($supportsIosBrowserGps)
+                    <input type="hidden" name="ios_browser" value="1">
+                    @endif
                     <input type="hidden" name="speed" id="speed_user">
                     <input type="hidden" name="device_info" id="device_info">
                     <input type="hidden" name="face_verified" id="face_verified" value="0">
@@ -568,6 +575,18 @@ $locationIssueMessage = $locationIssueMessage ?? (
 @endsection
 
 @push('scripts')
+@if (config('hris.mobile_app.ios_browser_attendance') && !config('hris.mobile_app.ios_required'))
+<script id="presensiIosBrowserHint">
+(function () {
+    if (navigator.platform !== 'MacIntel' || !(navigator.maxTouchPoints > 1)
+        || /iPhone|iPad|iPod|Android|VPEOPLE_APP/i.test(navigator.userAgent)) return;
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('ios_browser') === '1') return;
+    url.searchParams.set('ios_browser', '1');
+    window.location.replace(url.href);
+})();
+</script>
+@endif
 <script src="{{ versioned_asset('assets/js/presensi-native-gps.js') }}"></script>
 <script src="{{ versioned_asset('assets/js/passive-face-capture.js') }}"></script>
 <script src="{{ versioned_asset('vendor/leaflet/leaflet.js') }}"></script>
@@ -627,6 +646,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
     const faceModelPath = @json(asset('vendor/face-api/weights'));
     const faceReferencePath = @json($faceReferenceUrl);
     const attendanceChallenge = @json($attendanceChallenge);
+    const supportsNativeGps = @json($supportsNativeGps);
+    const supportsIosBrowserGps = @json($supportsIosBrowserGps);
     const livenessAction = attendanceChallenge && attendanceChallenge.liveness_action ? attendanceChallenge.liveness_action : 'turn_left_right';
     const isPassiveLiveness = livenessAction === 'passive';
     const livenessRequiredFrames = attendanceChallenge?.liveness_required_frames || ['center', 'turn_left', 'turn_right'];
@@ -2032,7 +2053,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     document.addEventListener("DOMContentLoaded", function() {
-        if (!@json($supportsNativeGps) || !attendanceChallenge) {
+        if ((!supportsNativeGps && !supportsIosBrowserGps) || !attendanceChallenge) {
             updateAttendanceButtonState();
             return;
         }
@@ -2406,7 +2427,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     gpsLogInFlight = true;
                     gpsEvidenceLastAttemptAt = currentTime;
 
-                    window.requestPresensiGps(gpsChallengeUrl, attendanceChallenge.id, 'log').then(proof => fetch(gpsLogUrl, {
+                    (supportsIosBrowserGps ? Promise.resolve(null) : window.requestPresensiGps(gpsChallengeUrl, attendanceChallenge.id, 'log')).then(proof => fetch(gpsLogUrl, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
@@ -2415,6 +2436,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                         },
                         body: JSON.stringify({
                             attendance_challenge_id: attendanceChallenge.id,
+                            ios_browser: supportsIosBrowserGps ? '1' : '0',
                             gps_proof: proof,
                             lat: latUser,
                             long: longUser,
@@ -2543,11 +2565,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
                 form.action = `${attendanceSubmitBaseUrl}/${type}`;
                 try {
-                    const proof = await window.requestPresensiGps(gpsChallengeUrl, attendanceChallenge.id, type);
+                    const proof = supportsIosBrowserGps ? null : await window.requestPresensiGps(gpsChallengeUrl, attendanceChallenge.id, type);
                     if (!gpsReady || !gpsEvidenceReady || !isAttendanceChallengeReady()) {
                         throw new Error('Lokasi atau sesi presensi berubah. Periksa kembali lalu coba lagi.');
                     }
-                    document.getElementById('gps_proof').value = JSON.stringify(proof);
+                    document.getElementById('gps_proof').value = proof ? JSON.stringify(proof) : '';
                     Swal.update({title: 'Menyimpan presensi…', text: 'Mohon tunggu sebentar.'});
                     form.submit();
                 } catch (error) {

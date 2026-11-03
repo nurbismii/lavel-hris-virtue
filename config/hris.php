@@ -42,6 +42,7 @@ return [
         'gps_signer_sha256' => env('MOBILE_APP_GPS_SIGNER_SHA256', '006b134a51a3f84db456c3a3ff4b9411c143055f4de9a33a5978f643992af576'),
         'required' => env('MOBILE_APP_REQUIRED', true),
         'ios_required' => env('MOBILE_APP_IOS_REQUIRED', false),
+        'ios_browser_attendance' => env('MOBILE_APP_IOS_BROWSER_ATTENDANCE', false),
         'android_download_url' => env('MOBILE_APP_ANDROID_DOWNLOAD_URL'),
         'ios_download_url' => env('MOBILE_APP_IOS_DOWNLOAD_URL'),
         'ios_minimum_version_code' => (int) env('MOBILE_APP_IOS_MINIMUM_VERSION_CODE', 1),

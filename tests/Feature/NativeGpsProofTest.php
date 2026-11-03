@@ -29,7 +29,7 @@ class NativeGpsProofTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['cache.default' => 'array']);
+        config(['cache.default' => 'array', 'hris.mobile_app.ios_browser_attendance' => false]);
         $this->attendanceId = (string) Str::uuid();
         $this->user = Mockery::mock(User::class)->makePartial();
         $this->user->forceFill(['id' => 'gps-test', 'email_verified_at' => now()]);
@@ -85,6 +85,7 @@ class NativeGpsProofTest extends TestCase
             return $route->bind(Request::create('/absen/masuk', 'POST'));
         });
         $fix = (new RequireNativeGpsProof())->handle($req, function ($request) { return $request->only('lat_user', 'long_user', 'accuracy', 'speed'); });
+        $this->assertSame('android_hardware', $req->attributes->get('gps_verification_method'));
         $this->assertEquals(['lat_user' => -3.99, 'long_user' => 122.5, 'accuracy' => 4.5, 'speed' => 0], $fix);
         $this->rejects(function () use ($req) { $this->verify($req, 'masuk'); });
 

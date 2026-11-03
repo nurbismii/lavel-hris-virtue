@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\User\PresensiController;
+use App\Http\Middleware\RequireNativeGpsProof;
 use App\Models\Employee;
 use App\Models\User;
 use App\Services\Presensi\AttendanceSecurityService;
@@ -122,6 +123,31 @@ class UserPresensiLocationSafetyTest extends TestCase
         $this->assertSame('ok', $this->jsonPayload($response)['status']);
         $this->assertSame(1, DB::table('log_presensi')->count());
         $this->assertSame(2, (int) DB::table('log_presensi')->value('lokasi_absen_id'));
+    }
+
+    public function test_ios_browser_can_save_gps_evidence_but_location_and_accuracy_checks_still_apply(): void
+    {
+        config(['hris.mobile_app.ios_browser_attendance' => true, 'hris.mobile_app.ios_required' => false]);
+        DB::table('lokasi_absens')->insert([
+            'divisi_id' => 10, 'lat' => '-3.9951', 'long' => '122.5123', 'radius' => '100',
+        ]);
+        $user = $this->makeUser();
+        $this->be($user);
+        foreach ([['lat' => -3.9950, 'accuracy' => 20, 'status' => 200], ['lat' => 0, 'accuracy' => 20, 'status' => 422], ['lat' => -3.9950, 'accuracy' => 100, 'status' => 422]] as $sample) {
+            $request = Request::create('/api/gps-log', 'POST', [
+                'lat' => $sample['lat'], 'long' => 122.5120, 'accuracy' => $sample['accuracy'], 'speed' => 0,
+            ], [], [], ['HTTP_USER_AGENT' => 'iPhone']);
+            $request->setUserResolver(fn() => $user);
+            $this->app->instance('request', $request);
+            $response = (new RequireNativeGpsProof())->handle($request, function ($request) {
+                return app(PresensiController::class)->logGps($request, app(AttendanceSecurityService::class));
+            });
+            $this->assertSame($sample['status'], $response->getStatusCode());
+            $this->assertSame(1, DB::table('log_presensi')->count());
+        }
+        $this->assertSame('iPhone', DB::table('log_presensi')->value('user_agent'));
+        $request->merge(['lat_user' => -3.9950, 'long_user' => 122.5120, 'accuracy' => 20]);
+        app(AttendanceSecurityService::class)->validateRecentGpsEvidence($request, $user, \App\Models\LokasiAbsen::firstOrFail());
     }
 
     public function test_gps_log_accepts_any_active_append_location(): void

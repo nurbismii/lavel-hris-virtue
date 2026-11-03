@@ -4,7 +4,9 @@ namespace App\Services\Presensi;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use phpseclib3\File\ASN1;
+use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 
 class AndroidGpsAttestation
 {
@@ -18,6 +20,10 @@ class AndroidGpsAttestation
 
     public function verifyChain($chain, string $nonce, string $keyId): array
     {
+        if (!class_exists(ASN1::class)) {
+            Log::error('Dependency verifikasi GPS Android belum tersedia.', ['dependency' => 'phpseclib/phpseclib']);
+            throw new ServiceUnavailableHttpException(60, 'Layanan verifikasi GPS belum siap. Hubungi admin, lalu ulangi pemeriksaan.');
+        }
         if (!is_array($chain) || count($chain) < 2 || count($chain) > 8) {
             $this->invalid();
         }

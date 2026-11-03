@@ -17,13 +17,14 @@
 5. Tidak ada logout paksa hanya karena menerima permintaan mobile; data sesi tidak dihapus.
 6. Browser iPad mode desktop juga dikecualikan oleh skrip pengalihan. Setelah aplikasi iOS siap, pengalihan dapat diaktifkan melalui `MOBILE_APP_IOS_REQUIRED=true`.
 
-Deteksi browser untuk login memakai user-agent/client hints. Presensi GPS memiliki pemeriksaan tambahan berupa hardware key attestation dan tanda tangan pembacaan GPS. Server menolak pencatatan GPS dan absen tanpa bukti tersebut, termasuk permintaan yang memakai identitas browser desktop.
+Deteksi browser untuk login memakai user-agent/client hints. Presensi Android memiliki pemeriksaan tambahan berupa hardware key attestation dan tanda tangan pembacaan GPS. Server menolak pencatatan GPS dan absen tanpa bukti tersebut, termasuk permintaan beridentitas desktop, kecuali pengecualian browser iOS sementara diaktifkan seperti di bawah.
 
 ## Konfigurasi Laravel
 
 ```dotenv
 MOBILE_APP_REQUIRED=true
 MOBILE_APP_IOS_REQUIRED=false
+MOBILE_APP_IOS_BROWSER_ATTENDANCE=true
 MOBILE_APP_ANDROID_DOWNLOAD_URL=
 MOBILE_APP_IOS_DOWNLOAD_URL=
 MOBILE_APP_MINIMUM_VERSION_CODE=2
@@ -35,14 +36,35 @@ MOBILE_APP_IOS_LATEST_VERSION_CODE=1
 MOBILE_APP_IOS_LATEST_VERSION_NAME=1.0.0
 ```
 
-- Kosongkan tautan Android agar menggunakan `public/downloads/vpeople-android.apk` yang benar-benar ada. Tautan legacy `MOBILE_APP_DOWNLOAD_URL` masih didukung dan didahulukan sebelum fallback berkas lokal; kosongkan bila masih menunjuk APK lama.
+- Kosongkan tautan Android agar menggunakan `public/downloads/vpeople-android.apk` yang benar-benar ada. Urutan pemilihan: URL Android yang valid → URL legacy `MOBILE_APP_DOWNLOAD_URL` yang valid → APK lokal. URL tidak valid dan URL halaman `/download-app` pada situs yang sama dilewatkan agar tombol tidak memuat ulang halaman sendiri. Jika tidak ada tujuan yang tersedia, UI menampilkan informasi belum tersedia.
 - Tautan khusus platform harus HTTPS. Android dapat memakai URL APK perusahaan/Play Store. iOS memakai tautan App Store/TestFlight yang sudah aktif.
 - Bila berkas/tautan tidak tersedia, halaman menampilkan status belum tersedia dan arahan ke HR/desktop.
 - `MOBILE_APP_REQUIRED=true` berlaku juga pada local/staging. `MOBILE_APP_IOS_REQUIRED=false` membuka login web iPhone/iPad selama aplikasi iOS belum tersedia. Pengecualian login ini tidak menggantikan syarat bukti GPS pada endpoint presensi.
+- `MOBILE_APP_IOS_BROWSER_ATTENDANCE=true` juga membuka presensi browser iPhone/iPad selama `MOBILE_APP_IOS_REQUIRED=false`. Default config dan `.env.example` adalah `false`; `.env` lokal diaktifkan sesuai permintaan penggunaan sementara. Buka melalui HTTPS dan izinkan kamera serta lokasi. Browser iPad mode desktop memuat ulang halaman presensi sekali dengan petunjuk `ios_browser=1`; petunjuk diteruskan saat mencatat GPS dan mengirim presensi. Petunjuk ini hanya diterima bersama user-agent Macintosh, bukan Android/Windows/Linux.
 - Untuk rollout yang belum siap, `MOBILE_APP_REQUIRED=false` membuka kembali login web mobile tanpa menghapus data.
 - Endpoint `GET /api/mobile/app-version?platform=android|ios&version_code=N` memakai versi masing-masing platform. Kedua klien memeriksa minimum versi sebelum membuka login; kegagalan koneksi menampilkan Coba lagi/Muat ulang.
 - Pertahankan minimum Android selama rollout. Naikkan hanya setelah APK terbaru tersedia untuk semua pengguna. Versi iOS memiliki minimum tersendiri.
 - Verifikasi sertifikat memakai `phpseclib/phpseclib` seri 3 dari Composer. Upload vendor yang mengikuti `composer.lock` atau jalankan `composer install --no-dev --prefer-dist --optimize-autoloader` pada lingkungan deployment. Fitur ini memakai cache persisten yang mendukung lock dan atomic add, seperti file atau Redis. Pastikan cache dibagi antar-instance bila memakai beberapa server. Tidak ada migration atau worker tambahan. Runtime repository saat pengujian adalah Laravel 13/PHP 8.5.
+
+Untuk mengaktifkan presensi browser iOS di production, upload perubahan web (helper, middleware, controller, Form Request, service, config, dan Blade), tambahkan `MOBILE_APP_IOS_BROWSER_ATTENDANCE=true` ke `.env` bersama `MOBILE_APP_IOS_REQUIRED=false`, lalu jalankan dari root Laravel:
+
+```bash
+php artisan config:cache
+php artisan view:clear
+```
+
+Tidak memerlukan APK baru atau migrasi database. Muat ulang halaman presensi setelah deployment. Matikan pengecualian dengan `MOBILE_APP_IOS_BROWSER_ATTENDANCE=false` dan perbarui cache config.
+
+Pengecualian ini tetap memeriksa autentikasi/akses menu, koordinat, akurasi, kecepatan, radius, jejak GPS terbaru, tantangan presensi, selfie, liveness, serta alur verifikasi wajah server. Metadata audit `server_validation.gps_verification_method` mencatat `ios_browser` atau `android_hardware` berdasarkan middleware server. Browser iOS tidak menjalankan pemeriksaan mock provider, hardware attestation, atau tanda tangan GPS Android. Identitas browser dapat dipalsukan: klien lain yang meniru iOS juga berpotensi memakai pengecualian ini. Perbaikan jangka panjang adalah verifikasi GPS/perangkat native iOS dan menutup pengecualian browser; jangan menganggap jalur sementara ini setara perlindungan Fake GPS Android.
+
+Jika log production menampilkan `Class "phpseclib3\File\ASN1" not found`, vendor/autoloader belum sesuai dependency project. Upload `composer.json` dan `composer.lock` terbaru, lalu jalankan dari root Laravel:
+
+```sh
+composer install --no-dev --prefer-dist --optimize-autoloader
+php -r 'require "vendor/autoload.php"; echo class_exists("phpseclib3\\File\\ASN1") ? "ASN1 OK\n" : "ASN1 MISSING\n";'
+```
+
+Lanjutkan pengujian presensi setelah hasilnya `ASN1 OK`. Composer memasang versi sesuai lockfile beserta dependency pendukung dan memperbarui autoload. Tidak memerlukan APK baru atau penghapusan cache presensi. Jika Composer tidak tersedia, bangun vendor production lengkap dari lockfile yang sama di lingkungan terpisah dan upload hasilnya; jangan menyalin autoloader vendor development saja. Pemeriksaan sertifikat tetap diwajibkan. Jika library tidak tersedia, server mengembalikan HTTP 503 dengan pesan layanan belum siap dan log dependency tanpa koordinat atau bukti GPS.
 
 ## Build Android
 
@@ -115,16 +137,28 @@ iOS tidak dapat dipasang pengguna umum dengan sekadar mengunggah file IPA tanpa 
 5. Coba unduh dari ponsel. Android dapat meminta pengguna mengizinkan pemasangan dari browser sumber unduhan. Distribusi Play Store menjadi alternatif bila tersedia.
 6. Hindari caching bersama/CDN pada login/halaman pengguna. Respons blokir mobile dan halaman unduh menggunakan `Cache-Control: no-store, private`.
 
+Jika tombol Unduh hanya membuka halaman yang sama, jangan isi `MOBILE_APP_DOWNLOAD_URL` dengan `/download-app`. Upload APK rilis secara terpisah ke folder `downloads` pada document root domain; APK diabaikan Git dan tidak ikut deployment source otomatis. Untuk alamat production saat ini:
+
+```dotenv
+MOBILE_APP_ANDROID_DOWNLOAD_URL=https://hris.vdnisite.com/downloads/vpeople-android.apk
+MOBILE_APP_DOWNLOAD_URL=
+```
+
+Setelah mengubah `.env`, jalankan `php artisan config:clear`, lalu `php artisan config:cache` bila konfigurasi production memakai cache. Buka alamat APK langsung untuk memeriksa hasilnya: respons seharusnya berisi APK, bukan HTML halaman unduh atau 404. Pada Apache, upload juga `public/downloads/.htaccess` untuk MIME APK dan header attachment. Jika memakai fallback otomatis, `public_path('downloads/vpeople-android.apk')` Laravel harus sesuai lokasi berkas pada hosting.
+
 ## Verifikasi
 
 Otomatis:
 
 ```sh
-php artisan test --compact --filter="NativeGpsProofTest|UserPresensiLocationSafetyTest|MobileApp|PasskeyAuthenticationTest|EmailUrlTest|SidebarNavigationTest|UserNotificationDeletionTest"
+php artisan test --compact --filter="IosBrowserAttendanceTest|NativeGpsProofTest|NativeGpsDependencyTest|UserPresensiLocationSafetyTest|PassiveLivenessTest|MobileApp|PasskeyAuthenticationTest|EmailUrlTest|SidebarNavigationTest|UserNotificationDeletionTest"
+node tests/Frontend/ios-browser-attendance.test.cjs
 node tests/Frontend/native-gps.test.cjs
 node tests/Frontend/mobile-app.test.cjs
 node tests/Frontend/notifications.test.cjs
 ```
+
+Verifikasi pengecualian browser iOS: 49 tes Laravel (402 assertion) pada kelompok IosBrowserAttendance, NativeGpsProof/Dependency, UserPresensiLocationSafety, PassiveLiveness, dan MobileApp lolos. Tiga pemeriksaan Node untuk iOS browser, native GPS, serta routing/unduhan mobile lolos. Blade presensi dirender dengan data sintetis untuk iPhone, iPad mode desktop, desktop, dan kebijakan nonaktif. Kamera/GPS Safari pada perangkat fisik dan deployment production belum diuji.
 
 Android: unit test origin, build debug/release, lint release, serta `apksigner verify --verbose`. Peringatan lint JavaScript ditinjau: fitur formulir/kamera web memerlukan JS, dengan pembatasan origin dan tanpa native JS bridge.
 
@@ -178,7 +212,7 @@ Verifikasi rilis lokal 1.0.8: dua unit test Android, lint release tanpa error, A
 
 Sesuai pilihan penerapan, perangkat Android didaftarkan otomatis melalui hardware key attestation. Pengguna memerlukan APK resmi 1.0.7+, Android dengan rantai attestation Google yang valid, keystore TEE/StrongBox, dan verified boot berstatus terkunci/terverifikasi. Perangkat yang tidak memenuhi syarat ditolak untuk presensi GPS. Pengguna diarahkan menghubungi HR dan menggunakan proses koreksi presensi yang sudah tersedia. Penolakan tidak otomatis mencatat karyawan sebagai pelaku kecurangan.
 
-Presensi mandiri dari desktop, APK lama, dan source iOS saat ini tidak membawa bukti Android yang diwajibkan. Halaman tetap menampilkan riwayat dan petunjuk menggunakan Android yang didukung. Login desktop dan layanan HR lainnya tetap tersedia. iOS memerlukan implementasi serta pengujian App Attest tersendiri sebelum dapat melakukan presensi GPS.
+Presensi mandiri dari desktop, APK lama, dan source aplikasi iOS saat ini tidak membawa bukti Android yang diwajibkan. Halaman tetap menampilkan riwayat dan petunjuk menggunakan Android yang didukung. Login desktop dan layanan HR lainnya tetap tersedia. Browser iOS dapat melakukan presensi melalui pengecualian sementara `MOBILE_APP_IOS_BROWSER_ATTENDANCE=true`, dengan batas keamanan yang dijelaskan pada konfigurasi di atas. Aplikasi native iOS memerlukan implementasi serta pengujian verifikasi perangkat/GPS tersendiri.
 
 Alur pemeriksaan:
 
@@ -187,7 +221,7 @@ Alur pemeriksaan:
 3. Perangkat menandatangani koordinat, akurasi, kecepatan, serta nonce menggunakan kunci EC P-256 di Android Keystore. Pendaftaran pertama pada sesi memakai attestation challenge dari server.
 4. Server memeriksa rantai X.509, masa berlaku, root Google yang dibundel, status pencabutan, keamanan hardware, verified boot, package `com.vdni.vpeople`, kode versi minimal 7, serta SHA-256 sertifikat penandatangan APK.
 5. Server memeriksa tanda tangan dan menandai nonce sekali pakai secara atomik. Koordinat yang ditandatangani menggantikan koordinat dari form sebelum validasi radius dan jejak lokasi.
-6. Pemeriksaan diterapkan pada `POST /api/gps-log` dan seluruh jenis `POST /absen/{type}`. Mengganti user-agent atau mengirim `mocked=false` tidak memenuhi pemeriksaan.
+6. Pemeriksaan diterapkan pada `POST /api/gps-log` dan seluruh jenis `POST /absen/{type}`, kecuali browser iOS ketika pengecualian sementara aktif. Tanpa pengecualian tersebut, mengganti user-agent atau mengirim `mocked=false` tidak memenuhi pemeriksaan.
 7. UI berhenti mengulang pemeriksaan setelah kegagalan. Pengguna mendapat alasan dan tautan Ulangi pemeriksaan.
 
 Kunci perangkat tersimpan pada Android Keystore. Server menyimpan kunci publik per sesi di cache hingga 24 jam, dibatasi masa berlaku sertifikat. Private key tidak dikirim ke server. Pembacaan lokasi dilakukan saat pemeriksaan presensi di foreground.

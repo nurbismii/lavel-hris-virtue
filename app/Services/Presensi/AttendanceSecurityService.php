@@ -434,6 +434,7 @@ class AttendanceSecurityService
             'validated_at' => now()->toIso8601String(),
             'ip_hash' => hash('sha256', (string) $request->ip()),
             'user_agent_hash' => $this->hashUserAgent($request),
+            'gps_verification_method' => $request->attributes->get('gps_verification_method', 'unverified'),
         ];
 
         if ($serverVerification !== null) {

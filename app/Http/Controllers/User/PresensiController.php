@@ -70,7 +70,8 @@ class PresensiController extends Controller
         $attendanceChallenge = null;
 
         $supportsNativeGps = \App\Services\Presensi\NativeGpsProof::supported(request());
-        if ($supportsNativeGps && $isLocationReady && filled($karyawan->face_reference_path) && $nextAttendanceType) {
+        $supportsIosBrowserGps = \App\Support\MobileApp::allowsIosBrowserAttendance(request());
+        if (($supportsNativeGps || $supportsIosBrowserGps) && $isLocationReady && filled($karyawan->face_reference_path) && $nextAttendanceType) {
             $attendanceChallenge = app(AttendanceSecurityService::class)
                 ->issueChallenge($user, request(), $activeAttendanceDateString, $nextAttendanceType);
         }
@@ -165,6 +166,7 @@ class PresensiController extends Controller
             'nextAttendanceType' => $nextAttendanceType,
             'attendanceChallenge' => $attendanceChallenge,
             'supportsNativeGps' => $supportsNativeGps,
+            'supportsIosBrowserGps' => $supportsIosBrowserGps,
         ]);
     }
 
@@ -551,10 +553,10 @@ class PresensiController extends Controller
     public function logGps(Request $request, AttendanceSecurityService $securityService)
     {
         $request->validate([
-            'lat' => 'required|numeric',
-            'long' => 'required|numeric',
-            'accuracy' => 'required|numeric|min:0|max:200',
-            'speed' => 'nullable|numeric|min:0|max:80',
+            'lat' => 'required|numeric|between:-90,90',
+            'long' => 'required|numeric|between:-180,180',
+            'accuracy' => 'required|numeric|gt:0|max:200',
+            'speed' => 'nullable|numeric|min:0|max:50',
         ]);
 
         $user = auth()->user();
