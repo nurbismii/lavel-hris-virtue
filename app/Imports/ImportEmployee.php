@@ -203,28 +203,33 @@ class ImportEmployee implements ToCollection, WithHeadingRow, WithChunkReading, 
         $updatedCount = 0;
 
         if (!empty($newRows)) {
-            $existingNiks = Employee::whereIn('nik', $newNiks)
-                ->pluck('nik')
-                ->map(fn($existingNik) => (string) $existingNik)
-                ->all();
-            $updatedCount = count(array_intersect($newNiks, $existingNiks));
-            $insertedCount = max(0, count($newRows) - $updatedCount);
-
-            foreach ($existingNiks as $existingNik) {
-                $processed = $processedRows[(string) $existingNik] ?? null;
-
-                if ($processed) {
-                    $detailItems[] = [
-                        'category' => ImportHistoryItem::CATEGORY_UPDATED,
-                        'row' => $processed['row'],
-                        'nik' => (string) $existingNik,
-                        'message' => 'Data karyawan diperbarui berdasarkan NIK yang sudah ada.',
-                        'payload' => $processed['payload'],
-                    ];
+            DB::transaction(function () use ($newNiks, $newRows, $processedRows, &$detailItems, &$updatedCount, &$insertedCount) {
+                $existing = Employee::withTrashed()->whereIn('nik', $newNiks)->lockForUpdate()->get(['nik', 'deleted_at']);
+                if ($existing->contains(fn ($employee) => $employee->trashed())) {
+                    throw \Illuminate\Validation\ValidationException::withMessages(['file'=>'File memuat NIK yang berada di Tempat Sampah. Pulihkan karyawan tersebut sebelum mengimpor perubahan.']);
                 }
-            }
+                $existingNiks = $existing->pluck('nik')
+                    ->map(fn($existingNik) => (string) $existingNik)
+                    ->all();
+                $updatedCount = count(array_intersect($newNiks, $existingNiks));
+                $insertedCount = max(0, count($newRows) - $updatedCount);
 
-            Employee::upsert($newRows, ['nik'], array_keys($newRows[0]));
+                foreach ($existingNiks as $existingNik) {
+                    $processed = $processedRows[(string) $existingNik] ?? null;
+
+                    if ($processed) {
+                        $detailItems[] = [
+                            'category' => ImportHistoryItem::CATEGORY_UPDATED,
+                            'row' => $processed['row'],
+                            'nik' => (string) $existingNik,
+                            'message' => 'Data karyawan diperbarui berdasarkan NIK yang sudah ada.',
+                            'payload' => $processed['payload'],
+                        ];
+                    }
+                }
+
+                Employee::upsert($newRows, ['nik'], array_keys($newRows[0]));
+            });
         }
 
         $this->recordImportChunk(

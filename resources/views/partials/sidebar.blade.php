@@ -452,7 +452,7 @@ $approvalPendingCount = ($can('approval_hod') ? ($approvalHodCounts['total'] ?? 
 
                 @component('partials.sidebar-group', [
                     'id' => 'sidebar-contracts', 'label' => __('navigation.contracts_payroll'), 'icon' => 'fas fa-file-contract',
-                    'active' => request()->routeIs('electronic-contracts.*', 'contract-renewals.*', 'slip-gaji.*', 'employee-salaries.*')
+                    'active' => request()->routeIs('electronic-contracts.*', 'contract-renewals.*', 'slip-gaji.*', 'employee-salaries.*', 'payroll.*', 'salary-components.*')
                 ])
                     @if($can('electronic_contract_admin'))
                         <li class="{{ request()->routeIs('electronic-contracts.*') && !request()->routeIs('electronic-contracts.templates.*', 'electronic-contracts.clauses.*', 'electronic-contracts.first-party-signature.*') ? 'active' : '' }}">
@@ -499,6 +499,12 @@ $approvalPendingCount = ($can('approval_hod') ? ($approvalHodCounts['total'] ?? 
                             </a>
                         </li>
                         @if($user->hasRole(['Super Admin', 'HR']))
+                            <li class="{{ request()->routeIs('payroll.*') ? 'active' : '' }}">
+                                <a href="{{ route('payroll.index') }}" @if(request()->routeIs('payroll.*')) aria-current="page" @endif><span class="app-nav-label">Proses Payroll</span></a>
+                            </li>
+                            <li class="{{ request()->routeIs('salary-components.*') ? 'active' : '' }}">
+                                <a href="{{ route('salary-components.index') }}"><span class="app-nav-label">Master Komponen Gaji</span></a>
+                            </li>
                             <li class="{{ request()->routeIs('employee-salaries.*') ? 'active' : '' }}">
                                 <a href="{{ route('employee-salaries.index') }}" @if(request()->routeIs('employee-salaries.*')) aria-current="page" @endif><span class="app-nav-label">{{ __('navigation.salary_update') }}</span></a>
                             </li>
@@ -546,7 +552,7 @@ $approvalPendingCount = ($can('approval_hod') ? ($approvalHodCounts['total'] ?? 
 
                 @component('partials.sidebar-group', [
                     'id' => 'sidebar-settings', 'label' => __('navigation.settings'), 'icon' => 'fas fa-cog',
-                    'active' => request()->routeIs('user.*', 'perusahaan.*', 'setting-lokasi-presensi.*', 'setting-role.*', 'audit-trails.*', 'import-histories.*', 'search-by-security.*', 'search-logs.*')
+                    'active' => request()->routeIs('user.*', 'perusahaan.*', 'setting-lokasi-presensi.*', 'setting-role.*', 'audit-trails.*', 'import-histories.*', 'search-by-security.*', 'search-logs.*', 'deleted-data.*')
                 ])
                     @if($can('data_user'))
                         <li class="{{ request()->routeIs('user.*') ? 'active' : '' }}">
@@ -580,6 +586,9 @@ $approvalPendingCount = ($can('approval_hod') ? ($approvalHodCounts['total'] ?? 
                         </li>
                     @endif
 
+                    @if($user->hasRole(['Super Admin', 'HR']) && ($can('data_karyawan') || $can('perusahaan') || $can('slip_gaji_admin')))
+                        <li class="{{ request()->routeIs('deleted-data.*') ? 'active' : '' }}"><a href="{{ route('deleted-data.index') }}"><span class="app-nav-label">Tempat Sampah</span></a></li>
+                    @endif
                     @if($can('audit_trail'))
                         <li class="{{ request()->routeIs('audit-trails.*') ? 'active' : '' }}">
                             <a href="{{ route('audit-trails.index') }}" @if(request()->routeIs('audit-trails.*')) aria-current="page" @endif>

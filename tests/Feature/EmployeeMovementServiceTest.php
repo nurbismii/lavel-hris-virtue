@@ -262,19 +262,19 @@ class EmployeeMovementServiceTest extends TestCase
             $table->json('authorized_departemen_ids')->nullable();
         });
 
-        Schema::create('departemens', function (Blueprint $table) {
+        Schema::create('departemens', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->string('departemen');
             $table->unsignedInteger('perusahaan_id')->nullable();
         });
 
-        Schema::create('divisis', function (Blueprint $table) {
+        Schema::create('divisis', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->unsignedInteger('departemen_id')->nullable();
             $table->string('nama_divisi');
         });
 
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             $table->string('nama_karyawan');
             $table->string('status_resign')->nullable();

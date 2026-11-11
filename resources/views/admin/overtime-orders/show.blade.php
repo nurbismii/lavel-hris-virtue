@@ -36,6 +36,7 @@
                                 <div class="small text-muted">{{ __('Karyawan') }}</div>
                                 <div class="fw-semibold">{{ optional($overtimeOrder->employee)->nama_karyawan ?? '-' }}</div>
                                 <div class="small text-muted">{{ $overtimeOrder->nik_karyawan }}</div>
+                                <div class="small text-muted">ID perintah lembur #{{ $overtimeOrder->id }}</div>
                             </div>
                             <div class="col-md-6">
                                 <div class="small text-muted">{{ __('Pembuat Perintah') }}</div>

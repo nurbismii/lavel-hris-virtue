@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Departemen extends Model
 {
+    use \Illuminate\Database\Eloquent\SoftDeletes;
+
     protected $table = 'departemens';
 
     protected $guarded = [];

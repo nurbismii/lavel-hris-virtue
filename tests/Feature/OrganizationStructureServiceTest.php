@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\EmployeeMovement;
 use App\Models\EmployeePositionAssignment;
 use App\Models\JobLevel;
 use App\Models\JobTitle;
@@ -108,6 +109,39 @@ class OrganizationStructureServiceTest extends TestCase
             'event' => 'organization.employee_position.assigned',
             'employee_nik' => 'EMP001',
         ]);
+    }
+
+    public function test_hr_can_read_applied_career_changes_and_position_history(): void
+    {
+        (require database_path('migrations/2026_06_01_000001_create_employee_movements_table.php'))->up();
+        require_once database_path('migrations/2026_02_20_141917_create_notifications_table.php');
+        (new \CreateNotificationsTable())->up();
+        $actor = $this->actor();
+        $actor->role->menu_permissions = ['data_karyawan'];
+        $actor->setRelation('employee', Employee::findOrFail('SUP001'));
+        $service = app(OrganizationStructureService::class);
+        $position = $service->savePosition($this->positionPayload('CAREER', 'SUPERVISOR'), $actor);
+        $service->assignEmployee($position, 'EMP001', '2026-08-01', $actor);
+
+        foreach ([
+            ['EMP001', EmployeeMovement::STATUS_APPROVED, 'Posisi terapkan', 'SK-TERAPKAN'],
+            ['EMP001', EmployeeMovement::STATUS_PENDING_HRD, 'Posisi menunggu', 'SK-MENUNGGU'],
+            ['SUP001', EmployeeMovement::STATUS_APPROVED, 'Posisi karyawan lain', 'SK-LAIN'],
+        ] as [$nik, $status, $name, $reference]) {
+            EmployeeMovement::create([
+                'employee_nik'=>$nik, 'movement_type'=>EmployeeMovement::TYPE_PROMOTION,
+                'effective_date'=>'2026-08-02', 'status'=>$status, 'old_posisi'=>'Posisi awal',
+                'new_posisi'=>$name, 'reference_number'=>$reference, 'reason'=>'Data sintetis',
+            ]);
+        }
+
+        $url = route('karyawan.career', 'EMP001');
+        $this->actingAs($actor)->get($url)->assertOk()->assertHeader('Cache-Control', 'no-store, private')
+            ->assertSee('Posisi awal')->assertSee('Posisi terapkan')->assertSee('SK-TERAPKAN')->assertSee('CAREER')
+            ->assertDontSee('SK-MENUNGGU')->assertDontSee('SK-LAIN');
+        $hod = $this->actor();
+        $hod->setRelation('role', new Role(['permission_role'=>'HOD', 'menu_permissions'=>['data_karyawan']]));
+        $this->actingAs($hod)->get($url)->assertForbidden();
     }
 
     public function test_position_rejects_company_outside_vdni_and_vdnip(): void
@@ -280,25 +314,25 @@ class OrganizationStructureServiceTest extends TestCase
 
     private function createLegacySchema(): void
     {
-        Schema::create('perusahaan', function (Blueprint $table) {
+        Schema::create('perusahaan', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->bigIncrements('id');
             $table->string('kode_perusahaan');
             $table->string('nama_perusahaan');
         });
 
-        Schema::create('departemens', function (Blueprint $table) {
+        Schema::create('departemens', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->bigIncrements('id');
             $table->unsignedBigInteger('perusahaan_id');
             $table->string('departemen');
         });
 
-        Schema::create('divisis', function (Blueprint $table) {
+        Schema::create('divisis', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->bigIncrements('id');
             $table->unsignedBigInteger('departemen_id');
             $table->string('nama_divisi');
         });
 
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik', 32)->primary();
             $table->string('nama_karyawan');
             $table->string('status_resign')->nullable();

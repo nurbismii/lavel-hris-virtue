@@ -105,7 +105,7 @@ class LeaveBalanceServiceTest extends TestCase
 
     private function createSchema(): void
     {
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             $table->string('nama_karyawan');
             $table->decimal('sisa_cuti', 8, 2)->default(0);

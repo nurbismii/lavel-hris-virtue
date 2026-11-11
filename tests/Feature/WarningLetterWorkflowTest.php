@@ -34,13 +34,13 @@ class WarningLetterWorkflowTest extends TestCase
         config()->set('filesystems.default', 'local');
         Storage::fake('local');
         $this->travelTo(now()->setDate(2026, 9, 11)->setTime(10, 0));
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary(); $table->string('nama_karyawan');
             $table->integer('departemen_id'); $table->integer('divisi_id'); $table->string('posisi');
             $table->timestamps();
         });
-        Schema::create('departemens', function (Blueprint $table) { $table->id(); $table->string('departemen'); });
-        Schema::create('divisis', function (Blueprint $table) { $table->id(); $table->string('nama_divisi'); $table->integer('departemen_id'); });
+        Schema::create('departemens', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable(); $table->id(); $table->string('departemen'); });
+        Schema::create('divisis', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable(); $table->id(); $table->string('nama_divisi'); $table->integer('departemen_id'); });
         Schema::create('sp_report', function (Blueprint $table) {
             $table->increments('id'); $table->string('nik_karyawan', 32); $table->string('no_sp', 8);
             $table->string('level_sp', 4); $table->date('tgl_mulai'); $table->date('tgl_berakhir');

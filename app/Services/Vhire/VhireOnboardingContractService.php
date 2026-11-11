@@ -510,7 +510,7 @@ class VhireOnboardingContractService
             $usedSuffix = $nextSuffix;
             $nik = $prefix . str_pad((string) $usedSuffix, $suffixLength, '0', STR_PAD_LEFT);
             $nextSuffix += 2;
-        } while (Employee::query()->whereKey($nik)->exists());
+        } while (Employee::withTrashed()->whereKey($nik)->exists());
 
         DB::table('employee_nik_sequences')
             ->where('prefix', $prefix)
@@ -553,14 +553,14 @@ class VhireOnboardingContractService
         do {
             $nik = $prefix . str_pad((string) $nextSuffix, $suffixLength, '0', STR_PAD_LEFT);
             $nextSuffix += 2;
-        } while (Employee::query()->whereKey($nik)->exists());
+        } while (Employee::withTrashed()->whereKey($nik)->exists());
 
         return $nik;
     }
 
     private function largestExistingEmployeeNikSuffix(string $prefix, bool $lockRows = false): int
     {
-        $query = Employee::query()
+        $query = Employee::withTrashed()
             ->where('nik', 'like', $prefix . '%');
 
         if ($lockRows) {
@@ -582,7 +582,10 @@ class VhireOnboardingContractService
         bool $overwriteExisting
     ): Employee {
         $attributes = $this->employeeAttributesFromContract($contract, $employeeNik, $activeDate);
-        $employee = Employee::query()->whereKey($employeeNik)->lockForUpdate()->first();
+        $employee = Employee::withTrashed()->whereKey($employeeNik)->lockForUpdate()->first();
+        if ($employee && $employee->trashed()) {
+            throw ValidationException::withMessages(['employee_nik'=>'NIK ini berada di Tempat Sampah. Pulihkan karyawan terlebih dahulu.']);
+        }
 
         if (!$employee) {
             $this->validateEmployeeImportRequiredAttributes($attributes);

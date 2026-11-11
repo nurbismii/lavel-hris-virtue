@@ -159,6 +159,19 @@ class OvertimeOrderService
             && $actualEnd->greaterThanOrEqualTo($requiredEnd);
     }
 
+    public function attendanceOverlapMinutes(OvertimeOrder $order, Presensi $presensi): int
+    {
+        [$requiredStart, $requiredEnd] = $this->resolveOrderRange($order);
+        [$actualStart, $actualEnd] = $this->resolveAttendanceRange($presensi, $order->overtime_date);
+        if (!$requiredStart || !$requiredEnd || !$actualStart || !$actualEnd) {
+            return 0;
+        }
+
+        $start = $requiredStart->max($actualStart);
+        $end = $requiredEnd->min($actualEnd);
+        return max(0, (int) $start->diffInMinutes($end, false));
+    }
+
     private function getAttendanceMap(iterable $niks, $startDate, $endDate): array
     {
         $niks = collect($niks)

@@ -16,7 +16,7 @@ trait CreatesRosterImportSchema
 
     protected function createRosterImportSchema(): void
     {
-        Schema::create('employees', function (Blueprint $table): void {
+        Schema::create('employees', function (Blueprint $table): void { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             $table->string('no_ktp');
             $table->string('nama_karyawan');

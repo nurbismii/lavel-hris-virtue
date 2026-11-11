@@ -202,6 +202,7 @@ class WilayahController extends Controller
     private function filteredEmployeeQuery(array $filters)
     {
         return DB::table('employees as e')
+            ->whereNull('e.deleted_at')
             ->leftJoin('master_provinsi as p', 'e.provinsi_id', '=', 'p.id')
             ->leftJoin('master_kabupaten as kb', 'e.kabupaten_id', '=', 'kb.id')
             ->leftJoin('master_kecamatan as kc', 'e.kecamatan_id', '=', 'kc.id')

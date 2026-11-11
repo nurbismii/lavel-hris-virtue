@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('title', 'Pembaruan Gaji')
+@section('title', 'Riwayat Upah')
 @section('content')
 <div class="container-fluid"><div class="page-inner salary-page">
     <header class="salary-header">
-        <div><span class="salary-eyebrow">Administrasi upah</span><h1>Pembaruan Gaji</h1><p>Kelola kenaikan tahunan, promosi, dan penyesuaian khusus berdasarkan tanggal efektif.</p></div>
+        <div><span class="salary-eyebrow">Administrasi upah</span><h1>Riwayat Upah</h1><p>Sumber gaji pokok dan total tunjangan menurut tanggal berlaku. Master komponen hanya merinci tunjangan tetap tersebut atau mencatat tambahan tidak tetap dan potongan.</p></div>
         <div class="salary-actions"><a class="btn btn-light" href="{{ route('slip-gaji.index') }}">Slip gaji</a><a class="btn btn-primary" href="{{ route('employee-salaries.template') }}">Unduh template XLSX</a></div>
     </header>
     <section class="salary-card" aria-labelledby="upload-title">

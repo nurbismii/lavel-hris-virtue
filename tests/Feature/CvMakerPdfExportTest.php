@@ -48,7 +48,7 @@ class CvMakerPdfExportTest extends TestCase
             return Storage::disk('local')->path('private/' . $path);
         });
         $this->app->instance(SensitiveFileStorageService::class, $storage);
-        Schema::create('employees', function (Blueprint $t) {
+        Schema::create('employees', function (Blueprint $t) { $t->softDeletes(); $t->string('deleted_by', 36)->nullable();
             $t->string('nik')->primary(); $t->string('nama_karyawan'); $t->string('area_kerja');
             $t->string('status_resign'); $t->string('posisi')->nullable(); $t->string('jabatan')->nullable();
             $t->string('no_telp')->nullable(); $t->integer('departemen_id')->nullable(); $t->integer('divisi_id')->nullable();

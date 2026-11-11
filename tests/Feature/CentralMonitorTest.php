@@ -65,11 +65,11 @@ class CentralMonitorTest extends TestCase
 
     public function test_organization_forms_validate_writes_and_restore_old_values(): void
     {
-        Schema::create('perusahaan', function (Blueprint $table) {
+        Schema::create('perusahaan', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->string('nama_perusahaan');
         });
-        Schema::create('departemens', function (Blueprint $table) {
+        Schema::create('departemens', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->integer('perusahaan_id');
             $table->string('departemen');
@@ -78,7 +78,7 @@ class CentralMonitorTest extends TestCase
             $table->string('status_pengeluaran');
             $table->timestamps();
         });
-        Schema::create('divisis', function (Blueprint $table) {
+        Schema::create('divisis', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->integer('departemen_id');
             $table->string('nama_divisi');
@@ -171,7 +171,7 @@ class CentralMonitorTest extends TestCase
             $table->timestamps();
         });
 
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             $table->string('nama_karyawan')->nullable();
             $table->string('status_resign')->nullable();

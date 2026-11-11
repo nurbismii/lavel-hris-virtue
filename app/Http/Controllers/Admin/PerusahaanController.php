@@ -58,9 +58,10 @@ class PerusahaanController extends Controller
 
     public function delete($id)
     {
-        Perusahaan::where('id', $id)->delete();
+        app(\App\Services\Recovery\DeletedDataService::class)->change('perusahaan', (string) $id, request()->user(), false);
+        if (request()->expectsJson()) { return response()->json(['success'=>true,'message'=>'Perusahaan dipindahkan ke Tempat Sampah.']); }
 
-        toast()->success('Success', 'Company deleted successfully.');
+        toast()->success('Success', 'Perusahaan dipindahkan ke Tempat Sampah.');
         return redirect()->route('perusahaan.index');
     }
 }

@@ -216,7 +216,7 @@ class AttendanceHrSummaryExportService
         ];
         $scheduleType = $this->overtimeCalculator->resolveScheduleTypeFromWorkPattern($employee->workPattern);
         $isSmelterFiveTwo = $scheduleType === OvertimePayRule::SCHEDULE_FIVE_TWO
-            && $this->isSmelterEmployee($employee);
+            && $employee->isSmelter();
 
         if ($isSmelterFiveTwo) {
             $summary['overtime_holiday'] = count($this->effectiveHolidayDatesForEmployee($employee, $holidayDates)) * self::SMELTER_HOLIDAY_UNITS;
@@ -792,16 +792,6 @@ class AttendanceHrSummaryExportService
     {
         return $date->lt(Carbon::today())
             && (($schedule['final_status'] ?? WorkScheduleService::STATUS_HADIR) === WorkScheduleService::STATUS_HADIR);
-    }
-
-    private function isSmelterEmployee(Employee $employee): bool
-    {
-        $text = strtoupper(trim(
-            (string) optional($employee->departemen)->departemen . ' ' .
-            (string) optional($employee->divisi)->nama_divisi
-        ));
-
-        return strpos($text, 'SMELTER') !== false;
     }
 
     private function effectiveHolidayDatesForEmployee(Employee $employee, array $holidayDates): array

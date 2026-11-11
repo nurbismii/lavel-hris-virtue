@@ -247,7 +247,7 @@ class CvMakerProgressSyncCommandTest extends TestCase
 
     private function createHrisSchema(): void
     {
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             $table->string('nama_karyawan');
             $table->string('area_kerja')->nullable()->default('VDNI');

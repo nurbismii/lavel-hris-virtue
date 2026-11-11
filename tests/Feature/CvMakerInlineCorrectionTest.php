@@ -25,7 +25,7 @@ class CvMakerInlineCorrectionTest extends TestCase
         DB::purge('sqlite');
         DB::reconnect('sqlite');
 
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             $table->string('nama_karyawan')->nullable();
             $table->string('no_ktp')->nullable();

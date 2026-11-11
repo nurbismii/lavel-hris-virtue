@@ -31,6 +31,7 @@ class MapLegacyJobTitles extends Command
         $unmatchedSamples = collect();
 
         $query = DB::table('employees')
+            ->whereNull('employees.deleted_at')
             ->select([
                 'nik',
                 DB::raw("TRIM(COALESCE(NULLIF(jabatan, ''), NULLIF(posisi, ''))) as legacy_title"),

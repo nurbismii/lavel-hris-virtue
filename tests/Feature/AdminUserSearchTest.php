@@ -25,7 +25,7 @@ class AdminUserSearchTest extends TestCase
             }
             $table->integer('role_id')->nullable();
         });
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             foreach (['nama_karyawan', 'departemen_id', 'divisi_id', 'sisa_cuti', 'posisi', 'photo_path', 'face_reference_path', 'work_pattern_id', 'work_pattern_start_date'] as $column) {
                 $table->string($column)->nullable();

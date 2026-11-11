@@ -39,7 +39,7 @@ class EmployeeSalaryWorkflowTest extends TestCase
         Storage::fake('local');
         Queue::fake();
         $this->mock(AuditTrailService::class)->shouldReceive('record')->andReturnNull();
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary(); $table->string('nama_karyawan');
             $table->unsignedBigInteger('work_pattern_id')->nullable();
             $table->unsignedBigInteger('departemen_id')->nullable(); $table->unsignedBigInteger('divisi_id')->nullable();
@@ -253,7 +253,7 @@ class EmployeeSalaryWorkflowTest extends TestCase
         $hr = $this->user();
         $this->actingAs($hr)->get(route('employee-salaries.index'))->assertOk()->assertSee('Upload perubahan upah');
         $history = $this->uploadAndPreview($hr, [$this->row()]);
-        $this->get(route('employee-salaries.show', $history))->assertOk()->assertSee('Tinjau Pembaruan Gaji')->assertSee('00123');
+        $this->get(route('employee-salaries.show', $history))->assertOk()->assertSee('Tinjau Riwayat Upah')->assertSee('00123');
         $response = $this->get(route('employee-salaries.template'))->assertOk();
         $path = tempnam(sys_get_temp_dir(), 'salary-template-');
         $this->paths[] = $path;

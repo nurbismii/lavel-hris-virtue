@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Divisi extends Model
 {
+    use \Illuminate\Database\Eloquent\SoftDeletes;
+
     protected $table = 'divisis';
 
     protected $guarded = [];

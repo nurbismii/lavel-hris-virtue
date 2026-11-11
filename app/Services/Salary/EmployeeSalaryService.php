@@ -3,12 +3,14 @@
 namespace App\Services\Salary;
 
 use App\Models\EmployeeSalaryHistory;
+use App\Models\Employee;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Validation\ValidationException;
 
 class EmployeeSalaryService
 {
-    public function forRows(array $rows): array
+    public function forRows(array $rows, bool $lock = false): array
     {
         if (!$rows) {
             return [];
@@ -20,6 +22,7 @@ class EmployeeSalaryService
         }
         $salaries = EmployeeSalaryHistory::query()->whereIn('employee_nik', array_keys($pending))
             ->where('effective_from', '<=', max(array_column($rows, 'berlaku_mulai')))
+            ->when($lock, fn ($query) => $query->lockForUpdate())
             ->orderByDesc('effective_from')->orderByDesc('id')->cursor();
         foreach ($salaries as $salary) {
             foreach ($pending[$salary->employee_nik] ?? [] as $key => $date) {
@@ -58,6 +61,21 @@ class EmployeeSalaryService
     public function overtimeBasis(EmployeeSalaryHistory $salary): float
     {
         return $this->basis((float) $salary->basic_salary, (float) $salary->fixed_allowance, (float) $salary->non_fixed_allowance);
+    }
+
+    public function payrollFixedAllowance(EmployeeSalaryHistory $salary, Employee $employee, string $period): array
+    {
+        if (!$employee->entry_date) {
+            throw ValidationException::withMessages(['custom'=>'Lengkapi tanggal masuk sebelum merinci tunjangan tetap.']);
+        }
+        $end = CarbonImmutable::parse($period.'-01')->endOfMonth();
+        $years = max(0, (int) $employee->entry_date->copy()->startOfDay()->diffInYears($end->startOfDay(), false));
+        $tenure = 50000 * $years;
+        $other = (int) round((float) $salary->fixed_allowance) - $tenure;
+        if ($other < 0) {
+            throw ValidationException::withMessages(['custom'=>'Tunjangan tetap dalam riwayat lebih kecil dari tunjangan masa kerja yang dihitung. Periksa Riwayat Upah sebelum melanjutkan.']);
+        }
+        return ['tenure_years'=>$years, 'tenure_allowance'=>$tenure, 'other_fixed_allowance'=>$other];
     }
 
     public function basis(float $basic, float $fixed, float $nonFixed): float

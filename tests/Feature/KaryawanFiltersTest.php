@@ -19,17 +19,17 @@ class KaryawanFiltersTest extends TestCase
         config()->set('database.default', 'sqlite');
         config()->set('database.connections.sqlite', ['driver' => 'sqlite', 'database' => ':memory:', 'prefix' => '']);
         DB::purge('sqlite');
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             foreach (['nama_karyawan', 'area_kerja', 'departemen_id', 'divisi_id', 'status_resign', 'posisi', 'jabatan', 'status_karyawan', 'pendidikan_terakhir', 'jenis_kelamin', 'entry_date', 'no_ktp', 'photo_path', 'ktp_path', 'kk_path', 'sim_path', 'sio_path', 'face_reference_path'] as $column) {
                 $table->string($column)->nullable();
             }
         });
-        Schema::create('departemens', function (Blueprint $table) {
+        Schema::create('departemens', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->string('departemen');
         });
-        Schema::create('divisis', function (Blueprint $table) {
+        Schema::create('divisis', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->string('nama_divisi');
         });

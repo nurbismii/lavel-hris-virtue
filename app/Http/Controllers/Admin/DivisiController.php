@@ -49,9 +49,10 @@ class DivisiController extends Controller
 
     public function destroy($id)
     {
-        Divisi::where('id', $id)->delete();
+        app(\App\Services\Recovery\DeletedDataService::class)->change('divisi', (string) $id, request()->user(), false);
+        if (request()->expectsJson()) { return response()->json(['success'=>true,'message'=>'Divisi dipindahkan ke Tempat Sampah.']); }
 
-        toast()->success('Success', 'Divisi deleted successfully');
+        toast()->success('Success', 'Divisi dipindahkan ke Tempat Sampah.');
         return back();
     }
 

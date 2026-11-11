@@ -51,7 +51,7 @@ class CvMakerAuditAccessTest extends TestCase
     {
         config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:']);
         \Illuminate\Support\Facades\DB::purge('sqlite');
-        \Illuminate\Support\Facades\Schema::create('employees', function ($table) {
+        \Illuminate\Support\Facades\Schema::create('employees', function ($table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
         });
         \Illuminate\Support\Facades\DB::table('employees')->insert([
@@ -87,7 +87,7 @@ class CvMakerAuditAccessTest extends TestCase
     {
         config(['database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:']);
         \Illuminate\Support\Facades\DB::purge('sqlite');
-        \Illuminate\Support\Facades\Schema::create('employees', function ($table) {
+        \Illuminate\Support\Facades\Schema::create('employees', function ($table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             $table->string('nama_karyawan');
             $table->string('photo_path');

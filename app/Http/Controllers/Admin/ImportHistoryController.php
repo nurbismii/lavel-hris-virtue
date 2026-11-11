@@ -31,6 +31,9 @@ class ImportHistoryController extends Controller
 
         if ($isTableReady) {
             $importHistories = ImportHistory::query()
+                ->when(!$request->user()->hasRole(['Super Admin', 'HR']) || !$request->user()->hasMenuAccess('slip_gaji_admin'), function ($query) {
+                    $query->where('import_type', '!=', ImportHistory::TYPE_PAYROLL);
+                })
                 ->select([
                     'id',
                     'import_id',
@@ -108,6 +111,9 @@ class ImportHistoryController extends Controller
 
     public function export(Request $request, ImportHistory $importHistory, string $category)
     {
+        if ($importHistory->import_type === ImportHistory::TYPE_PAYROLL) {
+            abort_unless($request->user()->hasRole(['Super Admin', 'HR']) && $request->user()->hasMenuAccess('slip_gaji_admin'), 403);
+        }
         abort_unless(
             array_key_exists($category, ImportHistoryItem::categoryLabels()),
             404

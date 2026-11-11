@@ -104,6 +104,9 @@ $showViolationTab = request()->has('pelanggaran_page') && !$errors->any();
                 </div>
             </div>
             <div class="employee-edit-header__actions">
+                @if($canManageSensitiveEmployeeFields)
+                    <a href="{{ route('karyawan.career', $employee->nik) }}" class="btn btn-sm btn-light border ui-btn-icon">Riwayat karier</a>
+                @endif
                 <a href="{{ route('karyawan.index') }}" class="btn btn-sm btn-light border ui-btn-icon" data-loading-text="Kembali...">
                     <i class="fas fa-arrow-left"></i>
                     {{ __('Kembali') }}

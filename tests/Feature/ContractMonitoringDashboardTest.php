@@ -136,7 +136,7 @@ class ContractMonitoringDashboardTest extends TestCase
             $table->timestamps();
         });
 
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             $table->string('nama_karyawan')->nullable();
             $table->string('status_resign')->nullable();
@@ -151,19 +151,19 @@ class ContractMonitoringDashboardTest extends TestCase
             $table->date('work_pattern_start_date')->nullable();
         });
 
-        Schema::create('perusahaan', function (Blueprint $table) {
+        Schema::create('perusahaan', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->string('kode_perusahaan')->nullable();
             $table->string('nama_perusahaan')->nullable();
         });
 
-        Schema::create('departemens', function (Blueprint $table) {
+        Schema::create('departemens', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->string('departemen')->nullable();
             $table->unsignedInteger('perusahaan_id')->nullable();
         });
 
-        Schema::create('divisis', function (Blueprint $table) {
+        Schema::create('divisis', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->string('nama_divisi')->nullable();
             $table->unsignedInteger('departemen_id')->nullable();

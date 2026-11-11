@@ -14,8 +14,10 @@ class ImportHistory extends Model
     public const STATUS_AWAITING_CONFIRMATION = 'awaiting_confirmation';
     public const STATUS_VALIDATION_FAILED = 'validation_failed';
     public const STATUS_EXPIRED = 'expired';
+    public const STATUS_FINALIZED = 'finalized';
 
     public const SOURCE_EXCEL = 'excel';
+    public const SOURCE_HRIS = 'hris';
     public const SOURCE_ZIP = 'zip';
 
     public const TYPE_EMPLOYEE = 'employee';
@@ -31,6 +33,7 @@ class ImportHistory extends Model
     public const TYPE_CONTRACT_HISTORY = 'contract_history';
     public const TYPE_ROSTER_SCHEDULE = 'roster_schedule';
     public const TYPE_EMPLOYEE_SALARY = 'employee_salary';
+    public const TYPE_PAYROLL = 'payroll';
 
     protected $guarded = [];
 
@@ -98,6 +101,7 @@ class ImportHistory extends Model
             self::STATUS_AWAITING_CONFIRMATION => 'Menunggu konfirmasi',
             self::STATUS_VALIDATION_FAILED => 'Validasi gagal',
             self::STATUS_EXPIRED => 'Kedaluwarsa',
+            self::STATUS_FINALIZED => 'Final',
         ];
     }
 
@@ -112,6 +116,7 @@ class ImportHistory extends Model
             self::STATUS_AWAITING_CONFIRMATION => 'warning',
             self::STATUS_VALIDATION_FAILED => 'danger',
             self::STATUS_EXPIRED => 'secondary',
+            self::STATUS_FINALIZED => 'success',
         ];
     }
 
@@ -119,6 +124,7 @@ class ImportHistory extends Model
     {
         return [
             self::SOURCE_EXCEL => 'Excel/CSV',
+            self::SOURCE_HRIS => 'HRIS',
             self::SOURCE_ZIP => 'ZIP',
         ];
     }
@@ -139,6 +145,7 @@ class ImportHistory extends Model
             self::TYPE_CONTRACT_HISTORY => 'Import History Kontrak',
             self::TYPE_ROSTER_SCHEDULE => 'Import Jadwal Roster',
             self::TYPE_EMPLOYEE_SALARY => 'Pembaruan Gaji Karyawan',
+            self::TYPE_PAYROLL => 'Perhitungan Payroll',
         ];
     }
 

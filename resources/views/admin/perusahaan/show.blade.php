@@ -100,12 +100,12 @@
 
                                 <form action="{{ route('departemen.destroy', $dept->id) }}"
                                     method="POST"
-                                    class="position-absolute end-0 me-2 form-delete-departemen">
+                                    class="position-absolute end-0 me-2" data-admin-submit data-confirm-text="Pindahkan departemen ke Tempat Sampah? Departemen yang masih memiliki divisi atau karyawan tidak dapat dihapus.">
 
                                     @csrf
                                     @method('DELETE')
 
-                                    <button type="button" class="btn btn-xs btn-danger btn-delete">
+                                    <button type="submit" class="btn btn-xs btn-danger" aria-label="Hapus departemen {{ $dept->departemen }}">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
@@ -160,11 +160,9 @@
                                                     <i class="fas fa-times"></i>
                                                 </button>
 
-                                                <a href="{{ route('divisi.destroy', $div->id) }}"
-                                                    class="btn btn-danger btn-sm"
-                                                    data-confirm-delete="true">
+                                                <form method="post" action="{{ route('divisi.destroy', $div->id) }}" class="d-inline" data-admin-submit data-confirm-text="Pindahkan divisi ke Tempat Sampah? Divisi yang masih digunakan tidak dapat dihapus.">@csrf @method('DELETE')<button type="submit" class="btn btn-danger btn-sm" aria-label="Hapus divisi {{ $div->nama_divisi }}">
                                                     <i class="fas fa-trash"></i>
-                                                </a>
+                                                </button></form>
 
                                             </td>
                                         </tr>
@@ -242,43 +240,8 @@
 
 
 @push('scripts')
+<script src="{{ versioned_asset('assets/js/admin-data-actions.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-
-        document.querySelectorAll('.form-delete-departemen .btn-delete')
-            .forEach(button => {
-
-                button.addEventListener('click', function(e) {
-                    e.stopPropagation();
-
-                    const form = this.closest('form');
-
-                    Swal.fire({
-                        title: @json(__('Hapus Departemen?')),
-                        html: `
-                        <small>
-                            Semua <b>divisi</b> di dalam departemen ini juga akan terhapus.<br>
-                            Tindakan ini <b>tidak dapat dibatalkan</b>.
-                        </small>
-                    `,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#6c757d',
-                        cancelButtonText: @json(__('Batal')),
-                        confirmButtonText: @js(__('Ya, Hapus')),
-                        reverseButtons: true
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            form.submit();
-                        }
-                    });
-                });
-            });
-
-    });
-</script>
 
 <script>
     $(document).on('click', '.btn-edit-divisi', function() {

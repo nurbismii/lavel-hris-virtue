@@ -89,7 +89,7 @@ return [
     'contracts_payroll' => 'Kontrak & Gaji',
     'reports_monitoring' => 'Laporan & Pemantauan',
     'settings' => 'Pengaturan',
-    'salary_update' => 'Pembaruan Gaji',
+    'salary_update' => 'Riwayat Upah',
     'exit_portal_users' => 'Pengguna Exit Portal',
     'exit_portal_history' => 'Riwayat Exit Portal',
 ];

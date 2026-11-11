@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Schema;
 class OvertimePayCalculatorService
 {
     public const MONTHLY_HOUR_DIVISOR = 173;
+    private array $resolvedRules = [];
 
     public function calculate(string $scheduleType, string $dayType, int $overtimeMinutes, float $monthlyWage): array
     {
@@ -175,6 +176,10 @@ class OvertimePayCalculatorService
     {
         $scheduleType = $this->normalizeScheduleType($scheduleType);
         $dayType = $this->normalizeDayType($scheduleType, $dayType);
+        $key = $scheduleType.':'.$dayType;
+        if (isset($this->resolvedRules[$key])) {
+            return $this->resolvedRules[$key];
+        }
 
         try {
             $hasRuleTable = Schema::hasTable('overtime_pay_rules');
@@ -205,7 +210,7 @@ class OvertimePayCalculatorService
                 && in_array($rule['schedule_type'], [$scheduleType, OvertimePayRule::SCHEDULE_ANY], true)
         ));
 
-        return $this->protectStatutoryRates($legalRules, $rules);
+        return $this->resolvedRules[$key] = $this->protectStatutoryRates($legalRules, $rules);
     }
 
     private function protectStatutoryRates(array $legalRules, array $companyRules): array

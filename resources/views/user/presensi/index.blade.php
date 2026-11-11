@@ -100,7 +100,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         @if ($supportsIosBrowserGps && $nextAttendanceType)
         <div class="alert alert-info" role="status">
-            Presensi iPhone/iPad melalui browser tersedia sementara. Izinkan akses lokasi dan kamera untuk melanjutkan.
+            Izinkan akses lokasi dan kamera untuk melanjutkan.
         </div>
         @elseif (!$supportsNativeGps && $nextAttendanceType)
         <div class="alert alert-info" role="status">

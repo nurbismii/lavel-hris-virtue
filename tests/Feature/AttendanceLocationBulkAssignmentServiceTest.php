@@ -179,25 +179,25 @@ class AttendanceLocationBulkAssignmentServiceTest extends TestCase
 
     private function createSchema(): void
     {
-        Schema::create('perusahaan', function (Blueprint $table) {
+        Schema::create('perusahaan', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->string('kode_perusahaan')->nullable();
             $table->string('nama_perusahaan')->nullable();
         });
 
-        Schema::create('departemens', function (Blueprint $table) {
+        Schema::create('departemens', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->string('departemen');
             $table->unsignedInteger('perusahaan_id')->nullable();
         });
 
-        Schema::create('divisis', function (Blueprint $table) {
+        Schema::create('divisis', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->increments('id');
             $table->string('nama_divisi');
             $table->unsignedInteger('departemen_id')->nullable();
         });
 
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik')->primary();
             $table->string('nama_karyawan');
             $table->unsignedInteger('departemen_id')->nullable();

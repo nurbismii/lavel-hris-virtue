@@ -13,7 +13,7 @@
                 $user = auth()->user();
                 $employee = optional($user)->employee;
                 $employeeName = $employee->nama_karyawan ?? optional($user)->name ?? __('common.user');
-                $employeePhotoUrl = $employee->document_photo_url;
+                $employeePhotoUrl = optional($employee)->document_photo_url;
                 $employeeInitials = $user->avatar_initials;
                 $unreadCount = $user->unreadNotifications()->count();
                 $notifications = $user->notifications()->latest()->limit(5)->get();

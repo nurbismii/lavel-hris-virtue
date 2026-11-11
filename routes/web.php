@@ -218,6 +218,16 @@ Route::middleware(['android.redirect'])->group(function () {
     });
 
     Route::group(['prefix' => 'admin', 'middleware' => ['redirect.role', 'auth']], function () {
+        Route::prefix('tempat-sampah')->name('deleted-data.')->middleware('role:Super Admin,HR')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\DeletedDataController::class, 'index'])->name('index');
+            Route::post('/{type}/{id}/pulihkan', [\App\Http\Controllers\Admin\DeletedDataController::class, 'restore'])->name('restore');
+        });
+        Route::prefix('komponen-gaji')->name('salary-components.')->middleware(['menu:slip_gaji_admin', 'role:Super Admin,HR'])->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\SalaryComponentController::class, 'index'])->name('index');
+            Route::post('/', [\App\Http\Controllers\Admin\SalaryComponentController::class, 'store'])->name('store');
+            Route::put('/{component}', [\App\Http\Controllers\Admin\SalaryComponentController::class, 'update'])->name('update');
+            Route::delete('/{component}', [\App\Http\Controllers\Admin\SalaryComponentController::class, 'destroy'])->name('destroy');
+        });
         Route::get('/roster-schedules/import', [RosterScheduleImportController::class, 'create'])
             ->middleware(['menu:roster_schedule', 'role:Super Admin,HR'])
             ->name('roster-schedules.import.create');
@@ -277,6 +287,9 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/karyawan/{nik}/recruitment-documents', [App\Http\Controllers\Admin\KaryawanController::class, 'recruitmentDocuments'])
             ->middleware('menu:data_karyawan')
             ->name('karyawan.recruitment-documents');
+        Route::get('/karyawan/{nik}/riwayat-karier', [App\Http\Controllers\Admin\KaryawanController::class, 'careerHistory'])
+            ->middleware(['menu:data_karyawan', 'role:Super Admin,HR'])
+            ->name('karyawan.career');
         Route::resource('/karyawan', 'App\Http\Controllers\Admin\KaryawanController')
             ->only(['index', 'store', 'edit', 'update', 'destroy'])
             ->middleware('menu:data_karyawan');
@@ -530,6 +543,22 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/master-lembur', [OvertimeMasterController::class, 'index'])
             ->middleware(['menu:lembur', 'role:Super Admin,HR'])
             ->name('overtime-masters.index');
+        Route::prefix('payroll')->name('payroll.')
+            ->middleware(['menu:slip_gaji_admin', 'role:Super Admin,HR'])->group(function () {
+                $controller = \App\Http\Controllers\Admin\PayrollController::class;
+                Route::get('/', [$controller, 'index'])->name('index');
+                Route::post('/', [$controller, 'store'])->name('store');
+                Route::post('/hitung', [$controller, 'calculate'])->name('calculate');
+                Route::get('/isian', [\App\Http\Controllers\Admin\PayrollInputController::class, 'index'])->name('inputs');
+                Route::get('/isian/{nik}', [\App\Http\Controllers\Admin\PayrollInputController::class, 'edit'])->name('inputs.edit');
+                Route::post('/isian/{nik}', [\App\Http\Controllers\Admin\PayrollInputController::class, 'save'])->name('inputs.save');
+                Route::get('/beban-gaji', [$controller, 'costs'])->name('costs');
+                Route::get('/template', [$controller, 'template'])->name('template');
+                Route::get('/{history}', [$controller, 'show'])->name('show');
+                Route::get('/{history}/status', [$controller, 'status'])->name('status');
+                Route::post('/{history}/finalize', [$controller, 'finalize'])->name('finalize');
+                Route::get('/{history}/export', [$controller, 'download'])->name('download');
+            });
         Route::prefix('pembaruan-gaji')->name('employee-salaries.')
             ->middleware(['menu:slip_gaji_admin', 'role:Super Admin,HR'])->group(function () {
                 $controller = \App\Http\Controllers\Admin\EmployeeSalaryController::class;

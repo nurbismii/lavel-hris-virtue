@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
 {
+    use \Illuminate\Database\Eloquent\SoftDeletes;
+
     protected $table = 'employees';
     protected $primaryKey = 'nik';
     public $incrementing = false;
@@ -35,6 +37,11 @@ class Employee extends Model
     public function divisi()
     {
         return $this->belongsTo(Divisi::class, 'divisi_id');
+    }
+
+    public function isSmelter(): bool
+    {
+        return stripos((string) $this->departemen?->departemen.' '.(string) $this->divisi?->nama_divisi, 'smelter') !== false;
     }
 
     public function jobTitle()

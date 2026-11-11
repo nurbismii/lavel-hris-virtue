@@ -24,6 +24,7 @@
 
             @if($canManageMasterData)
             <div class="ui-page-actions karyawan-actions">
+                @if(auth()->user()->hasRole(['Super Admin', 'HR']))<a class="btn btn-sm btn-outline-primary" href="{{ route('deleted-data.index', ['type'=>'karyawan']) }}">Tempat Sampah</a>@endif
                 <button type="button" class="btn btn-sm btn-outline-primary ui-btn-icon" data-bs-toggle="modal" data-bs-target="#modalBulkDocuments">
                     <i class="fas fa-folder-open"></i>
                     {{ __('Bulk Dokumen') }}

@@ -47,12 +47,12 @@
                                             </span>
                                             <span class="text">{{ __('Edit') }}</span>
                                         </a>
-                                        <a href="{{ route('perusahaan.destroy', $p->id) }}" class="btn btn-danger btn-sm btn-icon-split" data-confirm-delete="true">
+                                        <form method="post" action="{{ route('perusahaan.destroy', $p->id) }}" data-admin-submit data-confirm-text="Pindahkan perusahaan ke Tempat Sampah? Master yang masih digunakan tidak dapat dihapus." class="d-inline">@csrf @method('DELETE')<button type="submit" class="btn btn-danger btn-sm btn-icon-split">
                                             <span class="icon text-white-50">
                                                 <i class="fas fa-trash"></i>
                                             </span>
                                             <span class="text">{{ __('Hapus') }}</span>
-                                        </a>
+                                        </button></form>
                                     </td>
                                 </tr>
                                 @endforeach
@@ -66,3 +66,4 @@
 </div>
 
 @endsection
+@push('scripts')<script src="{{ versioned_asset('assets/js/admin-data-actions.js') }}"></script>@endpush

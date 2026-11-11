@@ -12,6 +12,7 @@ use App\Jobs\DeleteImportedFile;
 use App\Models\Departemen;
 use App\Models\Divisi;
 use App\Models\Employee;
+use App\Models\EmployeeMovement;
 use App\Models\ImportHistory;
 use App\Models\Perusahaan;
 use App\Models\SuratPeringatan;
@@ -110,6 +111,25 @@ class KaryawanController extends Controller
                 ->fragment('pelanggaran-pane'),
             'canManageSensitiveEmployeeFields' => auth()->user()->canAccessAllEmployees(),
         ]);
+    }
+
+    public function careerHistory(Request $request, string $nik)
+    {
+        abort_unless($request->user()->canAccessAllEmployees(), 403);
+
+        $employee = Employee::whereKey($nik)->firstOrFail(['nik', 'nama_karyawan']);
+        $movements = $employee->movements()
+            ->whereIn('status', [EmployeeMovement::STATUS_APPROVED, EmployeeMovement::STATUS_APPLIED])
+            ->where('effective_date', '<=', today()->toDateString())
+            ->with(['oldDepartemen:id,departemen', 'newDepartemen:id,departemen', 'oldDivisi:id,nama_divisi', 'newDivisi:id,nama_divisi'])
+            ->orderByDesc('effective_date')->orderByDesc('id')->paginate(15, ['*'], 'pergerakan')->withQueryString()->fragment('pergerakan');
+        $placements = $employee->positionAssignments()
+            ->where('effective_from', '<=', today()->toDateString())
+            ->with(['organizationPosition.jobTitle', 'organizationPosition.perusahaan:id,nama_perusahaan',
+                'organizationPosition.departemen:id,departemen', 'organizationPosition.divisi:id,nama_divisi'])
+            ->orderByDesc('effective_from')->orderByDesc('id')->paginate(15, ['*'], 'penempatan')->withQueryString()->fragment('penempatan');
+
+        return response()->view('admin.karyawan.career', compact('employee', 'movements', 'placements'))->header('Cache-Control', 'private, no-store');
     }
 
     public function store(Request $request)
@@ -432,13 +452,12 @@ class KaryawanController extends Controller
     {
         abort_unless($request->user()->canAccessAllEmployees(), 403, 'Akses tidak diizinkan.');
 
-        $employee = $request->user()
-            ->applyEmployeeScope(Employee::query())
-            ->where('nik', $nik)
-            ->firstOrFail();
-
         try {
-            $employee->delete();
+            app(\App\Services\Recovery\DeletedDataService::class)->change('karyawan', (string) $nik, $request->user(), false);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            throw $exception;
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $exception) {
+            throw $exception;
         } catch (Throwable $exception) {
             report($exception);
 
@@ -455,7 +474,7 @@ class KaryawanController extends Controller
             return redirect()->route('karyawan.index');
         }
 
-        $message = 'Data karyawan berhasil dihapus!';
+        $message = 'Data karyawan dipindahkan ke Tempat Sampah dan dapat dipulihkan.';
 
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([

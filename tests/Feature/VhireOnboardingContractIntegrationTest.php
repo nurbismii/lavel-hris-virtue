@@ -840,7 +840,7 @@ class VhireOnboardingContractIntegrationTest extends TestCase
 
     private function createSchema(): void
     {
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->string('nik', 100)->primary();
             $table->string('nama_karyawan')->nullable();
             $table->string('nama_ibu_kandung')->nullable();
@@ -894,21 +894,21 @@ class VhireOnboardingContractIntegrationTest extends TestCase
             $table->timestamps();
         });
 
-        Schema::create('perusahaan', function (Blueprint $table) {
+        Schema::create('perusahaan', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->id();
             $table->string('kode_perusahaan')->nullable();
             $table->string('nama_perusahaan')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('departemens', function (Blueprint $table) {
+        Schema::create('departemens', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->id();
             $table->unsignedBigInteger('perusahaan_id')->nullable();
             $table->string('departemen')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('divisis', function (Blueprint $table) {
+        Schema::create('divisis', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->id();
             $table->unsignedBigInteger('departemen_id')->nullable();
             $table->string('nama_divisi')->nullable();

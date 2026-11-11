@@ -13,7 +13,7 @@
                     {{ __('Integrasi dengan data V-Payslip') }}
                 </small>
             </div>
-            <div class="ms-md-auto mt-3 mt-md-0"><a class="btn btn-primary" href="{{ route('employee-salaries.index') }}">Pembaruan gaji</a></div>
+            <div class="ms-md-auto mt-3 mt-md-0 d-flex gap-2 flex-wrap"><a class="btn btn-primary" href="{{ route('payroll.index') }}">Proses Payroll</a><a class="btn btn-light" href="{{ route('employee-salaries.index') }}">Pembaruan gaji</a></div>
         </div>
 
         <div class="col-md-12">

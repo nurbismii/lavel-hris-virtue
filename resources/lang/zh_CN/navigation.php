@@ -89,7 +89,7 @@ return [
     'contracts_payroll' => '合同与薪资',
     'reports_monitoring' => '报表与监控',
     'settings' => '设置',
-    'salary_update' => '薪资更新',
+    'salary_update' => '薪资历史',
     'exit_portal_users' => '出入门户用户',
     'exit_portal_history' => '出入门户记录',
 ];

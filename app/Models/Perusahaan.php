@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Perusahaan extends Model
 {
+    use \Illuminate\Database\Eloquent\SoftDeletes;
+
     public const ORGANIZATION_COMPANY_CODES = ['VDNI', 'VDNIP'];
 
     protected $table = 'perusahaan';

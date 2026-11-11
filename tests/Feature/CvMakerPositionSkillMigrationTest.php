@@ -56,7 +56,7 @@ class CvMakerPositionSkillMigrationTest extends TestCase
     {
         $this->migratePositionCategories();
 
-        Schema::create('employees', function (Blueprint $table) {
+        Schema::create('employees', function (Blueprint $table) { $table->softDeletes(); $table->string('deleted_by', 36)->nullable();
             $table->bigIncrements('id');
             $table->string('nik', 32)->unique();
             $table->string('posisi')->nullable();

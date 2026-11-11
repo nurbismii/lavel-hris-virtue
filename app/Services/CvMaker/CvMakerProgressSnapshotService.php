@@ -222,6 +222,7 @@ class CvMakerProgressSnapshotService
         }
 
         $niks = DB::table('employees')
+            ->whereNull('employees.deleted_at')
             ->leftJoin('cv_maker_progress_statuses', 'cv_maker_progress_statuses.employee_nik', '=', 'employees.nik')
             ->where('employees.status_resign', 'AKTIF')
             ->whereIn('employees.area_kerja', Perusahaan::ORGANIZATION_COMPANY_CODES)

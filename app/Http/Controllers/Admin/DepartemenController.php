@@ -27,9 +27,9 @@ class DepartemenController extends Controller
 
     public function destroy($id)
     {
-        $departemen = Departemen::findOrFail($id);
-        Divisi::where('departemen_id', $departemen->id)->delete();
+        app(\App\Services\Recovery\DeletedDataService::class)->change('departemen', (string) $id, request()->user(), false);
+        if (request()->expectsJson()) { return response()->json(['success'=>true,'message'=>'Departemen dipindahkan ke Tempat Sampah.']); }
         
-        return back()->with('success', 'Departemen & seluruh divisi berhasil dihapus');
+        return back()->with('success', 'Departemen dipindahkan ke Tempat Sampah.');
     }
 }

@@ -1,8 +1,8 @@
 @extends('layouts.app')
-@section('title', 'Tinjau Pembaruan Gaji')
+@section('title', 'Tinjau Riwayat Upah')
 @section('content')
 <div class="container-fluid"><div class="page-inner salary-page" id="salary-process" data-status-url="{{ route('employee-salaries.status', $history) }}" data-initial-status="{{ $history->status }}">
-    <header class="salary-header"><div><span class="salary-eyebrow">Upload #{{ $history->id }}</span><h1>Tinjau Pembaruan Gaji</h1><p>Periksa nominal, tanggal efektif, dan referensi keputusan pada setiap baris.</p></div><div class="salary-actions"><a href="{{ route('employee-salaries.index') }}" class="btn btn-light">Kembali ke riwayat</a><button type="button" class="btn btn-light" id="salary-refresh">Refresh status</button></div></header>
+    <header class="salary-header"><div><span class="salary-eyebrow">Upload #{{ $history->id }}</span><h1>Tinjau Riwayat Upah</h1><p>Periksa nominal, tanggal efektif, dan referensi keputusan pada setiap baris.</p></div><div class="salary-actions"><a href="{{ route('employee-salaries.index') }}" class="btn btn-light">Kembali ke riwayat</a><button type="button" class="btn btn-light" id="salary-refresh">Refresh status</button></div></header>
     <section class="salary-card" aria-labelledby="status-title">
         <div class="salary-card-header"><h2 id="status-title">Status proses</h2><span id="salary-status" class="badge bg-{{ $history->status_badge_class }}">{{ $history->status_label }}</span></div>
         <div class="salary-card-body" aria-live="polite">
