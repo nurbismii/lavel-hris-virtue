@@ -102,6 +102,14 @@ Jalankan `php artisan view:clear`, buka kembali Edit Data Karyawan, pilih foto r
 
 Tes sintetis memakai SQLite dan direktori file terisolasi: file/path diganti, foto lama dibersihkan setelah sukses, endpoint admin/presensi membaca byte baru, URL versi berubah, cache dilarang, penulisan gagal mempertahankan foto lama, file tidak valid ditolak, dan pengguna di luar scope tidak dapat mengganti atau membuka referensi.
 
+### Jika jumlah kedip tetap 0/1 atau 0/2
+
+Pembacaan lama menjalankan pengenalan identitas penuh pada setiap sampel mata lalu menunggu 320 ms lagi. Kedip singkat dapat berada di antara sampel. Setelah kalibrasi dengan identitas yang cocok, tahap kedip sekarang memakai deteksi wajah dan landmark penuh tanpa menghitung descriptor identitas berulang, dengan jeda tambahan 80 ms setelah inferensi selesai. Inferensi tetap berurutan; ini bukan jaminan laju frame tertentu pada semua HP. Deteksi tunggal, kualitas, posisi frontal, dan ambang mata tetap berlaku. Identitas diperiksa kembali sebelum bukti frontal dikumpulkan dan pada selfie final; wajah yang tidak cocok membatalkan progres.
+
+Instruksi utama di dalam bingkai sekarang meminta menutup kedua mata sekitar satu detik lalu membuka kembali. Saat penutupan terdeteksi, instruksi berubah menjadi **Mata tertutup terbaca. Buka kedua mata sekarang**, lalu penghitung bertambah setelah dua sampel pembukaan. Konfirmasi kedua memakai waktu pembukaan pertama untuk batas durasi, dan hasil kedip lengkap tidak hilang hanya karena pemeriksaan identitas berikutnya lambat. Wajah hilang, deteksi tidak valid, kamera dijeda, atau retake tetap menghapus progres.
+
+Untuk pembaruan ini, unggah `resources/views/user/presensi/index.blade.php`, `public/assets/js/passive-face-capture.js`, dan `public/assets/css/user-presensi.css`; jalankan `php artisan view:clear`, lalu buka ulang halaman presensi. Penanda aset berubah ke `ui=blink-2`. Tidak ada perubahan paket Composer, konfigurasi, migrasi, atau API Python. Tes sintetis mencakup penutupan/pembukaan, inferensi lambat, pergantian wajah, dan foto statis; uji perangkat fisik tetap diperlukan.
+
 ### Tantangan kedip sebelum capture untuk menahan foto statis di layar
 
 UI meminta 1–2 kedip perlahan dengan jumlah acak yang diterbitkan server dan terikat pada sesi presensi sekali pakai. Kedua mata perlu terbuka saat kalibrasi, menutup bersama, lalu terbuka kembali dalam dua sampel. Ambang penutupan/pembukaan relatif terhadap ukuran mata masing-masing, tanpa memakai rahang atau memerintahkan melepas kerudung. Foto statis dengan landmark mata tetap tidak menyelesaikan tantangan dalam tes sintetis. Setelah kedip selesai, UI masih mengambil tiga frame frontal sebelum mengaktifkan pengiriman presensi. Wajah hilang, kualitas/identitas gagal, jeda kamera, atau retake membatalkan progres yang belum selesai.

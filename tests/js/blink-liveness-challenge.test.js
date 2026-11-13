@@ -61,12 +61,30 @@ test('too-short closure, an interrupted camera, and an explicit reset discard in
     assert.equal(challenge.summary().passed, false);
 });
 
+test('a valid reopening is confirmed even when its second open sample arrives after the closure deadline', () => {
+    const challenge = new BlinkLivenessChallenge({ ...policy, required_count: 1 });
+    calibrate(challenge);
+    challenge.observe(0.1, 0.1, 1000);
+    challenge.observe(0.3, 0.28, 2800);
+    assert.equal(challenge.observe(0.3, 0.28, 3120).passed, true);
+});
+
+test('completed proof survives a slow identity check but an explicit camera reset invalidates it', () => {
+    const challenge = new BlinkLivenessChallenge({ ...policy, required_count: 1 });
+    calibrate(challenge);
+    assert.equal(blink(challenge, 1000).passed, true);
+    assert.equal(challenge.observe(0.3, 0.28, 5000).passed, true);
+    challenge.reset();
+    assert.equal(challenge.summary().passed, false);
+});
+
 test('the actual camera workflow cannot capture a static photo and captures only after the blink and frontal evidence', async () => {
     const source = fs.readFileSync('resources/views/user/presensi/index.blade.php', 'utf8');
     const activePolicy = { ...policy, required_count: 1 };
     let now = 0;
     let ear = [0.3, 0.28];
     let captured = 0;
+    const descriptorRequests = [];
     const input = {};
     const face = { detection: { score: 0.99, box: { x: 100, y: 80, width: 120, height: 200 } }, descriptor: [],
         landmarks: { getLeftEye: () => ({ ear: ear[0] }), getRightEye: () => ({ ear: ear[1] }) } };
@@ -78,8 +96,15 @@ test('the actual camera workflow cannot capture a static photo and captures only
         Date: { now: () => now }, attendanceChallengeElapsedMs: () => now + 1,
         document: { getElementById: id => id === 'selfieCamera' ? { readyState: 2 } : input },
         syncLiveCameraOverlaySize: () => ({ width: 320, height: 400 }),
-        ensureReferenceFaceDescriptor: async () => [], detectFaceDescriptors: async () => [face],
-        faceapi: { resizeResults: items => items, euclideanDistance: () => 0.3 },
+        ensureReferenceFaceDescriptor: async () => [],
+        detectFaceDescriptors: async (_, includeDescriptors = true) => {
+            descriptorRequests.push(includeDescriptors);
+            return [{ ...face, descriptor: includeDescriptors ? face.descriptor : undefined }];
+        },
+        faceapi: { resizeResults: items => items, euclideanDistance: (_, descriptor) => {
+            assert.ok(descriptor, 'identity checks must use a fresh descriptor');
+            return 0.3;
+        } },
         getLiveGuideRect: () => ({ x: 0, y: 0, width: 320, height: 400 }), getFaceRollAngle: () => 0,
         calculateHeadTurnMetric: () => ({ absYaw: 0 }), calculateEAR: eye => eye.ear,
         resetLivenessEvidence() {}, setBlinkResult() {}, updateLiveFrameFeedback() {}, fillFaceVerificationInputs() {},
@@ -93,11 +118,21 @@ test('the actual camera workflow cannot capture a static photo and captures only
     for (now = 0; now <= 6080; now += 320) { await context.evaluateLiveCameraFrame(); }
     assert.equal(captured, 0);
     assert.equal(context.faceMatchedReady, false);
+    assert.deepEqual(descriptorRequests.slice(0, 4), [true, true, true, false]);
     ear = [0.1, 0.1]; now = 6400; await context.evaluateLiveCameraFrame();
     ear = [0.3, 0.28];
     for (now of [6720, 7040, 8040]) { await context.evaluateLiveCameraFrame(); }
     assert.equal(captured, 0);
     now = 9040; await context.evaluateLiveCameraFrame();
+    assert.equal(captured, 0);
+    now = 10040; await context.evaluateLiveCameraFrame();
     assert.equal(captured, 1);
     assert.equal(context.blinkChallenge.summary().passed, true);
+    assert.deepEqual(descriptorRequests.slice(-3), [true, true, true]);
+    context.cameraVerificationLocked = false;
+    context.faceapi.euclideanDistance = () => 0.8;
+    now = 11040; await context.evaluateLiveCameraFrame();
+    assert.equal(captured, 1);
+    assert.equal(context.blinkChallenge.summary().passed, false);
+    assert.equal(context.faceMatchedReady, false);
 });

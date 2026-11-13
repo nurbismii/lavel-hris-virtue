@@ -2,7 +2,7 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('vendor/leaflet/leaflet.css') }}">
-<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css?ui=blink-1') }}">
+<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css?ui=blink-2') }}">
 @endpush
 
 @section('content')
@@ -588,7 +588,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 </script>
 @endif
 <script src="{{ versioned_asset('assets/js/presensi-native-gps.js') }}"></script>
-<script src="{{ versioned_asset('assets/js/passive-face-capture.js?ui=blink-1') }}"></script>
+<script src="{{ versioned_asset('assets/js/passive-face-capture.js?ui=blink-2') }}"></script>
 <script src="{{ versioned_asset('vendor/leaflet/leaflet.js') }}"></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
@@ -1248,12 +1248,12 @@ $locationIssueMessage = $locationIssueMessage ?? (
         });
     }
 
-    async function detectFaceDescriptors(image) {
+    async function detectFaceDescriptors(image, includeDescriptors = true) {
         if (!useAccurateFaceDetector) {
             for (const inputSize of [320, 512]) {
                 const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.5 });
-                const detections = await faceapi.detectAllFaces(image, options)
-                    .withFaceLandmarks(false).withFaceDescriptors();
+                const task = faceapi.detectAllFaces(image, options).withFaceLandmarks(false);
+                const detections = await (includeDescriptors ? task.withFaceDescriptors() : task);
                 if (detections.length > 1 || (detections.length === 1 && detections[0].detection.score >= 0.78)) {
                     return detections;
                 }
@@ -1271,8 +1271,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
             useAccurateFaceDetector = true;
         }
 
-        return faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, maxResults: 2 }))
-            .withFaceLandmarks(false).withFaceDescriptors();
+        const task = faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, maxResults: 2 })).withFaceLandmarks(false);
+        return includeDescriptors ? task.withFaceDescriptors() : task;
     }
 
     async function ensureReferenceFaceDescriptor() {
@@ -1489,6 +1489,12 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 guide: 'Pastikan wajah tetap stabil',
                 assist: 'Bukti kamera sedang diambil. Verifikasi akhir identitas dan liveness dilakukan oleh server.'
             },
+            blink: {
+                badge: 'Tantangan kedip',
+                alert: 'info',
+                guide: message,
+                assist: 'Ikuti instruksi tutup dan buka mata sampai jumlah kedip terpenuhi.'
+            },
             red: {
                 badge: 'Atur Ulang',
                 alert: 'danger',
@@ -1541,6 +1547,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
         if (progressText) {
             if (state === 'pending') {
                 progressText.textContent = 'Belum diverifikasi';
+            } else if (state === 'blink') {
+                progressText.textContent = 'Ikuti instruksi kedip';
             } else if (state === 'validating') {
                 progressText.textContent = 'Memastikan kestabilan wajah...';
             } else if (state === 'green') {
@@ -1849,7 +1857,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         const referenceDescriptor = await ensureReferenceFaceDescriptor();
         if (sessionId !== cameraSessionId) { return; }
-        const detections = await detectFaceDescriptors(video);
+        const blinkState = isPassiveLiveness && blinkChallenge ? blinkChallenge.status() : null;
+        // Identity is checked before calibration and again after blinking, without slowing every eye sample.
+        const samplingBlink = blinkState && !blinkState.passed && blinkState.phase !== 'calibrating';
+        const detections = await detectFaceDescriptors(video, !samplingBlink);
         if (sessionId !== cameraSessionId) { return; }
         const resizedDetections = faceapi.resizeResults(detections, displaySize);
 
@@ -1897,7 +1908,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         const faceHeightRatio = faceBox.height / displaySize.height;
         const detectionScore = Number(detection.detection.score.toFixed(4));
         const rollAngle = Number(getFaceRollAngle(detection.landmarks).toFixed(2));
-        const distance = faceapi.euclideanDistance(referenceDescriptor, detection.descriptor);
+        const distance = samplingBlink ? null : faceapi.euclideanDistance(referenceDescriptor, detection.descriptor);
 
         fillFaceVerificationInputs({
             matched: false,
@@ -1936,7 +1947,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             return;
         }
 
-        if (distance > faceDistanceThreshold) {
+        if (!samplingBlink && (!Number.isFinite(distance) || distance > faceDistanceThreshold)) {
             resetPassiveCapture();
             cameraValidationStartedAt = null;
             drawLiveCameraOverlay({
@@ -1957,16 +1968,17 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         if (isPassiveLiveness && clientBlinkPolicy) {
             const blink = blinkChallenge.observe(calculateEAR(detection.landmarks.getLeftEye()), calculateEAR(detection.landmarks.getRightEye()), attendanceChallengeElapsedMs());
-            if (!blink.passed) {
+            if (!blink.passed || samplingBlink) {
                 resetFaceMatchedReady();
                 passiveCapture.reset();
                 resetLivenessEvidence();
-                const message = blink.phase === 'calibrating' ? 'Buka kedua mata dan hadap lurus untuk memulai tantangan kedip.'
-                    : blink.phase === 'reopen' ? 'Buka kedua mata kembali. Kedip terbaca ' + blink.completedCount + '/' + clientBlinkPolicy.required_count + '.'
-                    : 'Kedip perlahan ' + clientBlinkPolicy.required_count + ' kali. Kedip terbaca ' + blink.completedCount + '/' + clientBlinkPolicy.required_count + '.';
+                const message = blink.passed ? 'Kedip selesai. Buka mata dan tetap hadap kamera untuk pemeriksaan ulang wajah.'
+                    : blink.phase === 'calibrating' ? 'Buka kedua mata dan hadap lurus untuk memulai tantangan kedip.'
+                    : blink.phase === 'reopen' ? 'Mata tertutup terbaca. Buka kedua mata sekarang. Kedip ' + blink.completedCount + '/' + clientBlinkPolicy.required_count + '.'
+                    : 'Tutup kedua mata dan tahan sekitar 1 detik, lalu buka kembali. Kedip ' + blink.completedCount + '/' + clientBlinkPolicy.required_count + '.';
                 setBlinkResult(false, null, message);
                 drawLiveCameraOverlay({ state: 'validating', boxes: [faceBox] });
-                updateLiveFrameFeedback('validating', message, blink.completedCount / clientBlinkPolicy.required_count);
+                updateLiveFrameFeedback(blink.passed ? 'validating' : 'blink', message, blink.completedCount / clientBlinkPolicy.required_count);
                 return;
             }
         }
@@ -2031,7 +2043,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 cameraIsProcessing = false;
             }
             if (sessionId === cameraSessionId && !cameraVerificationLocked) {
-                cameraDetectionTimerId = window.setTimeout(analyzeNextFrame, liveDetectionIntervalMs);
+                const delay = isPassiveLiveness && blinkChallenge && !blinkChallenge.status().passed ? 80 : liveDetectionIntervalMs;
+                cameraDetectionTimerId = window.setTimeout(analyzeNextFrame, delay);
             }
         };
         cameraDetectionTimerId = window.setTimeout(analyzeNextFrame, liveDetectionIntervalMs);

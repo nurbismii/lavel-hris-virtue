@@ -22,7 +22,7 @@ function cameraContext(overrides = {}) {
         cameraVerificationLocked: false, cameraValidationStartedAt: null,
         cameraIsStarting: false, cameraStream: null, liveDetectionIntervalMs: 320,
         faceReferencePath: '/private-reference', faceApiReady: true,
-        clientBlinkPolicy: null, blinkChallenge: null,
+        isPassiveLiveness: false, clientBlinkPolicy: null, blinkChallenge: null,
         useAccurateFaceDetector: false, accurateFaceDetectorLoad: null,
         cameraPausedText: 'Camera paused',
         document: { hidden: false, getElementById: id => id === 'selfieCamera' ? video : retry },
@@ -62,6 +62,19 @@ test('slow inference finishes before a full rendering pause and the next analysi
     assert.equal(timers.values().next().value.delay, 320);
     context.stopLiveCamera();
     assert.equal(timers.size, 0);
+});
+
+test('an unfinished blink is sampled promptly without overlapping inference and returns to normal pacing afterward', async () => {
+    let passed = false;
+    const { context, timers } = cameraContext({ isPassiveLiveness: true,
+        blinkChallenge: { status: () => ({ passed }) }, evaluateLiveCameraFrame: async () => {} });
+    load(context, 'beginLiveCameraVerification');
+    context.beginLiveCameraVerification();
+    await nextTick(timers);
+    assert.equal(timers.values().next().value.delay, 80);
+    passed = true;
+    await nextTick(timers);
+    assert.equal(timers.values().next().value.delay, 320);
 });
 
 test('restart waits for old inference to settle and ignores its error feedback', async () => {

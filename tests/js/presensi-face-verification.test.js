@@ -150,6 +150,28 @@ test('good detections and multiple faces do not trigger a retry that could hide 
     }
 });
 
+test('blink sampling keeps detection and full landmarks while avoiding repeated identity inference', async () => {
+    for (const accurate of [false, true]) {
+        let recognitionCalls = 0;
+        const detections = [{ detection: { score: 0.99 }, landmarks: {} }];
+        const context = vm.createContext({ useAccurateFaceDetector: accurate, accurateFaceDetectorLoad: null, faceapi: {
+            TinyFaceDetectorOptions: function (options) { return options; },
+            SsdMobilenetv1Options: function (options) { return options; },
+            detectAllFaces: () => ({ withFaceLandmarks: tiny => {
+                assert.equal(tiny, false);
+                const task = Promise.resolve(detections);
+                task.withFaceDescriptors = async () => { recognitionCalls++; return detections; };
+                return task;
+            } }),
+        } });
+        load(context, 'detectFaceDescriptors');
+        assert.equal(await context.detectFaceDescriptors({}, false), detections);
+        assert.equal(recognitionCalls, 0);
+        assert.equal(await context.detectFaceDescriptors({}), detections);
+        assert.equal(recognitionCalls, 1);
+    }
+});
+
 test('an unclear reference photo requires HR correction instead of matching against an unreliable descriptor', async () => {
     const context = vm.createContext({
         referenceFaceDescriptor: null,
@@ -302,4 +324,7 @@ test('a captured image is displayed as unverified evidence rather than a green l
     assert.equal(nodes.cameraProgressText.textContent, 'Belum diverifikasi');
     assert.equal(alert, 'info');
     assert.equal(source.includes('Liveness wajah sudah valid.'), false);
+    context.updateLiveFrameFeedback('blink', 'Tutup kedua mata dan tahan sekitar 1 detik, lalu buka kembali. Kedip 0/2.');
+    assert.equal(nodes.cameraGuideLabel.textContent, 'Tutup kedua mata dan tahan sekitar 1 detik, lalu buka kembali. Kedip 0/2.');
+    assert.equal(nodes.cameraProgressText.textContent, 'Ikuti instruksi kedip');
 });

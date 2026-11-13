@@ -28,6 +28,7 @@ class PassiveFaceCapture {
     }
 }
 
+// shortcut: Browser blink proof is untrusted; replay resistance needs independent server PAD.
 class BlinkLivenessChallenge {
     constructor(policy) {
         this.policy = policy;
@@ -50,9 +51,9 @@ class BlinkLivenessChallenge {
             this.reset();
             return this.status();
         }
+        if (this.events.length >= this.policy.required_count) { return this.status(); }
         if (this.lastSeenAt !== null && (now < this.lastSeenAt || now - this.lastSeenAt > 2000)) { this.reset(); }
         this.lastSeenAt = now;
-        if (this.events.length >= this.policy.required_count) { return this.status(); }
         if (this.baselineLeft === null) {
             if (left < this.policy.min_open_ear || right < this.policy.min_open_ear) {
                 this.samples = [];
@@ -73,7 +74,7 @@ class BlinkLivenessChallenge {
             this.closedRight = right;
         }
         if (this.closedAt !== null) {
-            if (now - this.closedAt > this.policy.max_closed_ms) {
+            if ((this.reopenedAt === null ? now : this.reopenedAt) - this.closedAt > this.policy.max_closed_ms) {
                 this.reset();
                 return this.status();
             }
