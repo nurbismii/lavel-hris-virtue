@@ -606,6 +606,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
     let lastTime = null;
     let speed = null;
     let faceApiReady = false;
+    let accurateFaceDetectorLoad = null;
+    let useAccurateFaceDetector = false;
     let faceVerificationPassed = false;
     let referenceFaceDescriptor = null;
     let positionHistory = [];
@@ -1156,7 +1158,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
             await Promise.all([
                 faceapi.nets.tinyFaceDetector.loadFromUri(faceModelPath),
-                faceapi.nets.faceLandmark68TinyNet.loadFromUri(faceModelPath),
+                faceapi.nets.faceLandmark68Net.loadFromUri(faceModelPath),
                 faceapi.nets.faceRecognitionNet.loadFromUri(faceModelPath)
             ]);
 
@@ -1189,14 +1191,30 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     async function detectFaceDescriptors(image) {
-        for (const inputSize of [320, 512]) {
-            const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.5 });
-            const detections = await faceapi.detectAllFaces(image, options)
-                .withFaceLandmarks(true).withFaceDescriptors();
-            if (detections.length > 1 || (detections.length === 1 && detections[0].detection.score >= 0.78) || inputSize === 512) {
-                return detections;
+        if (!useAccurateFaceDetector) {
+            for (const inputSize of [320, 512]) {
+                const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.5 });
+                const detections = await faceapi.detectAllFaces(image, options)
+                    .withFaceLandmarks(false).withFaceDescriptors();
+                if (detections.length > 1 || (detections.length === 1 && detections[0].detection.score >= 0.78)) {
+                    return detections;
+                }
             }
+
+            if (!accurateFaceDetectorLoad) {
+                updateLiveFrameFeedback('neutral', 'Menyiapkan deteksi wajah lebih detail. Tetap hadap kamera...', 0);
+                accurateFaceDetectorLoad = faceapi.nets.ssdMobilenetv1.loadFromUri(faceModelPath);
+            }
+            try {
+                await accurateFaceDetectorLoad;
+            } catch (error) {
+                throw new Error('Model deteksi tambahan gagal dimuat. Periksa koneksi lalu muat ulang halaman; jika tetap gagal, hubungi admin.');
+            }
+            useAccurateFaceDetector = true;
         }
+
+        return faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, maxResults: 2 }))
+            .withFaceLandmarks(false).withFaceDescriptors();
     }
 
     async function ensureReferenceFaceDescriptor() {
@@ -2858,12 +2876,14 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 const detections = await faceapi
                     .detectAllFaces(
                         videoElement,
-                        new faceapi.TinyFaceDetectorOptions({
-                            inputSize: 320,
-                            scoreThreshold: 0.5
-                        })
+                        useAccurateFaceDetector
+                            ? new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, maxResults: 2 })
+                            : new faceapi.TinyFaceDetectorOptions({
+                                inputSize: 320,
+                                scoreThreshold: 0.5
+                            })
                     )
-                    .withFaceLandmarks(true);
+                    .withFaceLandmarks(false);
 
                 if (sessionId !== cameraSessionId) { return; }
 

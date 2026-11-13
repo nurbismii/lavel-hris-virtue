@@ -2,8 +2,28 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const crypto = require('node:crypto');
 
 const source = fs.readFileSync('resources/views/user/presensi/index.blade.php', 'utf8');
+
+test('the bundled accurate detector and landmark models contain the complete pinned weights', () => {
+    const root = 'public/vendor/face-api/weights/';
+    const hashes = {
+        'ssd_mobilenetv1_model-shard1': '6ff16f095b0371f24accb48aab82e595697baa821cf851167cbf9203d1d7ec9a',
+        'ssd_mobilenetv1_model-shard2': '2539847e627c8c4a561e999170735e6c527deecc6fdba2959fc5312fb1ea1de3',
+        'face_landmark_68_model-shard1': '4611ef65c87d836d03d684b30eec4d195d8b219fa1dd58fc58945831c6b9299b',
+    };
+    for (const model of ['ssd_mobilenetv1_model', 'face_landmark_68_model']) {
+        const manifest = JSON.parse(fs.readFileSync(root + model + '-weights_manifest.json', 'utf8'));
+        for (const group of manifest) {
+            for (const file of group.paths) {
+                assert.equal(crypto.createHash('sha256').update(fs.readFileSync(root + file)).digest('hex'), hashes[file], file);
+            }
+        }
+    }
+    assert.match(source, /faceLandmark68Net\.loadFromUri/);
+    assert.match(fs.readFileSync('public/vendor/face-api/LICENSE', 'utf8'), /MIT License/);
+});
 function load(context, ...names) {
     for (const name of names) {
         const body = source.match(new RegExp('    (?:async )?function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n    \\}'));
@@ -48,7 +68,7 @@ test('a weak face detection retries at higher resolution without lowering the sc
     const calls = [];
     const weak = [{ detection: { score: 0.65 } }];
     const clear = [{ detection: { score: 0.94 } }];
-    const context = vm.createContext({ faceapi: {
+    const context = vm.createContext({ useAccurateFaceDetector: false, accurateFaceDetectorLoad: null, faceapi: {
         TinyFaceDetectorOptions: function (options) { return options; },
         detectAllFaces: (_, options) => {
             calls.push(options);
@@ -61,10 +81,61 @@ test('a weak face detection retries at higher resolution without lowering the sc
     assert.ok(calls.every(options => options.scoreThreshold === 0.5));
 });
 
+test('a face missed by both tiny resolutions uses the accurate detector and full landmarks', async () => {
+    const calls = [];
+    let modelLoads = 0;
+    const face = [{ detection: { score: 0.99 }, descriptor: [] }];
+    const context = vm.createContext({
+        accurateFaceDetectorLoad: null, useAccurateFaceDetector: false, faceModelPath: '/local-models',
+        updateLiveFrameFeedback() {},
+        faceapi: {
+            TinyFaceDetectorOptions: function (options) { return { kind: 'tiny', ...options }; },
+            SsdMobilenetv1Options: function (options) { return { kind: 'ssd', ...options }; },
+            nets: { ssdMobilenetv1: { loadFromUri: async path => { assert.equal(path, '/local-models'); modelLoads++; } } },
+            detectAllFaces: (_, options) => {
+                calls.push(options);
+                return { withFaceLandmarks: useTiny => {
+                    assert.equal(useTiny, false);
+                    return { withFaceDescriptors: async () => options.kind === 'ssd' ? face : [] };
+                } };
+            },
+        },
+    });
+    load(context, 'detectFaceDescriptors');
+    assert.equal(await context.detectFaceDescriptors({}), face);
+    assert.deepEqual(calls.map(options => options.kind), ['tiny', 'tiny', 'ssd']);
+    assert.equal(calls[2].minConfidence, 0.5);
+    assert.equal(calls[2].maxResults, 2);
+    assert.equal(modelLoads, 1);
+    calls.length = 0;
+    assert.equal(await context.detectFaceDescriptors({}), face);
+    assert.deepEqual(calls.map(options => options.kind), ['ssd']);
+    assert.equal(modelLoads, 1);
+});
+
+test('a missing accurate model gives an actionable error and cannot silently approve a weak face', async () => {
+    let modelLoads = 0;
+    const context = vm.createContext({
+        accurateFaceDetectorLoad: null, useAccurateFaceDetector: false, faceModelPath: '/local-models',
+        updateLiveFrameFeedback() {},
+        faceapi: {
+            TinyFaceDetectorOptions: function (options) { return options; },
+            nets: { ssdMobilenetv1: { loadFromUri: async () => { modelLoads++; throw new Error('404'); } } },
+            detectAllFaces: () => ({ withFaceLandmarks: () => ({ withFaceDescriptors: async () => [{ detection: { score: 0.6 } }] }) }),
+        },
+    });
+    load(context, 'detectFaceDescriptors');
+    for (let attempt = 0; attempt < 2; attempt++) {
+        await assert.rejects(context.detectFaceDescriptors({}), /deteksi tambahan.*muat ulang/i);
+    }
+    assert.equal(modelLoads, 1);
+    assert.equal(context.useAccurateFaceDetector, false);
+});
+
 test('good detections and multiple faces do not trigger a retry that could hide another person', async () => {
     for (const detections of [[{ detection: { score: 0.95 } }], [{}, {}]]) {
         let calls = 0;
-        const context = vm.createContext({ faceapi: {
+        const context = vm.createContext({ useAccurateFaceDetector: false, accurateFaceDetectorLoad: null, faceapi: {
             TinyFaceDetectorOptions: function (options) { return options; },
             detectAllFaces: () => {
                 calls++;
@@ -184,7 +255,7 @@ test('active capture waits for the face to return to center after both head turn
     let pose = 0;
     const labels = [];
     const context = vm.createContext({
-        cameraSessionId: 1, blinkInterval: null, blinkIsProcessing: false, cameraVerificationLocked: false,
+        cameraSessionId: 1, blinkInterval: null, blinkIsProcessing: false, cameraVerificationLocked: false, useAccurateFaceDetector: false,
         TURN_SAMPLE_INTERVAL_MS: 140, TURN_CENTER_FRAMES: 3, TURN_CENTER_MAX_YAW: 0.035, TURN_MIN_YAW: 0.07,
         faceMatchedReady: true, latestFaceMatchCapturePayload: { distance: 0.3 },
         setInterval: callback => { tick = callback; return 1; }, clearInterval() {},

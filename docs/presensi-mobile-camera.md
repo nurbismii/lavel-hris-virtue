@@ -55,3 +55,18 @@ Uji Samsung A54 dan perangkat Safari setelah deploy: izin kamera, pengambilan fr
 Deploy `resources/views/user/presensi/index.blade.php` dan `app/Services/Presensi/ServerSideFaceVerificationService.php`, jalankan `php artisan view:clear`, lalu `php artisan queue:restart` bila menggunakan worker yang menetap. Tidak ada migrasi, paket baru, atau perubahan ambang. Data presensi dan foto referensi lama tidak diubah otomatis.
 
 Verifikasi kode: tes JavaScript memakai wajah/landmark sintetis dan respons detektor simulasi; tes Laravel memakai data sintetis/SQLite. Uji perangkat perlu membandingkan pemilik akun berkerudung dengan orang lain menggunakan akun yang sama, retake/pindah aplikasi, referensi buram, beberapa wajah, serta hasil akhir di riwayat setelah worker berjalan. Jangan menyimpulkan identitas lolos hanya dari warna hijau. Ukur juga waktu deteksi ulang pada HP yang bermasalah. Database lokal tidak terhubung saat diagnosis, sehingga foto referensi dan hasil presensi akun yang dilaporkan belum diperiksa.
+
+### Lanjutan: detektor belum membaca wajah berkerudung
+
+Untuk pesan “Wajah belum terdeteksi / belum terbaca jelas”, menaikkan input Tiny saja belum menambahkan kemampuan detektor lain. Pembacaan landmark sekarang memakai model penuh; deteksi mencoba SSD Mobilenet V1 bila Tiny pada 320 dan 512 tetap kosong atau lemah. SSD hanya dimuat saat dibutuhkan dan dipakai kembali agar tiap frame tidak terus menjalankan tiga percobaan. Ambang deteksi/kecocokan identitas serta keputusan akhir server tetap berlaku. Beberapa wajah diblokir, dan kegagalan memuat model menampilkan instruksi mencoba kembali tanpa meloloskan capture.
+
+Sesuai pilihan pengguna, alur tetap pasif tanpa instruksi menoleh. UI mempersiapkan bukti kamera dan menunjukkan kesiapan capture; skor deteksi atau kestabilan wajah tidak dinyatakan sebagai hasil anti-spoofing yang sah. Model server tetap menentukan liveness pasif dan identitas.
+
+Tambahan deploy pada perbaikan sebelumnya:
+
+- `resources/views/user/presensi/index.blade.php` versi terbaru.
+- `public/vendor/face-api/weights/face_landmark_68_model-weights_manifest.json` dan `face_landmark_68_model-shard1`.
+- `public/vendor/face-api/weights/ssd_mobilenetv1_model-weights_manifest.json`, `ssd_mobilenetv1_model-shard1`, dan `ssd_mobilenetv1_model-shard2`.
+- `public/vendor/face-api/LICENSE` dan catatan sumber/hash pada `MODELS.md`.
+
+Tambahan aset sekitar 6 MB. Setelah mengunggah semua berkas, jalankan `php artisan view:clear`, lalu buka kembali halaman presensi. Aplikasi harus bisa mengambil manifest beserta shard pada public path yang benar; jika hanya Blade yang diunggah, model baru gagal dimuat. Tidak diperlukan perubahan `.env`, paket PHP/Node, atau migrasi database. Perlu menguji kembali pengguna berkerudung dan wajah orang lain pada HP sebenarnya; kualitas biometrik dan biaya CPU/browser belum terukur pada perangkat tersebut.
