@@ -270,6 +270,10 @@ class KaryawanController extends Controller
             ? "Data karyawan berhasil diperbarui. {$replacedDocuments} file lama ditimpa dengan file baru."
             : 'Data karyawan berhasil diperbarui!';
 
+        if (isset($validatedData['face_reference_path'])) {
+            $message .= ' Foto referensi presensi diperbarui. Buka ulang halaman presensi agar menggunakan foto terbaru.';
+        }
+
         toast($message, 'success');
         return redirect()->route('karyawan.index');
     }
@@ -371,7 +375,9 @@ class KaryawanController extends Controller
     {
         $document = $this->resolveEmployeeDocument($request, $nik, $type);
 
-        return response()->download($document['absolute_path'], $document['download_name']);
+        return response()->download($document['absolute_path'], $document['download_name'], [
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        ])->setPrivate();
     }
 
     public function previewDocument(Request $request, string $nik, string $type)
@@ -386,7 +392,8 @@ class KaryawanController extends Controller
                 $document['download_name_fallback']
             ),
             'X-Content-Type-Options' => 'nosniff',
-        ]);
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        ])->setPrivate();
     }
 
     public function photo(Request $request, string $nik)

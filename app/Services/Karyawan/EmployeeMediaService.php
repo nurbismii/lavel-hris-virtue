@@ -8,6 +8,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use RuntimeException;
 
 class EmployeeMediaService
 {
@@ -277,7 +278,12 @@ class EmployeeMediaService
             return false;
         }
 
-        File::put($destinationPath, $encodedImage);
+        if (File::put($destinationPath, $encodedImage) !== strlen($encodedImage)) {
+            if (File::isFile($destinationPath)) {
+                File::delete($destinationPath);
+            }
+            throw new RuntimeException('File dokumen karyawan gagal disimpan secara lengkap.');
+        }
 
         return true;
     }

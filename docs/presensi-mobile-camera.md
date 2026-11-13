@@ -82,3 +82,22 @@ Saat pemeriksaan 13 November 2026, tujuh berkas model utama pada `https://hris.v
 Deploy perbaikan pemuatan ini cukup memperbarui `resources/views/user/presensi/index.blade.php`, jalankan `php artisan view:clear`, lalu buka kembali halaman presensi. Berkas model dari perbaikan sebelumnya tetap diperlukan. Tidak perlu Composer, migrasi, atau restart queue karena proses pemuatan berlangsung di browser.
 
 Verifikasi: 35 tes JavaScript lulus, mencakup kegagalan pustaka, berkas shard hilang, batas waktu, pemuatan bersamaan, pengulangan pemuatan, dan pesan gagal yang tidak tertimpa. Uji browser lokal dengan SDK dan bobot sebenarnya berhasil memuat ketiga model utama pada WebGL, menampilkan kegagalan HTTP 404, lalu berhasil melalui tombol coba ulang. Kamera/GPS, data pegawai, dan inferensi wajah asli tidak digunakan pada uji tersebut.
+
+### Mengganti foto referensi dari Edit Data Karyawan
+
+Preview admin dan referensi presensi sebelumnya memakai URL tetap tanpa larangan cache. File/path baru dapat tersimpan, tetapi browser masih menampilkan respons foto lama. Sekarang URL preview/unduhan menyertakan versi dari hash path file, dan respons dokumen/reference ditandai `private, no-store, no-cache`. Nama/path internal foto tidak ditambahkan ke URL. Cakupan akses karyawan dan pemeriksaan kepemilikan file tetap berlaku.
+
+Penulisan gambar hasil kompresi diperiksa sampai jumlah byte-nya lengkap. Jika penulisan gagal, alur pembaruan menampilkan gagal, mempertahankan path/foto lama, dan tidak mengirim notifikasi berhasil. Foto baru tetap disimpan sebelum perubahan database; file lama baru dibersihkan setelah database berhasil diperbarui.
+
+Deploy berkas berikut untuk perbaikan ini:
+
+- `app/Http/Controllers/Admin/KaryawanController.php`
+- `app/Http/Controllers/User/PresensiController.php`
+- `app/Services/Karyawan/EmployeeMediaService.php`
+- `app/Services/Karyawan/KaryawanService.php`
+- `resources/views/admin/karyawan/edit.blade.php`
+- `resources/views/user/presensi/index.blade.php`
+
+Jalankan `php artisan view:clear`, buka kembali Edit Data Karyawan, pilih foto referensi baru, lalu simpan. Buka kembali halaman presensi setelah penggantian agar descriptor wajah di halaman lama dihitung ulang. Upload individual ini diproses langsung dan tidak memerlukan antrean, Composer, atau migrasi. Jika penyimpanan masih gagal di production, periksa log aplikasi serta ruang/izin tulis direktori private; pengujian lokal tidak memastikan kondisi hosting.
+
+Tes sintetis memakai SQLite dan direktori file terisolasi: file/path diganti, foto lama dibersihkan setelah sukses, endpoint admin/presensi membaca byte baru, URL versi berubah, cache dilarang, penulisan gagal mempertahankan foto lama, file tidak valid ditolak, dan pengguna di luar scope tidak dapat mengganti atau membuka referensi.

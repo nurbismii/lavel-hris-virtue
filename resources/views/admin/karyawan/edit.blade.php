@@ -54,10 +54,11 @@ $path = $document['path'] ?? null;
 $extension = $path ? strtolower(pathinfo($path, PATHINFO_EXTENSION)) : null;
 $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true);
 $isPdf = $extension === 'pdf';
+$documentRouteParameters = ['nik' => $employee->nik, 'type' => $document['type'], 'v' => hash('sha256', (string) $path)];
 
 return array_merge($document, [
-'url' => $path ? route('karyawan.documents.preview', ['nik' => $employee->nik, 'type' => $document['type']]) : null,
-'download_url' => $path ? route('karyawan.documents.download', ['nik' => $employee->nik, 'type' => $document['type']]) : null,
+'url' => $path ? route('karyawan.documents.preview', $documentRouteParameters) : null,
+'download_url' => $path ? route('karyawan.documents.download', $documentRouteParameters) : null,
 'file_name' => $path ? basename($path) : null,
 'is_image' => $isImage,
 'is_pdf' => $isPdf,
@@ -70,6 +71,9 @@ $statusBadgeClass = $employee->status_resign === 'AKTIF' ? 'success' : 'secondar
 $nameParts = preg_split('/\s+/', trim((string) $employee->nama_karyawan), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 $employeeInitials = collect($nameParts)->take(2)->map(fn($part) => mb_substr($part, 0, 1))->implode('') ?: 'KR';
 $canManageSensitiveEmployeeFields = $canManageSensitiveEmployeeFields ?? false;
+$faceReferenceRouteParameters = ['nik' => $employee->nik, 'type' => 'face_reference', 'v' => hash('sha256', (string) $employee->face_reference_path)];
+$faceReferencePreviewUrl = route('karyawan.documents.preview', $faceReferenceRouteParameters);
+$faceReferenceDownloadUrl = route('karyawan.documents.download', $faceReferenceRouteParameters);
 $isActiveStatus = old('status_resign', $employee->status_resign) === 'AKTIF';
 $isUnmarriedStatus = old('status_perkawinan', $employee->status_perkawinan) === 'Belum Kawin';
 $showViolationTab = request()->has('pelanggaran_page') && !$errors->any();
@@ -575,7 +579,7 @@ $showViolationTab = request()->has('pelanggaran_page') && !$errors->any();
                                                     <div class="employee-document-row__grid">
                                                         <div class="employee-document-row__preview">
                                                             @if($employee->face_reference_path)
-                                                            <img src="{{ route('karyawan.documents.preview', ['nik' => $employee->nik, 'type' => 'face_reference']) }}" alt="Foto referensi wajah" loading="lazy">
+                                                            <img src="{{ $faceReferencePreviewUrl }}" alt="Foto referensi wajah" loading="lazy">
                                                             @else
                                                             <div class="employee-document-row__placeholder">
                                                                 <i class="fas fa-camera"></i>
@@ -595,11 +599,11 @@ $showViolationTab = request()->has('pelanggaran_page') && !$errors->any();
                                                             </div>
                                                             @if($employee->face_reference_path)
                                                             <div class="employee-document-row__actions">
-                                                                <button type="button" class="btn btn-sm btn-outline-primary ui-btn-icon" data-document-preview data-file-url="{{ route('karyawan.documents.preview', ['nik' => $employee->nik, 'type' => 'face_reference']) }}" data-file-type="image" data-file-label="Foto Referensi Wajah" data-file-name="{{ basename($employee->face_reference_path) }}">
+                                                                <button type="button" class="btn btn-sm btn-outline-primary ui-btn-icon" data-document-preview data-file-url="{{ $faceReferencePreviewUrl }}" data-file-type="image" data-file-label="Foto Referensi Wajah" data-file-name="{{ basename($employee->face_reference_path) }}">
                                                                     <i class="fas fa-eye"></i>
                                                                     {{ __('Lihat') }}
                                                                 </button>
-                                                                <a href="{{ route('karyawan.documents.download', ['nik' => $employee->nik, 'type' => 'face_reference']) }}" download class="btn btn-sm btn-primary ui-btn-icon">
+                                                                <a href="{{ $faceReferenceDownloadUrl }}" download class="btn btn-sm btn-primary ui-btn-icon">
                                                                     <i class="fas fa-download"></i>
                                                                     {{ __('Unduh') }}
                                                                 </a>

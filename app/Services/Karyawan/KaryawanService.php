@@ -194,8 +194,9 @@ class KaryawanService
                     );
                 }
 
-                $previewUrl = route('karyawan.documents.preview', ['nik' => $employee->nik, 'type' => $type]);
-                $downloadUrl = route('karyawan.documents.download', ['nik' => $employee->nik, 'type' => $type]);
+                $documentRouteParameters = ['nik' => $employee->nik, 'type' => $type, 'v' => hash('sha256', $employee->{$column})];
+                $previewUrl = route('karyawan.documents.preview', $documentRouteParameters);
+                $downloadUrl = route('karyawan.documents.download', $documentRouteParameters);
 
                 return sprintf(
                     '<a href="%s" class="document-link document-link--ready js-document-preview" title="Preview %s" data-preview-url="%s" data-download-url="%s" data-document-label="%s" data-document-mime="%s">%s</a>',

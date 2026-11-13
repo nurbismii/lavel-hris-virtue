@@ -9,7 +9,7 @@
 
 @php
 $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
-$faceReferenceUrl = $faceReferencePath ? route('presensi.face-reference') : null;
+$faceReferenceUrl = $faceReferencePath ? route('presensi.face-reference', ['v' => hash('sha256', $faceReferencePath)]) : null;
 $isPassiveCapture = ($attendanceChallenge['liveness_action'] ?? '') === 'passive';
 $formatPresensiClock = function ($value, $attendanceDate = null, $empty = '--:--') {
 if (!$value) {

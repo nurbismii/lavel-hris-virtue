@@ -648,7 +648,8 @@ class PresensiController extends Controller
             'Content-Type' => File::mimeType($absolutePath) ?: 'image/jpeg',
             'Content-Disposition' => 'inline; filename="face-reference"',
             'X-Content-Type-Options' => 'nosniff',
-        ]);
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        ])->setPrivate();
     }
 
     private function hasReadyAttendanceLocation($locations): bool
