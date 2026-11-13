@@ -690,9 +690,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     function resetPassiveCapture() {
+        resetFaceMatchedReady();
         if (!isPassiveLiveness) { return; }
         passiveCapture.reset();
-        resetFaceMatchedReady();
         resetLivenessEvidence();
         setBlinkResult(false, null, passiveCaptureText);
     }
@@ -1189,15 +1189,14 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     async function detectFaceDescriptors(image) {
-        const options = new faceapi.TinyFaceDetectorOptions({
-            inputSize: 320,
-            scoreThreshold: 0.5
-        });
-
-        return faceapi
-            .detectAllFaces(image, options)
-            .withFaceLandmarks(true)
-            .withFaceDescriptors();
+        for (const inputSize of [320, 512]) {
+            const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.5 });
+            const detections = await faceapi.detectAllFaces(image, options)
+                .withFaceLandmarks(true).withFaceDescriptors();
+            if (detections.length > 1 || (detections.length === 1 && detections[0].detection.score >= 0.78) || inputSize === 512) {
+                return detections;
+            }
+        }
     }
 
     async function ensureReferenceFaceDescriptor() {
@@ -1222,6 +1221,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         if (detections.length !== 1) {
             throw new Error('Foto referensi harus memuat tepat satu wajah.');
+        }
+        if (!Number.isFinite(detections[0].detection.score) || detections[0].detection.score < 0.78) {
+            throw new Error('Foto referensi wajah belum cukup jelas. Minta HR memeriksa atau memperbarui foto referensi akun.');
         }
 
         referenceFaceDescriptor = detections[0].descriptor;
@@ -1409,7 +1411,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 badge: 'Memastikan',
                 alert: 'info',
                 guide: 'Pastikan wajah tetap stabil',
-                assist: 'Wajah sudah cocok. Sistem sedang memastikan posisi dan kejernihan tetap konsisten sebelum selfie disimpan.'
+                assist: 'Bukti kamera sedang diambil. Verifikasi akhir identitas dan liveness dilakukan oleh server.'
             },
             red: {
                 badge: 'Atur Ulang',
@@ -1424,10 +1426,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 assist: 'Coba hadap lurus ke kamera, kurangi blur, dan pastikan pencahayaan cukup merata.'
             },
             green: {
-                badge: 'Cocok',
+                badge: 'Wajah Terbaca',
                 alert: 'success',
-                guide: 'Verifikasi berhasil',
-                assist: 'Bagus. Wajah sudah cocok dan selfie akan langsung digunakan untuk presensi.'
+                guide: 'Ikuti petunjuk kamera',
+                assist: 'Pemeriksaan awal kamera selesai. Status presensi mengikuti hasil verifikasi identitas dan liveness dari server.'
             }
         };
         const config = states[state] || states.neutral;
@@ -1546,7 +1548,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
     }
 
-    async function captureLiveSelfie(metadata) {
+    async function captureLiveSelfie() {
         const sessionId = cameraSessionId;
         const video = document.getElementById('selfieCamera');
         const selfieInput = document.getElementById('selfie_capture');
@@ -1566,6 +1568,27 @@ $locationIssueMessage = $locationIssueMessage ?? (
         captureCanvas.width = Math.round(video.videoWidth * captureScale);
         captureCanvas.height = Math.round(video.videoHeight * captureScale);
         captureCanvas.getContext('2d').drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+
+        // Check the frozen selfie itself so a previous live match cannot approve a different face.
+        const detections = await detectFaceDescriptors(captureCanvas);
+        if (sessionId !== cameraSessionId) { return; }
+        if (detections.length !== 1) {
+            throw new Error('Selfie harus memuat tepat satu wajah. Aktifkan ulang kamera.');
+        }
+        const reference = await ensureReferenceFaceDescriptor();
+        if (sessionId !== cameraSessionId) { return; }
+        const detection = detections[0];
+        const metadata = {
+            distance: faceapi.euclideanDistance(reference, detection.descriptor),
+            detectionScore: detection.detection.score,
+            rollAngle: getFaceRollAngle(detection.landmarks)
+        };
+        if (!Number.isFinite(metadata.distance) || metadata.distance > faceDistanceThreshold) {
+            throw new Error('Wajah pada selfie belum cocok dengan referensi akun. Aktifkan ulang kamera atau hubungi HR untuk memeriksa foto referensi.');
+        }
+        if (!Number.isFinite(metadata.detectionScore) || metadata.detectionScore < 0.78 || !Number.isFinite(metadata.rollAngle) || Math.abs(metadata.rollAngle) > 12) {
+            throw new Error('Wajah pada selfie belum cukup jelas atau lurus. Aktifkan ulang kamera dengan pencahayaan merata.');
+        }
         const spoofCheck = analyzeScreenSpoofFromCanvas(captureCanvas);
 
         document.getElementById('screen_spoof_score').value = spoofCheck.score;
@@ -1627,7 +1650,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             frameState: 'green'
         });
 
-        setBlinkResult(true, isPassiveLiveness ? null : (blinkLivenessScore ?? 1), blinkLivenessMessage || 'Liveness berhasil. Gerakan wajah terdeteksi.');
+        setBlinkResult(true, isPassiveLiveness ? null : (blinkLivenessScore ?? 1), blinkLivenessMessage || passiveReadyText);
         faceVerificationPassed = true;
         cameraVerificationLocked = true;
         setSelfieSurfaceMode('preview');
@@ -1635,7 +1658,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             preservePreview: true
         });
         updateAttendanceButtonState();
-        updateLiveFrameFeedback('green', 'Wajah cocok. Selfie tersimpan, lanjutkan presensi saat GPS valid.', 1);
+        updateLiveFrameFeedback('green', 'Selfie tersimpan. Lanjutkan presensi saat GPS valid; hasil identitas dan liveness ditentukan server.', 1);
 
         if (typeof window.setAttendanceWizardStep === 'function') {
             window.setAttendanceWizardStep(2, {
@@ -1816,7 +1839,12 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 state: 'yellow',
                 boxes: [faceBox]
             });
-            updateLiveFrameFeedback('yellow', 'Wajah belum jelas. Hadap lurus, dekatkan secukupnya, dan jaga tetap stabil.', 0);
+            const message = detectionScore < 0.78
+                ? 'Wajah belum terbaca jelas. Pastikan area mata, hidung, dan mulut terlihat dengan pencahayaan merata.'
+                : faceHeightRatio < 0.32 ? 'Wajah terlalu jauh. Dekatkan kamera secukupnya.'
+                : faceHeightRatio > 0.76 ? 'Wajah terlalu dekat. Jauhkan kamera sedikit.'
+                : 'Posisi wajah miring. Tegakkan kepala dan kamera.';
+            updateLiveFrameFeedback('yellow', message, 0);
             return;
         }
 
@@ -1827,7 +1855,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 state: 'red',
                 boxes: [faceBox]
             });
-            updateLiveFrameFeedback('red', 'Wajah belum sesuai dengan foto referensi.', 0);
+            updateLiveFrameFeedback('red', 'Wajah belum sesuai dengan foto referensi akun. Hadap lurus; jika tetap gagal, minta HR memeriksa foto referensi.', 0);
             return;
         }
 
@@ -1835,7 +1863,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         if (isPassiveLiveness && (!passivePose || passivePose.absYaw > TURN_CENTER_MAX_YAW)) {
             resetPassiveCapture();
             drawLiveCameraOverlay({ state: 'yellow', boxes: [faceBox] });
-            updateLiveFrameFeedback('yellow', passiveCaptureText, 0);
+            updateLiveFrameFeedback('yellow', 'Hadap lurus ke kamera. Pastikan mata, hidung, dan mulut terlihat; kerudung tetap boleh dipakai.', 0);
             return;
         }
 
@@ -1867,7 +1895,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         updateLiveFrameFeedback(
             'green',
-            'Wajah sudah cocok. Ikuti instruksi hadap tengah, kiri, lalu kanan.',
+            'Kecocokan awal terbaca. Ikuti instruksi hadap tengah, kiri, lalu kanan.',
             0
         );
 
@@ -2626,7 +2654,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
         const nose = landmarks.getNose();
         const leftEye = landmarks.getLeftEye();
         const rightEye = landmarks.getRightEye();
-        const jaw = landmarks.getJawOutline();
 
         const noseTip = nose[3] || nose[Math.floor(nose.length / 2)];
         const leftEyeCenter = averagePoint(leftEye);
@@ -2641,10 +2668,11 @@ $locationIssueMessage = $locationIssueMessage ?? (
             y: (leftEyeCenter.y + rightEyeCenter.y) / 2
         };
         const eyeDistance = distance(leftEyeCenter, rightEyeCenter);
-        const faceWidth = jaw && jaw.length >= 17 ?
-            Math.max(distance(jaw[0], jaw[16]), eyeDistance * 2, 1) :
-            Math.max(eyeDistance * 2, 1);
-        const yaw = (noseTip.x - eyeCenter.x) / faceWidth;
+        if (!Number.isFinite(eyeDistance) || eyeDistance <= 1) { return null; }
+        // Use the eye axis so camera roll and an obscured jaw do not change the head-turn measurement.
+        const yaw = ((noseTip.x - eyeCenter.x) * (rightEyeCenter.x - leftEyeCenter.x)
+            + (noseTip.y - eyeCenter.y) * (rightEyeCenter.y - leftEyeCenter.y)) / (2 * eyeDistance * eyeDistance);
+        if (!Number.isFinite(yaw)) { return null; }
 
         return {
             yaw: Number(yaw.toFixed(4)),
@@ -2785,12 +2813,13 @@ $locationIssueMessage = $locationIssueMessage ?? (
         );
 
         try {
-            await captureLiveSelfie(latestFaceMatchCapturePayload);
+            await captureLiveSelfie();
         } catch (error) {
             if (sessionId !== cameraSessionId) { return; }
             cameraVerificationLocked = false;
             livenessCaptureInProgress = false;
             resetPassiveCapture();
+            setBlinkResult(false, null, error.message || 'Gagal mengambil selfie. Aktifkan ulang kamera.');
             updateLiveFrameFeedback(
                 'red',
                 error.message || 'Gagal mengambil selfie dari liveness.',
@@ -2826,24 +2855,25 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     return;
                 }
 
-                const detection = await faceapi
-                    .detectSingleFace(
+                const detections = await faceapi
+                    .detectAllFaces(
                         videoElement,
                         new faceapi.TinyFaceDetectorOptions({
-                            inputSize: 160,
-                            scoreThreshold: 0.35
+                            inputSize: 320,
+                            scoreThreshold: 0.5
                         })
                     )
                     .withFaceLandmarks(true);
 
                 if (sessionId !== cameraSessionId) { return; }
 
-                if (!detection) {
-                    setBlinkResult(false, null, 'Wajah belum terdeteksi.');
+                if (detections.length !== 1) {
+                    resetFaceMatchedReady();
+                    setBlinkResult(false, null, 'Pastikan tepat satu wajah terlihat di kamera.');
                     return;
                 }
 
-                const landmarks = detection.landmarks;
+                const landmarks = detections[0].landmarks;
                 const turnMetric = calculateHeadTurnMetric(landmarks);
 
                 if (!turnMetric) {
@@ -2942,10 +2972,17 @@ $locationIssueMessage = $locationIssueMessage ?? (
                         turnMetric.absYaw
                     ) / TURN_MIN_YAW);
 
-                    await captureSelfieFromTurn(
-                        score,
-                        'Liveness berhasil. Gerakan wajah kiri dan kanan terdeteksi.'
-                    );
+                    turnStage = 'return_center';
+                    setBlinkResult(false, score, 'Gerakan wajah tersimpan. Hadap lurus kembali untuk mengambil selfie.');
+                    return;
+                }
+
+                if (turnStage === 'return_center') {
+                    if (turnMetric.absYaw > TURN_CENTER_MAX_YAW) {
+                        setBlinkResult(false, blinkLivenessScore, 'Hadap lurus kembali untuk mengambil selfie.');
+                        return;
+                    }
+                    await captureSelfieFromTurn(blinkLivenessScore, 'Bukti gerakan wajah siap dikirim. Hasil liveness ditentukan server.');
                     return;
                 }
             } catch (error) {

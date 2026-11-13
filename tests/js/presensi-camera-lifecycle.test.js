@@ -171,11 +171,16 @@ test('a selfie encoded after the camera session ends cannot publish stale eviden
     const { context } = cameraContext({
         document: { getElementById: id => id === 'selfieCamera' ? video : input, createElement: () => canvas },
         hasRequiredLivenessEvidence: () => true, selfieMaxCaptureWidth: 720, selfieJpegQuality: 0.82,
+        faceDistanceThreshold: 0.5,
+        detectFaceDescriptors: async () => [{ detection: { score: 0.99 }, descriptor: [], landmarks: {} }],
+        ensureReferenceFaceDescriptor: async () => [],
+        faceapi: { euclideanDistance: () => 0.3 }, getFaceRollAngle: () => 0,
         analyzeScreenSpoofFromCanvas: () => ({ score: 0 }),
         fillFaceVerificationInputs: () => writes++,
     });
     load(context, 'captureLiveSelfie');
-    const capturing = context.captureLiveSelfie({});
+    const capturing = context.captureLiveSelfie();
+    await new Promise(setImmediate);
     context.cameraSessionId++;
     finishBlob({});
     await capturing;

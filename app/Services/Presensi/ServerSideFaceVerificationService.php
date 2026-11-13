@@ -81,6 +81,16 @@ class ServerSideFaceVerificationService
         $failClosed = (bool) config('services.presensi_face.fail_closed', false);
 
         if ($provider) {
+            if (($provider['screen_attack_detected'] ?? false) === true) {
+                return [
+                    'status' => Presensi::STATUS_ABSEN_REJECTED,
+                    'passed' => false,
+                    'method' => 'server-side-provider',
+                    'message' => 'Bukti kamera terindikasi berasal dari layar atau foto. Gunakan wajah langsung di depan kamera.',
+                    'provider' => $provider,
+                    'passive_liveness' => $passive,
+                ];
+            }
             if (($provider['status'] ?? null) === Presensi::STATUS_ABSEN_PENDING_REVIEW) {
                 return [
                     'status' => Presensi::STATUS_ABSEN_PENDING_REVIEW,
@@ -93,7 +103,8 @@ class ServerSideFaceVerificationService
             }
 
             $providerPassed = (bool) ($provider['liveness_passed'] ?? false)
-                && (bool) ($provider['face_matched'] ?? false);
+                && (bool) ($provider['face_matched'] ?? false)
+                && !in_array($provider['status'] ?? null, [Presensi::STATUS_ABSEN_REJECTED, 'error'], true);
 
             if ($providerPassed) {
                 return [
@@ -419,38 +430,42 @@ class ServerSideFaceVerificationService
         $minConfidence = (float) config('services.presensi_face.min_confidence', 0.78);
         $minLivenessScore = (float) config('services.presensi_face.min_liveness_score', 0.78);
 
-        $verified = (bool) ($payload['verified'] ?? false);
-        $providerFaceMatched = (bool) ($payload['face_matched'] ?? false);
+        $verified = ($payload['verified'] ?? false) === true;
+        $providerFaceMatched = ($payload['face_matched'] ?? false) === true;
 
         $confidence = $this->normalizedProviderConfidence($payload);
         $score = isset($payload['score']) && is_numeric($payload['score'])
             ? (float) $payload['score']
             : null;
-        $livenessScore = isset($payload['liveness_score']) ? (float) $payload['liveness_score'] : null;
+        $livenessScore = isset($payload['liveness_score']) && is_numeric($payload['liveness_score'])
+            && is_finite((float) $payload['liveness_score']) && $payload['liveness_score'] >= 0 && $payload['liveness_score'] <= 1
+            ? (float) $payload['liveness_score'] : null;
 
         $distance = $payload['distance'] ?? null;
         $threshold = $payload['threshold'] ?? null;
 
-        $explicitFaceDecision = $providerFaceMatched || $verified || $status === 'verified';
-        $passesConfidenceGate = $explicitFaceDecision
-            || $confidence === null
-            || $confidence >= $minConfidence;
+        $passesDistanceGate = !array_key_exists('distance', $payload) && !array_key_exists('threshold', $payload)
+            || (is_numeric($distance) && is_numeric($threshold)
+                && is_finite((float) $distance) && is_finite((float) $threshold)
+                && $distance >= 0 && $threshold > 0 && $distance <= $threshold);
 
         $faceMatched = $httpStatus >= 200
             && $httpStatus < 300
-            && $explicitFaceDecision
-            && $passesConfidenceGate;
+            && !in_array($status, ['rejected', 'error', Presensi::STATUS_ABSEN_PENDING_REVIEW], true)
+            && $providerFaceMatched
+            && $confidence !== null && $confidence >= $minConfidence
+            && $passesDistanceGate;
 
-        $activeLivenessPassed = (bool) ($payload['active_liveness_passed'] ?? false)
-            || (bool) ($payload['challenge_passed'] ?? false);
-        $passiveLivenessPassed = (bool) ($payload['liveness_passed'] ?? false);
+        $activeLivenessPassed = ($payload['active_liveness_passed'] ?? false) === true
+            || ($payload['challenge_passed'] ?? false) === true;
+        $passiveLivenessPassed = ($payload['liveness_passed'] ?? false) === true;
         $screenAttackDetected = (bool) ($payload['screen_attack_detected'] ?? false)
             || (bool) ($payload['spoof_detected'] ?? false);
         $livenessPassed = $httpStatus >= 200
             && $httpStatus < 300
             && !$screenAttackDetected
-            && ($livenessScore === null || $livenessScore >= $minLivenessScore)
-            && ($requireActiveLiveness ? $activeLivenessPassed : ($activeLivenessPassed || $passiveLivenessPassed || $status === 'verified'));
+            && $livenessScore !== null && $livenessScore >= $minLivenessScore
+            && ($requireActiveLiveness ? $activeLivenessPassed : ($activeLivenessPassed || $passiveLivenessPassed));
 
         return [
             'http_status' => $httpStatus,
@@ -474,17 +489,23 @@ class ServerSideFaceVerificationService
     private function normalizedProviderConfidence(array $payload): ?float
     {
         foreach (['confidence', 'score'] as $key) {
-            if (!isset($payload[$key]) || !is_numeric($payload[$key])) {
+            if (!array_key_exists($key, $payload)) {
                 continue;
+            }
+            if (!is_numeric($payload[$key])) {
+                return null;
             }
 
             $value = (float) $payload[$key];
+            if (!is_finite($value) || $value < 0 || $value > 100) {
+                return null;
+            }
 
             if ($value > 1) {
                 $value = $value / 100;
             }
 
-            return round(max(0, min(1, $value)), 4);
+            return round($value, 4);
         }
 
         return null;
@@ -517,7 +538,8 @@ class ServerSideFaceVerificationService
 
         $successful = $httpStatus >= 200 && $httpStatus < 300;
         return [
-            'status' => ($payload['status'] ?? null) === Presensi::STATUS_ABSEN_PENDING_REVIEW ? Presensi::STATUS_ABSEN_PENDING_REVIEW : null,
+            'status' => in_array($payload['status'] ?? null, [Presensi::STATUS_ABSEN_PENDING_REVIEW, Presensi::STATUS_ABSEN_REJECTED, 'error'], true)
+                ? $payload['status'] : null,
             'http_status' => $httpStatus,
             'verification_contract' => 'passive-v1',
             'liveness_mode' => 'passive',

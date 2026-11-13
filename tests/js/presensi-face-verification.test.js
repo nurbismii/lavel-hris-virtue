@@ -1,0 +1,211 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+
+const source = fs.readFileSync('resources/views/user/presensi/index.blade.php', 'utf8');
+function load(context, ...names) {
+    for (const name of names) {
+        const body = source.match(new RegExp('    (?:async )?function ' + name + '\\([^)]*\\) \\{[\\s\\S]*?\\n    \\}'));
+        assert.ok(body, name);
+        vm.runInContext(body[0], context);
+    }
+}
+
+function landmarks(yaw = 0, angle = 0, jawWidth = 120) {
+    const rotate = ([x, y]) => ({ x: 100 + x * Math.cos(angle) - y * Math.sin(angle), y: 100 + x * Math.sin(angle) + y * Math.cos(angle) });
+    return {
+        getLeftEye: () => [rotate([-30, 0])],
+        getRightEye: () => [rotate([30, 0])],
+        getNose: () => Array(4).fill(rotate([yaw * 120, 45])),
+        getJawOutline: () => Array.from({ length: 17 }, (_, index) => rotate([(index / 16 - 0.5) * jawWidth, 80])),
+    };
+}
+
+test('head pose is unchanged by a slightly tilted camera or an unreliable jaw outline', () => {
+    const context = vm.createContext({});
+    load(context, 'distance', 'averagePoint', 'calculateHeadTurnMetric');
+    for (const yaw of [0, -0.08, 0.08]) {
+        for (const angle of [0, -0.2, 0.2]) {
+            for (const jawWidth of [120, 300]) {
+                const result = context.calculateHeadTurnMetric(landmarks(yaw, angle, jawWidth));
+                assert.ok(Math.abs(result.yaw - yaw) < 0.0001);
+                assert.equal(result.absYaw, Math.abs(yaw));
+            }
+        }
+    }
+});
+
+test('invalid eye landmarks cannot be treated as a frontal face', () => {
+    const context = vm.createContext({});
+    load(context, 'distance', 'averagePoint', 'calculateHeadTurnMetric');
+    const face = landmarks();
+    face.getRightEye = face.getLeftEye;
+    assert.equal(context.calculateHeadTurnMetric(face), null);
+});
+
+test('a weak face detection retries at higher resolution without lowering the score gate', async () => {
+    const calls = [];
+    const weak = [{ detection: { score: 0.65 } }];
+    const clear = [{ detection: { score: 0.94 } }];
+    const context = vm.createContext({ faceapi: {
+        TinyFaceDetectorOptions: function (options) { return options; },
+        detectAllFaces: (_, options) => {
+            calls.push(options);
+            return { withFaceLandmarks: () => ({ withFaceDescriptors: async () => options.inputSize === 320 ? weak : clear }) };
+        },
+    } });
+    load(context, 'detectFaceDescriptors');
+    assert.equal(await context.detectFaceDescriptors({}), clear);
+    assert.deepEqual(calls.map(options => options.inputSize), [320, 512]);
+    assert.ok(calls.every(options => options.scoreThreshold === 0.5));
+});
+
+test('good detections and multiple faces do not trigger a retry that could hide another person', async () => {
+    for (const detections of [[{ detection: { score: 0.95 } }], [{}, {}]]) {
+        let calls = 0;
+        const context = vm.createContext({ faceapi: {
+            TinyFaceDetectorOptions: function (options) { return options; },
+            detectAllFaces: () => {
+                calls++;
+                return { withFaceLandmarks: () => ({ withFaceDescriptors: async () => detections }) };
+            },
+        } });
+        load(context, 'detectFaceDescriptors');
+        assert.equal(await context.detectFaceDescriptors({}), detections);
+        assert.equal(calls, 1);
+    }
+});
+
+test('an unclear reference photo requires HR correction instead of matching against an unreliable descriptor', async () => {
+    const context = vm.createContext({
+        referenceFaceDescriptor: null,
+        document: { getElementById: () => ({ complete: true }) },
+        detectFaceDescriptors: async () => [{ detection: { score: 0.6 }, descriptor: ['unreliable'] }],
+    });
+    load(context, 'ensureReferenceFaceDescriptor');
+    await assert.rejects(context.ensureReferenceFaceDescriptor(), /HR/);
+    assert.equal(context.referenceFaceDescriptor, null);
+});
+
+test('losing face readiness invalidates stale identity metadata in active mode too', () => {
+    const context = vm.createContext({
+        isPassiveLiveness: false, faceMatchedReady: true, latestFaceMatchCapturePayload: { distance: 0.2 },
+    });
+    load(context, 'resetFaceMatchedReady', 'resetPassiveCapture');
+    context.resetPassiveCapture();
+    assert.equal(context.faceMatchedReady, false);
+    assert.equal(context.latestFaceMatchCapturePayload, null);
+});
+
+test('the saved selfie is checked again and a swapped or additional face cannot use an earlier match', async () => {
+    for (const detections of [[], [{}, {}], [{ detection: { score: 0.99 }, descriptor: [], landmarks: {} }]]) {
+        let encoded = false;
+        const video = { videoWidth: 720, videoHeight: 960 };
+        const context = vm.createContext({
+            cameraSessionId: 1, selfieMaxCaptureWidth: 720, faceDistanceThreshold: 0.5,
+            document: {
+                getElementById: id => id === 'selfieCamera' ? video : {},
+                createElement: () => ({ getContext: () => ({ drawImage() {} }), toBlob() { encoded = true; } }),
+            },
+            hasRequiredLivenessEvidence: () => true,
+            detectFaceDescriptors: async () => detections, ensureReferenceFaceDescriptor: async () => [],
+            faceapi: { euclideanDistance: () => 0.8 }, getFaceRollAngle: () => 0,
+            analyzeScreenSpoofFromCanvas: () => ({ score: 0 }),
+        });
+        load(context, 'captureLiveSelfie');
+        await assert.rejects(context.captureLiveSelfie({ distance: 0.2 }), /wajah|Wajah/);
+        assert.equal(encoded, false);
+    }
+});
+
+test('a matching frozen selfie saves its own metrics and reports that final verification is still on the server', async () => {
+    let metadata;
+    let message;
+    const input = {};
+    const video = { videoWidth: 720, videoHeight: 960 };
+    const context = vm.createContext({
+        cameraSessionId: 1, selfieMaxCaptureWidth: 720, selfieJpegQuality: 0.82, faceDistanceThreshold: 0.5,
+        blinkLivenessScore: null, blinkLivenessMessage: 'Ready for the server', isPassiveLiveness: true,
+        passiveReadyText: 'Ready for the server', window: {}, URL: { createObjectURL: () => 'blob:selfie' },
+        document: {
+            getElementById: id => id === 'selfieCamera' ? video : input,
+            createElement: () => ({
+                getContext: () => ({ drawImage() {} }), toBlob: callback => callback({}), toDataURL: () => 'data:image/jpeg;base64,test',
+            }),
+        },
+        hasRequiredLivenessEvidence: () => true, ensureReferenceFaceDescriptor: async () => [],
+        detectFaceDescriptors: async () => [{ detection: { score: 0.97 }, descriptor: [], landmarks: {} }],
+        faceapi: { euclideanDistance: () => 0.32 }, getFaceRollAngle: () => 2,
+        analyzeScreenSpoofFromCanvas: () => ({ score: 0 }),
+        fillFaceVerificationInputs: value => { metadata = value; },
+        updateLiveFrameFeedback: (_, text) => { message = text; },
+        clearSelfiePreview() {}, setBlinkResult() {}, setSelfieSurfaceMode() {}, stopLiveCamera() {}, updateAttendanceButtonState() {},
+    });
+    load(context, 'captureLiveSelfie');
+    await context.captureLiveSelfie();
+    assert.equal(metadata.distance, 0.32);
+    assert.equal(metadata.detectionScore, 0.97);
+    assert.equal(metadata.rollAngle, 2);
+    assert.equal(context.cameraVerificationLocked, true);
+    assert.match(message, /ditentukan server/);
+});
+
+test('a frontal face with a tilted camera and obscured jaw reaches passive capture without changing the identity threshold', async () => {
+    const input = {};
+    let state;
+    let captures = 0;
+    const face = { detection: { score: 0.96, box: { x: 100, y: 80, width: 120, height: 200 } }, descriptor: [], landmarks: landmarks(0, 0.18, 300) };
+    const context = vm.createContext({
+        cameraSessionId: 1, cameraVerificationLocked: false, faceApiReady: true, isPassiveLiveness: true,
+        faceDistanceThreshold: 0.5, TURN_CENTER_MAX_YAW: 0.035, passiveCaptureText: 'Hold still',
+        document: { getElementById: id => id === 'selfieCamera' ? { readyState: 2 } : input },
+        syncLiveCameraOverlaySize: () => ({ width: 320, height: 400 }),
+        ensureReferenceFaceDescriptor: async () => [], detectFaceDescriptors: async () => [face],
+        faceapi: { resizeResults: items => items, euclideanDistance: () => 0.3 },
+        getLiveGuideRect: () => ({ x: 0, y: 0, width: 320, height: 400 }), getFaceRollAngle: () => 10.3,
+        passiveCapture: { observe: () => { captures++; return { frameIndex: null, progress: 0.5 }; } },
+        updateLiveFrameFeedback: value => { state = value; },
+        resetPassiveCapture() {}, fillFaceVerificationInputs() {}, updateAttendanceButtonState() {}, drawLiveCameraOverlay() {},
+    });
+    load(context, 'distance', 'averagePoint', 'calculateHeadTurnMetric', 'evaluateLiveCameraFrame');
+    await context.evaluateLiveCameraFrame();
+    assert.equal(state, 'validating');
+    assert.equal(captures, 1);
+    context.faceapi.euclideanDistance = () => 0.8;
+    await context.evaluateLiveCameraFrame();
+    assert.equal(state, 'red');
+    assert.equal(captures, 1);
+});
+
+test('active capture waits for the face to return to center after both head turns', async () => {
+    let tick;
+    let captured = 0;
+    let pose = 0;
+    const labels = [];
+    const context = vm.createContext({
+        cameraSessionId: 1, blinkInterval: null, blinkIsProcessing: false, cameraVerificationLocked: false,
+        TURN_SAMPLE_INTERVAL_MS: 140, TURN_CENTER_FRAMES: 3, TURN_CENTER_MAX_YAW: 0.035, TURN_MIN_YAW: 0.07,
+        faceMatchedReady: true, latestFaceMatchCapturePayload: { distance: 0.3 },
+        setInterval: callback => { tick = callback; return 1; }, clearInterval() {},
+        faceapi: {
+            TinyFaceDetectorOptions: function (options) { return options; },
+            detectAllFaces: () => ({ withFaceLandmarks: async () => [{ landmarks: {} }] }),
+        },
+        calculateHeadTurnMetric: () => ({ yaw: pose, absYaw: Math.abs(pose) }),
+        resetLivenessEvidence() {}, resetFaceMatchedReady() {},
+        captureLivenessEvidenceFrame: label => labels.push(label),
+        setBlinkResult: (_, score) => { context.blinkLivenessScore = score; },
+        captureSelfieFromTurn: async () => captured++,
+    });
+    load(context, 'startTurnLiveness');
+    await context.startTurnLiveness({ readyState: 2 });
+    for (pose of [0, 0, 0, -0.08, 0.08]) { await tick(); }
+    assert.deepEqual(labels, ['center', 'turn_left', 'turn_right']);
+    assert.equal(captured, 0);
+    await tick();
+    assert.equal(captured, 0);
+    pose = 0;
+    await tick();
+    assert.equal(captured, 1);
+});
