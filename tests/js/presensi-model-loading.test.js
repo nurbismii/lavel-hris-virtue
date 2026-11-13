@@ -84,6 +84,30 @@ test('a missing blink script keeps capture blocked and explains how to recover',
     assert.equal(context.faceApiReady, false);
 });
 
+test('a stale production blink helper reports a version mismatch and blocks capture', async () => {
+    for (const release of [undefined, 'blink-2']) {
+        let modelLoads = 0;
+        const { context } = modelContext({ clientBlinkPolicy: { required_count: 1 },
+            blinkChallenge: { constructor: { release } }, loadFaceModel: async () => { modelLoads++; } });
+        load(context, 'loadFaceModels');
+        assert.equal(await context.loadFaceModels(), false);
+        assert.match(context.faceModelLoadError, /Versi berkas.*kedip.*admin/);
+        assert.equal(context.faceApiReady, false);
+        assert.equal(modelLoads, 0);
+    }
+});
+
+test('the bundled blink helper matches the page release and allows normal model loading', async () => {
+    const { BlinkLivenessChallenge } = require('../../public/assets/js/passive-face-capture.js');
+    const { context } = modelContext({ clientBlinkPolicy: { required_count: 1 },
+        blinkChallenge: new BlinkLivenessChallenge({ required_count: 1 }) });
+    assert.equal(BlinkLivenessChallenge.release, 'blink-3');
+    assert.match(source, /passive-face-capture\.js\?ui=blink-3/);
+    load(context, 'loadFaceModels');
+    assert.equal(await context.loadFaceModels(), true);
+    assert.equal(context.faceApiReady, true);
+});
+
 function assetContext(fetch) {
     let nextTimer = 0;
     let writes = 0;

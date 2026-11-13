@@ -1,4 +1,4 @@
-/* Coordinates capture only; the server/API decides whether liveness passes. */
+/* Presensi camera release: blink-3. The server/API decides whether liveness passes. */
 class PassiveFaceCapture {
     constructor(durationMs) {
         this.durationMs = durationMs;
@@ -30,6 +30,8 @@ class PassiveFaceCapture {
 
 // shortcut: Browser blink proof is untrusted; replay resistance needs independent server PAD.
 class BlinkLivenessChallenge {
+    static get release() { return 'blink-3'; }
+
     constructor(policy) {
         this.policy = policy;
         this.reset();

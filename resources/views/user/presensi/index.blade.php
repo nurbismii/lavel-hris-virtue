@@ -2,7 +2,7 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('vendor/leaflet/leaflet.css') }}">
-<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css?ui=blink-2') }}">
+<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css?ui=blink-3') }}">
 @endpush
 
 @section('content')
@@ -588,7 +588,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 </script>
 @endif
 <script src="{{ versioned_asset('assets/js/presensi-native-gps.js') }}"></script>
-<script src="{{ versioned_asset('assets/js/passive-face-capture.js?ui=blink-2') }}"></script>
+<script src="{{ versioned_asset('assets/js/passive-face-capture.js?ui=blink-3') }}"></script>
 <script src="{{ versioned_asset('vendor/leaflet/leaflet.js') }}"></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
@@ -1171,6 +1171,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 }
                 if (clientBlinkPolicy && !blinkChallenge) {
                     throw new Error('Pemeriksaan kedip belum termuat. Muat ulang halaman atau hubungi admin.');
+                }
+                if (clientBlinkPolicy && blinkChallenge.constructor.release !== 'blink-3') {
+                    throw new Error('Versi berkas pemeriksaan kedip belum sesuai halaman. Muat ulang halaman; jika tetap gagal, minta admin memperbarui berkas kamera production.');
                 }
                 await Promise.all([
                     loadFaceModel(faceapi.nets.tinyFaceDetector, 'deteksi wajah'),

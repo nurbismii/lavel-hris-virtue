@@ -102,6 +102,20 @@ Jalankan `php artisan view:clear`, buka kembali Edit Data Karyawan, pilih foto r
 
 Tes sintetis memakai SQLite dan direktori file terisolasi: file/path diganti, foto lama dibersihkan setelah sukses, endpoint admin/presensi membaca byte baru, URL versi berubah, cache dilarang, penulisan gagal mempertahankan foto lama, file tidak valid ditolak, dan pengguna di luar scope tidak dapat mengganti atau membuka referensi.
 
+### Memastikan production memakai perbaikan terbaru
+
+Pemeriksaan HTTP pada 13 November 2026 terhadap `hris.vdnisite.com` menemukan JS belum berisi dua perbaikan waktu kedip dan CSS belum memiliki status `blink`, walaupun URL memakai `?ui=blink-2`. Kedua aset merespons `Cache-Control: public, max-age=604800` (tujuh hari). Halaman presensi mengarah ke login tanpa sesi, sehingga Blade yang benar-benar disajikan setelah login belum diperiksa langsung.
+
+Rilis `blink-3` memberi penanda pada awal JS/CSS, mengganti query aset, dan menolak memulai capture jika versi helper kedip tidak cocok dengan halaman. Unggah ketiga berkas di bawah ke aplikasi production yang benar; aset harus berada di document root domain, yang pada cPanel dapat terpisah dari direktori proyek Laravel:
+
+- `resources/views/user/presensi/index.blade.php`
+- `public/assets/js/passive-face-capture.js`
+- `public/assets/css/user-presensi.css`
+
+Jalankan `php artisan view:clear` dari root Laravel production, lalu buka ulang halaman presensi. URL `/assets/js/passive-face-capture.js?ui=blink-3` harus diawali komentar `Presensi camera release: blink-3`; CSS dengan query yang sama juga harus memiliki penanda tersebut. Instruksi dalam halaman terbaru adalah **Tutup kedua mata dan tahan sekitar 1 detik, lalu buka kembali**. Jika masih **Kedip perlahan**, periksa lokasi Blade yang diunggah dan cache view/PHP hosting. Perubahan ini tidak membutuhkan Composer, migrasi, perubahan `.env`, atau perubahan API Python.
+
+Kesamaan versi memastikan patch benar-benar diuji, bukan bukti akurasi kedip. [Pembuat face-api.js telah menjelaskan keterbatasan model 68 titik dalam memperkirakan kelopak mata tertutup](https://github.com/justadudewhohacks/face-api.js/issues/176). Jika jumlah tetap nol setelah versi dikonfirmasi, diperlukan pengukuran dari perangkat atau model ekspresi mata yang sesuai; jangan meloloskan tantangan otomatis atau menurunkan ambang tanpa data uji.
+
 ### Jika jumlah kedip tetap 0/1 atau 0/2
 
 Pembacaan lama menjalankan pengenalan identitas penuh pada setiap sampel mata lalu menunggu 320 ms lagi. Kedip singkat dapat berada di antara sampel. Setelah kalibrasi dengan identitas yang cocok, tahap kedip sekarang memakai deteksi wajah dan landmark penuh tanpa menghitung descriptor identitas berulang, dengan jeda tambahan 80 ms setelah inferensi selesai. Inferensi tetap berurutan; ini bukan jaminan laju frame tertentu pada semua HP. Deteksi tunggal, kualitas, posisi frontal, dan ambang mata tetap berlaku. Identitas diperiksa kembali sebelum bukti frontal dikumpulkan dan pada selfie final; wajah yang tidak cocok membatalkan progres.
