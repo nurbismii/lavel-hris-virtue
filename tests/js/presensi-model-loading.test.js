@@ -16,6 +16,7 @@ function modelContext(overrides = {}) {
     const messages = [];
     const context = vm.createContext({
         faceReferencePath: '/private-reference', faceModelPath: '/models', faceApiReady: false,
+        clientBlinkPolicy: null, blinkChallenge: null,
         faceModelsLoadPromise: null, faceModelLoadError: '', faceModelLoads: new Map(),
         faceapi: { nets: { tinyFaceDetector: {}, faceLandmark68Net: {}, faceRecognitionNet: {} } },
         updateLiveFrameFeedback: (state, message) => messages.push({ state, message }),
@@ -72,6 +73,14 @@ test('a missing face-api script reports a library error and keeps capture blocke
     load(context, 'loadFaceModels');
     assert.equal(await context.loadFaceModels(), false);
     assert.match(context.faceModelLoadError, /pustaka/i);
+    assert.equal(context.faceApiReady, false);
+});
+
+test('a missing blink script keeps capture blocked and explains how to recover', async () => {
+    const { context } = modelContext({ clientBlinkPolicy: { required_count: 1 }, blinkChallenge: null });
+    load(context, 'loadFaceModels');
+    assert.equal(await context.loadFaceModels(), false);
+    assert.match(context.faceModelLoadError, /kedip.*Muat ulang/);
     assert.equal(context.faceApiReady, false);
 });
 

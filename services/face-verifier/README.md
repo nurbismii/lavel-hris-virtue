@@ -4,7 +4,7 @@ Kode ini menambahkan passive liveness ke API Python yang sudah ada. Belum diungg
 
 ## Batas hasil yang sudah diuji
 
-- HRIS memisahkan mode `active` dan `passive`, mengambil tiga frame frontal berjarak selama sekitar dua detik, memeriksa kualitas/matching awal di perangkat, dan tetap memvalidasi GPS pada server.
+- HRIS memisahkan mode `active` dan `passive`. Alur pasif terbaru meminta kedip ringan di UI sebelum mengambil tiga frame frontal berjarak selama sekitar dua detik; API tetap memeriksa anti-spoofing pasif pada foto/frame tersebut. Metadata kedip dari browser bukan bukti liveness independen dan tidak menggantikan verifikasi API. Kualitas/matching awal di perangkat dan validasi GPS pada server tetap berlaku.
 - API memakai model anti-spoofing DeepFace/Fasnet pada selfie serta ketiga frame; setiap wajah juga dibandingkan dengan referensi akun yang sama. Referensi yang memang berupa foto tidak diperiksa sebagai bukti liveness.
 - Unit test Python memakai Flask/OpenCV nyata dan engine DeepFace simulasi. Model AI, bobot model, kemampuan hosting, kecepatan inferensi, serangan foto/video, dan perangkat nyata **belum diuji**. Lulus tes kode tidak membuktikan ketahanan biometrik.
 - Skor anti-spoofing adalah skor kelas model, bukan jaminan bahwa orang asli. Ambang awal 0,78 harus dievaluasi dengan sampel yang benar-benar berlabel; jangan menurunkannya hanya untuk meloloskan uji.

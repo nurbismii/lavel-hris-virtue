@@ -2,7 +2,7 @@
 
 @push('styles')
 <link rel="stylesheet" href="{{ versioned_asset('vendor/leaflet/leaflet.css') }}">
-<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css') }}">
+<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css?ui=blink-1') }}">
 @endpush
 
 @section('content')
@@ -301,7 +301,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                             </div>
                                             <p class="selfie-placeholder__title">{{ __('Kamera depan akan aktif otomatis') }}</p>
                                             <p class="selfie-placeholder__text">
-                                                {{ __('Izinkan akses kamera, arahkan wajah ke tengah frame, lalu tunggu sebentar sampai indikator hijau muncul.') }}
+                                                {{ __('Izinkan akses kamera, arahkan wajah ke tengah frame, lalu ikuti instruksi pada kamera sampai bukti siap dikirim.') }}
                                             </p>
                                         </div>
 
@@ -312,7 +312,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                                     </div>
 
                                     <div class="camera-stage__footer">
-                                        
+                                        <p id="cameraFrameMessage" class="camera-stage__status small mb-0 align-self-center" role="status"></p>
 
                                         <div class="camera-action-group">
                                             <button type="button" id="retryCameraButton" class="btn btn-outline-primary btn-sm">
@@ -588,7 +588,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 </script>
 @endif
 <script src="{{ versioned_asset('assets/js/presensi-native-gps.js') }}"></script>
-<script src="{{ versioned_asset('assets/js/passive-face-capture.js') }}"></script>
+<script src="{{ versioned_asset('assets/js/passive-face-capture.js?ui=blink-1') }}"></script>
 <script src="{{ versioned_asset('vendor/leaflet/leaflet.js') }}"></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
@@ -655,6 +655,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
     const supportsIosBrowserGps = @json($supportsIosBrowserGps);
     const livenessAction = attendanceChallenge && attendanceChallenge.liveness_action ? attendanceChallenge.liveness_action : 'turn_left_right';
     const isPassiveLiveness = livenessAction === 'passive';
+    const clientBlinkPolicy = attendanceChallenge?.client_blink_challenge || null;
+    const blinkChallenge = clientBlinkPolicy && typeof BlinkLivenessChallenge === 'function' ? new BlinkLivenessChallenge(clientBlinkPolicy) : null;
     const livenessRequiredFrames = attendanceChallenge?.liveness_required_frames || ['center', 'turn_left', 'turn_right'];
     const passiveCapture = new PassiveFaceCapture(attendanceChallenge?.capture_duration_ms || 2000);
     const passiveCaptureText = @json(__('Hadap lurus dan tahan wajah di dalam frame. Bukti kamera sedang diambil.'));
@@ -697,6 +699,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
     function resetPassiveCapture() {
         resetFaceMatchedReady();
         if (!isPassiveLiveness) { return; }
+        if (blinkChallenge) { blinkChallenge.reset(); }
         passiveCapture.reset();
         resetLivenessEvidence();
         setBlinkResult(false, null, passiveCaptureText);
@@ -1007,6 +1010,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         cameraVerificationLocked = false;
 
         resetFaceMatchedReady();
+        if (blinkChallenge) { blinkChallenge.reset(); }
         livenessCaptureInProgress = false;
 
         blinkLivenessPassed = false;
@@ -1098,7 +1102,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
 
         if (!livenessReady || !hasLivenessEvidence || !hasSelfieCapture || !hasFaceMeta) {
-            return 'liveness wajah belum selesai';
+            return 'bukti kamera belum siap';
         }
 
         if (!isAttendanceChallengeReady()) {
@@ -1164,6 +1168,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
             try {
                 if (typeof faceapi === 'undefined') {
                     throw new Error('Pustaka verifikasi wajah belum termuat. Periksa koneksi lalu aktifkan ulang kamera atau muat ulang halaman.');
+                }
+                if (clientBlinkPolicy && !blinkChallenge) {
+                    throw new Error('Pemeriksaan kedip belum termuat. Muat ulang halaman atau hubungi admin.');
                 }
                 await Promise.all([
                     loadFaceModel(faceapi.nets.tinyFaceDetector, 'deteksi wajah'),
@@ -1494,6 +1501,12 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 guide: 'Perjelas tampilan wajah',
                 assist: 'Coba hadap lurus ke kamera, kurangi blur, dan pastikan pencahayaan cukup merata.'
             },
+            pending: {
+                badge: 'Belum diverifikasi',
+                alert: 'info',
+                guide: 'Bukti kamera siap dikirim',
+                assist: 'Capture dan kedip adalah pemeriksaan awal. Hasil identitas dan anti-spoofing diperiksa server setelah presensi dikirim.'
+            },
             green: {
                 badge: 'Wajah Terbaca',
                 alert: 'success',
@@ -1526,7 +1539,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
 
         if (progressText) {
-            if (state === 'validating') {
+            if (state === 'pending') {
+                progressText.textContent = 'Belum diverifikasi';
+            } else if (state === 'validating') {
                 progressText.textContent = 'Memastikan kestabilan wajah...';
             } else if (state === 'green') {
                 progressText.textContent = 'Selfie siap digunakan';
@@ -1569,6 +1584,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 type: livenessAction,
                 passed: !isPassiveLiveness && blinkLivenessPassed,
                 capture_ready: blinkLivenessPassed,
+                blink_challenge: blinkChallenge ? blinkChallenge.summary() : null,
                 score: blinkLivenessScore,
                 message: blinkLivenessMessage,
                 challenge_id: attendanceChallenge ? attendanceChallenge.id : null,
@@ -1630,6 +1646,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         if (!hasRequiredLivenessEvidence()) {
             throw new Error('Bukti liveness belum lengkap. Ulangi verifikasi dan ikuti instruksi hadap wajah.');
+        }
+        if (clientBlinkPolicy && (!blinkChallenge || !blinkChallenge.summary().passed)) {
+            throw new Error('Tantangan kedip belum selesai. Ikuti instruksi kedip sebelum selfie diambil.');
         }
 
         const captureScale = Math.min(1, selfieMaxCaptureWidth / video.videoWidth);
@@ -1727,7 +1746,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             preservePreview: true
         });
         updateAttendanceButtonState();
-        updateLiveFrameFeedback('green', 'Selfie tersimpan. Lanjutkan presensi saat GPS valid; hasil identitas dan liveness ditentukan server.', 1);
+        updateLiveFrameFeedback('pending', 'Bukti kamera siap dikirim. Hasil identitas dan liveness ditentukan server setelah presensi dikirim.', 1);
 
         if (typeof window.setAttendanceWizardStep === 'function') {
             window.setAttendanceWizardStep(2, {
@@ -1934,6 +1953,22 @@ $locationIssueMessage = $locationIssueMessage ?? (
             drawLiveCameraOverlay({ state: 'yellow', boxes: [faceBox] });
             updateLiveFrameFeedback('yellow', 'Hadap lurus ke kamera. Pastikan mata, hidung, dan mulut terlihat; kerudung tetap boleh dipakai.', 0);
             return;
+        }
+
+        if (isPassiveLiveness && clientBlinkPolicy) {
+            const blink = blinkChallenge.observe(calculateEAR(detection.landmarks.getLeftEye()), calculateEAR(detection.landmarks.getRightEye()), attendanceChallengeElapsedMs());
+            if (!blink.passed) {
+                resetFaceMatchedReady();
+                passiveCapture.reset();
+                resetLivenessEvidence();
+                const message = blink.phase === 'calibrating' ? 'Buka kedua mata dan hadap lurus untuk memulai tantangan kedip.'
+                    : blink.phase === 'reopen' ? 'Buka kedua mata kembali. Kedip terbaca ' + blink.completedCount + '/' + clientBlinkPolicy.required_count + '.'
+                    : 'Kedip perlahan ' + clientBlinkPolicy.required_count + ' kali. Kedip terbaca ' + blink.completedCount + '/' + clientBlinkPolicy.required_count + '.';
+                setBlinkResult(false, null, message);
+                drawLiveCameraOverlay({ state: 'validating', boxes: [faceBox] });
+                updateLiveFrameFeedback('validating', message, blink.completedCount / clientBlinkPolicy.required_count);
+                return;
+            }
         }
 
         faceMatchedReady = true;
@@ -2224,8 +2259,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
             if (attendanceStepHint) {
                 attendanceStepHint.classList.toggle('is-success', attendanceUnlocked);
                 attendanceStepHint.innerHTML = attendanceUnlocked ?
-                    "<i class='fas fa-check-circle'></i> Liveness wajah sudah valid. Sistem tetap memastikan GPS live stabil sebelum tombol presensi aktif." :
-                    "<i class='fas fa-sync-alt'></i> GPS live dan liveness wajah diproses bersamaan. Tombol presensi aktif saat keduanya valid.";
+                    "<i class='fas fa-info-circle'></i> Bukti kamera siap. Kirim presensi setelah GPS valid; hasil liveness dan identitas belum diverifikasi server." :
+                    "<i class='fas fa-sync-alt'></i> Ikuti instruksi kamera dan tunggu GPS valid untuk menyiapkan bukti presensi.";
             }
 
             if (wizardAttendanceContent) {
@@ -2843,7 +2878,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
 
         if (status) {
-            status.className = passed ? 'small text-success mb-2' : 'small text-warning mb-2';
+            status.className = passed ? 'small text-info mb-2' : 'small text-warning mb-2';
             status.innerText = message;
         }
 
@@ -2877,7 +2912,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         cameraValidationStartedAt = null;
 
         updateLiveFrameFeedback(
-            'green',
+            'pending',
             isPassiveLiveness ? passiveReadyText : 'Gerakan wajah terdeteksi. Selfie sedang diambil otomatis.',
             1
         );

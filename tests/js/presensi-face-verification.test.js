@@ -177,6 +177,7 @@ test('the saved selfie is checked again and a swapped or additional face cannot 
         const video = { videoWidth: 720, videoHeight: 960 };
         const context = vm.createContext({
             cameraSessionId: 1, selfieMaxCaptureWidth: 720, faceDistanceThreshold: 0.5,
+            clientBlinkPolicy: null, blinkChallenge: null,
             document: {
                 getElementById: id => id === 'selfieCamera' ? video : {},
                 createElement: () => ({ getContext: () => ({ drawImage() {} }), toBlob() { encoded = true; } }),
@@ -195,11 +196,13 @@ test('the saved selfie is checked again and a swapped or additional face cannot 
 test('a matching frozen selfie saves its own metrics and reports that final verification is still on the server', async () => {
     let metadata;
     let message;
+    let state;
     const input = {};
     const video = { videoWidth: 720, videoHeight: 960 };
     const context = vm.createContext({
         cameraSessionId: 1, selfieMaxCaptureWidth: 720, selfieJpegQuality: 0.82, faceDistanceThreshold: 0.5,
         blinkLivenessScore: null, blinkLivenessMessage: 'Ready for the server', isPassiveLiveness: true,
+        clientBlinkPolicy: null, blinkChallenge: null,
         passiveReadyText: 'Ready for the server', window: {}, URL: { createObjectURL: () => 'blob:selfie' },
         document: {
             getElementById: id => id === 'selfieCamera' ? video : input,
@@ -212,7 +215,7 @@ test('a matching frozen selfie saves its own metrics and reports that final veri
         faceapi: { euclideanDistance: () => 0.32 }, getFaceRollAngle: () => 2,
         analyzeScreenSpoofFromCanvas: () => ({ score: 0 }),
         fillFaceVerificationInputs: value => { metadata = value; },
-        updateLiveFrameFeedback: (_, text) => { message = text; },
+        updateLiveFrameFeedback: (value, text) => { state = value; message = text; },
         clearSelfiePreview() {}, setBlinkResult() {}, setSelfieSurfaceMode() {}, stopLiveCamera() {}, updateAttendanceButtonState() {},
     });
     load(context, 'captureLiveSelfie');
@@ -221,6 +224,7 @@ test('a matching frozen selfie saves its own metrics and reports that final veri
     assert.equal(metadata.detectionScore, 0.97);
     assert.equal(metadata.rollAngle, 2);
     assert.equal(context.cameraVerificationLocked, true);
+    assert.equal(state, 'pending');
     assert.match(message, /ditentukan server/);
 });
 
@@ -231,6 +235,7 @@ test('a frontal face with a tilted camera and obscured jaw reaches passive captu
     const face = { detection: { score: 0.96, box: { x: 100, y: 80, width: 120, height: 200 } }, descriptor: [], landmarks: landmarks(0, 0.18, 300) };
     const context = vm.createContext({
         cameraSessionId: 1, cameraVerificationLocked: false, faceApiReady: true, isPassiveLiveness: true,
+        clientBlinkPolicy: null, blinkChallenge: null,
         faceDistanceThreshold: 0.5, TURN_CENTER_MAX_YAW: 0.035, passiveCaptureText: 'Hold still',
         document: { getElementById: id => id === 'selfieCamera' ? { readyState: 2 } : input },
         syncLiveCameraOverlaySize: () => ({ width: 320, height: 400 }),
@@ -281,4 +286,20 @@ test('active capture waits for the face to return to center after both head turn
     pose = 0;
     await tick();
     assert.equal(captured, 1);
+});
+
+test('a captured image is displayed as unverified evidence rather than a green liveness success', () => {
+    assert.match(source, /<p id="cameraFrameMessage"[^>]*role="status"/);
+    assert.equal((source.match(/id="cameraFrameMessage"/g) || []).length, 1);
+    const nodes = Object.fromEntries(['selfieCameraStage', 'cameraFrameBadge', 'cameraGuideLabel', 'cameraFrameMessage',
+        'cameraHoldBar', 'cameraProgressText', 'cameraAssistText'].map(id => [id, { dataset: {}, style: {} }]));
+    let alert;
+    const context = vm.createContext({ document: { getElementById: id => nodes[id] }, updateFaceStatus: (_, value) => { alert = value; } });
+    load(context, 'updateLiveFrameFeedback');
+    context.updateLiveFrameFeedback('pending', 'Bukti kamera siap dikirim.', 1);
+    assert.equal(nodes.selfieCameraStage.dataset.frameState, 'pending');
+    assert.equal(nodes.cameraFrameBadge.textContent, 'Belum diverifikasi');
+    assert.equal(nodes.cameraProgressText.textContent, 'Belum diverifikasi');
+    assert.equal(alert, 'info');
+    assert.equal(source.includes('Liveness wajah sudah valid.'), false);
 });

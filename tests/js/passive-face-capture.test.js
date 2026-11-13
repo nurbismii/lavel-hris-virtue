@@ -48,6 +48,7 @@ test('the camera workflow captures frontal evidence once and resets when the fac
         cameraSessionId: 0, cameraVerificationLocked: false, cameraValidationStartedAt: null, faceVerificationPassed: false,
         faceApiReady: true, faceMatchedReady: false, latestFaceMatchCapturePayload: null,
         isPassiveLiveness: true, passiveCapture: new PassiveFaceCapture(2000),
+        clientBlinkPolicy: null, blinkChallenge: null,
         livenessRequiredFrames: ['passive_start', 'passive_middle', 'passive_end'],
         passiveCaptureText: 'Capture evidence', passiveReadyText: 'Ready for server verification',
         TURN_CENTER_MAX_YAW: 0.05, faceDistanceThreshold: 0.5,

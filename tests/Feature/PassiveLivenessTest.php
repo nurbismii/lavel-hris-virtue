@@ -37,6 +37,16 @@ class PassiveLivenessTest extends TestCase
     private function payload(array $challenge): array
     {
         $passive = $challenge['liveness_action'] === 'passive';
+        $blinkCount = (int) ($challenge['client_blink_challenge']['required_count'] ?? 0);
+        $blinkProof = $blinkCount ? [
+            'required_count' => $blinkCount, 'completed_count' => $blinkCount, 'passed' => true,
+            'baseline_left_ear' => 0.3, 'baseline_right_ear' => 0.28,
+            'events' => array_map(function ($index) {
+                return ['closed_at_ms' => 200 + $index * 800, 'opened_at_ms' => 500 + $index * 800,
+                    'closed_left_ear' => 0.1, 'closed_right_ear' => 0.1,
+                    'reopened_left_ear' => 0.29, 'reopened_right_ear' => 0.27];
+            }, range(0, $blinkCount - 1)),
+        ] : null;
         return [
             'face_verified' => '1', 'face_distance' => '0.3', 'face_detection_count' => 1,
             'face_liveness_passed' => $passive ? '0' : '1', 'face_liveness_score' => $passive ? null : 1,
@@ -48,6 +58,7 @@ class PassiveLivenessTest extends TestCase
                 'detection_score' => 0.99, 'roll_angle' => 0, 'frame_state' => 'green',
                 'challenge_elapsed_ms' => 3000, 'verified_at_client' => now()->toIso8601String(),
                 'client_liveness' => ['passed' => !$passive, 'capture_ready' => true,
+                    'blink_challenge' => $blinkProof,
                     'challenge_id' => $challenge['id'], 'challenge_action' => $challenge['liveness_action']],
             ]),
             'face_liveness_evidence' => json_encode(['frames' => array_map(function ($label, $index) {
@@ -77,6 +88,35 @@ class PassiveLivenessTest extends TestCase
             $this->postJson('/_test/presensi-capture', $payload)->assertOk()
                 ->assertJson(['type' => 'passive', 'passed' => false, 'capture_ready' => true]);
         }
+    }
+
+    public function test_a_new_passive_session_requires_its_random_blink_count_and_both_eye_cycles(): void
+    {
+        $this->actingAs(new User(['id' => 'passive-test-user', 'nik_karyawan' => 'TEST-001']));
+        foreach (['missing', 'wrong-count', 'open-eyes-only', 'out-of-order', 'too-short'] as $failure) {
+            $challenge = $this->challenge('passive');
+            $this->assertContains($challenge['client_blink_challenge']['required_count'], [1, 2]);
+            $payload = $this->submission($challenge);
+            $meta = json_decode($payload['face_verification_meta'], true);
+            $proof = &$meta['client_liveness']['blink_challenge'];
+            if ($failure === 'missing') { $proof = null; }
+            if ($failure === 'wrong-count') { $proof['required_count'] = 3; }
+            if ($failure === 'open-eyes-only') { $proof['events'][0]['closed_left_ear'] = 0.3; }
+            if ($failure === 'out-of-order') { $proof['events'][0]['closed_at_ms'] = 600; }
+            if ($failure === 'too-short') { $proof['events'][0]['opened_at_ms'] = 201; }
+            $payload['face_verification_meta'] = json_encode($meta);
+            $this->postJson('/_test/presensi-capture', $payload)->assertStatus(422)->assertJsonValidationErrors('presensi_security');
+            unset($proof);
+        }
+    }
+
+    public function test_existing_capture_sessions_without_a_blink_policy_keep_their_original_contract(): void
+    {
+        $challenge = $this->challenge('passive');
+        unset($challenge['client_blink_challenge']);
+        $result = app(AttendanceSecurityService::class)->validateFacePayload(Request::create('/', 'POST', $this->payload($challenge)), $challenge);
+        $this->assertTrue($result['liveness']['capture_ready']);
+        $this->assertFalse($result['liveness']['passed']);
     }
 
     public function test_active_http_submission_keeps_the_required_numeric_bounded_liveness_score(): void

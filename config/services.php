@@ -77,6 +77,13 @@ return [
         'queue' => env('PRESENSI_FACE_QUEUE', env('QUEUE_NAME', 'default')),
         'min_confidence' => env('PRESENSI_FACE_MIN_CONFIDENCE', 0.78),
         'min_liveness_score' => env('PRESENSI_LIVENESS_MIN_SCORE', 0.78),
+        'client_blink' => [
+            'min_open_ear' => (float) env('PRESENSI_BLINK_MIN_OPEN_EAR', 0.12),
+            'closed_ratio' => (float) env('PRESENSI_BLINK_CLOSED_RATIO', 0.6),
+            'reopen_ratio' => (float) env('PRESENSI_BLINK_REOPEN_RATIO', 0.85),
+            'min_closed_ms' => (int) env('PRESENSI_BLINK_MIN_CLOSED_MS', 60),
+            'max_closed_ms' => (int) env('PRESENSI_BLINK_MAX_CLOSED_MS', 2000),
+        ],
         'require_active_liveness' => env('PRESENSI_REQUIRE_ACTIVE_LIVENESS', true),
         'fail_closed' => env('PRESENSI_FACE_FAIL_CLOSED', false),
     ],

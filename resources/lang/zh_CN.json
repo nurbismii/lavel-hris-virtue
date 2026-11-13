@@ -1869,5 +1869,6 @@
     "Peta belum tersedia. Pembacaan GPS tetap berjalan.": "地图暂不可用，GPS 定位仍在运行。",
     "GPS Live": "实时 GPS",
     "Posisi presensi": "考勤位置",
-    "Izinkan lokasi untuk membaca jarak, akurasi, dan posisi presensi.": "请允许定位以读取距离、精度和考勤位置。"
+    "Izinkan lokasi untuk membaca jarak, akurasi, dan posisi presensi.": "请允许定位以读取距离、精度和考勤位置。",
+    "Izinkan akses kamera, arahkan wajah ke tengah frame, lalu ikuti instruksi pada kamera sampai bukti siap dikirim.": "请允许摄像头访问，将面部对准框中央，然后按照摄像头提示操作，直到证据准备提交。"
 }

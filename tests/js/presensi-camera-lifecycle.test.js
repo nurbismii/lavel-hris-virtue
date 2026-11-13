@@ -22,6 +22,7 @@ function cameraContext(overrides = {}) {
         cameraVerificationLocked: false, cameraValidationStartedAt: null,
         cameraIsStarting: false, cameraStream: null, liveDetectionIntervalMs: 320,
         faceReferencePath: '/private-reference', faceApiReady: true,
+        clientBlinkPolicy: null, blinkChallenge: null,
         useAccurateFaceDetector: false, accurateFaceDetectorLoad: null,
         cameraPausedText: 'Camera paused',
         document: { hidden: false, getElementById: id => id === 'selfieCamera' ? video : retry },

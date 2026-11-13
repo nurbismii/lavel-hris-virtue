@@ -532,6 +532,10 @@
     box-shadow: 0 16px 34px rgba(25, 135, 84, 0.14);
 }
 
+.face-preview-frame[data-frame-state="pending"] {
+    border-color: rgba(13, 110, 253, 0.5);
+}
+
 .camera-stage {
     display: grid;
     gap: 0.9rem;
@@ -856,7 +860,8 @@
         0 0 0 999px rgba(255, 193, 7, 0.06);
 }
 
-.face-preview-frame[data-frame-state="validating"] .camera-guide__shape {
+.face-preview-frame[data-frame-state="validating"] .camera-guide__shape,
+.face-preview-frame[data-frame-state="pending"] .camera-guide__shape {
     border-color: rgba(13, 110, 253, 0.94);
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22),
         0 0 0 999px rgba(13, 110, 253, 0.06);
@@ -937,7 +942,8 @@
     background: rgba(255, 193, 7, 0.16);
 }
 
-.camera-frame-chip.is-validating {
+.camera-frame-chip.is-validating,
+.camera-frame-chip.is-pending {
     color: #0b5ed7;
     background: rgba(13, 110, 253, 0.14);
 }

@@ -67,6 +67,11 @@ class AttendanceSecurityService
         $payload['liveness_required_frames'] = $this->requiredLivenessFrames($payload['liveness_action']);
         $payload['capture_duration_ms'] = $payload['liveness_action'] === self::LIVENESS_ACTION_PASSIVE
             ? self::PASSIVE_CAPTURE_DURATION_MS : 0;
+        $payload['client_blink_challenge'] = $payload['liveness_action'] === self::LIVENESS_ACTION_PASSIVE
+            ? array_merge(config('services.presensi_face.client_blink', [
+                'min_open_ear' => 0.12, 'closed_ratio' => 0.6, 'reopen_ratio' => 0.85,
+                'min_closed_ms' => 60, 'max_closed_ms' => 2000,
+            ]), ['required_count' => random_int(1, 2)]) : null;
 
         Cache::put($this->challengeCacheKey($token), $payload, $this->challengeTtlSeconds());
 
@@ -80,6 +85,7 @@ class AttendanceSecurityService
             'liveness_label' => $payload['liveness_label'],
             'liveness_required_frames' => $payload['liveness_required_frames'],
             'capture_duration_ms' => $payload['capture_duration_ms'],
+            'client_blink_challenge' => $payload['client_blink_challenge'],
         ];
     }
 
@@ -201,6 +207,7 @@ class AttendanceSecurityService
         $score = (float) $request->input('face_liveness_score');
         $screenSpoofScore = (float) $request->input('screen_spoof_score');
         $evidence = json_decode((string) $request->input('face_liveness_evidence'), true);
+        $this->validateClientBlinkChallenge($client, $meta, $challenge);
 
         if ($isPassive ? (($client['capture_ready'] ?? false) !== true) : (!$passed || !($client['passed'] ?? false))) {
             $this->fail('Liveness belum valid. Ikuti instruksi hadap wajah langsung di depan kamera.');
@@ -273,6 +280,7 @@ class AttendanceSecurityService
             'score' => $score,
             'screen_spoof_score' => $screenSpoofScore,
             'message' => (string) $request->input('face_liveness_message'),
+            'client_blink_challenge' => $client['blink_challenge'] ?? null,
             'evidence_summary' => [
                 'frames' => $requiredFrames,
                 'duration_ms' => $turnRightAt - $centerAt,
@@ -287,6 +295,44 @@ class AttendanceSecurityService
         }
 
         return (float) $frame['captured_at_ms'];
+    }
+
+    private function validateClientBlinkChallenge(array $client, array $meta, array $challenge): void
+    {
+        $policy = $challenge['client_blink_challenge'] ?? null;
+        if (!$policy) { return; }
+        $proof = $client['blink_challenge'] ?? [];
+        $count = (int) $policy['required_count'];
+        if (!is_array($proof) || ($proof['passed'] ?? false) !== true
+            || ($proof['required_count'] ?? null) !== $count || ($proof['completed_count'] ?? null) !== $count
+            || !is_array($proof['events'] ?? null) || count($proof['events']) !== $count) {
+            $this->fail('Tantangan kedip belum selesai atau tidak sesuai sesi. Muat ulang halaman lalu ikuti jumlah kedip yang diminta.');
+        }
+        foreach (['baseline_left_ear', 'baseline_right_ear'] as $key) {
+            if (!is_numeric($proof[$key] ?? null) || !is_finite((float) $proof[$key])
+                || $proof[$key] < $policy['min_open_ear'] || $proof[$key] > 1) {
+                $this->fail('Bukti pembukaan mata tidak valid. Muat ulang halaman lalu coba kembali.');
+            }
+        }
+        $previousEnd = 0;
+        foreach ($proof['events'] as $event) {
+            foreach (['closed_at_ms', 'opened_at_ms', 'closed_left_ear', 'closed_right_ear', 'reopened_left_ear', 'reopened_right_ear'] as $key) {
+                if (!is_array($event) || !is_numeric($event[$key] ?? null) || !is_finite((float) $event[$key]) || $event[$key] < 0
+                    || (substr($key, -4) === '_ear' && $event[$key] > 1)) {
+                    $this->fail('Bukti gerakan mata tidak lengkap. Muat ulang halaman lalu coba kembali.');
+                }
+            }
+            $duration = $event['opened_at_ms'] - $event['closed_at_ms'];
+            if ($event['closed_at_ms'] <= $previousEnd || $duration < $policy['min_closed_ms'] || $duration > $policy['max_closed_ms']
+                || $event['opened_at_ms'] > ($meta['challenge_elapsed_ms'] ?? 0)
+                || $event['closed_left_ear'] > $proof['baseline_left_ear'] * $policy['closed_ratio']
+                || $event['closed_right_ear'] > $proof['baseline_right_ear'] * $policy['closed_ratio']
+                || $event['reopened_left_ear'] < $proof['baseline_left_ear'] * $policy['reopen_ratio']
+                || $event['reopened_right_ear'] < $proof['baseline_right_ear'] * $policy['reopen_ratio']) {
+                $this->fail('Urutan atau gerakan kedip tidak valid. Muat ulang halaman lalu kedipkan kedua mata perlahan sesuai instruksi kamera.');
+            }
+            $previousEnd = $event['opened_at_ms'];
+        }
     }
 
     public function validateSelfieImage(UploadedFile $file, User $user, ?string $referencePath): array
