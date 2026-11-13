@@ -70,3 +70,15 @@ Tambahan deploy pada perbaikan sebelumnya:
 - `public/vendor/face-api/LICENSE` dan catatan sumber/hash pada `MODELS.md`.
 
 Tambahan aset sekitar 6 MB. Setelah mengunggah semua berkas, jalankan `php artisan view:clear`, lalu buka kembali halaman presensi. Aplikasi harus bisa mengambil manifest beserta shard pada public path yang benar; jika hanya Blade yang diunggah, model baru gagal dimuat. Tidak diperlukan perubahan `.env`, paket PHP/Node, atau migrasi database. Perlu menguji kembali pengguna berkerudung dan wajah orang lain pada HP sebenarnya; kualitas biometrik dan biaya CPU/browser belum terukur pada perangkat tersebut.
+
+### Lanjutan: status model terus “sedang disiapkan”
+
+Loop kamera sebelumnya menimpa pesan gagal memuat model dengan status netral “sedang disiapkan”. Tombol ulang kamera juga tidak memanggil pemuatan model lagi. Status gagal sekarang disimpan dan ditampilkan merah sampai pengguna mencoba ulang; capture tetap terkunci saat model belum siap.
+
+Pemuatan manifest dan shard memakai batas 60 detik per model, termasuk pembacaan isi respons. Permintaan macet dibatalkan dengan `AbortController`. SDK TensorFlow.js existing tetap mendekode bobot; respons HTTP gagal tidak diperlakukan sebagai bobot model. Setiap model hanya memiliki satu pemuatan aktif, model yang sudah siap digunakan kembali, dan tombol Aktifkan Ulang Kamera mencoba kembali model utama maupun cadangan yang gagal. Permintaan memakai revalidasi cache untuk menghindari manifest/bobot lama setelah upload.
+
+Saat pemeriksaan 13 November 2026, tujuh berkas model utama pada `https://hris.vdnisite.com/vendor/face-api/weights/` mengembalikan HTTP 200 dan hash cocok dengan salinan lokal. Ini memeriksa kelengkapan aset publik, bukan koneksi/cache atau kemampuan browser pada HP yang mengalami masalah.
+
+Deploy perbaikan pemuatan ini cukup memperbarui `resources/views/user/presensi/index.blade.php`, jalankan `php artisan view:clear`, lalu buka kembali halaman presensi. Berkas model dari perbaikan sebelumnya tetap diperlukan. Tidak perlu Composer, migrasi, atau restart queue karena proses pemuatan berlangsung di browser.
+
+Verifikasi: 35 tes JavaScript lulus, mencakup kegagalan pustaka, berkas shard hilang, batas waktu, pemuatan bersamaan, pengulangan pemuatan, dan pesan gagal yang tidak tertimpa. Uji browser lokal dengan SDK dan bobot sebenarnya berhasil memuat ketiga model utama pada WebGL, menampilkan kegagalan HTTP 404, lalu berhasil melalui tombol coba ulang. Kamera/GPS, data pegawai, dan inferensi wajah asli tidak digunakan pada uji tersebut.

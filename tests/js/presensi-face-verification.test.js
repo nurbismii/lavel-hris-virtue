@@ -21,7 +21,7 @@ test('the bundled accurate detector and landmark models contain the complete pin
             }
         }
     }
-    assert.match(source, /faceLandmark68Net\.loadFromUri/);
+    assert.match(source, /loadFaceModel\(faceapi\.nets\.faceLandmark68Net,/);
     assert.match(fs.readFileSync('public/vendor/face-api/LICENSE', 'utf8'), /MIT License/);
 });
 function load(context, ...names) {
@@ -88,10 +88,11 @@ test('a face missed by both tiny resolutions uses the accurate detector and full
     const context = vm.createContext({
         accurateFaceDetectorLoad: null, useAccurateFaceDetector: false, faceModelPath: '/local-models',
         updateLiveFrameFeedback() {},
+        loadFaceModel: async (net, label) => { assert.equal(label, 'deteksi tambahan'); modelLoads++; },
         faceapi: {
             TinyFaceDetectorOptions: function (options) { return { kind: 'tiny', ...options }; },
             SsdMobilenetv1Options: function (options) { return { kind: 'ssd', ...options }; },
-            nets: { ssdMobilenetv1: { loadFromUri: async path => { assert.equal(path, '/local-models'); modelLoads++; } } },
+            nets: { ssdMobilenetv1: {} },
             detectAllFaces: (_, options) => {
                 calls.push(options);
                 return { withFaceLandmarks: useTiny => {
@@ -118,15 +119,16 @@ test('a missing accurate model gives an actionable error and cannot silently app
     const context = vm.createContext({
         accurateFaceDetectorLoad: null, useAccurateFaceDetector: false, faceModelPath: '/local-models',
         updateLiveFrameFeedback() {},
+        loadFaceModel: async () => { modelLoads++; throw new Error('Model deteksi tambahan gagal dimuat. Aktifkan ulang kamera.'); },
         faceapi: {
             TinyFaceDetectorOptions: function (options) { return options; },
-            nets: { ssdMobilenetv1: { loadFromUri: async () => { modelLoads++; throw new Error('404'); } } },
+            nets: { ssdMobilenetv1: {} },
             detectAllFaces: () => ({ withFaceLandmarks: () => ({ withFaceDescriptors: async () => [{ detection: { score: 0.6 } }] }) }),
         },
     });
     load(context, 'detectFaceDescriptors');
     for (let attempt = 0; attempt < 2; attempt++) {
-        await assert.rejects(context.detectFaceDescriptors({}), /deteksi tambahan.*muat ulang/i);
+        await assert.rejects(context.detectFaceDescriptors({}), /deteksi tambahan.*ulang/i);
     }
     assert.equal(modelLoads, 1);
     assert.equal(context.useAccurateFaceDetector, false);

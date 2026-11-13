@@ -22,6 +22,7 @@ function cameraContext(overrides = {}) {
         cameraVerificationLocked: false, cameraValidationStartedAt: null,
         cameraIsStarting: false, cameraStream: null, liveDetectionIntervalMs: 320,
         faceReferencePath: '/private-reference', faceApiReady: true,
+        useAccurateFaceDetector: false, accurateFaceDetectorLoad: null,
         cameraPausedText: 'Camera paused',
         document: { hidden: false, getElementById: id => id === 'selfieCamera' ? video : retry },
         window: {
@@ -140,6 +141,21 @@ test('a successful camera startup begins one passive capture loop', async () => 
     assert.equal(video.srcObject, stream);
     assert.equal(retry.disabled, false);
     assert.equal(context.cameraIsStarting, false);
+});
+
+test('restarting the camera retries failed primary and fallback model loads', async () => {
+    let modelAttempts = 0;
+    const { context } = cameraContext({
+        faceApiReady: false, accurateFaceDetectorLoad: Promise.resolve(false),
+        isPassiveLiveness: true, passiveCaptureText: 'Hold still',
+        navigator: { mediaDevices: { getUserMedia: async () => ({ getTracks: () => [] }) } },
+        loadFaceModels: async () => { modelAttempts++; return false; }, beginLiveCameraVerification() {},
+    });
+    load(context, 'startLiveCamera', 'stopLiveCamera');
+    await context.startLiveCamera();
+    assert.equal(modelAttempts, 1);
+    assert.equal(context.accurateFaceDetectorLoad, null);
+    assert.equal(context.faceApiReady, false);
 });
 
 test('stopping during video playback startup cannot restart analysis afterward', async () => {

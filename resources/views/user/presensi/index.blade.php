@@ -606,6 +606,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
     let lastTime = null;
     let speed = null;
     let faceApiReady = false;
+    let faceModelsLoadPromise = null;
+    let faceModelLoadError = '';
+    const faceModelLoads = new Map();
     let accurateFaceDetectorLoad = null;
     let useAccurateFaceDetector = false;
     let faceVerificationPassed = false;
@@ -1147,29 +1150,77 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     async function loadFaceModels() {
+        if (faceApiReady) { return true; }
+        if (faceModelsLoadPromise) { return faceModelsLoadPromise; }
         if (!faceReferencePath) {
             updateFaceStatus('Foto referensi wajah belum tersedia.', 'warning');
             resetFaceVerificationState();
-            return;
+            return false;
         }
 
-        try {
-            updateFaceStatus('Memuat model verifikasi wajah...', 'secondary');
+        faceModelLoadError = '';
+        updateFaceStatus('Memuat model verifikasi wajah...', 'secondary');
+        faceModelsLoadPromise = Promise.resolve().then(async function() {
+            try {
+                if (typeof faceapi === 'undefined') {
+                    throw new Error('Pustaka verifikasi wajah belum termuat. Periksa koneksi lalu aktifkan ulang kamera atau muat ulang halaman.');
+                }
+                await Promise.all([
+                    loadFaceModel(faceapi.nets.tinyFaceDetector, 'deteksi wajah'),
+                    loadFaceModel(faceapi.nets.faceLandmark68Net, 'titik wajah'),
+                    loadFaceModel(faceapi.nets.faceRecognitionNet, 'kecocokan wajah')
+                ]);
+                faceApiReady = true;
+                updateFaceStatus('Model siap. Ambil selfie untuk memulai matching.', 'info');
+                return true;
+            } catch (error) {
+                faceApiReady = false;
+                faceModelLoadError = error.message || 'Model verifikasi gagal dimuat. Aktifkan ulang kamera untuk mencoba kembali.';
+                updateFaceStatus(faceModelLoadError, 'danger');
+                return false;
+            } finally {
+                faceModelsLoadPromise = null;
+                updateAttendanceButtonState();
+            }
+        });
+        return faceModelsLoadPromise;
+    }
 
-            await Promise.all([
-                faceapi.nets.tinyFaceDetector.loadFromUri(faceModelPath),
-                faceapi.nets.faceLandmark68Net.loadFromUri(faceModelPath),
-                faceapi.nets.faceRecognitionNet.loadFromUri(faceModelPath)
-            ]);
-
-            faceApiReady = true;
-            updateFaceStatus('Model siap. Ambil selfie untuk memulai matching.', 'info');
-        } catch (error) {
-            faceApiReady = false;
-            updateFaceStatus('Gagal memuat model verifikasi wajah.', 'danger');
-        }
-
-        updateAttendanceButtonState();
+    async function loadFaceModel(net, label) {
+        if (net.isLoaded) { return; }
+        if (faceModelLoads.has(net)) { return faceModelLoads.get(net); }
+        const controller = new AbortController();
+        const timeout = window.setTimeout(function() { controller.abort(); }, 60000);
+        const loading = Promise.resolve().then(async function() {
+            try {
+                const fetchAsset = async function(url) {
+                    const response = await window.fetch(url, { signal: controller.signal, cache: 'no-cache' });
+                    if (!response.ok) {
+                        const error = new Error('Model asset unavailable');
+                        error.status = response.status;
+                        throw error;
+                    }
+                    return response;
+                };
+                const manifestResponse = await fetchAsset(faceModelPath + '/' + net.getDefaultModelName() + '-weights_manifest.json');
+                const manifest = await manifestResponse.json();
+                const weights = await faceapi.tf.io.weightsLoaderFactory(function(urls) {
+                    return Promise.all(urls.map(async function(url) { return (await fetchAsset(url)).arrayBuffer(); }));
+                })(manifest, faceModelPath);
+                net.loadFromWeightMap(weights);
+            } catch (error) {
+                const timedOut = controller.signal.aborted;
+                controller.abort();
+                throw new Error(timedOut
+                    ? 'Pemuatan model ' + label + ' melewati 60 detik. Periksa koneksi lalu aktifkan ulang kamera.'
+                    : 'Model ' + label + ' gagal dimuat' + (error.status ? ' (HTTP ' + error.status + ')' : '') + '. Aktifkan ulang kamera; jika tetap gagal, hubungi admin untuk memeriksa berkas model.');
+            } finally {
+                window.clearTimeout(timeout);
+                faceModelLoads.delete(net);
+            }
+        });
+        faceModelLoads.set(net, loading);
+        return loading;
     }
 
     function createImageFromFile(file) {
@@ -1203,12 +1254,12 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
             if (!accurateFaceDetectorLoad) {
                 updateLiveFrameFeedback('neutral', 'Menyiapkan deteksi wajah lebih detail. Tetap hadap kamera...', 0);
-                accurateFaceDetectorLoad = faceapi.nets.ssdMobilenetv1.loadFromUri(faceModelPath);
+                accurateFaceDetectorLoad = loadFaceModel(faceapi.nets.ssdMobilenetv1, 'deteksi tambahan');
             }
             try {
                 await accurateFaceDetectorLoad;
             } catch (error) {
-                throw new Error('Model deteksi tambahan gagal dimuat. Periksa koneksi lalu muat ulang halaman; jika tetap gagal, hubungi admin.');
+                throw new Error(error.message || 'Model deteksi tambahan gagal dimuat. Aktifkan ulang kamera untuk mencoba kembali.');
             }
             useAccurateFaceDetector = true;
         }
@@ -1771,9 +1822,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         if (!faceApiReady) {
             drawLiveCameraOverlay({
-                state: 'neutral'
+                state: faceModelLoadError ? 'red' : 'neutral'
             });
-            updateLiveFrameFeedback('neutral', 'Kamera aktif. Model verifikasi sedang disiapkan...', 0);
+            updateLiveFrameFeedback(faceModelLoadError ? 'red' : 'neutral', faceModelLoadError || 'Kamera aktif. Model verifikasi sedang disiapkan...', 0);
             return;
         }
 
@@ -1980,6 +2031,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
             return;
         }
 
+        if (!faceApiReady) { loadFaceModels(); }
+        if (!useAccurateFaceDetector) { accurateFaceDetectorLoad = null; }
         stopLiveCamera();
         const sessionId = cameraSessionId;
         const retryButton = document.getElementById('retryCameraButton');
@@ -2201,7 +2254,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
             emphasizeManualCameraFallback(true);
             updateLiveFrameFeedback('neutral', 'Mode WebView terdeteksi. Kamera live akan dicoba dulu, tapi fallback kamera manual sudah disiapkan.', 0);
         }
-        loadFaceModels();
         startLiveCamera();
 
         if (retryCameraButton) {
