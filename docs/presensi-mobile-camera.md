@@ -1,5 +1,15 @@
 # Kamera presensi pada HP — 29 Oktober 2026
 
+## Liveness pasif tanpa kedip — 14 November 2026
+
+Sesi baru pada `PRESENSI_LIVENESS_MODE=passive` tidak lagi menerbitkan tantangan kedip. Pengguna cukup menghadap lurus selama pengambilan tiga frame frontal sekitar dua detik. UI yang sudah ada mendukung sesi tanpa kebijakan kedip; matching wajah, kualitas gambar, GPS, sesi sekali pakai, dan verifikasi server tetap berlaku. Sesi lama yang sudah memiliki kebijakan kedip tetap memvalidasinya sampai kedaluwarsa; tutup dan buka kembali halaman untuk memperoleh sesi baru. Mode aktif tetap mengikuti konfigurasi sebelumnya.
+
+Anti-spoofing tetap dijalankan API pada selfie dan setiap frame memakai DeepFace/Fasnet. Foto dari HP lain mungkin mencapai tahap capture, tetapi capture tidak berarti presensi terverifikasi. Indikasi spoof dari server ditolak; hasil meragukan masuk review HR, dan kegagalan provider mengikuti konfigurasi fail-open/fail-closed. Jangan menganggap gerakan, kestabilan, atau skor browser sebagai bukti PAD yang sah. Ketahanan terhadap foto/video pada layar perlu diuji dengan model, kamera, dan pencahayaan sebenarnya; tidak dijamin 100%.
+
+Deploy perubahan cukup memperbarui `app/Services/Presensi/AttendanceSecurityService.php` dan membuka ulang halaman presensi. Lingkungan lokal sudah memakai mode `passive`; pastikan konfigurasi hosting juga `PRESENSI_LIVENESS_MODE=passive` dan endpoint pasif siap. Hanya jika konfigurasi diubah, perbarui cache dengan `php artisan config:cache`. Tidak ada perubahan aset, API Python, paket, atau migrasi. Bagian tentang tantangan kedip di bawah adalah riwayat implementasi sebelumnya.
+
+Pemeriksaan regresi mencakup kiriman tanpa bukti kedip yang diterima sebagai bukti kamera (bukan lulus liveness), indikasi layar yang ditolak, validasi kebijakan sesi lama, mode aktif, dan hasil PAD server. Tes sintetis tidak menggantikan uji orang asli, foto pada HP kedua, dan rekaman video sampai status akhir di riwayat presensi.
+
 ## Kamera tertutup saat GPS diperbarui — 14 November 2026
 
 Permintaan bukti GPS Android memakai `window.location.assign('vpeople://gps-proof?...')` yang dicegat aplikasi native. Handler `beforeunload` sebelumnya langsung menghentikan kamera pada upaya navigasi, meskipun halaman presensi tetap terbuka. Handler tersebut dihapus; `pagehide` dan `visibilitychange` tetap menghentikan kamera serta menghapus bukti yang belum selesai saat halaman ditinggalkan atau aplikasi disembunyikan. Pengambilan selfie yang berhasil tetap beralih ke preview seperti biasa.
@@ -68,7 +78,7 @@ Verifikasi kode: tes JavaScript memakai wajah/landmark sintetis dan respons dete
 
 Untuk pesan “Wajah belum terdeteksi / belum terbaca jelas”, menaikkan input Tiny saja belum menambahkan kemampuan detektor lain. Pembacaan landmark sekarang memakai model penuh; deteksi mencoba SSD Mobilenet V1 bila Tiny pada 320 dan 512 tetap kosong atau lemah. SSD hanya dimuat saat dibutuhkan dan dipakai kembali agar tiap frame tidak terus menjalankan tiga percobaan. Ambang deteksi/kecocokan identitas serta keputusan akhir server tetap berlaku. Beberapa wajah diblokir, dan kegagalan memuat model menampilkan instruksi mencoba kembali tanpa meloloskan capture.
 
-Alur terbaru memakai tantangan kedip ringan di UI tanpa instruksi menoleh, dilanjutkan tiga frame frontal dan verifikasi pasif oleh API. Skor deteksi, kedip, atau kestabilan wajah tidak dinyatakan sebagai hasil anti-spoofing server yang sah.
+Alur pasif terbaru mengambil tiga frame frontal tanpa tantangan kedip atau instruksi menoleh, dilanjutkan verifikasi pasif oleh API. Skor deteksi atau kestabilan wajah tidak dinyatakan sebagai hasil anti-spoofing server yang sah.
 
 Tambahan deploy pada perbaikan sebelumnya:
 

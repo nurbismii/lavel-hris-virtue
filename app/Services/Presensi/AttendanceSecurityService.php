@@ -67,11 +67,8 @@ class AttendanceSecurityService
         $payload['liveness_required_frames'] = $this->requiredLivenessFrames($payload['liveness_action']);
         $payload['capture_duration_ms'] = $payload['liveness_action'] === self::LIVENESS_ACTION_PASSIVE
             ? self::PASSIVE_CAPTURE_DURATION_MS : 0;
-        $payload['client_blink_challenge'] = $payload['liveness_action'] === self::LIVENESS_ACTION_PASSIVE
-            ? array_merge(config('services.presensi_face.client_blink', [
-                'min_open_ear' => 0.12, 'closed_ratio' => 0.6, 'reopen_ratio' => 0.85,
-                'min_closed_ms' => 60, 'max_closed_ms' => 2000,
-            ]), ['required_count' => random_int(1, 2)]) : null;
+        // Passive sessions rely on server PAD; cached sessions retain their original blink policy.
+        $payload['client_blink_challenge'] = null;
 
         Cache::put($this->challengeCacheKey($token), $payload, $this->challengeTtlSeconds());
 

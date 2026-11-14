@@ -90,13 +90,38 @@ class PassiveLivenessTest extends TestCase
         }
     }
 
-    public function test_a_new_passive_session_requires_its_random_blink_count_and_both_eye_cycles(): void
+    public function test_a_new_passive_session_accepts_capture_without_any_blink_proof(): void
     {
         $this->actingAs(new User(['id' => 'passive-test-user', 'nik_karyawan' => 'TEST-001']));
+        $challenge = $this->challenge('passive');
+        $this->assertNull($challenge['client_blink_challenge']);
+        $payload = $this->submission($challenge);
+        $meta = json_decode($payload['face_verification_meta'], true);
+        unset($meta['client_liveness']['blink_challenge']);
+        $payload['face_verification_meta'] = json_encode($meta);
+
+        $this->postJson('/_test/presensi-capture', $payload)->assertOk()
+            ->assertJson(['type' => 'passive', 'passed' => false, 'capture_ready' => true]);
+    }
+
+    public function test_passive_capture_without_blinks_still_rejects_client_screen_spoof_evidence(): void
+    {
+        $this->actingAs(new User(['id' => 'passive-test-user', 'nik_karyawan' => 'TEST-001']));
+        $payload = $this->submission($this->challenge('passive'));
+        $payload['screen_spoof_score'] = 45;
+
+        $this->postJson('/_test/presensi-capture', $payload)->assertStatus(422)
+            ->assertJsonValidationErrors('presensi_security');
+    }
+
+    public function test_existing_blink_sessions_keep_validating_their_original_policy(): void
+    {
+        $challenge = $this->challenge('passive');
+        $challenge['client_blink_challenge'] = array_merge(config('services.presensi_face.client_blink'), ['required_count' => 2]);
+        $security = app(AttendanceSecurityService::class);
+        $this->assertTrue($security->validateFacePayload(Request::create('/', 'POST', $this->payload($challenge)), $challenge)['liveness']['capture_ready']);
         foreach (['missing', 'wrong-count', 'open-eyes-only', 'out-of-order', 'too-short'] as $failure) {
-            $challenge = $this->challenge('passive');
-            $this->assertContains($challenge['client_blink_challenge']['required_count'], [1, 2]);
-            $payload = $this->submission($challenge);
+            $payload = $this->payload($challenge);
             $meta = json_decode($payload['face_verification_meta'], true);
             $proof = &$meta['client_liveness']['blink_challenge'];
             if ($failure === 'missing') { $proof = null; }
@@ -105,7 +130,12 @@ class PassiveLivenessTest extends TestCase
             if ($failure === 'out-of-order') { $proof['events'][0]['closed_at_ms'] = 600; }
             if ($failure === 'too-short') { $proof['events'][0]['opened_at_ms'] = 201; }
             $payload['face_verification_meta'] = json_encode($meta);
-            $this->postJson('/_test/presensi-capture', $payload)->assertStatus(422)->assertJsonValidationErrors('presensi_security');
+            try {
+                $security->validateFacePayload(Request::create('/', 'POST', $payload), $challenge);
+                $this->fail('An existing blink session must still require its original proof.');
+            } catch (ValidationException $exception) {
+                $this->assertArrayHasKey('presensi_security', $exception->errors());
+            }
             unset($proof);
         }
     }
@@ -163,6 +193,7 @@ class PassiveLivenessTest extends TestCase
     {
         $challenge = $this->challenge('active');
         $this->assertSame(['center', 'turn_left', 'turn_right'], $challenge['liveness_required_frames']);
+        $this->assertNull($challenge['client_blink_challenge']);
         $result = app(AttendanceSecurityService::class)->validateFacePayload(Request::create('/', 'POST', $this->payload($challenge)), $challenge);
         $this->assertTrue($result['liveness']['passed']);
         $passive = $this->payload($this->challenge('passive'));
