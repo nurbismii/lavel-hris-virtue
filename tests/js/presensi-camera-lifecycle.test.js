@@ -12,6 +12,13 @@ function load(context, ...names) {
     }
 }
 
+function loadCameraLifecycle(context) {
+    const start = source.indexOf("        window.addEventListener('resize', function()");
+    const end = source.indexOf('        if (!navigator.geolocation)', start);
+    assert.ok(start >= 0 && end > start, 'camera lifecycle listeners exist');
+    vm.runInContext(source.slice(start, end), context);
+}
+
 function cameraContext(overrides = {}) {
     let nextTimer = 0;
     const timers = new Map();
@@ -241,6 +248,78 @@ test('pausing a live camera stops its tracks and invalidates capture readiness',
     assert.equal(resets, 1);
     context.pauseLiveCamera();
     assert.equal(resets, 1);
+});
+
+test('native GPS requests keep the camera running across repeated camera restarts', async () => {
+    const listeners = new Map();
+    let stopped = 0;
+    let analyses = 0;
+    let resets = 0;
+    const proof = { data: 'synthetic-signed-fix', signature: 'synthetic-signature' };
+    const { context, timers, video } = cameraContext({
+        AbortController,
+        navigator: { mediaDevices: { getUserMedia: async () => ({ getTracks: () => [{ stop: () => stopped++ }] }) } },
+        fetch: async () => ({ ok: true, status: 200, json: async () => ({ success: true, data: { nonce: 'test-nonce', key: 'new' } }) }),
+        isPassiveLiveness: true, passiveCaptureText: 'Hold still',
+        evaluateLiveCameraFrame: async () => { analyses++; },
+        resetPassiveCapture: () => resets++,
+    });
+    context.window.addEventListener = context.document.addEventListener = (name, callback) => listeners.set(name, callback);
+    context.window.removeEventListener = name => listeners.delete(name);
+    context.window.location = { assign: url => {
+        assert.ok(url.startsWith('vpeople://gps-proof?'));
+        if (listeners.has('beforeunload')) { listeners.get('beforeunload')(); }
+        listeners.get('vpeople:gps')({ detail: { nonce: 'test-nonce', proof } });
+    } };
+    context.document.querySelector = () => ({ content: 'test-csrf' });
+    context.setTimeout = context.window.setTimeout;
+    context.clearTimeout = context.window.clearTimeout;
+    load(context, 'startLiveCamera', 'stopLiveCamera', 'pauseLiveCamera', 'beginLiveCameraVerification');
+    loadCameraLifecycle(context);
+    vm.runInContext(fs.readFileSync('public/assets/js/presensi-native-gps.js', 'utf8'), context);
+
+    for (let attempt = 0; attempt < 3; attempt++) {
+        await context.startLiveCamera();
+        const stream = video.srcObject;
+        const sessionId = context.cameraSessionId;
+        const previousStops = stopped;
+        const previousResets = resets;
+        for (let fix = 0; fix < 2; fix++) {
+            assert.equal(await context.window.requestPresensiGps('/gps-challenge', 'test-attendance', 'log'), proof);
+            assert.equal(video.srcObject, stream, 'GPS navigation must not close the camera');
+            assert.equal(context.cameraSessionId, sessionId);
+            assert.equal(stopped, previousStops);
+            assert.equal(resets, previousResets);
+            assert.equal(timers.size, 1);
+            await nextTick(timers);
+        }
+    }
+    assert.equal(analyses, 6);
+});
+
+test('leaving or hiding the page still stops the live camera and clears unfinished evidence', () => {
+    for (const event of ['pagehide', 'visibilitychange']) {
+        const listeners = new Map();
+        let stopped = 0;
+        let resets = 0;
+        const { context } = cameraContext({
+            cameraStream: { getTracks: () => [{ stop: () => stopped++ }] },
+            resetFaceVerificationState: () => resets++,
+        });
+        context.window.addEventListener = context.document.addEventListener = (name, callback) => listeners.set(name, callback);
+        load(context, 'stopLiveCamera', 'pauseLiveCamera');
+        loadCameraLifecycle(context);
+        listeners.get('visibilitychange')();
+        assert.equal(stopped, 0, 'a visible page must keep its camera');
+        context.document.hidden = true;
+        listeners.get(event)();
+        assert.equal(stopped, 1);
+        assert.equal(resets, 1);
+        listeners.get('pagehide')();
+        listeners.get('visibilitychange')();
+        assert.equal(stopped, 1);
+        assert.equal(resets, 1);
+    }
 });
 
 test('map startup uses complete local Leaflet assets with the existing version integrity', () => {

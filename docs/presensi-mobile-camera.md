@@ -1,5 +1,13 @@
 # Kamera presensi pada HP — 29 Oktober 2026
 
+## Kamera tertutup saat GPS diperbarui — 14 November 2026
+
+Permintaan bukti GPS Android memakai `window.location.assign('vpeople://gps-proof?...')` yang dicegat aplikasi native. Handler `beforeunload` sebelumnya langsung menghentikan kamera pada upaya navigasi, meskipun halaman presensi tetap terbuka. Handler tersebut dihapus; `pagehide` dan `visibilitychange` tetap menghentikan kamera serta menghapus bukti yang belum selesai saat halaman ditinggalkan atau aplikasi disembunyikan. Pengambilan selfie yang berhasil tetap beralih ke preview seperti biasa.
+
+Tes regresi menjalankan helper GPS asli dengan simulasi `beforeunload`: enam permintaan GPS dalam tiga aktivasi kamera mempertahankan stream dan analisis, sementara perpindahan halaman/aplikasi tetap menghentikannya. Kasus GPS ini gagal pada kode lama dan lulus setelah perbaikan. Pengujian ini menggunakan stream dan bukti sintetis; perilaku WebView/perangkat yang dilaporkan tetap perlu diuji langsung.
+
+Deploy cukup memperbarui `resources/views/user/presensi/index.blade.php`, menjalankan `php artisan view:clear` pada aplikasi production, lalu menutup dan membuka kembali halaman presensi. Tidak memerlukan APK baru, migrasi, Composer, atau perubahan konfigurasi. Uji GPS berulang sambil mengikuti instruksi kamera, tombol Aktifkan Ulang Kamera, pindah aplikasi lalu kembali, serta selfie hingga langkah konfirmasi.
+
 Keluhan: kamera patah-patah pada APK Android Samsung A54, juga terjadi pada browser Chrome/Safari, dan sebagian komponen kadang tidak terlihat.
 
 ## Perubahan

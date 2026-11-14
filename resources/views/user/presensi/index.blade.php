@@ -2351,9 +2351,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             syncLiveCameraOverlaySize();
         });
 
-        window.addEventListener('beforeunload', function() {
-            stopLiveCamera();
-        });
+        // GPS uses an intercepted navigation; stop only when the page actually leaves or becomes hidden.
         window.addEventListener('pagehide', pauseLiveCamera);
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) { pauseLiveCamera(); }
