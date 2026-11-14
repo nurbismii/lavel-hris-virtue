@@ -1,5 +1,15 @@
 # Kamera presensi pada HP — 29 Oktober 2026
 
+## Mengurangi beban halaman presensi — 14 November 2026
+
+Peta satelit sebelumnya tetap dibuat pada elemen `.presensi-hidden-map` di luar layar. Halaman kini menghapus elemen, pemuatan Leaflet, permintaan tile, dan pembaruan marker tersebut. Informasi GPS live, pemilihan lokasi terdekat, jarak, radius, bukti GPS native/iOS, dan validasi server tetap berjalan tanpa peta. Tampilan peta memang sudah tidak terlihat sebelum perubahan ini.
+
+Pemilihan detektor wajah sekarang memeriksa jumlah dan skor kotak deteksi sebelum menjalankan landmark penuh dan pengenalan identitas. Kandidat Tiny 320/512 yang dibuang tidak lagi dihitung landmark/descriptor-nya; hasil yang dipilih dipakai ulang oleh task SDK existing. Beberapa wajah tetap diblokir, SSD tetap menjadi cadangan, dan setiap pembacaan wajah yang diterima serta selfie final tetap melewati matching. Tidak ada penurunan ambang, resolusi bukti, pengurangan frame pasif, atau perubahan PAD server. Teks/status kamera yang sama tidak ditulis ulang pada setiap inferensi, sementara indikator progres tetap diperbarui.
+
+Tes memakai data sintetis, SDK face-api yang dibundel, serta inferensi model simulasi. Skenario Tiny lemah lalu Tiny yang lebih jelas hanya menjalankan satu tahap landmark dan pengenalan, tanpa mengulangi deteksi atau meninggalkan tensor sementara. Regresi mencakup fallback SSD, beberapa wajah, pergantian wajah, retake, jeda aplikasi, alur pasif tanpa kedip, dan GPS. Penghematan jumlah pekerjaan teruji; waktu muat, FPS, akurasi biometrik, dan pemakaian baterai pada HP asli belum diukur.
+
+Deploy `resources/views/user/presensi/index.blade.php` dan `public/assets/css/user-presensi.css`, lalu jalankan `php artisan view:clear` dan buka ulang halaman presensi. CSS memakai `ui=presensi-perf-1`; helper kamera dan model existing tetap digunakan. Tidak memerlukan APK, Composer/npm, migrasi, perubahan konfigurasi, atau perubahan API Python.
+
 ## Liveness pasif tanpa kedip — 14 November 2026
 
 Sesi baru pada `PRESENSI_LIVENESS_MODE=passive` tidak lagi menerbitkan tantangan kedip. Pengguna cukup menghadap lurus selama pengambilan tiga frame frontal sekitar dua detik. UI yang sudah ada mendukung sesi tanpa kebijakan kedip; matching wajah, kualitas gambar, GPS, sesi sekali pakai, dan verifikasi server tetap berlaku. Sesi lama yang sudah memiliki kebijakan kedip tetap memvalidasinya sampai kedaluwarsa; tutup dan buka kembali halaman untuk memperoleh sesi baru. Mode aktif tetap mengikuti konfigurasi sebelumnya.

@@ -1,4 +1,4 @@
-/* Presensi camera release: blink-3. */
+/* Presensi page release: presensi-perf-1. */
 .attendance-shell {
     display: grid;
     gap: 1.5rem;
@@ -288,22 +288,6 @@
 .attendance-unified-panel .attendance-summary,
 .attendance-unified-panel .attendance-action-card {
     margin-top: 0;
-}
-
-.presensi-hidden-map {
-    position: absolute;
-    left: -9999px;
-    top: 0;
-    width: 240px;
-    height: 160px;
-    overflow: hidden;
-    opacity: 0;
-    pointer-events: none;
-}
-
-.presensi-hidden-map .map-surface {
-    width: 240px;
-    height: 160px;
 }
 
 .attendance-card__grid {

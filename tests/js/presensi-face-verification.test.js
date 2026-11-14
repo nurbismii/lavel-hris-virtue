@@ -32,6 +32,22 @@ function load(context, ...names) {
     }
 }
 
+function detectorApi(detect, work = { landmarks: 0, recognition: 0 }) {
+    return {
+        TinyFaceDetectorOptions: function (options) { return { kind: 'tiny', ...options }; },
+        SsdMobilenetv1Options: function (options) { return { kind: 'ssd', ...options }; },
+        nets: { ssdMobilenetv1: {} },
+        detectAllFaces: (image, options) => ({ runAndExtendWithFaceDetections: async () => detect(image, options) }),
+        DetectAllFaceLandmarksTask: function (parent, image, useTiny) {
+            assert.equal(useTiny, false);
+            work.landmarks++;
+            const task = Promise.resolve(parent);
+            task.withFaceDescriptors = async () => { work.recognition++; return task; };
+            return task;
+        },
+    };
+}
+
 function landmarks(yaw = 0, angle = 0, jawWidth = 120) {
     const rotate = ([x, y]) => ({ x: 100 + x * Math.cos(angle) - y * Math.sin(angle), y: 100 + x * Math.sin(angle) + y * Math.cos(angle) });
     return {
@@ -66,41 +82,35 @@ test('invalid eye landmarks cannot be treated as a frontal face', () => {
 
 test('a weak face detection retries at higher resolution without lowering the score gate', async () => {
     const calls = [];
+    const work = { landmarks: 0, recognition: 0 };
     const weak = [{ detection: { score: 0.65 } }];
     const clear = [{ detection: { score: 0.94 } }];
-    const context = vm.createContext({ useAccurateFaceDetector: false, accurateFaceDetectorLoad: null, faceapi: {
-        TinyFaceDetectorOptions: function (options) { return options; },
-        detectAllFaces: (_, options) => {
+    const context = vm.createContext({ useAccurateFaceDetector: false, accurateFaceDetectorLoad: null,
+        faceapi: detectorApi((_, options) => {
             calls.push(options);
-            return { withFaceLandmarks: () => ({ withFaceDescriptors: async () => options.inputSize === 320 ? weak : clear }) };
-        },
-    } });
+            return options.inputSize === 320 ? weak : clear;
+        }, work),
+    });
     load(context, 'detectFaceDescriptors');
     assert.equal(await context.detectFaceDescriptors({}), clear);
     assert.deepEqual(calls.map(options => options.inputSize), [320, 512]);
     assert.ok(calls.every(options => options.scoreThreshold === 0.5));
+    assert.deepEqual(work, { landmarks: 1, recognition: 1 });
 });
 
 test('a face missed by both tiny resolutions uses the accurate detector and full landmarks', async () => {
     const calls = [];
     let modelLoads = 0;
+    const work = { landmarks: 0, recognition: 0 };
     const face = [{ detection: { score: 0.99 }, descriptor: [] }];
     const context = vm.createContext({
         accurateFaceDetectorLoad: null, useAccurateFaceDetector: false, faceModelPath: '/local-models',
         updateLiveFrameFeedback() {},
         loadFaceModel: async (net, label) => { assert.equal(label, 'deteksi tambahan'); modelLoads++; },
-        faceapi: {
-            TinyFaceDetectorOptions: function (options) { return { kind: 'tiny', ...options }; },
-            SsdMobilenetv1Options: function (options) { return { kind: 'ssd', ...options }; },
-            nets: { ssdMobilenetv1: {} },
-            detectAllFaces: (_, options) => {
-                calls.push(options);
-                return { withFaceLandmarks: useTiny => {
-                    assert.equal(useTiny, false);
-                    return { withFaceDescriptors: async () => options.kind === 'ssd' ? face : [] };
-                } };
-            },
-        },
+        faceapi: detectorApi((_, options) => {
+            calls.push(options);
+            return options.kind === 'ssd' ? face : [{ detection: { score: 0.6 } }];
+        }, work),
     });
     load(context, 'detectFaceDescriptors');
     assert.equal(await context.detectFaceDescriptors({}), face);
@@ -108,6 +118,7 @@ test('a face missed by both tiny resolutions uses the accurate detector and full
     assert.equal(calls[2].minConfidence, 0.5);
     assert.equal(calls[2].maxResults, 2);
     assert.equal(modelLoads, 1);
+    assert.deepEqual(work, { landmarks: 1, recognition: 1 });
     calls.length = 0;
     assert.equal(await context.detectFaceDescriptors({}), face);
     assert.deepEqual(calls.map(options => options.kind), ['ssd']);
@@ -120,11 +131,7 @@ test('a missing accurate model gives an actionable error and cannot silently app
         accurateFaceDetectorLoad: null, useAccurateFaceDetector: false, faceModelPath: '/local-models',
         updateLiveFrameFeedback() {},
         loadFaceModel: async () => { modelLoads++; throw new Error('Model deteksi tambahan gagal dimuat. Aktifkan ulang kamera.'); },
-        faceapi: {
-            TinyFaceDetectorOptions: function (options) { return options; },
-            nets: { ssdMobilenetv1: {} },
-            detectAllFaces: () => ({ withFaceLandmarks: () => ({ withFaceDescriptors: async () => [{ detection: { score: 0.6 } }] }) }),
-        },
+        faceapi: detectorApi(() => [{ detection: { score: 0.6 } }]),
     });
     load(context, 'detectFaceDescriptors');
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -137,38 +144,33 @@ test('a missing accurate model gives an actionable error and cannot silently app
 test('good detections and multiple faces do not trigger a retry that could hide another person', async () => {
     for (const detections of [[{ detection: { score: 0.95 } }], [{}, {}]]) {
         let calls = 0;
-        const context = vm.createContext({ useAccurateFaceDetector: false, accurateFaceDetectorLoad: null, faceapi: {
-            TinyFaceDetectorOptions: function (options) { return options; },
-            detectAllFaces: () => {
+        const work = { landmarks: 0, recognition: 0 };
+        const context = vm.createContext({ useAccurateFaceDetector: false, accurateFaceDetectorLoad: null,
+            faceapi: detectorApi(() => {
                 calls++;
-                return { withFaceLandmarks: () => ({ withFaceDescriptors: async () => detections }) };
-            },
-        } });
+                return detections;
+            }, work),
+        });
         load(context, 'detectFaceDescriptors');
         assert.equal(await context.detectFaceDescriptors({}), detections);
         assert.equal(calls, 1);
+        assert.equal(work.recognition, detections.length === 1 ? 1 : 0);
+        assert.equal(work.landmarks, detections.length === 1 ? 1 : 0);
     }
 });
 
 test('blink sampling keeps detection and full landmarks while avoiding repeated identity inference', async () => {
     for (const accurate of [false, true]) {
-        let recognitionCalls = 0;
+        const work = { landmarks: 0, recognition: 0 };
         const detections = [{ detection: { score: 0.99 }, landmarks: {} }];
-        const context = vm.createContext({ useAccurateFaceDetector: accurate, accurateFaceDetectorLoad: null, faceapi: {
-            TinyFaceDetectorOptions: function (options) { return options; },
-            SsdMobilenetv1Options: function (options) { return options; },
-            detectAllFaces: () => ({ withFaceLandmarks: tiny => {
-                assert.equal(tiny, false);
-                const task = Promise.resolve(detections);
-                task.withFaceDescriptors = async () => { recognitionCalls++; return detections; };
-                return task;
-            } }),
-        } });
+        const context = vm.createContext({ useAccurateFaceDetector: accurate, accurateFaceDetectorLoad: null,
+            faceapi: detectorApi(() => detections, work),
+        });
         load(context, 'detectFaceDescriptors');
         assert.equal(await context.detectFaceDescriptors({}, false), detections);
-        assert.equal(recognitionCalls, 0);
+        assert.equal(work.recognition, 0);
         assert.equal(await context.detectFaceDescriptors({}), detections);
-        assert.equal(recognitionCalls, 1);
+        assert.equal(work.recognition, 1);
     }
 });
 

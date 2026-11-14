@@ -157,6 +157,7 @@ test('a successful camera startup begins one passive capture loop', async () => 
         beginLiveCameraVerification: () => loops++,
     });
     load(context, 'startLiveCamera', 'stopLiveCamera');
+    assert.equal(context.window.L, undefined);
     await context.startLiveCamera();
     assert.equal(loops, 1);
     assert.equal(video.srcObject, stream);
@@ -222,17 +223,6 @@ test('a selfie encoded after the camera session ends cannot publish stale eviden
     finishBlob({});
     await capturing;
     assert.equal(writes, 0);
-});
-
-test('missing map library produces readable fallback instead of aborting page initialization', () => {
-    const mainMap = {};
-    const { context } = cameraContext({
-        document: { getElementById: () => mainMap },
-        mapUnavailableText: 'GPS still works',
-    });
-    load(context, 'initMap');
-    context.initMap([{ lat: -4, long: 122 }]);
-    assert.equal(mainMap.textContent, 'GPS still works');
 });
 
 test('pausing a live camera stops its tracks and invalidates capture readiness', () => {
@@ -322,22 +312,10 @@ test('leaving or hiding the page still stops the live camera and clears unfinish
     }
 });
 
-test('map startup uses complete local Leaflet assets with the existing version integrity', () => {
-    const crypto = require('node:crypto');
-    const path = require('node:path');
-    assert.ok(source.includes("versioned_asset('vendor/leaflet/leaflet.js')"));
-    assert.ok(source.includes("versioned_asset('vendor/leaflet/leaflet.css')"));
-    assert.equal(source.includes('unpkg.com/leaflet'), false);
-    for (const [name, hash] of [
-        ['leaflet.js', '20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo='],
-        ['leaflet.css', 'p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY='],
-    ]) {
-        assert.equal(crypto.createHash('sha256').update(fs.readFileSync('public/vendor/leaflet/' + name)).digest('base64'), hash);
-    }
-    const css = fs.readFileSync('public/vendor/leaflet/leaflet.css', 'utf8');
-    for (const match of css.matchAll(/url\(["']?(images\/[^)"']+)/g)) {
-        assert.ok(fs.existsSync(path.join('public/vendor/leaflet', match[1])), match[1]);
-    }
+test('attendance loads no hidden map assets or satellite tiles while retaining live GPS', () => {
+    assert.equal(/leaflet|World_Imagery|presensi-hidden-map|initMap|syncUserMapMarker|refreshMapViewport/.test(source), false);
+    assert.ok(source.includes('navigator.geolocation.watchPosition('));
+    assert.ok(source.includes('const nearestLocation = nearestAttendanceLocation(latUser, longUser);'));
 });
 
 test('placeholder and live surfaces expose their mode without hiding the active camera', () => {

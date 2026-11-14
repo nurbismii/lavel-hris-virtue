@@ -1,8 +1,7 @@
 @extends('layouts.app')
 
 @push('styles')
-<link rel="stylesheet" href="{{ versioned_asset('vendor/leaflet/leaflet.css') }}">
-<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css?ui=blink-3') }}">
+<link rel="stylesheet" href="{{ versioned_asset('assets/css/user-presensi.css?ui=presensi-perf-1') }}">
 @endpush
 
 @section('content')
@@ -354,10 +353,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
                             @endif
 
                             <div id="wizardAttendanceContent" class="attendance-unified-panel">
-                                <div class="presensi-hidden-map" aria-hidden="true">
-                                    <div id="map" class="map-surface"></div>
-                                </div>
-
                                 @if ($statusPresensiHariIni)
                                 <div class="alert alert-info mb-2 mt-4">
                                     <strong>{{ __('Status hari ini:') }}</strong> {{ $statusPresensiHariIni }}
@@ -589,15 +584,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
 @endif
 <script src="{{ versioned_asset('assets/js/presensi-native-gps.js') }}"></script>
 <script src="{{ versioned_asset('assets/js/passive-face-capture.js?ui=blink-3') }}"></script>
-<script src="{{ versioned_asset('vendor/leaflet/leaflet.js') }}"></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
 @if ($isLocationReady)
 <script>
-    let map;
-    let markerUser;
-    let markerOffice = [];
-    let circleOffice = [];
     let currentDistance = 0;
     let stableStartTime = null;
     let gpsReady = false;
@@ -662,7 +652,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
     const passiveCaptureText = @json(__('Hadap lurus dan tahan wajah di dalam frame. Bukti kamera sedang diambil.'));
     const passiveReadyText = @json(__('Bukti wajah siap dikirim. Hasil liveness akan ditentukan oleh verifikasi server.'));
     const cameraPausedText = @json(__('Kamera dijeda. Aktifkan ulang kamera untuk melanjutkan presensi.'));
-    const mapUnavailableText = @json(__('Peta belum tersedia. Pembacaan GPS tetap berjalan.'));
     const attendancePositionLabel = @json(__('Posisi presensi'));
     const gpsLocationPrompt = @json(__('Izinkan lokasi untuk membaca jarak, akurasi, dan posisi presensi.'));
     const manualSelfieEnabled = false;
@@ -670,8 +659,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
     const gpsLogUrl = @json(url('/api/gps-log'));
     const gpsChallengeUrl = @json(route('presensi.gps-challenge'));
     const attendanceLocations = @json($attendanceLocationItems);
-    const freeMapTileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-    const freeMapAttribution = 'Lokasi presensi';
 
     function attendanceChallengeExpiresAt() {
         if (!attendanceChallenge || !attendanceChallenge.expires_at) {
@@ -798,92 +785,12 @@ $locationIssueMessage = $locationIssueMessage ?? (
             'Akses kamera ditolak atau tidak tersedia. Gunakan upload manual bila perlu.';
     }
 
-    function createMapPinIcon(color) {
-        const safeColor = color === 'red' ? 'red' : 'blue';
-
-        return L.divIcon({
-            className: 'attendance-map-pin attendance-map-pin--' + safeColor,
-            html: '<span></span>',
-            iconSize: [34, 44],
-            iconAnchor: [17, 40],
-            popupAnchor: [0, -38]
-        });
-    }
-
     function firstAttendanceLocation() {
         return attendanceLocations && attendanceLocations.length ? attendanceLocations[0] : null;
     }
 
-    function locationPosition(location) {
-        return [Number(location.lat), Number(location.long)];
-    }
-
     function maxGpsAccuracyForLocation(location) {
         return Math.min(200, Math.max(60, Number(location.radius) * 0.25));
-    }
-
-    function initMap(locations) {
-        const mapElement = document.getElementById('map');
-        if (!mapElement || !window.L || !locations.length) {
-            if (mapElement) { mapElement.textContent = mapUnavailableText; }
-            return;
-        }
-        const firstLocation = locations[0];
-        const firstPosition = locationPosition(firstLocation);
-
-        map = L.map("map", {
-            zoomControl: true,
-            attributionControl: true
-        }).setView(firstPosition, 18);
-
-        L.tileLayer(freeMapTileUrl, {
-            maxZoom: 19,
-            attribution: freeMapAttribution
-        }).addTo(map);
-
-        const bounds = [];
-
-        locations.forEach(function(location) {
-            const officePosition = locationPosition(location);
-
-            bounds.push(officePosition);
-
-            markerOffice.push(L.marker(officePosition, {
-                title: location.name || 'Lokasi presensi',
-                icon: createMapPinIcon('red')
-            }).addTo(map));
-
-            circleOffice.push(L.circle(officePosition, {
-                color: "#fd0d0d",
-                opacity: 0.8,
-                weight: 2,
-                fillColor: "#fd0d0d",
-                fillOpacity: 0.2,
-                radius: Number(location.radius)
-            }).addTo(map));
-        });
-
-        if (bounds.length > 1) {
-            map.fitBounds(bounds, {
-                padding: [24, 24],
-                maxZoom: 18
-            });
-        }
-    }
-
-    function syncUserMapMarker(latUser, longUser) {
-        const userPosition = [latUser, longUser];
-
-        if (map) {
-            if (markerUser) {
-                markerUser.setLatLng(userPosition);
-            } else {
-                markerUser = L.marker(userPosition, {
-                    title: @json(__('Posisi kamu')),
-                    icon: createMapPinIcon('blue')
-                }).addTo(map);
-            }
-        }
     }
 
     function updateFaceLiveLocation(status, title, meta) {
@@ -1252,13 +1159,18 @@ $locationIssueMessage = $locationIssueMessage ?? (
     }
 
     async function detectFaceDescriptors(image, includeDescriptors = true) {
+        const completeDetections = function(detections) {
+            if (detections.length !== 1) { return detections; }
+            // Reuse detection results instead of rerunning a detector for landmarks and recognition.
+            const task = new faceapi.DetectAllFaceLandmarksTask(Promise.resolve(detections), image, false);
+            return includeDescriptors ? task.withFaceDescriptors() : task;
+        };
         if (!useAccurateFaceDetector) {
             for (const inputSize of [320, 512]) {
                 const options = new faceapi.TinyFaceDetectorOptions({ inputSize, scoreThreshold: 0.5 });
-                const task = faceapi.detectAllFaces(image, options).withFaceLandmarks(false);
-                const detections = await (includeDescriptors ? task.withFaceDescriptors() : task);
+                const detections = await faceapi.detectAllFaces(image, options).runAndExtendWithFaceDetections();
                 if (detections.length > 1 || (detections.length === 1 && detections[0].detection.score >= 0.78)) {
-                    return detections;
+                    return completeDetections(detections);
                 }
             }
 
@@ -1274,8 +1186,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
             useAccurateFaceDetector = true;
         }
 
-        const task = faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, maxResults: 2 })).withFaceLandmarks(false);
-        return includeDescriptors ? task.withFaceDescriptors() : task;
+        const detections = await faceapi.detectAllFaces(image, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5, maxResults: 2 })).runAndExtendWithFaceDetections();
+        return completeDetections(detections);
     }
 
     async function ensureReferenceFaceDescriptor() {
@@ -1526,7 +1438,14 @@ $locationIssueMessage = $locationIssueMessage ?? (
         const config = states[state] || states.neutral;
         const safeProgress = Math.max(0, Math.min(progress, 1));
 
+        if (holdBar) {
+            holdBar.style.width = (safeProgress * 100) + '%';
+        }
+        const feedbackKey = state + ':' + message;
+        if (stage && stage.dataset.feedbackKey === feedbackKey) { return; }
+
         if (stage) {
+            stage.dataset.feedbackKey = feedbackKey;
             stage.dataset.frameState = state;
         }
 
@@ -1541,10 +1460,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         if (messageElement) {
             messageElement.textContent = message;
-        }
-
-        if (holdBar) {
-            holdBar.style.width = (safeProgress * 100) + '%';
         }
 
         if (progressText) {
@@ -2230,21 +2145,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
             manualSelfieButton.disabled = true;
         }
 
-        const refreshMapViewport = function() {
-            if (!map || !window.L) {
-                return;
-            }
-
-            map.invalidateSize();
-
-            if (markerUser) {
-                map.panTo(markerUser.getLatLng());
-                return;
-            }
-
-            map.setView(locationPosition(initialLocation), map.getZoom() || 17);
-        };
-
         const setWizardStep = function(step, options = {}) {
             const scroll = options.scroll === true;
             const hasFaceStep = Boolean(wizardStepFace && document.getElementById('selfieCameraStage'));
@@ -2289,14 +2189,12 @@ $locationIssueMessage = $locationIssueMessage ?? (
                         behavior: 'smooth',
                         block: 'center'
                     });
-                    window.setTimeout(refreshMapViewport, 260);
                 }, 120);
             }
         };
 
         window.setAttendanceWizardStep = setWizardStep;
 
-        initMap(attendanceLocations);
         updateFaceLiveLocation('neutral', 'Menunggu GPS...', 'Sistem akan menyimpan bukti lokasi saat titik sudah stabil.');
         updateAttendanceButtonState();
         setSelfieSurfaceMode(wizardStepFace ? 'placeholder' : 'preview');
@@ -2375,7 +2273,6 @@ $locationIssueMessage = $locationIssueMessage ?? (
             const maxGpsAccuracy = nearestLocation ? nearestLocation.maxGpsAccuracy : 60;
             const locationName = nearestLocation && nearestLocation.name ? nearestLocation.name : 'Lokasi presensi';
 
-            syncUserMapMarker(latUser, longUser);
             updateFaceLiveLocation(
                 'warning',
                 'Membaca lokasi live...',
