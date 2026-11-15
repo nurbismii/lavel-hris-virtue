@@ -55,6 +55,7 @@ test('the camera workflow captures frontal evidence once and resets when the fac
         Date: { now: () => now },
         syncLiveCameraOverlaySize: () => ({ width: 320, height: 400 }),
         ensureReferenceFaceDescriptor: async () => [],
+        validateFaceImageQuality() {},
         detectFaceDescriptors: async () => visible ? [detection] : [],
         faceapi: { resizeResults: (items) => items, euclideanDistance: () => 0.3 },
         getLiveGuideRect: () => ({ x: 0, y: 0, width: 320, height: 400 }),

@@ -22,6 +22,8 @@ class FakeDeepFace:
         self.score = 0.99
         self.face_mismatch_frame = None
         self.incomplete_pad = False
+        self.face_counts = {}
+        self.confidence = 99.0
 
     def extract_faces(self, img_path, anti_spoofing=False, **kwargs):
         self.antispoof_calls.append(anti_spoofing)
@@ -29,7 +31,7 @@ class FakeDeepFace:
         if anti_spoofing and not self.incomplete_pad:
             index = self.antispoof_calls.count(True)
             face.update(is_real=index != self.spoof_frame, antispoof_score=self.score)
-        return [face]
+        return [face] * self.face_counts.get(len(self.antispoof_calls), 1)
 
     def represent(self, **kwargs):
         return [{"embedding": [0.1, 0.2, 0.3]}]
@@ -37,7 +39,7 @@ class FakeDeepFace:
     def verify(self, **kwargs):
         self.comparisons += 1
         matches = self.comparisons != self.face_mismatch_frame
-        return dict(verified=matches, confidence=99.0, distance=0.1 if matches else 0.9, threshold=0.5)
+        return dict(verified=matches, confidence=self.confidence, distance=0.1 if matches else 0.9, threshold=0.5)
 
 
 class PassiveVerifierTest(unittest.TestCase):
@@ -116,17 +118,52 @@ class PassiveVerifierTest(unittest.TestCase):
         self.assertTrue(response.json["screen_attack_detected"])
         self.assertFalse(response.json["passive_liveness_passed"])
         self.assertAlmostEqual(0.01, response.json["liveness_score"])
+        self.assertIn("terindikasi spoof", response.json["message"])
+
+    def test_invalid_face_counts_identify_the_image_without_exposing_its_contents(self):
+        for index, field in enumerate(("reference_image",) + verifier.CAMERA_FIELDS, 1):
+            for count in (0, 2):
+                with self.subTest(image=field, count=count):
+                    self.engine = FakeDeepFace()
+                    self.engine.face_counts[index] = count
+                    with self.engines():
+                        response = self.post()
+                    self.assertEqual(422, response.status_code)
+                    self.assertEqual("pending_review", response.json["status"])
+                    self.assertFalse(response.json["verified"])
+                    self.assertIn(verifier.IMAGE_LABELS[field], response.json["message"])
+                    self.assertIn(f"terdeteksi {count} wajah", response.json["message"])
+                    self.assertNotIn("embedding", response.get_data(as_text=True))
+
+    def test_reported_confidence_still_requires_review_even_when_liveness_and_model_matching_pass(self):
+        self.engine.confidence = 72.87
+        with self.engines(), patch.object(verifier, "MIN_FACE_CONFIDENCE", 0.78):
+            response = self.post()
+        self.assertEqual(200, response.status_code)
+        self.assertEqual("pending_review", response.json["status"])
+        self.assertFalse(response.json["verified"])
+        self.assertFalse(response.json["face_matched"])
+        self.assertTrue(response.json["passive_liveness_passed"])
+        self.assertFalse(response.json["screen_attack_detected"])
+        self.assertEqual(0.7287, response.json["confidence"])
+        self.assertEqual(0.78, response.json["min_face_confidence"])
+        self.assertEqual(0.5, response.json["distance_threshold"])
+        for field in verifier.CAMERA_FIELDS:
+            self.assertIn(verifier.IMAGE_LABELS[field], response.json["message"])
 
     def test_low_pad_score_and_a_different_face_in_one_frame_require_review(self):
         self.engine.score = 0.5
         with self.engines():
-            self.assertEqual("pending_review", self.post().json["status"])
+            result = self.post().json
+        self.assertEqual("pending_review", result["status"])
+        self.assertIn("Skor passive liveness", result["message"])
         self.engine = FakeDeepFace()
         self.engine.face_mismatch_frame = 3
         with self.engines():
             result = self.post().json
         self.assertFalse(result["face_matched"])
         self.assertEqual("pending_review", result["status"])
+        self.assertIn("Frame pasif tengah", result["message"])
 
     def test_missing_antispoof_model_output_never_falls_back_to_face_matching(self):
         self.engine.incomplete_pad = True
@@ -152,6 +189,37 @@ class PassiveVerifierTest(unittest.TestCase):
         with self.assertRaises(verifier.InvalidImage):
             verifier.read_image(FileStorage(stream=io.BytesIO(b"x" * (verifier.MAX_FILE_BYTES + 1))), cv2, np)
         self.assertEqual([], self.engine.antispoof_calls)
+
+    def test_quality_failure_identifies_the_image_and_each_failed_measurement(self):
+        cases = [(10, 125, ["terlalu buram"]), (100, 20, ["terlalu gelap"]),
+                 (100, 240, ["terlalu terang"]), (10, 20, ["terlalu buram", "terlalu gelap"])]
+        for index, field in enumerate(("reference_image",) + verifier.CAMERA_FIELDS):
+            for sharpness, brightness, reasons in cases:
+                with self.subTest(image=field, sharpness=sharpness, brightness=brightness):
+                    self.engine = FakeDeepFace()
+                    with self.engines(), patch.multiple(verifier, MIN_BLUR_SCORE=35, MIN_BRIGHTNESS=35, MAX_BRIGHTNESS=225), \
+                         patch.object(cv2, "Laplacian") as laplacian, \
+                         patch.object(np, "mean", side_effect=[125] * index + [brightness]):
+                        laplacian.return_value.var.side_effect = [100] * index + [sharpness]
+                        response = self.post()
+                    self.assertEqual(422, response.status_code)
+                    self.assertEqual("pending_review", response.json["status"])
+                    self.assertFalse(response.json["verified"])
+                    self.assertIn(verifier.IMAGE_LABELS[field], response.json["message"])
+                    for reason in reasons:
+                        self.assertIn(reason, response.json["message"])
+                    self.assertIn(f"ketajaman {sharpness:.2f}", response.json["message"])
+                    self.assertIn(f"kecerahan {brightness:.2f}", response.json["message"])
+
+    def test_quality_boundaries_still_allow_verification(self):
+        for brightness in (35, 225):
+            with self.subTest(brightness=brightness), self.engines(), \
+                 patch.multiple(verifier, MIN_BLUR_SCORE=35, MIN_BRIGHTNESS=35, MAX_BRIGHTNESS=225), \
+                 patch.object(cv2, "Laplacian") as laplacian, patch.object(np, "mean", return_value=brightness):
+                laplacian.return_value.var.return_value = 35
+                response = self.post()
+            self.assertEqual(200, response.status_code)
+            self.assertTrue(response.json["verified"])
 
     def test_second_request_cannot_start_parallel_inference_in_the_same_process(self):
         verifier._inference_lock.acquire()

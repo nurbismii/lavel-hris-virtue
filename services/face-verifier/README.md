@@ -89,6 +89,16 @@ Rujukan: [keluaran DeepFace 0.0.93](https://raw.githubusercontent.com/serengil/d
 
 ## 2. Kontrak request/response
 
+### Diagnosis jumlah wajah dan kecocokan — 14 November 2026
+
+Untuk error kualitas gambar, `read_image` sekarang menyebut jenis gambar yang gagal, alasan buram/gelap/terlalu terang (termasuk beberapa alasan sekaligus), nilai ketajaman/kecerahan, dan batas yang berlaku. Pemeriksaan berlaku pada foto referensi, selfie, serta tiga frame pasif. Nilai bawaan tetap `MIN_BLUR_SCORE=35`, `MIN_BRIGHTNESS=35`, dan `MAX_BRIGHTNESS=225`; nilai ini mengukur gambar keseluruhan, bukan hanya area wajah. Tidak ada pelonggaran batas atau perubahan keputusan verifikasi. Unggah ulang `passive_verifier.py` dan restart aplikasi Python untuk memperoleh pesan baru pada percobaan berikutnya. Pesan kualitas lama tidak membuktikan file deploy tertinggal, karena perbaikan diagnosis sebelumnya baru menyebut gambar pada kegagalan jumlah wajah/matching.
+
+`reference_valid`/`selfie_valid` pada log HRIS berarti berkas dapat digunakan, bukan hasil kecocokan wajah. Pesan lama **Setiap gambar harus memuat tepat satu wajah** belum menunjukkan gambar atau jumlah hasil deteksi. Pesan baru menyebut foto referensi, selfie, atau frame pasif awal/tengah/akhir, serta jumlah wajah yang dikembalikan detektor. Pemeriksaan tepat satu wajah tetap berlaku; beberapa wajah tidak dipilih salah satunya agar bisa lolos.
+
+Skor liveness tinggi dengan `screen_attack_detected=false` tidak menggantikan kecocokan identitas. Contoh confidence `0.7287` berada di bawah ambang bawaan `0.78` dan tetap masuk `pending_review`, meskipun matching bawaan model dan PAD lolos. Pesan review baru menyebut gambar yang gagal matching atau ambang confidence. Respons juga menambahkan `min_face_confidence` dan `distance_threshold`; log Laravel mencatat keduanya, `distance`, dan `passive_liveness_passed`. Confidence global tetap nilai terendah dari empat pemeriksaan, dan distance global tetap nilai tertinggi; keduanya bisa berasal dari frame berbeda. Semua tambahan berupa ringkasan numerik/label, tanpa gambar atau embedding.
+
+Untuk diagnosis ini, unggah `passive_verifier.py` terbaru dan restart aplikasi Python cPanel. Pada HRIS, perbarui `app/Services/Presensi/ServerSideFaceVerificationService.php`; worker yang sudah berjalan perlu dimulai ulang, atau memakai proses baru pada cron berikutnya. Tidak perlu upgrade runtime Python, paket, migrasi, atau menurunkan ambang. Pengajuan lama tidak otomatis diproses ulang. Uji pengajuan baru dan periksa foto referensi melalui akses HR yang sah; jangan menonaktifkan deteksi atau mengambil wajah terbesar untuk mengatasi hasil beberapa wajah.
+
 Multipart request:
 
 | Field | Isi |

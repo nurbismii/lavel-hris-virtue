@@ -1,4 +1,45 @@
-/* Presensi camera release: blink-3. The server/API decides whether liveness passes. */
+/* Presensi camera release: quality-1. The server/API decides whether liveness passes. */
+function analyzeFaceImageQuality(imageData, limits) {
+    const { width, height, data } = imageData;
+    if (!Number.isInteger(width) || !Number.isInteger(height) || width < 2 || height < 2 || data.length !== width * height * 4) {
+        throw new Error('Invalid image pixels');
+    }
+    if (!limits || ![limits.min_blur_score, limits.min_brightness, limits.max_brightness].every(Number.isFinite)
+        || limits.min_blur_score < 0 || limits.min_brightness < 0 || limits.max_brightness > 255
+        || limits.min_brightness >= limits.max_brightness) {
+        throw new Error('Invalid image quality limits');
+    }
+    const gray = new Uint8Array(width * height);
+    let brightnessSum = 0;
+    for (let pixel = 0, offset = 0; pixel < gray.length; pixel++, offset += 4) {
+        gray[pixel] = (9798 * data[offset] + 19235 * data[offset + 1] + 3735 * data[offset + 2] + 16384) >> 15;
+        brightnessSum += gray[pixel];
+    }
+    let laplacianSum = 0;
+    let laplacianSquares = 0;
+    // Match OpenCV's ksize=1 Laplacian with BORDER_REFLECT_101.
+    for (let y = 0; y < height; y++) {
+        const row = y * width;
+        const above = (y === 0 ? 1 : y - 1) * width;
+        const below = (y === height - 1 ? height - 2 : y + 1) * width;
+        for (let x = 0; x < width; x++) {
+            const left = x === 0 ? 1 : x - 1;
+            const right = x === width - 1 ? width - 2 : x + 1;
+            const value = gray[above + x] + gray[below + x] + gray[row + left] + gray[row + right] - 4 * gray[row + x];
+            laplacianSum += value;
+            laplacianSquares += value * value;
+        }
+    }
+    const brightness = brightnessSum / gray.length;
+    const sharpness = Math.max(0, laplacianSquares / gray.length - (laplacianSum / gray.length) ** 2);
+    const issues = [];
+    if (brightness < limits.min_brightness) { issues.push('dark'); }
+    if (brightness > limits.max_brightness) { issues.push('bright'); }
+    if (sharpness < limits.min_blur_score) { issues.push('blur'); }
+    return { passed: issues.length === 0, issues, brightness, sharpness };
+}
+analyzeFaceImageQuality.release = 'quality-1';
+
 class PassiveFaceCapture {
     constructor(durationMs) {
         this.durationMs = durationMs;
@@ -115,4 +156,5 @@ class BlinkLivenessChallenge {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = PassiveFaceCapture;
     module.exports.BlinkLivenessChallenge = BlinkLivenessChallenge;
+    module.exports.analyzeFaceImageQuality = analyzeFaceImageQuality;
 }

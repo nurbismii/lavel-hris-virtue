@@ -1870,5 +1870,10 @@
     "GPS Live": "实时 GPS",
     "Posisi presensi": "考勤位置",
     "Izinkan lokasi untuk membaca jarak, akurasi, dan posisi presensi.": "请允许定位以读取距离、精度和考勤位置。",
-    "Izinkan akses kamera, arahkan wajah ke tengah frame, lalu ikuti instruksi pada kamera sampai bukti siap dikirim.": "请允许摄像头访问，将面部对准框中央，然后按照摄像头提示操作，直到证据准备提交。"
+    "Izinkan akses kamera, arahkan wajah ke tengah frame, lalu ikuti instruksi pada kamera sampai bukti siap dikirim.": "请允许摄像头访问，将面部对准框中央，然后按照摄像头提示操作，直到证据准备提交。",
+    "Pencahayaan terlalu gelap. Hadapkan wajah ke sumber cahaya.": "光线过暗，请面向光源。",
+    "Pencahayaan terlalu terang. Hindari sorotan lampu atau jendela langsung ke kamera.": "光线过强，请避免灯光或窗户光线直接照向摄像头。",
+    "Gambar masih buram. Tahan HP tetap diam; coba bersihkan lensa jika tetap buram.": "图像仍然模糊，请保持手机稳定；如果仍然模糊，请尝试清洁镜头。",
+    "Foto referensi belum cukup jelas atau terang. Minta HR memperbarui foto referensi, lalu muat ulang halaman.": "参考照片不够清晰或明亮，请联系人力资源部门更新参考照片，然后重新加载页面。",
+    "Kualitas gambar belum dapat diperiksa. Aktifkan ulang kamera atau muat ulang halaman.": "暂时无法检查图像质量，请重新启用摄像头或重新加载页面。"
 }

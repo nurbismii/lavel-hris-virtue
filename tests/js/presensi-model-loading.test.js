@@ -16,6 +16,7 @@ function modelContext(overrides = {}) {
     const messages = [];
     const context = vm.createContext({
         faceReferencePath: '/private-reference', faceModelPath: '/models', faceApiReady: false,
+        analyzeFaceImageQuality: require('../../public/assets/js/passive-face-capture.js').analyzeFaceImageQuality,
         clientBlinkPolicy: null, blinkChallenge: null,
         faceModelsLoadPromise: null, faceModelLoadError: '', faceModelLoads: new Map(),
         faceapi: { nets: { tinyFaceDetector: {}, faceLandmark68Net: {}, faceRecognitionNet: {} } },
@@ -84,6 +85,17 @@ test('a missing blink script keeps capture blocked and explains how to recover',
     assert.equal(context.faceApiReady, false);
 });
 
+test('a missing or stale quality helper blocks capture before loading models', async () => {
+    for (const helper of [undefined, () => {}]) {
+        let modelLoads = 0;
+        const { context } = modelContext({ analyzeFaceImageQuality: helper, loadFaceModel: async () => { modelLoads++; } });
+        load(context, 'loadFaceModels');
+        assert.equal(await context.loadFaceModels(), false);
+        assert.match(context.faceModelLoadError, /kualitas.*Muat ulang/);
+        assert.equal(modelLoads, 0);
+    }
+});
+
 test('a stale production blink helper reports a version mismatch and blocks capture', async () => {
     for (const release of [undefined, 'blink-2']) {
         let modelLoads = 0;
@@ -102,7 +114,7 @@ test('the bundled blink helper matches the page release and allows normal model 
     const { context } = modelContext({ clientBlinkPolicy: { required_count: 1 },
         blinkChallenge: new BlinkLivenessChallenge({ required_count: 1 }) });
     assert.equal(BlinkLivenessChallenge.release, 'blink-3');
-    assert.match(source, /passive-face-capture\.js\?ui=blink-3/);
+    assert.match(source, /passive-face-capture\.js\?ui=quality-1/);
     load(context, 'loadFaceModels');
     assert.equal(await context.loadFaceModels(), true);
     assert.equal(context.faceApiReady, true);

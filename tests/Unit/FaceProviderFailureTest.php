@@ -87,6 +87,12 @@ class FaceProviderFailureTest extends TestCase
         ];
         $provider = $normalize->invoke($service, $valid, 200, 'passive', 'capture-1');
         $this->assertSame(Presensi::STATUS_ABSEN_VERIFIED, $decide->invoke($service, [], $provider)['status']);
+        $reported = array_merge($valid, ['status' => 'pending_review', 'face_matched' => false,
+            'confidence' => 0.7287, 'liveness_score' => 0.99996]);
+        $provider = $normalize->invoke($service, $reported, 200, 'passive', 'capture-1');
+        $this->assertTrue($provider['liveness_passed']);
+        $this->assertFalse($provider['face_matched']);
+        $this->assertSame(Presensi::STATUS_ABSEN_PENDING_REVIEW, $decide->invoke($service, [], $provider)['status']);
         $invalid = [
             ['status' => 'verified', 'verified' => true],
             array_merge($valid, ['presensi_challenge_id' => 'other-capture']),

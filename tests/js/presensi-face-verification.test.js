@@ -177,6 +177,7 @@ test('blink sampling keeps detection and full landmarks while avoiding repeated 
 test('an unclear reference photo requires HR correction instead of matching against an unreliable descriptor', async () => {
     const context = vm.createContext({
         referenceFaceDescriptor: null,
+        validateFaceImageQuality() {},
         document: { getElementById: () => ({ complete: true }) },
         detectFaceDescriptors: async () => [{ detection: { score: 0.6 }, descriptor: ['unreliable'] }],
     });
@@ -207,6 +208,7 @@ test('the saved selfie is checked again and a swapped or additional face cannot 
                 createElement: () => ({ getContext: () => ({ drawImage() {} }), toBlob() { encoded = true; } }),
             },
             hasRequiredLivenessEvidence: () => true,
+            validateFaceImageQuality() {},
             detectFaceDescriptors: async () => detections, ensureReferenceFaceDescriptor: async () => [],
             faceapi: { euclideanDistance: () => 0.8 }, getFaceRollAngle: () => 0,
             analyzeScreenSpoofFromCanvas: () => ({ score: 0 }),
@@ -235,6 +237,7 @@ test('a matching frozen selfie saves its own metrics and reports that final veri
             }),
         },
         hasRequiredLivenessEvidence: () => true, ensureReferenceFaceDescriptor: async () => [],
+        validateFaceImageQuality() {}, createImageFromFile: async () => ({}),
         detectFaceDescriptors: async () => [{ detection: { score: 0.97 }, descriptor: [], landmarks: {} }],
         faceapi: { euclideanDistance: () => 0.32 }, getFaceRollAngle: () => 2,
         analyzeScreenSpoofFromCanvas: () => ({ score: 0 }),
@@ -264,6 +267,7 @@ test('a frontal face with a tilted camera and obscured jaw reaches passive captu
         document: { getElementById: id => id === 'selfieCamera' ? { readyState: 2 } : input },
         syncLiveCameraOverlaySize: () => ({ width: 320, height: 400 }),
         ensureReferenceFaceDescriptor: async () => [], detectFaceDescriptors: async () => [face],
+        validateFaceImageQuality() {},
         faceapi: { resizeResults: items => items, euclideanDistance: () => 0.3 },
         getLiveGuideRect: () => ({ x: 0, y: 0, width: 320, height: 400 }), getFaceRollAngle: () => 10.3,
         passiveCapture: { observe: () => { captures++; return { frameIndex: null, progress: 0.5 }; } },

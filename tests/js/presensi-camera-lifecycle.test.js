@@ -40,6 +40,7 @@ function cameraContext(overrides = {}) {
         },
         isLikelyAndroidWebView: () => true, isAttendanceChallengeReady: () => true,
         emphasizeManualCameraFallback() {}, updateLiveFrameFeedback() {},
+        validateFaceImageQuality() {}, createImageFromFile: async () => ({}),
         setSelfieSurfaceMode() {}, drawLiveCameraOverlay() {}, resetFaceVerificationState() {},
         resetPassiveCapture() {}, syncLiveCameraOverlaySize: () => ({ width: 320, height: 400 }),
         ...overrides,

@@ -17,6 +17,9 @@ from PIL import Image, UnidentifiedImageError
 passive_blueprint = Blueprint("passive_verifier", __name__)
 CONTRACT = "passive-v1"
 CAMERA_FIELDS = ("selfie_image", "liveness_passive_start_image", "liveness_passive_middle_image", "liveness_passive_end_image")
+IMAGE_LABELS = {"reference_image": "Foto referensi", "selfie_image": "Selfie",
+                "liveness_passive_start_image": "Frame pasif awal", "liveness_passive_middle_image": "Frame pasif tengah",
+                "liveness_passive_end_image": "Frame pasif akhir"}
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN", "")
 FACE_MODEL = os.getenv("FACE_MODEL", "SFace")
 FACE_DETECTOR = os.getenv("FACE_DETECTOR", "opencv")
@@ -62,7 +65,7 @@ def load_engines():
     return cv2, np, DeepFace
 
 
-def read_image(upload, cv2, np):
+def read_image(upload, cv2, np, image_field=None):
     data = upload.stream.read(MAX_FILE_BYTES + 1)
     if not data or len(data) > MAX_FILE_BYTES:
         raise InvalidImage("Berkas gambar kosong atau melebihi batas ukuran.")
@@ -78,17 +81,29 @@ def read_image(upload, cv2, np):
         raise InvalidImage("Berkas gambar tidak dapat dibaca.")
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     brightness = float(np.mean(gray))
-    if float(cv2.Laplacian(gray, cv2.CV_64F).var()) < MIN_BLUR_SCORE or not MIN_BRIGHTNESS <= brightness <= MAX_BRIGHTNESS:
-        raise InvalidImage("Gambar terlalu buram, gelap, atau terang. Ulangi pengambilan dengan pencahayaan merata.")
+    blur_score = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+    quality_failures = []
+    if blur_score < MIN_BLUR_SCORE:
+        quality_failures.append("terlalu buram")
+    if brightness < MIN_BRIGHTNESS:
+        quality_failures.append("terlalu gelap")
+    if brightness > MAX_BRIGHTNESS:
+        quality_failures.append("terlalu terang")
+    if quality_failures:
+        label = IMAGE_LABELS.get(image_field, "Gambar")
+        raise InvalidImage(f"{label} {' dan '.join(quality_failures)} "
+                           f"(ketajaman {blur_score:.2f}, minimum {MIN_BLUR_SCORE:g}; "
+                           f"kecerahan {brightness:.2f}, batas {MIN_BRIGHTNESS:g}-{MAX_BRIGHTNESS:g}). "
+                           "Ulangi pengambilan dengan kamera stabil dan pencahayaan merata.")
     return image
 
 
-def single_face(image, engine, passive):
+def single_face(image, engine, passive, image_field):
     faces = engine.extract_faces(img_path=image, detector_backend=FACE_DETECTOR,
                                  enforce_detection=True, align=True, normalize_face=False,
                                  color_face="bgr", anti_spoofing=passive)
     if len(faces) != 1:
-        raise InvalidImage("Setiap gambar harus memuat tepat satu wajah.")
+        raise InvalidImage(f"{IMAGE_LABELS[image_field]} harus memuat tepat satu wajah (terdeteksi {len(faces)} wajah).")
     return faces[0]
 
 
@@ -98,13 +113,14 @@ def embedding(face, engine):
 
 
 def analyze_uploads(files, cv2, np, engine):
-    reference = single_face(read_image(files["reference_image"], cv2, np), engine, False)
+    reference = single_face(read_image(files["reference_image"], cv2, np, "reference_image"), engine, False, "reference_image")
     reference_embedding = embedding(reference, engine)
     scores, confidences, distances = [], [], []
     matched = True
     spoof = False
+    face_review_images = []
     for field in CAMERA_FIELDS:
-        face = single_face(read_image(files[field], cv2, np), engine, True)
+        face = single_face(read_image(files[field], cv2, np, field), engine, True, field)
         is_real = face.get("is_real")
         score = face.get("antispoof_score")
         if not isinstance(is_real, (bool, np.bool_)) or not isinstance(score, (int, float, np.floating)):
@@ -126,17 +142,29 @@ def analyze_uploads(files, cv2, np, engine):
             raise RuntimeError("DeepFace returned invalid matching metrics")
         confidences.append(float(confidence) / 100)
         distances.append(float(distance))
-        matched = matched and bool(result.get("verified")) and distance <= threshold
+        frame_matched = bool(result.get("verified")) and distance <= threshold
+        matched = matched and frame_matched
+        if not frame_matched or float(confidence) / 100 < MIN_FACE_CONFIDENCE:
+            face_review_images.append(IMAGE_LABELS[field])
     confidence = min(confidences)
     liveness_score = min(scores)
     face_matched = bool(matched and confidence >= MIN_FACE_CONFIDENCE)
     passed = bool(not spoof and liveness_score >= MIN_LIVENESS_SCORE)
     status = "verified" if passed and face_matched else ("rejected" if spoof else "pending_review")
+    if status == "verified":
+        message = "Verifikasi selesai."
+    elif spoof:
+        message = "Bukti kamera terindikasi spoof. Gunakan wajah langsung di depan kamera."
+    elif face_review_images:
+        message = "Kecocokan wajah dengan foto referensi belum memenuhi syarat pada: " + ", ".join(face_review_images) + ". Perlu review HR."
+    else:
+        message = "Skor passive liveness belum memenuhi syarat. Perlu review HR."
     return dict(status=status, verified=status == "verified", face_matched=face_matched,
                 passive_liveness_passed=passed, liveness_score=round(liveness_score, 6),
                 confidence=round(confidence, 6), screen_attack_detected=bool(spoof),
                 distance=round(max(distances), 6), model=FACE_MODEL, detector=FACE_DETECTOR,
-                message="Verifikasi selesai." if status == "verified" else "Hasil verifikasi membutuhkan pemeriksaan.")
+                min_face_confidence=MIN_FACE_CONFIDENCE, distance_threshold=round(float(threshold), 6),
+                message=message)
 
 
 def unavailable(exc, diagnostics=False):

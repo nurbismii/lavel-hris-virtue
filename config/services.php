@@ -77,6 +77,11 @@ return [
         'queue' => env('PRESENSI_FACE_QUEUE', env('QUEUE_NAME', 'default')),
         'min_confidence' => env('PRESENSI_FACE_MIN_CONFIDENCE', 0.78),
         'min_liveness_score' => env('PRESENSI_LIVENESS_MIN_SCORE', 0.78),
+        'image_quality' => [
+            'min_blur_score' => (float) env('PRESENSI_MIN_BLUR_SCORE', 35),
+            'min_brightness' => (float) env('PRESENSI_MIN_BRIGHTNESS', 35),
+            'max_brightness' => (float) env('PRESENSI_MAX_BRIGHTNESS', 225),
+        ],
         'client_blink' => [
             'min_open_ear' => (float) env('PRESENSI_BLINK_MIN_OPEN_EAR', 0.12),
             'closed_ratio' => (float) env('PRESENSI_BLINK_CLOSED_RATIO', 0.6),

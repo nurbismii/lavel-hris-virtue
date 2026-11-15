@@ -97,6 +97,7 @@ test('the actual camera workflow cannot capture a static photo and captures only
         document: { getElementById: id => id === 'selfieCamera' ? { readyState: 2 } : input },
         syncLiveCameraOverlaySize: () => ({ width: 320, height: 400 }),
         ensureReferenceFaceDescriptor: async () => [],
+        validateFaceImageQuality() {},
         detectFaceDescriptors: async (_, includeDescriptors = true) => {
             descriptorRequests.push(includeDescriptors);
             return [{ ...face, descriptor: includeDescriptors ? face.descriptor : undefined }];

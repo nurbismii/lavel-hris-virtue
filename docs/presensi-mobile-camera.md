@@ -1,5 +1,19 @@
 # Kamera presensi pada HP — 29 Oktober 2026
 
+## Pemeriksaan kualitas sebelum capture — 14 November 2026
+
+Foto referensi yang gagal kualitas menghentikan kamera agar analisis tidak terus diulang saat menunggu perbaikan HR; setelah referensi diperbarui, pengguna membuka ulang halaman.
+
+Kamera memeriksa pencahayaan dan ketajaman sebelum inferensi wajah berikutnya. Preview dianalisis pada lebar maksimal 480 piksel dengan canvas yang digunakan kembali, tanpa request API tambahan. Kondisi terlalu gelap, terlalu terang, dan buram menahan progres serta menampilkan bingkai kuning dengan petunjuk memperbaiki kondisi. Setelah kondisi membaik, pembacaan berlanjut otomatis. Saran membersihkan lensa hanya diberikan saat buram; sistem tidak menyatakan penyebabnya pasti lensa kotor.
+
+Foto referensi juga diperiksa sebelum descriptor pertama dihitung. Referensi yang gagal mengarahkan pengguna ke HR untuk memperbarui foto lalu membuka ulang halaman. Ketiga bukti frame diperiksa setelah JPEG dienkode dan didekode kembali; selfie diperiksa pada gambar beku serta hasil JPEG sebelum mengisi file/payload dan mengaktifkan tombol presensi. Gambar gagal atau hasil decode dari sesi kamera lama tidak diterbitkan. Progres pasif direset saat gagal kualitas; mode aktif mengulang tantangannya. Kecocokan identitas, GPS, tiga frame pasif, dan keputusan akhir PAD server tetap berlaku.
+
+Nilai UI berada di `services.presensi_face.image_quality`: `PRESENSI_MIN_BLUR_SCORE=35`, `PRESENSI_MIN_BRIGHTNESS=35`, dan `PRESENSI_MAX_BRIGHTNESS=225`. Samakan nilainya dengan `MIN_BLUR_SCORE`, `MIN_BRIGHTNESS`, dan `MAX_BRIGHTNESS` pada aplikasi Python bila pengaturan API diubah. Nilai awal mengikuti API existing; bukan kalibrasi baru pada perangkat lapangan. Pengukuran memakai grayscale 8-bit dan [Laplacian ksize=1 dengan border default OpenCV](https://docs.opencv.org/4.11.0/d4/d86/group__imgproc__filter.html). Tes membandingkan hasil pada RGB sintetis dan piksel JPEG terdekode dengan keluaran OpenCV. Decoder browser, konfigurasi hosting, dan kondisi kamera masih dapat menghasilkan perbedaan, sehingga server tetap memeriksa seluruh gambar.
+
+Deploy `resources/views/user/presensi/index.blade.php`, `public/assets/js/passive-face-capture.js`, `config/services.php`, dan `resources/lang/zh_CN.json`. Jalankan `php artisan config:cache` serta `php artisan view:clear`, lalu buka ulang presensi. Helper memakai query dan penanda `quality-1`; halaman menahan capture jika helper tidak tersedia atau versinya tidak sesuai. Algoritme kedip lama tetap tersedia hanya untuk kompatibilitas sesi yang sudah diterbitkan. Tidak ada perubahan endpoint/kontrak Python untuk pemeriksaan awal ini, migrasi, atau dependensi baru.
+
+Verifikasi mencakup blur/pencahayaan terpisah, batas inklusif, kegagalan membaca piksel, referensi buruk, pemulihan progres, penurunan kualitas setelah JPEG, pergantian sesi saat decode, dan helper versi lama. Uji Chrome headless memakai JPEG dan FileReader/Image asli dengan piksel sintetis, bukan kamera atau data pegawai. Kamera HP, referensi pegawai asli, dan akurasi di berbagai pencahayaan perlu diuji sebelum penerapan penuh.
+
 ## Mengurangi beban halaman presensi — 14 November 2026
 
 Peta satelit sebelumnya tetap dibuat pada elemen `.presensi-hidden-map` di luar layar. Halaman kini menghapus elemen, pemuatan Leaflet, permintaan tile, dan pembaruan marker tersebut. Informasi GPS live, pemilihan lokasi terdekat, jarak, radius, bukti GPS native/iOS, dan validasi server tetap berjalan tanpa peta. Tampilan peta memang sudah tidak terlihat sebelum perubahan ini.

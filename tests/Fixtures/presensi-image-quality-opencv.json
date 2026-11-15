@@ -1,0 +1,21 @@
+{
+  "source": "Synthetic RGB pixels; OpenCV 5.0.0 COLOR_RGB2GRAY and Laplacian CV_64F, ksize=1, BORDER_DEFAULT.",
+  "samples": [
+    {
+      "name": "rgb",
+      "width": 13,
+      "height": 11,
+      "rgba_base64": "iCbZ/xbN+/8hxsH//5Gn/2FWWv9wJBb/2m7C/xLN2/+NiAD/Fg62/4ay6/+BkzP/tQEc/xiMU//Hhu3/YsL5/3FEWv+8Lw3/2sJA/5est/+jgjv/yRPR/2KDFv8OzCD/br35/9Ypfv9Mcyn/EBeA/4ue7P9er5L/uy5m/3hA7f8GzhT/yDFY/9Sktv+gBGf/TYGg/9IjPv+hi8r/l4Nx/zpRUf9zHlH/LDoi/ziWF//DRPn/ja+//0zj4/9TVhD/bvq4/9vwov/f0yz/udlG/xDCtP+h9XP/TCrD/wkSwv8feVX/s742/8Jaif80YxH/bap///g8k/8Ycvf/laPk/7AZjP+tDyT/RMcQ/8WIwv+k19P/MRfy/yhdF/8He3f/OURv/389uf82C6D/+uuL/yKEf/8nK+L/Tb7T/0vcrv/UyCr/7I67/6i+C/9L3F3/w7eu//ciff8taWn/SmlT/yIx0f/ngXL/1l4f/zqLE/9FzzT/eNCu/7HL6v8xgTD/9kWD/3Yoif9CITn/Cb2v/0zMx/95Nb//h1Qp/7sWOv+nEIP/kBHu/3irev/mt/D/KjDp/28B3P8iKfT/ZSrV/7c7OP+h35L/RLM//9jjGP+dQvf/TzVr/5HEdP/6DtX/Clxq/290Cf8Fzkr/HnnX/3XIMf9jFhL/6eXg/97PSf+xqFP/PX0G/7iusf/SAqP/mtHG/yNFPP8u1Rf/Ly0z/0feDf/OY37/4gEx/+D9y/9B4HP/ybv0/8XHbf8=",
+      "brightness": 124.18181818181819,
+      "sharpness": 44845.17414054476
+    },
+    {
+      "name": "jpeg_76",
+      "width": 13,
+      "height": 11,
+      "rgba_base64": "D2a1/2yx6v95mKr/x7ut/4xLK/9qKBj/noqt/5+Txf+PYIL/NB4h/3+4lf99k4b/kA1R/ylwqP92rNj/jqe7/19VVP94Rzj/2qqe/62ntf94epH/eGBw/31vbv90l3b/oqqV/65KcP9Lb3v/BSIy/6ayzP+Sjqn/ZU5g/2tdXP9+k3T/VXdU/6K3qP8/RTf/e3BS/2NLKf/Cnoj/cYlz/z5OTv80MmH/OzNu/2pqkP94hYv/mr2T/5K3i/9BWE7/1d3g/9DDu//o1sr/wriv/4uoev/P3tn/Lx5u/yobev9RXov/jquz/22MfP8+T0f/mYqr/3punv9depz/iKPQ/088i/8NSgf/c5p//6yo2v+xqOn/LEZV/yNCPP9kbWr/T0xV/1hOcP8xM2T/vNv//1Fdpf9tNpv/ZdaI/23Dgv+vz6j/scCf/4ysff+ktI//xKWi/3tkav9Kc2v/LFtj/0dAdP/Fis7/uUZ9/yyKZv9lrIT/nrOI/9HSqP9ha0b/gIFv/19BTf83KTb/ZI9+/4uyoP9tUmP/kUVh/5ssPf9ITIn/Rj5x/6aApf/tvuL/VS5b/zclVf84RnP/PE9t/2BfZP/SwKj/o4RN/+C4hf+ofG//XSGF/8yX6f+CV4X/Xjxh/2VOgv+Rk8T/QGKF/4qhs/9JJCz//+DJ/9TCeP+4tWb/XVUu//OQ4/93N2n/triq/xRBGv9xsZn/ADcl/5Gynf+Oh3X/bjEu///e0v+puI//stGW/7e2df8=",
+      "brightness": 124.37062937062937,
+      "sharpness": 46072.82439239084
+    }
+  ]
+}

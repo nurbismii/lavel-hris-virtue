@@ -10,6 +10,13 @@
 $faceReferencePath = auth()->user()->employee->face_reference_path ?? null;
 $faceReferenceUrl = $faceReferencePath ? route('presensi.face-reference', ['v' => hash('sha256', $faceReferencePath)]) : null;
 $isPassiveCapture = ($attendanceChallenge['liveness_action'] ?? '') === 'passive';
+$faceQualityMessages = [
+    'dark' => __('Pencahayaan terlalu gelap. Hadapkan wajah ke sumber cahaya.'),
+    'bright' => __('Pencahayaan terlalu terang. Hindari sorotan lampu atau jendela langsung ke kamera.'),
+    'blur' => __('Gambar masih buram. Tahan HP tetap diam; coba bersihkan lensa jika tetap buram.'),
+    'reference' => __('Foto referensi belum cukup jelas atau terang. Minta HR memperbarui foto referensi, lalu muat ulang halaman.'),
+    'unavailable' => __('Kualitas gambar belum dapat diperiksa. Aktifkan ulang kamera atau muat ulang halaman.'),
+];
 $formatPresensiClock = function ($value, $attendanceDate = null, $empty = '--:--') {
 if (!$value) {
 return $empty;
@@ -583,7 +590,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 </script>
 @endif
 <script src="{{ versioned_asset('assets/js/presensi-native-gps.js') }}"></script>
-<script src="{{ versioned_asset('assets/js/passive-face-capture.js?ui=blink-3') }}"></script>
+<script src="{{ versioned_asset('assets/js/passive-face-capture.js?ui=quality-1') }}"></script>
 <script src="{{ versioned_asset('vendor/face-api/face-api.min.js') }}"></script>
 
 @if ($isLocationReady)
@@ -603,6 +610,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
     let useAccurateFaceDetector = false;
     let faceVerificationPassed = false;
     let referenceFaceDescriptor = null;
+    let faceQualityCanvas = null;
     let positionHistory = [];
     let gpsEvidenceReady = false;
     let gpsWatchId = null;
@@ -638,6 +646,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
     const selfieJpegQuality = 0.82;
     const livenessEvidenceMaxWidth = 480;
     const livenessEvidenceJpegQuality = 0.76;
+    const faceImageQualityLimits = @json(config('services.presensi_face.image_quality'));
+    const faceQualityMessages = @json($faceQualityMessages);
     const faceModelPath = @json(asset('vendor/face-api/weights'));
     const faceReferencePath = @json($faceReferenceUrl);
     const attendanceChallenge = @json($attendanceChallenge);
@@ -1076,6 +1086,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
                 if (typeof faceapi === 'undefined') {
                     throw new Error('Pustaka verifikasi wajah belum termuat. Periksa koneksi lalu aktifkan ulang kamera atau muat ulang halaman.');
                 }
+                if (typeof analyzeFaceImageQuality !== 'function' || analyzeFaceImageQuality.release !== 'quality-1') {
+                    throw new Error('Berkas pemeriksaan kualitas kamera belum sesuai. Muat ulang halaman; jika tetap gagal, minta admin memperbarui berkas kamera.');
+                }
                 if (clientBlinkPolicy && !blinkChallenge) {
                     throw new Error('Pemeriksaan kedip belum termuat. Muat ulang halaman atau hubungi admin.');
                 }
@@ -1158,6 +1171,51 @@ $locationIssueMessage = $locationIssueMessage ?? (
         });
     }
 
+    function validateFaceImageQuality(source, isReference = false) {
+        let message = faceQualityMessages.unavailable;
+        try {
+            let canvas = source;
+            if (typeof source.getContext !== 'function') {
+                const width = source.videoWidth || source.naturalWidth;
+                const height = source.videoHeight || source.naturalHeight;
+                const scale = source.videoWidth ? Math.min(1, livenessEvidenceMaxWidth / width) : 1;
+                if (!faceQualityCanvas) { faceQualityCanvas = document.createElement('canvas'); }
+                canvas = faceQualityCanvas;
+                const targetWidth = Math.round(width * scale);
+                const targetHeight = Math.round(height * scale);
+                if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+                }
+                canvas.getContext('2d', { willReadFrequently: true }).drawImage(source, 0, 0, canvas.width, canvas.height);
+            }
+            const pixels = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
+            const result = analyzeFaceImageQuality(pixels, faceImageQualityLimits);
+            if (result.passed) { return result; }
+            message = isReference ? faceQualityMessages.reference : faceQualityMessages[result.issues[0]];
+        } catch (error) {
+            message = faceQualityMessages.unavailable;
+        }
+        const error = new Error(message);
+        error.captureQuality = true;
+        error.referenceQuality = isReference;
+        throw error;
+    }
+
+    async function validateEncodedFaceImageQuality(dataUrl) {
+        const image = new Image();
+        await new Promise(function(resolve, reject) {
+            image.onload = resolve;
+            image.onerror = function() {
+                const error = new Error(faceQualityMessages.unavailable);
+                error.captureQuality = true;
+                reject(error);
+            };
+            image.src = dataUrl;
+        });
+        validateFaceImageQuality(image);
+    }
+
     async function detectFaceDescriptors(image, includeDescriptors = true) {
         const completeDetections = function(detections) {
             if (detections.length !== 1) { return detections; }
@@ -1208,6 +1266,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             });
         }
 
+        validateFaceImageQuality(referenceImage, true);
         const detections = await detectFaceDescriptors(referenceImage);
 
         if (detections.length !== 1) {
@@ -1472,7 +1531,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
             } else if (state === 'green') {
                 progressText.textContent = 'Selfie siap digunakan';
             } else if (state === 'yellow') {
-                progressText.textContent = 'Verifikasi hampir siap';
+                progressText.textContent = 'Perjelas gambar terlebih dahulu';
             } else if (state === 'red') {
                 progressText.textContent = 'Belum memenuhi syarat';
             } else {
@@ -1582,6 +1641,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
         captureCanvas.width = Math.round(video.videoWidth * captureScale);
         captureCanvas.height = Math.round(video.videoHeight * captureScale);
         captureCanvas.getContext('2d').drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+        validateFaceImageQuality(captureCanvas);
 
         // Check the frozen selfie itself so a previous live match cannot approve a different face.
         const detections = await detectFaceDescriptors(captureCanvas);
@@ -1621,6 +1681,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
         if (!captureBlob) {
             throw new Error('Selfie tidak berhasil disimpan dari kamera.');
         }
+
+        const encodedSelfie = await createImageFromFile(captureBlob);
+        if (sessionId !== cameraSessionId) { return; }
+        validateFaceImageQuality(encodedSelfie);
 
         let fileAttached = false;
 
@@ -1775,6 +1839,7 @@ $locationIssueMessage = $locationIssueMessage ?? (
 
         const referenceDescriptor = await ensureReferenceFaceDescriptor();
         if (sessionId !== cameraSessionId) { return; }
+        validateFaceImageQuality(video);
         const blinkState = isPassiveLiveness && blinkChallenge ? blinkChallenge.status() : null;
         // Identity is checked before calibration and again after blinking, without slowing every eye sample.
         const samplingBlink = blinkState && !blinkState.passed && blinkState.phase !== 'calibrating';
@@ -1912,7 +1977,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
             const capture = passiveCapture.observe(true, Date.now());
             if (capture.frameIndex !== null) {
                 if (capture.frameIndex === 0) { resetLivenessEvidence(); }
-                captureLivenessEvidenceFrame(livenessRequiredFrames[capture.frameIndex], video);
+                await captureLivenessEvidenceFrame(livenessRequiredFrames[capture.frameIndex], video);
+                if (sessionId !== cameraSessionId) { return; }
             }
             drawLiveCameraOverlay({ state: 'validating', boxes: [faceBox] });
             updateLiveFrameFeedback('validating', passiveCaptureText, capture.progress);
@@ -1955,7 +2021,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
             } catch (error) {
                 if (sessionId === cameraSessionId) {
                     resetPassiveCapture();
-                    updateLiveFrameFeedback('red', error.message || 'Analisis kamera gagal dijalankan.', 0);
+                    if (error.referenceQuality) { stopLiveCamera(); }
+                    const state = error.captureQuality && !error.referenceQuality ? 'yellow' : 'red';
+                    drawLiveCameraOverlay({ state });
+                    updateLiveFrameFeedback(state, error.message || 'Analisis kamera gagal dijalankan.', 0);
                 }
             } finally {
                 cameraIsProcessing = false;
@@ -2716,7 +2785,8 @@ $locationIssueMessage = $locationIssueMessage ?? (
         }
     }
 
-    function captureLivenessEvidenceFrame(label, videoElement, extra = {}) {
+    async function captureLivenessEvidenceFrame(label, videoElement, extra = {}) {
+        const sessionId = cameraSessionId;
         if (!videoElement || !videoElement.videoWidth || !videoElement.videoHeight) {
             return;
         }
@@ -2748,6 +2818,9 @@ $locationIssueMessage = $locationIssueMessage ?? (
             ear: extra.ear ?? null,
             yaw: extra.yaw ?? null
         };
+
+        await validateEncodedFaceImageQuality(frame.image);
+        if (sessionId !== cameraSessionId) { return; }
 
         livenessEvidence.frames = (livenessEvidence.frames || []).filter(function(item) {
             return item.label !== label;
@@ -2835,9 +2908,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
             cameraVerificationLocked = false;
             livenessCaptureInProgress = false;
             resetPassiveCapture();
+            if (!isPassiveLiveness && error.captureQuality) { startTurnLiveness(document.getElementById('selfieCamera')); }
             setBlinkResult(false, null, error.message || 'Gagal mengambil selfie. Aktifkan ulang kamera.');
             updateLiveFrameFeedback(
-                'red',
+                error.captureQuality ? 'yellow' : 'red',
                 error.message || 'Gagal mengambil selfie dari liveness.',
                 0
             );
@@ -2930,9 +3004,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
                         return;
                     }
 
-                    captureLivenessEvidenceFrame('center', videoElement, {
+                    await captureLivenessEvidenceFrame('center', videoElement, {
                         yaw: turnMetric.yaw
                     });
+                    if (sessionId !== cameraSessionId) { return; }
                     turnStage = 'turn_left';
 
                     setBlinkResult(
@@ -2954,9 +3029,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     }
 
                     turnLeftYaw = turnMetric.yaw;
-                    captureLivenessEvidenceFrame('turn_left', videoElement, {
+                    await captureLivenessEvidenceFrame('turn_left', videoElement, {
                         yaw: turnMetric.yaw
                     });
+                    if (sessionId !== cameraSessionId) { return; }
                     turnStage = 'turn_right';
 
                     setBlinkResult(
@@ -2981,9 +3057,10 @@ $locationIssueMessage = $locationIssueMessage ?? (
                         return;
                     }
 
-                    captureLivenessEvidenceFrame('turn_right', videoElement, {
+                    await captureLivenessEvidenceFrame('turn_right', videoElement, {
                         yaw: turnMetric.yaw
                     });
+                    if (sessionId !== cameraSessionId) { return; }
 
                     const score = Math.min(1, Math.max(
                         Math.abs(turnLeftYaw || 0),
@@ -3004,7 +3081,18 @@ $locationIssueMessage = $locationIssueMessage ?? (
                     return;
                 }
             } catch (error) {
-                if (sessionId === cameraSessionId) { setBlinkResult(false, null, 'Gagal membaca gerakan wajah.'); }
+                if (sessionId === cameraSessionId) {
+                    if (error.captureQuality) {
+                        resetLivenessEvidence();
+                        turnStage = 'center';
+                        turnCenterSamples = [];
+                        turnLeftYaw = null;
+                        setBlinkResult(false, null, error.message);
+                        updateLiveFrameFeedback('yellow', error.message, 0);
+                    } else {
+                        setBlinkResult(false, null, 'Gagal membaca gerakan wajah.');
+                    }
+                }
             } finally {
                 blinkIsProcessing = false;
             }
