@@ -452,7 +452,7 @@ $approvalPendingCount = ($can('approval_hod') ? ($approvalHodCounts['total'] ?? 
 
                 @component('partials.sidebar-group', [
                     'id' => 'sidebar-contracts', 'label' => __('navigation.contracts_payroll'), 'icon' => 'fas fa-file-contract',
-                    'active' => request()->routeIs('electronic-contracts.*', 'contract-renewals.*', 'slip-gaji.*', 'employee-salaries.*', 'payroll.*', 'salary-components.*')
+                    'active' => request()->routeIs('electronic-contracts.*', 'contract-renewals.*', 'slip-gaji.*', 'employee-salaries.*', 'payroll.*', 'salary-components.*', 'severance.*')
                 ])
                     @if($can('electronic_contract_admin'))
                         <li class="{{ request()->routeIs('electronic-contracts.*') && !request()->routeIs('electronic-contracts.templates.*', 'electronic-contracts.clauses.*', 'electronic-contracts.first-party-signature.*') ? 'active' : '' }}">
@@ -492,6 +492,11 @@ $approvalPendingCount = ($can('approval_hod') ? ($approvalHodCounts['total'] ?? 
                         </li>
                     @endif
 
+                    @if($can('severance_staff') || $can('severance_payroll') || $can('severance_hi'))
+                        <li class="{{ request()->routeIs('severance.*') ? 'active' : '' }}">
+                            <a href="{{ route('severance.index') }}" @if(request()->routeIs('severance.*')) aria-current="page" @endif><span class="app-nav-label">Pesangon & Kompensasi</span></a>
+                        </li>
+                    @endif
                     @if($can('slip_gaji_admin'))
                         <li class="{{ request()->routeIs('slip-gaji.*') ? 'active' : '' }}">
                             <a href="{{ route('slip-gaji.index') }}" @if(request()->routeIs('slip-gaji.*')) aria-current="page" @endif>

@@ -1,0 +1,39 @@
+body { font:14px/1.55 Arial,sans-serif; color:#202f40; margin:0; background:#e9eef4; }
+.print-toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:20px; background:#173a5e; color:white; padding:16px 24px; }
+.print-toolbar a { color:white; }
+.print-toolbar button { padding:10px 18px; border:0; border-radius:6px; cursor:pointer; font:inherit; }
+.print-sheet { max-width:1000px; margin:24px auto; background:white; padding:32px; box-sizing:border-box; }
+header { border-bottom:2px solid #173a5e; margin-bottom:20px; padding-bottom:12px; }
+h1 { font-size:20px; margin:6px 0; }
+header p { margin:4px 0; }
+.print-columns { display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+dl { display:grid; grid-template-columns:145px 1fr; gap:8px 12px; margin:0 0 20px; }
+dt { color:#526176; } dd { margin:0; font-weight:600; overflow-wrap:anywhere; }
+table { width:100%; border-collapse:collapse; margin:24px 0; }
+td,th { padding:12px 10px; text-align:left; border-bottom:1px solid #dce3ec; }
+th { background:#eef3f8; } .text-end,td:last-child,th:last-child { text-align:right; }
+.severance-result tfoot small { display:block; font-weight:400; margin-top:4px; }
+.print-approvals { display:grid; grid-template-columns:1fr 1fr; gap:24px; margin:30px 0; }
+.print-approvals p { margin:12px 0 4px; } footer { font-size:11px; color:#526176; border-top:1px solid #dce3ec; padding-top:12px; }
+:is(a,button):focus-visible { outline:3px solid #79b4ff; outline-offset:4px; }
+@media(max-width:650px) { .print-sheet { margin:12px; padding:18px; } .print-columns { grid-template-columns:1fr; gap:0; } .table-responsive { overflow:auto; } }
+@page { size:A4 landscape; margin:15mm; }
+@media print { body { background:white; font-size:11px; } .print-toolbar { display:none; } .print-page { break-after:page; page-break-after:always; } .print-page:last-child { break-after:auto; page-break-after:auto; } .print-sheet { width:100%; max-width:none; margin:0; padding:0; } .print-columns { grid-template-columns:1fr 1fr; } header { margin-bottom:14px; } table { margin:18px 0; } td,th { padding:8px; } footer { font-size:9px; } }
+.batch-print .print-page { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,minmax(0,1fr)); gap:4mm; width:194mm; height:280mm; margin:24px auto; background:white; }
+.batch-print .print-sheet { max-width:none; min-width:0; min-height:0; margin:0; padding:3mm; border:1px solid #cfd8e3; font-size:9px; line-height:1.25; break-inside:avoid; overflow-wrap:anywhere; }
+.batch-print header { margin-bottom:6px; padding-bottom:5px; border-bottom-width:1px; }
+.batch-print h1 { font-size:11px; margin:3px 0; }
+.batch-print header p { margin:2px 0; }
+.batch-print .print-columns { grid-template-columns:1fr 1fr; gap:8px; }
+.batch-print dl { grid-template-columns:68px minmax(0,1fr); gap:3px 5px; margin-bottom:5px; }
+.batch-print .print-content > p { margin:5px 0; }
+.batch-print table { margin:7px 0; table-layout:fixed; }
+.batch-print td,.batch-print th { padding:4px 3px; }
+.batch-print td:last-child,.batch-print th:last-child { width:24%; white-space:nowrap; }
+.batch-print .severance-result tfoot small { margin-top:2px; }
+.batch-print .print-approvals { gap:8px; margin:8px 0; }
+.batch-print .print-approvals p { margin:4px 0 2px; }
+.batch-print footer { font-size:7px; padding-top:5px; }
+@media screen and (max-width:760px) { .batch-print .print-page { display:block; width:auto; height:auto; margin:12px; background:none; } .batch-print .print-sheet { margin-bottom:12px; background:white; } }
+@page batch { size:A4 portrait; margin:8mm; }
+@media print { .batch-print .print-page { page:batch; margin:0; } }

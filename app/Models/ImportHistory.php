@@ -34,6 +34,8 @@ class ImportHistory extends Model
     public const TYPE_ROSTER_SCHEDULE = 'roster_schedule';
     public const TYPE_EMPLOYEE_SALARY = 'employee_salary';
     public const TYPE_PAYROLL = 'payroll';
+    public const TYPE_SEVERANCE = 'severance';
+    public const TYPE_SEVERANCE_EXPORT = 'severance_export';
 
     protected $guarded = [];
 
@@ -146,6 +148,8 @@ class ImportHistory extends Model
             self::TYPE_ROSTER_SCHEDULE => 'Import Jadwal Roster',
             self::TYPE_EMPLOYEE_SALARY => 'Pembaruan Gaji Karyawan',
             self::TYPE_PAYROLL => 'Perhitungan Payroll',
+            self::TYPE_SEVERANCE => 'Pengajuan Pesangon',
+            self::TYPE_SEVERANCE_EXPORT => 'Export Pesangon',
         ];
     }
 

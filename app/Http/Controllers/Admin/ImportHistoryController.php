@@ -31,6 +31,7 @@ class ImportHistoryController extends Controller
 
         if ($isTableReady) {
             $importHistories = ImportHistory::query()
+                ->whereNotIn('import_type', [ImportHistory::TYPE_SEVERANCE, ImportHistory::TYPE_SEVERANCE_EXPORT])
                 ->when(!$request->user()->hasRole(['Super Admin', 'HR']) || !$request->user()->hasMenuAccess('slip_gaji_admin'), function ($query) {
                     $query->where('import_type', '!=', ImportHistory::TYPE_PAYROLL);
                 })
@@ -111,6 +112,7 @@ class ImportHistoryController extends Controller
 
     public function export(Request $request, ImportHistory $importHistory, string $category)
     {
+        abort_if(in_array($importHistory->import_type, [ImportHistory::TYPE_SEVERANCE, ImportHistory::TYPE_SEVERANCE_EXPORT], true), 403);
         if ($importHistory->import_type === ImportHistory::TYPE_PAYROLL) {
             abort_unless($request->user()->hasRole(['Super Admin', 'HR']) && $request->user()->hasMenuAccess('slip_gaji_admin'), 403);
         }

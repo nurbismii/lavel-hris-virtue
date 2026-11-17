@@ -50,6 +50,7 @@ class PayrollInputs
     {
         $start = CarbonImmutable::parse($period.'-01');
         return Employee::whereHas('departemen', fn ($q) => $q->where('perusahaan_id', $employer))
+            ->whereNotNull('status_resign')
             ->where(fn ($q) => $q->whereNull('entry_date')->orWhere('entry_date', '<=', $start->endOfMonth()))
             ->where(fn ($q) => $q->whereNull('tgl_resign')->orWhere('tgl_resign', '>=', $start))
             ->whereNotExists(PayrollEntry::query()->selectRaw('1')->where('employer_id', $employer)

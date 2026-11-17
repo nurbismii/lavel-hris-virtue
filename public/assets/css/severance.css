@@ -1,0 +1,56 @@
+.severance-page { max-width:1600px; margin:auto; }
+.severance-steps { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; list-style:none; padding:0; margin:0 0 24px; }
+.severance-steps li { background:#edf3fa; color:#294765; border-radius:12px; padding:16px; line-height:1.6; }
+.severance-steps b { display:inline-grid; place-items:center; background:#fff; border-radius:50%; width:28px; height:28px; margin-right:6px; }
+.severance-form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.severance-wide { grid-column:1/-1; }
+.severance-next-step { border-left:4px solid #357bd8; }
+.severance-next-step h2 { font-size:1.05rem; font-weight:700; margin:0 0 12px; }
+.severance-next-step p { color:#40566d; line-height:1.7; margin-bottom:12px; }
+.severance-next-step p:last-child { margin-bottom:0; }
+.severance-page :is(#payroll-review,#hi-approval,#final-result) { scroll-margin-top:100px; }
+.severance-page small { display:block; color:#586b80; line-height:1.6; margin-top:6px; }
+.severance-page label { font-weight:600; }
+.severance-error { color:#a62f38; margin:10px 0 0; white-space:pre-line; overflow-wrap:anywhere; }
+.severance-error:empty { display:none; }
+.severance-counts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:24px 0; }
+.severance-counts a { border:1px solid #dce5f0; border-radius:12px; padding:16px; color:#274564; text-decoration:none; }
+.severance-counts strong { display:block; font-size:1.6rem; }
+.severance-counts span { font-size:.85rem; }
+.severance-badge { display:inline-block; padding:7px 10px; border-radius:8px; font-size:.8rem; font-weight:650; line-height:1.4; background:#edf0f4; color:#47576c; }
+.severance-badge--payroll_review { background:#fff1cf; color:#77521c; }
+.severance-badge--hi_review { background:#dfedff; color:#22508a; }
+.severance-badge--approved { background:#ddf2e9; color:#16604a; }
+.severance-employee-title { font-size:1rem; font-weight:700; margin:0 0 20px; }
+.severance-employee { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; margin:0 0 18px; padding-bottom:24px; border-bottom:1px solid #e5ebf2; }
+.severance-employee dd { margin:6px 0 0; font-size:1rem; font-weight:600; color:#173a5e; line-height:1.6; overflow-wrap:anywhere; }
+.severance-money { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:20px; margin:0 0 20px; }
+.severance-employee dt,.severance-money dt { color:#586b80; font-size:.85rem; font-weight:500; }
+.severance-money dd { margin:10px 0 0; font-weight:700; color:#173a5e; font-size:1.2rem; overflow-wrap:anywhere; }
+.severance-process { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:16px 0; border-bottom:1px solid #e5ebf2; }
+.severance-process:last-child { border-bottom:0; }
+.severance-process p { margin:6px 0 0; }
+.severance-export-actions { justify-content:flex-start; flex-wrap:wrap; border-bottom:1px solid #e5ebf2; }
+.severance-leave { max-width:380px; }
+.severance-preview { background:#f5f8fc; border:1px solid #dce5f0; border-radius:12px; padding:20px; margin:24px 0; }
+.severance-preview h3 { font-size:1.1rem; }
+.severance-result th:last-child,.severance-preview th:last-child { text-align:right; }
+.severance-result tfoot { background:#edf3fa; color:#173a5e; }
+.severance-result tfoot small,.severance-preview tfoot small { font-weight:400; }
+.severance-history,.severance-failures { padding-left:20px; margin:0; }
+.severance-history li,.severance-failures li { padding:0 0 18px 6px; }
+.severance-page .form-check { display:flex; align-items:flex-start; gap:12px; padding-left:0; }
+.severance-page .form-check-input { flex-shrink:0; margin:4px 0 0; min-width:18px; min-height:18px; }
+.severance-page :is(input,textarea,select,button,a,summary):focus-visible { outline:3px solid #357bd8; outline-offset:3px; }
+@media(max-width:1100px) { .severance-steps,.severance-counts,.severance-employee,.severance-money { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:767px) { .severance-form,.severance-money,.severance-employee { grid-template-columns:1fr; } .severance-process { align-items:flex-start; flex-direction:column; } .severance-page .btn { min-height:44px; } .severance-page .salary-card-header { align-items:flex-start; flex-wrap:wrap; } .severance-preview { padding:12px; } }
+@media(max-width:767px) {
+    .severance-preview table,.severance-page .severance-result { width:100%; table-layout:fixed; }
+    .severance-preview thead,.severance-page .severance-result thead { display:none; }
+    .severance-preview tr,.severance-page .severance-result tr { display:grid; gap:8px; padding:14px 0; border-bottom:1px solid #dce5f0; }
+    .severance-preview td,.severance-preview th,.severance-page .severance-result :is(td,th) { display:block; border:0; padding:0 6px; white-space:normal; overflow-wrap:anywhere; }
+    .severance-preview td:first-child,.severance-page .severance-result td:first-child { font-weight:700; }
+    .severance-preview td[data-label]::before,.severance-page .severance-result td[data-label]::before { content:attr(data-label); display:block; font-size:.75rem; color:#586b80; text-align:left; font-weight:500; margin-bottom:4px; }
+    .severance-preview td:last-child,.severance-page .severance-result td:last-child { font-weight:700; }
+    .severance-preview tfoot th:first-child,.severance-page .severance-result tfoot th:first-child { text-align:left; }
+}

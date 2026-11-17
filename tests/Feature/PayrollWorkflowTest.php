@@ -41,7 +41,7 @@ class PayrollWorkflowTest extends TestCase
             $t->string('nik')->primary(); $t->string('nama_karyawan'); $t->unsignedInteger('departemen_id');
             $t->unsignedInteger('divisi_id')->nullable(); $t->unsignedInteger('work_pattern_id')->nullable();
             $t->string('no_ktp'); $t->string('no_rekening')->nullable(); $t->string('nama_bank')->nullable(); $t->date('tgl_resign')->nullable();
-            $t->date('entry_date')->nullable();
+            $t->date('entry_date')->nullable(); $t->string('status_resign')->nullable()->default('AKTIF');
         });
         Schema::create('roles',function (Blueprint $t) { $t->increments('id'); $t->string('permission_role'); $t->text('menu_permissions')->nullable(); });
         Schema::create('users',function (Blueprint $t) { $t->string('id')->primary(); $t->string('name'); $t->unsignedInteger('role_id'); $t->string('email')->nullable(); $t->string('nik_karyawan')->nullable(); $t->timestamps(); });
@@ -275,6 +275,34 @@ class PayrollWorkflowTest extends TestCase
         $this->assertSame(1200000, $bulk->getCell('X2')->getValue());
         $this->assertSame(4, $book->getSheetByName('RINCIAN HITUNG')->getCell('AO2')->getValue());
         $book->disconnectWorksheets();
+    }
+
+    public function test_native_payroll_excludes_employees_with_null_resignation_status(): void
+    {
+        $this->hrisFixtures();
+        DB::table('employees')->insert(['nik'=>'00234','nama_karyawan'=>'Karyawan Tanpa Status','departemen_id'=>1,
+            'no_ktp'=>'0000000000000002','entry_date'=>'2022-12-20','status_resign'=>null]);
+        $this->actingAs($this->actor());
+        $scope = ['employer_id'=>1,'period'=>'2026-01'];
+        $this->get(route('payroll.inputs', $scope))->assertOk()
+            ->assertViewHas('employees', fn ($employees) => $employees->pluck('nik')->all() === ['00123']);
+        $this->get(route('payroll.inputs', $scope + ['q'=>'00234']))->assertOk()
+            ->assertViewHas('employees', fn ($employees) => $employees->isEmpty());
+        $this->get(route('payroll.inputs.edit', ['nik'=>'00234'] + $scope))->assertNotFound();
+        $this->postJson(route('payroll.inputs.save', '00234'), $scope + ['revision'=>0, 'components'=>['W'=>125000]])->assertNotFound();
+        $this->assertSame(0, PayrollInput::count());
+
+        $this->postJson(route('payroll.inputs.save', '00123'), $scope + ['revision'=>0, 'verify_profile'=>1,
+            'profile'=>$this->nativeProfile(), 'minutes'=>[1=>0]])->assertOk();
+        $this->postJson(route('payroll.calculate'), $scope + ['tax_period'=>'2026-01','pay_date'=>'2026-01-25'])->assertStatus(202);
+        $history = ImportHistory::latest('id')->firstOrFail();
+        (new ProcessPayrollImport($history->id))->handle(app(PayrollService::class));
+        $this->assertSame('awaiting_confirmation', $history->fresh()->status);
+        $this->assertSame(['00123'], $history->items()->pluck('nik')->all());
+
+        DB::table('employees')->where('nik', '00123')->update(['status_resign'=>'RESIGN', 'tgl_resign'=>'2026-01-31']);
+        $this->get(route('payroll.inputs', $scope))->assertOk()
+            ->assertViewHas('employees', fn ($employees) => $employees->pluck('nik')->all() === ['00123']);
     }
 
     public function test_native_payroll_prepares_calculates_and_finalizes_without_an_upload(): void

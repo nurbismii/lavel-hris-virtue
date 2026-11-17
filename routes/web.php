@@ -543,6 +543,25 @@ Route::middleware(['android.redirect'])->group(function () {
         Route::get('/master-lembur', [OvertimeMasterController::class, 'index'])
             ->middleware(['menu:lembur', 'role:Super Admin,HR'])
             ->name('overtime-masters.index');
+        Route::prefix('pesangon')->name('severance.')
+            ->middleware('menu:severance_staff,severance_payroll,severance_hi')->group(function () {
+                $controller = \App\Http\Controllers\Admin\SeveranceController::class;
+                Route::get('/', [$controller, 'index'])->name('index');
+                Route::post('/', [$controller, 'store'])->name('store');
+                Route::get('/template', [$controller, 'template'])->name('template');
+                Route::get('/pengajuan/{entry}', [$controller, 'show'])->name('show');
+                Route::post('/pengajuan/{entry}', [$controller, 'update'])->name('update');
+                Route::post('/pengajuan/{entry}/payroll', [$controller, 'payroll'])->name('payroll');
+                Route::post('/pengajuan/{entry}/hi', [$controller, 'hi'])->name('hi');
+                Route::post('/pengajuan/{entry}/kembalikan', [$controller, 'reject'])->name('reject');
+                Route::get('/proses/{history}/status', [$controller, 'status'])->name('status');
+                Route::post('/proses/{history}/retry', [$controller, 'retry'])->name('retry');
+                Route::get('/export/{history}/download', [$controller, 'download'])->name('download');
+                Route::get('/batch/{history}', [$controller, 'batch'])->name('batch');
+                Route::post('/batch/{history}/kirim', [$controller, 'submit'])->name('submit');
+                Route::post('/batch/{history}/export', [$controller, 'export'])->name('export');
+                Route::get('/batch/{history}/cetak', [$controller, 'print'])->name('print');
+            });
         Route::prefix('payroll')->name('payroll.')
             ->middleware(['menu:slip_gaji_admin', 'role:Super Admin,HR'])->group(function () {
                 $controller = \App\Http\Controllers\Admin\PayrollController::class;

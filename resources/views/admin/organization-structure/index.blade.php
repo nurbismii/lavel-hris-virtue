@@ -4,24 +4,49 @@
 
 @push('styles')
 <style>
-    .organization-nav { position: sticky; top: 84px; z-index: 10; }
-    .organization-section { scroll-margin-top: 110px; }
-    .organization-stat { border-left: 4px solid #1572e8; }
-    .organization-table td { vertical-align: middle; }
-    .organization-form-card { border: 1px solid #e5e7eb; box-shadow: 0 8px 24px rgba(15, 23, 42, .05); }
-    .organization-help { font-size: .82rem; color: #64748b; }
-    .employee-search-results { max-height: 240px; overflow-y: auto; }
+    .organization-nav {
+        position: sticky;
+        top: 84px;
+        z-index: 10;
+    }
+
+    .organization-section {
+        scroll-margin-top: 110px;
+    }
+
+    .organization-stat {
+        border-left: 4px solid #1572e8;
+    }
+
+    .organization-table td {
+        vertical-align: middle;
+    }
+
+    .organization-form-card {
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, .05);
+    }
+
+    .organization-help {
+        font-size: .82rem;
+        color: #64748b;
+    }
+
+    .employee-search-results {
+        max-height: 240px;
+        overflow-y: auto;
+    }
 </style>
 @endpush
 
 @section('content')
 @php
-    $editLevel = $editLevel ?? null;
-    $editJobTitle = $editJobTitle ?? null;
-    $editPosition = $editPosition ?? null;
-    $selectedPositionCompany = old('perusahaan_id', optional($editPosition)->perusahaan_id);
-    $selectedPositionDepartment = old('departemen_id', optional($editPosition)->departemen_id ?: $selectedDepartmentId);
-    $selectedPositionDivision = old('divisi_id', optional($editPosition)->divisi_id);
+$editLevel = $editLevel ?? null;
+$editJobTitle = $editJobTitle ?? null;
+$editPosition = $editPosition ?? null;
+$selectedPositionCompany = old('perusahaan_id', optional($editPosition)->perusahaan_id);
+$selectedPositionDepartment = old('departemen_id', optional($editPosition)->departemen_id ?: $selectedDepartmentId);
+$selectedPositionDivision = old('divisi_id', optional($editPosition)->divisi_id);
 @endphp
 <div class="container-fluid">
     <div class="page-inner">
@@ -99,11 +124,22 @@
                 </div>
                 <div class="col-xl-8">
                     <div class="card h-100">
-                        <div class="card-header bg-white"><h5 class="mb-0">{{ __('Daftar Level') }}</h5></div>
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0">{{ __('Daftar Level') }}</h5>
+                        </div>
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table organization-table mb-0">
-                                    <thead class="table-light"><tr><th>{{ __('Rank') }}</th><th>{{ __('Kode') }}</th><th>{{ __('Nama') }}</th><th>{{ __('Dampak') }}</th><th>{{ __('Status') }}</th><th>{{ __('Aksi') }}</th></tr></thead>
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>{{ __('Rank') }}</th>
+                                            <th>{{ __('Kode') }}</th>
+                                            <th>{{ __('Nama') }}</th>
+                                            <th>{{ __('Dampak') }}</th>
+                                            <th>{{ __('Status') }}</th>
+                                            <th>{{ __('Aksi') }}</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         @foreach($levels as $level)
                                         <tr>
@@ -163,7 +199,9 @@
                     <div class="card">
                         <div class="card-header bg-white">
                             <form method="GET" action="{{ route('organization-structure.index') }}" class="row g-2 align-items-center">
-                                <div class="col"><h5 class="mb-0">{{ __('Master Jabatan') }}</h5></div>
+                                <div class="col">
+                                    <h5 class="mb-0">{{ __('Master Jabatan') }}</h5>
+                                </div>
                                 <div class="col-md-6"><input type="search" name="job_title_search" class="form-control" value="{{ request('job_title_search') }}" placeholder="{{ __('Cari kode atau nama jabatan...') }}"></div>
                                 <div class="col-auto"><button class="btn btn-outline-primary">{{ __('Cari') }}</button></div>
                             </form>
@@ -171,7 +209,16 @@
                         <div class="card-body p-0">
                             <div class="table-responsive">
                                 <table class="table organization-table mb-0">
-                                    <thead class="table-light"><tr><th>{{ __('Jabatan') }}</th><th>{{ __('Level') }}</th><th>{{ __('Alias') }}</th><th>{{ __('Dipakai') }}</th><th>{{ __('Status') }}</th><th>{{ __('Aksi') }}</th></tr></thead>
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>{{ __('Jabatan') }}</th>
+                                            <th>{{ __('Level') }}</th>
+                                            <th>{{ __('Alias') }}</th>
+                                            <th>{{ __('Dipakai') }}</th>
+                                            <th>{{ __('Status') }}</th>
+                                            <th>{{ __('Aksi') }}</th>
+                                        </tr>
+                                    </thead>
                                     <tbody>
                                         @forelse($jobTitles as $jobTitle)
                                         <tr>
@@ -182,7 +229,9 @@
                                             <td><span class="badge bg-{{ $jobTitle->is_active ? 'success' : 'secondary' }}">{{ $jobTitle->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
                                             <td><a href="{{ route('organization-structure.index', ['edit_job_title' => $jobTitle->id, 'section' => 'job-titles']) }}#job-titles" class="btn btn-sm btn-warning">{{ __('Edit') }}</a></td>
                                         </tr>
-                                        @empty<tr><td colspan="6" class="text-center text-muted py-4">{{ __('Jabatan tidak ditemukan.') }}</td></tr>@endforelse
+                                        @empty<tr>
+                                            <td colspan="6" class="text-center text-muted py-4">{{ __('Jabatan tidak ditemukan.') }}</td>
+                                        </tr>@endforelse
                                     </tbody>
                                 </table>
                             </div>
@@ -197,21 +246,41 @@
             <div class="row g-4">
                 <div class="col-xl-4">
                     <div class="card organization-form-card">
-                        <div class="card-header bg-white"><h5 class="mb-1">{{ $editPosition ? 'Edit Posisi Organisasi' : 'Tambah Posisi Organisasi' }}</h5><small class="text-muted">{{ __('Posisi adalah node yang akan tampil pada bagan.') }}</small></div>
+                        <div class="card-header bg-white">
+                            <h5 class="mb-1">{{ $editPosition ? 'Edit Posisi Organisasi' : 'Tambah Posisi Organisasi' }}</h5><small class="text-muted">{{ __('Posisi adalah node yang akan tampil pada bagan.') }}</small>
+                        </div>
                         <div class="card-body">
                             <form method="POST" action="{{ $editPosition ? route('organization-structure.positions.update', $editPosition) : route('organization-structure.positions.store') }}" id="positionForm" data-loading-form>
                                 @csrf
                                 @if($editPosition) @method('PUT') @endif
-                                <div class="mb-3"><label class="form-label">{{ __('Kode Posisi') }}</label><input type="text" name="code" class="form-control @error('code') is-invalid @enderror" value="{{ old('code', optional($editPosition)->code) }}" placeholder="VDNI-GA-SPV-01" required>@error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+                                <div class="mb-3"><label class="form-label">{{ __('Kode Posisi') }}</label><input type="text" name="code" class="form-control @error('code') is-invalid @enderror" value="{{ old('code', optional($editPosition)->code) }}" placeholder="VDNI-GA-Supervisor-01" required>@error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
                                 <div class="mb-3"><label class="form-label">{{ __('Nama Posisi') }}</label><input type="text" name="position_name" class="form-control @error('position_name') is-invalid @enderror" value="{{ old('position_name', optional($editPosition)->position_name) }}" placeholder="{{ __('Supervisor Electrical Workshop') }}" required><small class="text-muted">{{ __('Nama penempatan spesifik pada struktur, berbeda dari master jabatan.') }}</small>@error('position_name')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-                                <div class="mb-3"><label class="form-label">{{ __('Perusahaan') }}</label><select name="perusahaan_id" id="positionCompany" class="form-select" required><option value="">{{ __('Pilih perusahaan') }}</option>@foreach($companies as $company)<option value="{{ $company->id }}" {{ (string) $selectedPositionCompany === (string) $company->id ? 'selected' : '' }}>{{ $company->kode_perusahaan }} - {{ $company->nama_perusahaan }}</option>@endforeach</select></div>
-                                <div class="mb-3"><label class="form-label">{{ __('Departemen') }}</label><select name="departemen_id" id="positionDepartment" class="form-select @error('departemen_id') is-invalid @enderror" required><option value="">{{ __('Pilih departemen') }}</option>@foreach($departments as $department)<option value="{{ $department->id }}" data-company-id="{{ $department->perusahaan_id }}" {{ (string) $selectedPositionDepartment === (string) $department->id ? 'selected' : '' }}>{{ $department->departemen }}</option>@endforeach</select>@error('departemen_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-                                <div class="mb-3"><label class="form-label">{{ __('Divisi') }}</label><select name="divisi_id" id="positionDivision" class="form-select @error('divisi_id') is-invalid @enderror"><option value="">{{ __('Tanpa divisi / tingkat departemen') }}</option>@foreach($divisions as $division)<option value="{{ $division->id }}" data-department-id="{{ $division->departemen_id }}" {{ (string) $selectedPositionDivision === (string) $division->id ? 'selected' : '' }}>{{ $division->nama_divisi }}</option>@endforeach</select>@error('divisi_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-                                <div class="mb-3"><label class="form-label">{{ __('Jabatan') }}</label><select name="job_title_id" class="form-select @error('job_title_id') is-invalid @enderror" required><option value="">{{ __('Pilih jabatan') }}</option>@foreach($activeJobTitles as $jobTitle)<option value="{{ $jobTitle->id }}" {{ (string) old('job_title_id', optional($editPosition)->job_title_id) === (string) $jobTitle->id ? 'selected' : '' }}>{{ $jobTitle->display_name }} — {{ optional($jobTitle->level)->code }}</option>@endforeach</select>@error('job_title_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-                                <div class="mb-3"><label class="form-label">{{ __('Override Level') }} <span class="text-muted">{{ __('(opsional)') }}</span></label><select name="job_level_id" class="form-select"><option value="">{{ __('Gunakan level default jabatan') }}</option>@foreach($activeLevels as $level)<option value="{{ $level->id }}" {{ (string) old('job_level_id', optional($editPosition)->job_level_id) === (string) $level->id ? 'selected' : '' }}>{{ $level->code }} - {{ $level->name }}</option>@endforeach</select></div>
-                                <div class="mb-3"><label class="form-label">{{ __('Atasan Struktural') }}</label><select name="parent_position_id" id="positionParent" class="form-select @error('parent_position_id') is-invalid @enderror"><option value="">{{ __('Tidak ada / posisi puncak') }}</option>@foreach($availableParents as $parent)<option value="{{ $parent->id }}" data-department-id="{{ $parent->departemen_id }}" {{ (string) old('parent_position_id', optional($editPosition)->parent_position_id) === (string) $parent->id ? 'selected' : '' }}>{{ $parent->display_name }} — {{ optional($parent->jobTitle)->display_name }} ({{ $parent->code }})</option>@endforeach</select>@error('parent_position_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
-                                <div class="row g-3"><div class="col-6"><label class="form-label">{{ __('Rencana HC') }}</label><input type="number" name="planned_headcount" min="1" max="10000" class="form-control" value="{{ old('planned_headcount', optional($editPosition)->planned_headcount ?: 1) }}" required></div><div class="col-6"><label class="form-label">{{ __('Urutan') }}</label><input type="number" name="sort_order" min="0" class="form-control" value="{{ old('sort_order', optional($editPosition)->sort_order ?: 0) }}"></div></div>
-                                <div class="row g-3 mt-0"><div class="col-6"><label class="form-label">{{ __('Berlaku Mulai') }}</label><input type="date" name="effective_from" class="form-control" value="{{ old('effective_from', optional(optional($editPosition)->effective_from)->format('Y-m-d')) }}"></div><div class="col-6"><label class="form-label">{{ __('Berlaku Sampai') }}</label><input type="date" name="effective_until" class="form-control" value="{{ old('effective_until', optional(optional($editPosition)->effective_until)->format('Y-m-d')) }}"></div></div>
+                                <div class="mb-3"><label class="form-label">{{ __('Perusahaan') }}</label><select name="perusahaan_id" id="positionCompany" class="form-select" required>
+                                        <option value="">{{ __('Pilih perusahaan') }}</option>@foreach($companies as $company)<option value="{{ $company->id }}" {{ (string) $selectedPositionCompany === (string) $company->id ? 'selected' : '' }}>{{ $company->kode_perusahaan }} - {{ $company->nama_perusahaan }}</option>@endforeach
+                                    </select></div>
+                                <div class="mb-3"><label class="form-label">{{ __('Departemen') }}</label><select name="departemen_id" id="positionDepartment" class="form-select @error('departemen_id') is-invalid @enderror" required>
+                                        <option value="">{{ __('Pilih departemen') }}</option>@foreach($departments as $department)<option value="{{ $department->id }}" data-company-id="{{ $department->perusahaan_id }}" {{ (string) $selectedPositionDepartment === (string) $department->id ? 'selected' : '' }}>{{ $department->departemen }}</option>@endforeach
+                                    </select>@error('departemen_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+                                <div class="mb-3"><label class="form-label">{{ __('Divisi') }}</label><select name="divisi_id" id="positionDivision" class="form-select @error('divisi_id') is-invalid @enderror">
+                                        <option value="">{{ __('Tanpa divisi / tingkat departemen') }}</option>@foreach($divisions as $division)<option value="{{ $division->id }}" data-department-id="{{ $division->departemen_id }}" {{ (string) $selectedPositionDivision === (string) $division->id ? 'selected' : '' }}>{{ $division->nama_divisi }}</option>@endforeach
+                                    </select>@error('divisi_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+                                <div class="mb-3"><label class="form-label">{{ __('Jabatan') }}</label><select name="job_title_id" class="form-select @error('job_title_id') is-invalid @enderror" required>
+                                        <option value="">{{ __('Pilih jabatan') }}</option>@foreach($activeJobTitles as $jobTitle)<option value="{{ $jobTitle->id }}" {{ (string) old('job_title_id', optional($editPosition)->job_title_id) === (string) $jobTitle->id ? 'selected' : '' }}>{{ $jobTitle->display_name }} — {{ optional($jobTitle->level)->code }}</option>@endforeach
+                                    </select>@error('job_title_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+                                <div class="mb-3"><label class="form-label">{{ __('Override Level') }} <span class="text-muted">{{ __('(opsional)') }}</span></label><select name="job_level_id" class="form-select">
+                                        <option value="">{{ __('Gunakan level default jabatan') }}</option>@foreach($activeLevels as $level)<option value="{{ $level->id }}" {{ (string) old('job_level_id', optional($editPosition)->job_level_id) === (string) $level->id ? 'selected' : '' }}>{{ $level->code }} - {{ $level->name }}</option>@endforeach
+                                    </select></div>
+                                <div class="mb-3"><label class="form-label">{{ __('Atasan Struktural') }}</label><select name="parent_position_id" id="positionParent" class="form-select @error('parent_position_id') is-invalid @enderror">
+                                        <option value="">{{ __('Tidak ada / posisi puncak') }}</option>@foreach($availableParents as $parent)<option value="{{ $parent->id }}" data-department-id="{{ $parent->departemen_id }}" {{ (string) old('parent_position_id', optional($editPosition)->parent_position_id) === (string) $parent->id ? 'selected' : '' }}>{{ $parent->display_name }} — {{ optional($parent->jobTitle)->display_name }} ({{ $parent->code }})</option>@endforeach
+                                    </select>@error('parent_position_id')<div class="invalid-feedback">{{ $message }}</div>@enderror</div>
+                                <div class="row g-3">
+                                    <div class="col-6"><label class="form-label">{{ __('Rencana HC') }}</label><input type="number" name="planned_headcount" min="1" max="10000" class="form-control" value="{{ old('planned_headcount', optional($editPosition)->planned_headcount ?: 1) }}" required></div>
+                                    <div class="col-6"><label class="form-label">{{ __('Urutan') }}</label><input type="number" name="sort_order" min="0" class="form-control" value="{{ old('sort_order', optional($editPosition)->sort_order ?: 0) }}"></div>
+                                </div>
+                                <div class="row g-3 mt-0">
+                                    <div class="col-6"><label class="form-label">{{ __('Berlaku Mulai') }}</label><input type="date" name="effective_from" class="form-control" value="{{ old('effective_from', optional(optional($editPosition)->effective_from)->format('Y-m-d')) }}"></div>
+                                    <div class="col-6"><label class="form-label">{{ __('Berlaku Sampai') }}</label><input type="date" name="effective_until" class="form-control" value="{{ old('effective_until', optional(optional($editPosition)->effective_until)->format('Y-m-d')) }}"></div>
+                                </div>
                                 <div class="mb-3 mt-3"><label class="form-label">{{ __('Catatan') }}</label><textarea name="notes" class="form-control" rows="2">{{ old('notes', optional($editPosition)->notes) }}</textarea></div>
                                 <div class="form-check form-switch mb-3"><input type="checkbox" name="is_active" value="1" class="form-check-input" id="positionActive" {{ old('is_active', $editPosition ? $editPosition->is_active : true) ? 'checked' : '' }}><label for="positionActive" class="form-check-label">{{ __('Aktif') }}</label></div>
                                 <div class="d-flex gap-2"><button class="btn btn-primary" data-loading-text="Menyimpan...">{{ $editPosition ? 'Simpan Perubahan' : 'Tambah Posisi' }}</button>@if($editPosition)<a href="{{ route('organization-structure.index', ['section' => 'positions']) }}#positions" class="btn btn-light">{{ __('Batal') }}</a>@endif</div>
@@ -222,21 +291,48 @@
                 <div class="col-xl-8">
                     <div class="card">
                         <div class="card-header bg-white">
-                            <form method="GET" action="{{ route('organization-structure.index') }}" class="row g-2 align-items-center"><div class="col"><h5 class="mb-0">{{ __('Daftar Posisi Organisasi') }}</h5></div><div class="col-md-6"><select name="departemen_id" class="form-select"><option value="">{{ __('Semua departemen') }}</option>@foreach($departments as $department)<option value="{{ $department->id }}" {{ (string) $selectedDepartmentId === (string) $department->id ? 'selected' : '' }}>{{ optional($department->perusahaan)->kode_perusahaan }} — {{ $department->departemen }}</option>@endforeach</select></div><div class="col-auto"><button class="btn btn-outline-primary">{{ __('Filter') }}</button></div></form>
+                            <form method="GET" action="{{ route('organization-structure.index') }}" class="row g-2 align-items-center">
+                                <div class="col">
+                                    <h5 class="mb-0">{{ __('Daftar Posisi Organisasi') }}</h5>
+                                </div>
+                                <div class="col-md-6"><select name="departemen_id" class="form-select">
+                                        <option value="">{{ __('Semua departemen') }}</option>@foreach($departments as $department)<option value="{{ $department->id }}" {{ (string) $selectedDepartmentId === (string) $department->id ? 'selected' : '' }}>{{ optional($department->perusahaan)->kode_perusahaan }} — {{ $department->departemen }}</option>@endforeach
+                                    </select></div>
+                                <div class="col-auto"><button class="btn btn-outline-primary">{{ __('Filter') }}</button></div>
+                            </form>
                         </div>
-                        <div class="card-body p-0"><div class="table-responsive"><table class="table organization-table mb-0"><thead class="table-light"><tr><th>{{ __('Posisi') }}</th><th>{{ __('Scope') }}</th><th>{{ __('Level') }}</th><th>{{ __('Atasan') }}</th><th>{{ __('HC') }}</th><th>{{ __('Status') }}</th><th>{{ __('Aksi') }}</th></tr></thead><tbody>
-                            @forelse($positions as $position)
-                            <tr>
-                                <td><strong>{{ $position->display_name }}</strong><small class="d-block text-muted">Jabatan: {{ optional($position->jobTitle)->display_name }}</small><small class="d-block text-muted">{{ $position->code }}</small></td>
-                                <td>{{ optional($position->departemen)->departemen }}<small class="d-block text-muted">{{ optional($position->divisi)->nama_divisi ?: 'Tingkat departemen' }}</small></td>
-                                <td><span class="badge bg-primary">{{ optional($position->effective_level)->code }}</span> rank {{ optional($position->effective_level)->rank }}@if($position->job_level_id)<small class="d-block text-warning">{{ __('Override') }}</small>@endif</td>
-                                <td>{{ optional($position->parent)->display_name ?: 'Posisi puncak' }}</td>
-                                <td>{{ $position->activeAssignments->count() }} / {{ $position->planned_headcount }}@if($position->activeAssignments->isNotEmpty())<small class="d-block text-muted">{{ $position->activeAssignments->pluck('employee.nama_karyawan')->filter()->take(3)->implode(', ') }}</small>@endif</td>
-                                <td><span class="badge bg-{{ $position->is_active ? 'success' : 'secondary' }}">{{ $position->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
-                                <td><a href="{{ route('organization-structure.index', ['edit_position' => $position->id, 'departemen_id' => $selectedDepartmentId, 'section' => 'positions']) }}#positions" class="btn btn-sm btn-warning">{{ __('Edit') }}</a></td>
-                            </tr>
-                            @empty<tr><td colspan="7" class="text-center text-muted py-4">{{ __('Belum ada posisi organisasi pada filter ini.') }}</td></tr>@endforelse
-                        </tbody></table></div></div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table organization-table mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>{{ __('Posisi') }}</th>
+                                            <th>{{ __('Scope') }}</th>
+                                            <th>{{ __('Level') }}</th>
+                                            <th>{{ __('Atasan') }}</th>
+                                            <th>{{ __('HC') }}</th>
+                                            <th>{{ __('Status') }}</th>
+                                            <th>{{ __('Aksi') }}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($positions as $position)
+                                        <tr>
+                                            <td><strong>{{ $position->display_name }}</strong><small class="d-block text-muted">Jabatan: {{ optional($position->jobTitle)->display_name }}</small><small class="d-block text-muted">{{ $position->code }}</small></td>
+                                            <td>{{ optional($position->departemen)->departemen }}<small class="d-block text-muted">{{ optional($position->divisi)->nama_divisi ?: 'Tingkat departemen' }}</small></td>
+                                            <td><span class="badge bg-primary">{{ optional($position->effective_level)->code }}</span> rank {{ optional($position->effective_level)->rank }}@if($position->job_level_id)<small class="d-block text-warning">{{ __('Override') }}</small>@endif</td>
+                                            <td>{{ optional($position->parent)->display_name ?: 'Posisi puncak' }}</td>
+                                            <td>{{ $position->activeAssignments->count() }} / {{ $position->planned_headcount }}@if($position->activeAssignments->isNotEmpty())<small class="d-block text-muted">{{ $position->activeAssignments->pluck('employee.nama_karyawan')->filter()->take(3)->implode(', ') }}</small>@endif</td>
+                                            <td><span class="badge bg-{{ $position->is_active ? 'success' : 'secondary' }}">{{ $position->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
+                                            <td><a href="{{ route('organization-structure.index', ['edit_position' => $position->id, 'departemen_id' => $selectedDepartmentId, 'section' => 'positions']) }}#positions" class="btn btn-sm btn-warning">{{ __('Edit') }}</a></td>
+                                        </tr>
+                                        @empty<tr>
+                                            <td colspan="7" class="text-center text-muted py-4">{{ __('Belum ada posisi organisasi pada filter ini.') }}</td>
+                                        </tr>@endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                         @if($positions->hasPages())<div class="card-footer">{{ $positions->links() }}</div>@endif
                     </div>
                 </div>
@@ -245,7 +341,9 @@
 
         <section id="assignments" class="organization-section mb-5">
             <div class="card organization-form-card">
-                <div class="card-header bg-white"><h5 class="mb-1">{{ __('Tempatkan Karyawan') }}</h5><small class="text-muted">{{ __('Assignment aktif lama akan ditutup satu hari sebelum tanggal efektif assignment baru.') }}</small></div>
+                <div class="card-header bg-white">
+                    <h5 class="mb-1">{{ __('Tempatkan Karyawan') }}</h5><small class="text-muted">{{ __('Assignment aktif lama akan ditutup satu hari sebelum tanggal efektif assignment baru.') }}</small>
+                </div>
                 <div class="card-body">
                     <form method="POST" action="#" id="assignmentForm" data-action-template="{{ route('organization-structure.assignments.store', ['organizationPosition' => '__POSITION__']) }}" data-loading-form>
                         @csrf
@@ -279,107 +377,156 @@
 
 @push('scripts')
 <script>
-(function () {
-    function filterSelect(select, dataKey, value) {
-        if (!select) return;
-        Array.from(select.options).forEach(function (option, index) {
-            if (index === 0) return;
-            const visible = !value || option.dataset[dataKey] === String(value);
-            option.hidden = !visible;
-            if (!visible && option.selected) select.value = '';
-        });
-    }
-
-    const company = document.getElementById('positionCompany');
-    const department = document.getElementById('positionDepartment');
-    const division = document.getElementById('positionDivision');
-    const parent = document.getElementById('positionParent');
-    function refreshPositionScope() {
-        filterSelect(department, 'companyId', company ? company.value : '');
-        filterSelect(division, 'departmentId', department ? department.value : '');
-        filterSelect(parent, 'departmentId', department ? department.value : '');
-    }
-    if (company) company.addEventListener('change', function () { department.value = ''; division.value = ''; parent.value = ''; refreshPositionScope(); });
-    if (department) department.addEventListener('change', function () { division.value = ''; parent.value = ''; refreshPositionScope(); });
-    refreshPositionScope();
-
-    const assignmentForm = document.getElementById('assignmentForm');
-    const assignmentPosition = document.getElementById('assignmentPosition');
-    const searchInput = document.getElementById('employeeSearch');
-    const searchButton = document.getElementById('employeeSearchButton');
-    const results = document.getElementById('employeeSearchResults');
-    const feedback = document.getElementById('employeeSearchFeedback');
-    const selectedNik = document.getElementById('selectedEmployeeNik');
-
-    function updateAssignmentAction() {
-        const positionId = assignmentPosition.value;
-        assignmentForm.action = positionId ? assignmentForm.dataset.actionTemplate.replace('__POSITION__', positionId) : '#';
-        selectedNik.value = '';
-        results.innerHTML = '';
-    }
-
-    if (assignmentPosition) assignmentPosition.addEventListener('change', updateAssignmentAction);
-
-    async function searchEmployees() {
-        const option = assignmentPosition.selectedOptions[0];
-        const query = searchInput.value.trim();
-        if (!assignmentPosition.value) { feedback.textContent = 'Pilih posisi organisasi terlebih dahulu.'; return; }
-        if (query.length < 2) { feedback.textContent = 'Masukkan minimal 2 karakter.'; return; }
-
-        searchButton.disabled = true;
-        searchButton.textContent = 'Mencari...';
-        results.innerHTML = '';
-        try {
-            const params = new URLSearchParams({ q: query, departemen_id: option.dataset.departmentId || '', divisi_id: option.dataset.divisionId || '' });
-            const response = await fetch('{{ route('organization-structure.employees.search') }}?' + params.toString(), { headers: { 'Accept': 'application/json' } });
-            const payload = await response.json();
-            if (!response.ok || !payload.success) throw new Error(payload.message || 'Pencarian gagal.');
-            if (!payload.data.length) { feedback.textContent = 'Karyawan aktif tidak ditemukan pada scope posisi.'; return; }
-            feedback.textContent = 'Klik karyawan untuk memilih.';
-            payload.data.forEach(function (employee) {
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'list-group-item list-group-item-action';
-                button.innerHTML = '<strong>' + employee.text.replace(/[&<>"']/g, function (m) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'})[m]; }) + '</strong><small class="d-block text-muted"></small>';
-                button.querySelector('small').textContent = employee.job_title || 'Jabatan belum diisi';
-                button.addEventListener('click', function () {
-                    selectedNik.value = employee.id;
-                    searchInput.value = employee.text;
-                    feedback.textContent = 'Karyawan dipilih: ' + employee.text;
-                    results.innerHTML = '';
-                });
-                results.appendChild(button);
+    (function() {
+        function filterSelect(select, dataKey, value) {
+            if (!select) return;
+            Array.from(select.options).forEach(function(option, index) {
+                if (index === 0) return;
+                const visible = !value || option.dataset[dataKey] === String(value);
+                option.hidden = !visible;
+                if (!visible && option.selected) select.value = '';
             });
-        } catch (error) {
-            feedback.textContent = error.message || 'Pencarian gagal. Silakan coba lagi.';
-        } finally {
-            searchButton.disabled = false;
-            searchButton.textContent = 'Cari';
         }
-    }
-    if (searchButton) searchButton.addEventListener('click', searchEmployees);
-    if (searchInput) searchInput.addEventListener('keydown', function (event) { if (event.key === 'Enter') { event.preventDefault(); searchEmployees(); } });
 
-    document.querySelectorAll('[data-loading-form]').forEach(function (form) {
-        form.addEventListener('submit', function (event) {
-            if (form === assignmentForm && (!assignmentPosition.value || !selectedNik.value)) {
-                event.preventDefault();
-                feedback.textContent = 'Posisi dan karyawan wajib dipilih.';
+        const company = document.getElementById('positionCompany');
+        const department = document.getElementById('positionDepartment');
+        const division = document.getElementById('positionDivision');
+        const parent = document.getElementById('positionParent');
+
+        function refreshPositionScope() {
+            filterSelect(department, 'companyId', company ? company.value : '');
+            filterSelect(division, 'departmentId', department ? department.value : '');
+            filterSelect(parent, 'departmentId', department ? department.value : '');
+        }
+        if (company) company.addEventListener('change', function() {
+            department.value = '';
+            division.value = '';
+            parent.value = '';
+            refreshPositionScope();
+        });
+        if (department) department.addEventListener('change', function() {
+            division.value = '';
+            parent.value = '';
+            refreshPositionScope();
+        });
+        refreshPositionScope();
+
+        const assignmentForm = document.getElementById('assignmentForm');
+        const assignmentPosition = document.getElementById('assignmentPosition');
+        const searchInput = document.getElementById('employeeSearch');
+        const searchButton = document.getElementById('employeeSearchButton');
+        const results = document.getElementById('employeeSearchResults');
+        const feedback = document.getElementById('employeeSearchFeedback');
+        const selectedNik = document.getElementById('selectedEmployeeNik');
+
+        function updateAssignmentAction() {
+            const positionId = assignmentPosition.value;
+            assignmentForm.action = positionId ? assignmentForm.dataset.actionTemplate.replace('__POSITION__', positionId) : '#';
+            selectedNik.value = '';
+            results.innerHTML = '';
+        }
+
+        if (assignmentPosition) assignmentPosition.addEventListener('change', updateAssignmentAction);
+
+        async function searchEmployees() {
+            const option = assignmentPosition.selectedOptions[0];
+            const query = searchInput.value.trim();
+            if (!assignmentPosition.value) {
+                feedback.textContent = 'Pilih posisi organisasi terlebih dahulu.';
                 return;
             }
-            const button = form.querySelector('button[type="submit"], button:not([type])');
-            if (!button || button.disabled) { event.preventDefault(); return; }
-            button.disabled = true;
-            button.dataset.originalText = button.innerHTML;
-            button.textContent = button.dataset.loadingText || 'Memproses...';
-        });
-    });
+            if (query.length < 2) {
+                feedback.textContent = 'Masukkan minimal 2 karakter.';
+                return;
+            }
 
-    const requestedSection = @json(request('section'));
-    if (requestedSection) {
-        const section = document.getElementById(requestedSection);
-        if (section) setTimeout(function () { section.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
-    }
-})();
+            searchButton.disabled = true;
+            searchButton.textContent = 'Mencari...';
+            results.innerHTML = '';
+            try {
+                const params = new URLSearchParams({
+                    q: query,
+                    departemen_id: option.dataset.departmentId || '',
+                    divisi_id: option.dataset.divisionId || ''
+                });
+                const response = await fetch('{{ route('
+                    organization - structure.employees.search ') }}?' + params.toString(), {
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                const payload = await response.json();
+                if (!response.ok || !payload.success) throw new Error(payload.message || 'Pencarian gagal.');
+                if (!payload.data.length) {
+                    feedback.textContent = 'Karyawan aktif tidak ditemukan pada scope posisi.';
+                    return;
+                }
+                feedback.textContent = 'Klik karyawan untuk memilih.';
+                payload.data.forEach(function(employee) {
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'list-group-item list-group-item-action';
+                    button.innerHTML = '<strong>' + employee.text.replace(/[&<>"']/g, function(m) {
+                        return ({
+                            '&': '&amp;',
+                            '<': '&lt;',
+                            '>': '&gt;',
+                            '"': '&quot;',
+                            "'": '&#039;'
+                        })[m];
+                    }) + '</strong><small class="d-block text-muted"></small>';
+                    button.querySelector('small').textContent = employee.job_title || 'Jabatan belum diisi';
+                    button.addEventListener('click', function() {
+                        selectedNik.value = employee.id;
+                        searchInput.value = employee.text;
+                        feedback.textContent = 'Karyawan dipilih: ' + employee.text;
+                        results.innerHTML = '';
+                    });
+                    results.appendChild(button);
+                });
+            } catch (error) {
+                feedback.textContent = error.message || 'Pencarian gagal. Silakan coba lagi.';
+            } finally {
+                searchButton.disabled = false;
+                searchButton.textContent = 'Cari';
+            }
+        }
+        if (searchButton) searchButton.addEventListener('click', searchEmployees);
+        if (searchInput) searchInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                searchEmployees();
+            }
+        });
+
+        document.querySelectorAll('[data-loading-form]').forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form === assignmentForm && (!assignmentPosition.value || !selectedNik.value)) {
+                    event.preventDefault();
+                    feedback.textContent = 'Posisi dan karyawan wajib dipilih.';
+                    return;
+                }
+                const button = form.querySelector('button[type="submit"], button:not([type])');
+                if (!button || button.disabled) {
+                    event.preventDefault();
+                    return;
+                }
+                button.disabled = true;
+                button.dataset.originalText = button.innerHTML;
+                button.textContent = button.dataset.loadingText || 'Memproses...';
+            });
+        });
+
+        const requestedSection = @json(request('section'));
+        if (requestedSection) {
+            const section = document.getElementById(requestedSection);
+            if (section) setTimeout(function() {
+                section.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }, 100);
+        }
+    })();
 </script>
 @endpush

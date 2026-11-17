@@ -41,6 +41,9 @@ $menus = [
         'label' => 'Slip Gaji Admin',
         'group' => 'Data Master',
     ],
+    'severance_staff' => ['label' => 'Pesangon — Staf HI', 'group' => 'Operasional'],
+    'severance_payroll' => ['label' => 'Pesangon — Approval Supervisor Comben', 'group' => 'Approval'],
+    'severance_hi' => ['label' => 'Pesangon — Approval Supervisor HI', 'group' => 'Approval'],
     'electronic_contract_admin' => [
         'label' => 'Kontrak Elektronik Admin',
         'group' => 'Data Master',
@@ -183,6 +186,9 @@ return [
     'approval_sidebar_cache_ttl' => env('APPROVAL_SIDEBAR_CACHE_TTL', 30),
 
     'roles' => [
+        'Staff HI' => ['aliases' => [], 'scope_label' => 'Pengajuan sendiri', 'description' => 'Mengunggah pengajuan pesangon dan mengunduh hasil yang disetujui.'],
+        'Supervisor Payroll' => ['aliases' => [], 'scope_label' => 'Review upah pesangon', 'description' => 'Memeriksa upah FULL V Payslip dan menyetujui tahap payroll.'],
+        'Supervisor HI' => ['aliases' => [], 'scope_label' => 'Review akhir pesangon', 'description' => 'Mengisi sisa cuti dan menyetujui hasil perhitungan pesangon.'],
         'Super Admin' => [
             'aliases' => ['Administrator'],
             'scope_label' => 'Semua data',
@@ -226,6 +232,9 @@ return [
     ],
     'menus' => $menus,
     'default_menu_permissions' => [
+        'Staff HI' => ['dashboard_karyawan', 'severance_staff'],
+        'Supervisor Payroll' => ['dashboard_karyawan', 'severance_payroll'],
+        'Supervisor HI' => ['dashboard_karyawan', 'severance_hi'],
         'Audit CV' => ['dashboard_karyawan', 'cv_maker_compare'],
         'Super Admin' => array_keys($menus),
         'HR' => [
