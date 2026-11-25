@@ -10,7 +10,7 @@ use RuntimeException;
 
 class RecruitmentDocumentClient
 {
-    public function lookupByNoKtp(string $noKtp): array
+    public function lookupByNoKtp(string $noKtp, bool $useCache = true): array
     {
         $noKtp = trim($noKtp);
 
@@ -25,7 +25,7 @@ class RecruitmentDocumentClient
         $cacheKey = 'recruitment_documents:' . sha1($noKtp);
         $ttl = max((int) config('services.recruitment.cache_ttl', 3), 0);
 
-        if ($ttl === 0) {
+        if (!$useCache || $ttl === 0) {
             return $this->requestDocuments($noKtp);
         }
 

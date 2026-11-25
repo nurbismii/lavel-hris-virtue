@@ -67,6 +67,19 @@
         </aside>
 
         <div class="profile-page__details">
+            @if(!empty($apdPhotoUrl))
+                <section class="card profile-card" aria-labelledby="apd-photo-heading">
+                    <div class="card-header">
+                        <span class="profile-card__icon"><i class="fas fa-camera" aria-hidden="true"></i></span>
+                        <h2 id="apd-photo-heading">{{ __('apd_photo.title') }}</h2>
+                    </div>
+                    <div class="card-body py-3">
+                        <img src="{{ $apdPhotoUrl }}" alt="{{ __('apd_photo.title') }}" class="img-fluid rounded"
+                            width="220" referrerpolicy="no-referrer">
+                    </div>
+                </section>
+            @endif
+
             <section class="card profile-card" aria-labelledby="profile-account-heading">
                 <div class="card-header">
                     <span class="profile-card__icon"><i class="fas fa-user-shield" aria-hidden="true"></i></span>
