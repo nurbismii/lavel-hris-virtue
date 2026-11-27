@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Client\Request;
@@ -26,6 +27,7 @@ class EmployeeApdPhotoTest extends TestCase
             'services.recruitment.base_url' => 'https://vhire.example.test',
             'services.recruitment.token' => 'synthetic-token',
             'services.recruitment.cache_ttl' => 3,
+            'cache.default' => 'array',
             'logging.default' => 'null',
         ]);
         DB::purge('sqlite');
@@ -100,5 +102,49 @@ class EmployeeApdPhotoTest extends TestCase
     {
         Http::fake([self::V_HIRE_API => Http::response([], 503)]);
         $this->get(route('pengaturan-akun.index'))->assertOk()->assertDontSee('Pas Foto APD dari V-Hire');
+    }
+
+    public function test_employee_documents_show_a_new_apd_photo_on_reopen(): void
+    {
+        auth()->user()->setRelation('role', new Role([
+            'permission_role' => 'HR',
+            'menu_permissions' => ['data_karyawan'],
+        ]));
+
+        $photo = [
+            'type' => 'pas_foto_apd',
+            'label' => 'Pas Foto APD',
+            'mime' => 'image/png',
+            'preview_url' => self::V_HIRE_API . '/6400000000000001/pas_foto_apd/preview',
+            'download_url' => self::V_HIRE_API . '/6400000000000001/pas_foto_apd/download',
+        ];
+        Http::fake([
+            self::V_HIRE_API => Http::sequence()
+                ->push(['found' => true, 'documents' => []])
+                ->push(['found' => true, 'documents' => [$photo]]),
+        ]);
+
+        $url = route('karyawan.recruitment-documents', 'APD-TEST');
+        $this->getJson($url)->assertOk()->assertJsonCount(0, 'documents');
+        $this->getJson($url)->assertOk()->assertJsonFragment($photo);
+
+        Http::assertSentCount(2);
+        Http::assertSent(fn (Request $request) => $request['no_ktp'] === '6400000000000001'
+            && $request->hasHeader('Authorization', 'Bearer synthetic-token'));
+    }
+
+    public function test_employee_documents_respect_employee_scope_before_requesting_vhire(): void
+    {
+        $manager = auth()->user();
+        $manager->setRelation('role', new Role([
+            'permission_role' => 'Manager',
+            'menu_permissions' => ['data_karyawan'],
+        ]));
+        $manager->setRelation('employee', new Employee(['departemen_id' => 2]));
+        Http::fake();
+
+        $this->getJson(route('karyawan.recruitment-documents', 'APD-TEST'))->assertNotFound();
+
+        Http::assertNothingSent();
     }
 }

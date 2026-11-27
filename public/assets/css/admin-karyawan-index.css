@@ -303,6 +303,14 @@
     gap: 8px;
 }
 
+.recruitment-apd-photo__image {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: min(38vh, 260px);
+}
+
 .recruitment-document-item {
     display: flex;
     align-items: center;

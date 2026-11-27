@@ -191,21 +191,26 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalRecruitmentDocuments" tabindex="-1" aria-labelledby="modalRecruitmentDocumentsLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+<div class="modal" id="modalRecruitmentDocuments" tabindex="-1" aria-labelledby="modalRecruitmentDocumentsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content recruitment-documents-modal">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="modalRecruitmentDocumentsLabel">{{ __('Dokumen Recruitment') }}</h1>
+                <h1 class="modal-title fs-5" id="modalRecruitmentDocumentsLabel">{{ __('Dokumen V-Hire') }}</h1>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ __('Close') }}"></button>
             </div>
             <div class="modal-body">
                 <div id="recruitmentDocumentsLoading" class="recruitment-documents-state">
                     <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
-                    {{ __('Mengambil dokumen dari recruitment...') }}
+                    {{ __('Memuat dokumen dari V-Hire...') }}
                 </div>
-                <div id="recruitmentDocumentsError" class="alert ui-alert ui-alert--warning d-none mb-0"></div>
+                <div id="recruitmentDocumentsError" class="alert ui-alert ui-alert--warning d-none mb-0" role="alert"></div>
+                <section id="recruitmentApdPhoto" class="d-none mb-3" aria-labelledby="recruitmentApdTitle">
+                    <h2 class="h6 mb-2" id="recruitmentApdTitle">{{ __('Pas Foto APD') }}</h2>
+                    <p id="recruitmentApdStatus" class="small text-muted mb-2" role="status"></p>
+                    <div id="recruitmentApdPreview"></div>
+                </section>
                 <div id="recruitmentDocumentsEmpty" class="alert ui-alert d-none mb-0">
-                    {{ __('Dokumen recruitment tidak ditemukan untuk No KTP karyawan ini.') }}
+                    {{ __('Dokumen V-Hire belum tersedia untuk karyawan ini.') }}
                 </div>
                 <div id="recruitmentDocumentsList" class="recruitment-documents-list d-none"></div>
             </div>
@@ -793,6 +798,10 @@
     const recruitmentDocumentsError = document.getElementById('recruitmentDocumentsError');
     const recruitmentDocumentsEmpty = document.getElementById('recruitmentDocumentsEmpty');
     const recruitmentDocumentsList = document.getElementById('recruitmentDocumentsList');
+    const recruitmentApdPhoto = document.getElementById('recruitmentApdPhoto');
+    const recruitmentApdStatus = document.getElementById('recruitmentApdStatus');
+    const recruitmentApdPreview = document.getElementById('recruitmentApdPreview');
+    let recruitmentDocumentsRequest = null;
 
     function isPreviewImage(url, mime = '') {
         if (mime.toLowerCase().startsWith('image/')) {
@@ -812,20 +821,28 @@
         recruitmentDocumentsError.classList.add('d-none');
         recruitmentDocumentsEmpty.classList.add('d-none');
         recruitmentDocumentsList.classList.add('d-none');
+        recruitmentApdPhoto.classList.add('d-none');
         recruitmentDocumentsError.textContent = '';
         recruitmentDocumentsList.innerHTML = '';
+        recruitmentApdStatus.textContent = '';
+        recruitmentApdPreview.textContent = '';
     }
 
     function renderRecruitmentDocuments(documents) {
         recruitmentDocumentsLoading.classList.add('d-none');
-        recruitmentDocumentsList.innerHTML = '';
-
-        if (!documents.length) {
-            recruitmentDocumentsEmpty.classList.remove('d-none');
-            return;
-        }
+        const apdPhoto = documents.find(item => item.type === 'pas_foto_apd'
+            && item.preview_url && ['image/jpeg', 'image/png'].includes(item.mime));
+        recruitmentApdPhoto.classList.remove('d-none');
+        recruitmentApdStatus.textContent = apdPhoto
+            ? @json(__('Memuat pas foto APD...'))
+            : @json(__('Pas foto APD belum tersedia di V-Hire.'));
 
         documents.forEach(function(documentItem) {
+            const isApdPhoto = documentItem.type === 'pas_foto_apd';
+            if (isApdPhoto && documentItem !== apdPhoto) {
+                return;
+            }
+
             const previewUrl = documentItem.preview_url || documentItem.download_url || '';
             const downloadUrl = documentItem.download_url || documentItem.preview_url || '';
 
@@ -848,6 +865,32 @@
 
             const meta = document.createElement('span');
             meta.className = 'recruitment-document-item__meta';
+
+            if (isApdPhoto) {
+                const image = document.createElement('img');
+                image.className = 'recruitment-apd-photo__image rounded d-none';
+                image.alt = @json(__('Pas foto karyawan menggunakan APD'));
+                image.referrerPolicy = 'no-referrer';
+                image.addEventListener('load', function() {
+                    if (button.isConnected) {
+                        image.classList.remove('d-none');
+                        recruitmentApdStatus.textContent = '';
+                    }
+                }, { once: true });
+                image.addEventListener('error', function() {
+                    if (button.isConnected) {
+                        recruitmentApdStatus.textContent = @json(__('Pas foto APD gagal dimuat. Buka kembali dokumen V-Hire untuk mencoba lagi.'));
+                    }
+                }, { once: true });
+
+                meta.textContent = @json(__('Lihat foto dan unduh'));
+                button.classList.add('flex-column');
+                button.append(image, meta);
+                recruitmentApdPreview.appendChild(button);
+                image.src = previewUrl;
+                return;
+            }
+
             meta.textContent = documentItem.expires_at
                 ? `Link berlaku sampai ${documentItem.expires_at}`
                 : 'Klik untuk preview';
@@ -857,57 +900,85 @@
             recruitmentDocumentsList.appendChild(button);
         });
 
-        if (!recruitmentDocumentsList.children.length) {
-            recruitmentDocumentsEmpty.classList.remove('d-none');
-            return;
-        }
-
-        recruitmentDocumentsList.classList.remove('d-none');
+        const hasOtherDocuments = recruitmentDocumentsList.childElementCount > 0;
+        recruitmentDocumentsEmpty.classList.toggle('d-none', Boolean(apdPhoto) || hasOtherDocuments);
+        recruitmentDocumentsList.classList.toggle('d-none', !hasOtherDocuments);
     }
+
+    recruitmentDocumentsModalEl.addEventListener('hidden.bs.modal', function() {
+        recruitmentDocumentsRequest?.abort();
+        resetRecruitmentDocumentsModal();
+    });
 
     $(document).on('click', '.js-recruitment-documents', function(event) {
         event.preventDefault();
 
-        if (!recruitmentDocumentsModal || !recruitmentDocumentsTitle || !recruitmentDocumentsLoading || !recruitmentDocumentsError || !recruitmentDocumentsEmpty || !recruitmentDocumentsList) {
+        if (this.disabled) {
             return;
         }
 
+        const trigger = this;
+        recruitmentDocumentsRequest?.abort();
+        const request = new AbortController();
+        recruitmentDocumentsRequest = request;
+        trigger.disabled = true;
+
         const url = this.dataset.url;
         const employeeName = this.dataset.employeeName || 'Karyawan';
-        const noKtp = this.dataset.noKtp || '-';
 
-        recruitmentDocumentsTitle.textContent = `Dokumen Recruitment - ${employeeName}`;
+        recruitmentDocumentsTitle.textContent = `Dokumen V-Hire - ${employeeName}`;
         resetRecruitmentDocumentsModal();
         recruitmentDocumentsModal.show();
 
         fetch(url, {
+            signal: request.signal,
+            cache: 'no-store',
             headers: {
                 'Accept': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
             .then(function(response) {
+                if (response.redirected || response.status === 401 || response.status === 419) {
+                    throw new Error(@json(__('Sesi login berakhir. Silakan login ulang.')));
+                }
+
+                if (response.status === 403 || response.status === 404) {
+                    throw new Error(@json(__('Data karyawan tidak tersedia atau Anda tidak memiliki akses.')));
+                }
+
                 if (!response.ok) {
-                    throw new Error('Request dokumen recruitment gagal.');
+                    throw new Error(@json(__('Dokumen V-Hire gagal dimuat. Silakan coba lagi.')));
                 }
 
                 return response.json();
             })
             .then(function(payload) {
-                recruitmentDocumentsLoading.classList.add('d-none');
-
-                if (!payload.found) {
-                    recruitmentDocumentsEmpty.textContent = payload.message || `Dokumen recruitment tidak ditemukan untuk No KTP ${noKtp}.`;
-                    recruitmentDocumentsEmpty.classList.remove('d-none');
+                if (request.signal.aborted) {
                     return;
                 }
 
-                renderRecruitmentDocuments(payload.documents || []);
+                recruitmentDocumentsEmpty.textContent = payload.message
+                    || @json(__('Dokumen V-Hire belum tersedia untuk karyawan ini.'));
+                const documents = payload.found ? payload.documents : [];
+                renderRecruitmentDocuments(documents || []);
             })
             .catch(function(error) {
+                if (request.signal.aborted) {
+                    return;
+                }
+
                 recruitmentDocumentsLoading.classList.add('d-none');
-                recruitmentDocumentsError.textContent = error.message || 'Dokumen recruitment gagal dimuat.';
+                recruitmentDocumentsError.textContent = error instanceof TypeError || error instanceof SyntaxError
+                    ? @json(__('Dokumen V-Hire gagal dimuat. Buka kembali untuk mencoba lagi.'))
+                    : error.message;
                 recruitmentDocumentsError.classList.remove('d-none');
+            })
+            .finally(function() {
+                trigger.disabled = false;
+                if (recruitmentDocumentsRequest === request) {
+                    recruitmentDocumentsRequest = null;
+                }
             });
     });
 

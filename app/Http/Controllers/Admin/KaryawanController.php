@@ -422,7 +422,7 @@ class KaryawanController extends Controller
         }
 
         try {
-            $payload = $client->lookupByNoKtp($employee->no_ktp);
+            $payload = $client->lookupByNoKtp($employee->no_ktp, false);
         } catch (Throwable $exception) {
             report($exception);
 
