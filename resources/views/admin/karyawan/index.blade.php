@@ -3,7 +3,7 @@
 @section('title', __('Data Karyawan'))
 
 @push('styles')
-<link rel="stylesheet" href="{{ versioned_asset('assets/css/admin-karyawan-index.css') }}">
+<link rel="stylesheet" href="{{ versioned_asset('assets/css/admin-karyawan-index.css?ui=apd-preview') }}">
 @endpush
 
 @section('content')
@@ -868,7 +868,7 @@
 
             if (isApdPhoto) {
                 const image = document.createElement('img');
-                image.className = 'recruitment-apd-photo__image rounded d-none';
+                image.className = 'recruitment-apd-photo__image img-fluid object-fit-contain rounded d-none';
                 image.alt = @json(__('Pas foto karyawan menggunakan APD'));
                 image.referrerPolicy = 'no-referrer';
                 image.addEventListener('load', function() {
