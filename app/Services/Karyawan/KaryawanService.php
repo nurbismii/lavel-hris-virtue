@@ -4,6 +4,8 @@ namespace App\Services\Karyawan;
 
 use App\Models\Employee;
 use App\Models\Perusahaan;
+use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Yajra\DataTables\Facades\DataTables;
 
 class KaryawanService
@@ -15,22 +17,25 @@ class KaryawanService
         'pendidikan_terakhir' => 'Pendidikan terakhir',
     ];
 
+    public function listQuery(User $user): Builder
+    {
+        return $user->applyEmployeeScope(Employee::query())
+            ->whereIn('employees.area_kerja', Perusahaan::ORGANIZATION_COMPANY_CODES)
+            ->whereNotNull('employees.status_resign');
+    }
+
     public function filterOptions($user): array
     {
-        $query = $user->applyEmployeeScope(Employee::query())->whereNotNull('status_resign');
+        $query = $this->listQuery($user);
         $options = [];
         foreach (self::FILTER_LABELS as $column => $label) {
             if ($column === 'pendidikan_terakhir') {
                 $options[$column] = ['label' => $label, 'values' => collect(array_keys(config('employee_filters.education_levels', [])))];
                 continue;
             }
-            $optionQuery = clone $query;
-            if (in_array($column, ['jabatan', 'posisi'], true)) {
-                $optionQuery->whereIn('area_kerja', config('employee_filters.job_option_companies', []));
-            }
             $options[$column] = [
                 'label' => $label,
-                'values' => $optionQuery->whereNotNull($column)->where($column, '<>', '')
+                'values' => (clone $query)->whereNotNull($column)->where($column, '<>', '')
                     ->select($column)->distinct()->orderBy($column)->pluck($column),
             ];
         }
@@ -51,7 +56,7 @@ class KaryawanService
     public function getDataKaryawan($request, $user)
     {
         // Logic to retrieve and filter Karyawan data
-        $query = Employee::select(
+        $query = $this->listQuery($user)->select(
             'nik',
             'nama_karyawan',
             'area_kerja',
@@ -66,21 +71,13 @@ class KaryawanService
             'sim_path',
             'sio_path',
             'face_reference_path'
-        )
-            ->whereNotNull('status_resign')
-            ->with(['departemen', 'divisi']);
-
-        $user->applyEmployeeScope($query);
+        )->with(['departemen', 'divisi']);
 
         $requestedAreas = collect((array) $request->input('area'))
             ->filter(fn($value) => filled($value));
-        $areaCodes = $this->selectedAreaCodes($requestedAreas->all());
 
-        if ($areaCodes) {
-            $query->whereIn('area_kerja', $areaCodes);
-        } elseif ($requestedAreas->isNotEmpty()) {
-            // Jangan biarkan filter perusahaan yang tidak didukung melebar menjadi semua data.
-            $query->whereRaw('1 = 0');
+        if ($requestedAreas->isNotEmpty()) {
+            $query->whereIn('employees.area_kerja', $this->selectedAreaCodes($requestedAreas->all()));
         }
 
         if ($request->departemen) {
@@ -158,11 +155,11 @@ class KaryawanService
             ->make(true);
     }
 
-    private function selectedAreaCodes($area): array
+    private function selectedAreaCodes(array $area): array
     {
-        return collect((array) $area)
-            ->filter(fn($value) => filled($value))
-            ->map(fn($value) => trim((string) $value))
+        return collect($area)
+            ->filter(fn($value) => is_string($value))
+            ->map(fn($value) => trim($value))
             ->filter(fn($value) => in_array($value, Perusahaan::ORGANIZATION_COMPANY_CODES, true))
             ->unique()
             ->values()

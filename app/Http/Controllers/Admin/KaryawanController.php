@@ -19,6 +19,7 @@ use App\Models\SuratPeringatan;
 use App\Models\WorkPattern;
 use App\Services\ContractRenewals\ContractRenewalService;
 use App\Services\ImportHistory\ImportHistoryService;
+use App\Services\Karyawan\KaryawanService;
 use App\Services\Recruitment\RecruitmentDocumentClient;
 use App\Services\Storage\SensitiveFileStorageService;
 use Illuminate\Http\Request;
@@ -42,16 +43,14 @@ class KaryawanController extends Controller
         'face_reference' => ['column' => 'face_reference_path', 'label' => 'FACE REF', 'directory' => 'face-reference/%s/'],
     ];
 
-    public function index(FilterKaryawanRequest $request)
+    public function index(FilterKaryawanRequest $request, KaryawanService $karyawanService)
     {
+        $user = $request->user();
         if ($request->ajax()) {
-
-            $karyawanService = app()->make(\App\Services\Karyawan\KaryawanService::class);
-
-            return $karyawanService->getDataKaryawan($request, $request->user());
+            return $karyawanService->getDataKaryawan($request, $user);
         }
 
-        $scopeQuery = $request->user()->applyEmployeeScope(Employee::query());
+        $scopeQuery = $karyawanService->listQuery($user);
         $departemenIds = (clone $scopeQuery)->select('departemen_id')->distinct()->pluck('departemen_id')->filter();
         $divisiIds = (clone $scopeQuery)->select('divisi_id')->distinct()->pluck('divisi_id')->filter();
         $areaCodes = (clone $scopeQuery)->select('area_kerja')->distinct()->pluck('area_kerja')->filter();
@@ -64,8 +63,8 @@ class KaryawanController extends Controller
                 ->whereIn('kode_perusahaan', $areaCodes)
                 ->orderBy('kode_perusahaan')
                 ->get(),
-            'canManageMasterData' => $request->user()->canAccessAllEmployees(),
-            'employeeFilterOptions' => app(\App\Services\Karyawan\KaryawanService::class)->filterOptions($request->user()),
+            'canManageMasterData' => $user->canAccessAllEmployees(),
+            'employeeFilterOptions' => $karyawanService->filterOptions($user),
         ]);
     }
 

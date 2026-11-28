@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Http\Requests\KaryawanRequest\FilterKaryawanRequest;
+use App\Models\Role;
+use App\Models\User;
 use App\Services\Karyawan\KaryawanService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Http\Request;
@@ -110,13 +112,36 @@ class KaryawanFiltersTest extends TestCase
         $this->assertFalse(Validator::make($request->all(), $request->rules())->fails());
     }
 
-    public function test_job_options_only_come_from_vdni_and_vdnip(): void
+    public function test_list_and_filter_options_only_come_from_vdni_and_vdnip(): void
     {
         DB::table('employees')->where('nik', '002')->update(['area_kerja' => 'VDNIP']);
-        DB::table('employees')->where('nik', '003')->update(['area_kerja' => 'OSS', 'posisi' => 'OSS only']);
+        DB::table('employees')->where('nik', '003')->update([
+            'area_kerja' => 'OSS',
+            'posisi' => 'OSS only',
+            'status_karyawan' => 'OSS only',
+        ]);
+        DB::table('employees')->insert(['nik' => '004', 'area_kerja' => 'PMS-VDNI', 'status_resign' => 'AKTIF']);
+
+        $hr = new User(['id' => 'hr-test', 'status' => 'aktif']);
+        $hr->setRelation('role', new Role(['permission_role' => 'HR', 'menu_permissions' => ['data_karyawan']]));
+        $this->actingAs($hr)
+            ->getJson(route('karyawan.index'), ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()
+            ->assertJsonPath('recordsTotal', 2)
+            ->assertJsonCount(2, 'data')
+            ->assertJsonFragment(['nik' => '001', 'area_kerja' => 'VDNI'])
+            ->assertJsonFragment(['nik' => '002', 'area_kerja' => 'VDNIP']);
+
+        $this->assertSame(['002'], $this->rows(['area' => ['VDNIP', 'OSS']]));
+        $this->assertSame([], $this->rows(['area' => ['OSS']]));
+        $this->assertSame([], $this->rows(['area' => [['OSS']]]));
+        $this->assertSame([], $this->rows(['search' => ['value' => 'Andi']]));
+        $this->assertSame([], $this->rows([], '2'));
+
         $options = app(KaryawanService::class)->filterOptions($this->scopeUser());
         $this->assertSame(['Admin', 'Operator'], $options['posisi']['values']->all());
         $this->assertSame(['Staff'], $options['jabatan']['values']->all());
+        $this->assertSame(['PKWT', 'PKWTT'], $options['status_karyawan']['values']->all());
         $this->assertSame([], app(KaryawanService::class)->filterOptions($this->scopeUser('2'))['posisi']['values']->all());
     }
 
@@ -133,7 +158,7 @@ class KaryawanFiltersTest extends TestCase
 
     private function scopeUser($department = null)
     {
-        $user = \Mockery::mock(\App\Models\User::class);
+        $user = \Mockery::mock(User::class);
         $user->shouldReceive('applyEmployeeScope')->andReturnUsing(function ($query) use ($department) {
             return $department ? $query->where('departemen_id', $department) : $query;
         });

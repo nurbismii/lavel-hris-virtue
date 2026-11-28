@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'job_option_companies' => ['VDNI', 'VDNIP'],
     'education_levels' => [
         'SD' => ['SD', 'MI', 'MADRASAH IBTIDAIYAH'],
         'SMP' => ['SMP', 'MTS', 'MADRASAH TSANAWIYAH'],
